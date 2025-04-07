@@ -1,19 +1,40 @@
 {
   "name": "@mcurros2/microm",
-  "version": "1.1.2049",
+  "version": "1.1.1-0",
   "source": "src/index.ts",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "publishConfig": {
-    "registry": "https://npm.pkg.github.com"
+    "access": "public"
   },
-  "repository": "https://github.com/mcurros2/packages.git",
+  "license": "MIT",
+  "author": "Mariano Curros",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mcurros2/MicroMFramework.git"
+  },
+  "description": "MicroM – Lightweight frontend framework for SQL-centric apps built with React and Mantine.",
+  "keywords": [
+    "microm",
+    "react",
+    "mantine",
+    "framework",
+    "sql",
+    "frontend",
+    "typescript",
+    "ui"
+  ],
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "lint": "eslint src --ext .js,.ts,.tsx",
-    "madge": "madge --circular --extensions ts,tsx src",
     "start": "(if exist dist rd /s /q dist) & (if exist .parcel-cache rd /s /q .parcel-cache) & parcel test/index.html --cert ../SSL/localhost.crt --key ../SSL/localhost.key --no-cache",
     "build": "(if exist dist rd /s /q dist) & (if exist .parcel-cache rd /s /q .parcel-cache) & parcel build --no-cache src/index.ts",
-    "publish:patch": "npm version patch -m \"Upgrade to %s\" && npm publish"
+    "publish:patch": "npm version patch -m \"Upgrade to %s\" && npm publish",
+    "publish:alpha": "npm version prepatch -m \"Upgrade to %s\" && npm publish --tag alpha"
   },
   "peerDependencies": {
     "@emotion/react": "^11.11.1",
@@ -62,7 +83,6 @@
     "eslint-plugin-node": "^11.1.0",
     "eslint-plugin-react": "^7.33.1",
     "eslint-plugin-react-hooks": "^4.6.0",
-    "madge": "^8.0.0",
     "parcel": "^2.12.0",
     "process": "^0.11.10",
     "react": "^18.2.0",

@@ -9,7 +9,7 @@
   
   <PropertyGroup>
     <VersionPrefix>1.0.1</VersionPrefix>
-    <VersionSuffix Condition="'$(DesignTimeBuild)' != 'true' OR '$(BuildingProject)' == 'true'">$([System.DateTime]::UtcNow.ToString(yyyyMMdd-HHmmss))</VersionSuffix>
+    <VersionSuffix Condition="'$(DesignTimeBuild)' != 'true' OR '$(BuildingProject)' == 'true'">alpha.$([System.DateTime]::UtcNow.ToString(yyyyMMdd-HHmmss))</VersionSuffix>
   </PropertyGroup>
   
   <PropertyGroup>
@@ -28,6 +28,11 @@
     <IncludeSymbols>False</IncludeSymbols>
     <IncludeBuildOutput>true</IncludeBuildOutput>
     <AnalysisLevel>latest-minimum</AnalysisLevel>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <RepositoryUrl>https://github.com/mcurros2/MicroMFramework</RepositoryUrl>
+    <PackageTags>fullstack;framework;sql server;api;react;typescript</PackageTags>
+    <Copyright>Copyright (c) Mariano Curros and contributors. MIT License.</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <!-- Do not create a separate symbols package -->
   </PropertyGroup>
   
@@ -148,6 +153,13 @@
 
   <ItemGroup>
     <Folder Include="DataDictionary\Entities\MicromPermissions\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
   </ItemGroup>
 
   <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
