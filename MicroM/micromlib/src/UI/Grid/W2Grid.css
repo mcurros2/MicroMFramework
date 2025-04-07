@@ -1,0 +1,149 @@
+.w2ui-grid-records {
+    overscroll-behavior: contain; /*fix para que al scrollear en la grilla no se scrollee el contenedor de la misma*/
+}
+
+.w2ui-grid {
+    border: unset;
+    border-radius: unset;
+}
+.w2ui-grid .w2ui-grid-body table .w2ui-head {
+    color: unset;
+    background-image: unset;
+    font-weight: bold;
+}
+
+.w2ui-reset,
+.w2ui-reset table tr th, .w2ui-reset table tr td {
+    font-family: unset;
+    font-size: 0.875rem; 
+}
+
+.w2ui-grid .w2ui-grid-body {
+    background-color: unset;
+}
+
+.w2ui-grid .w2ui-grid-body .w2ui-grid-records table tr.w2ui-odd,
+.w2ui-grid .w2ui-grid-body .w2ui-grid-frecords table tr.w2ui-odd,
+.w2ui-grid .w2ui-grid-body .w2ui-grid-records table tr.w2ui-even,
+.w2ui-grid .w2ui-grid-body .w2ui-grid-frecords table tr.w2ui-even {
+    background-color: unset;
+    border-bottom: unset;
+    border-top: unset;
+}
+
+.w2ui-grid .w2ui-grid-body .w2ui-grid-records table tr.w2ui-odd:hover, 
+.w2ui-grid .w2ui-grid-body .w2ui-grid-frecords table tr.w2ui-odd:hover, 
+.w2ui-grid .w2ui-grid-body .w2ui-grid-records table tr.w2ui-odd.w2ui-record-hover, 
+.w2ui-grid .w2ui-grid-body .w2ui-grid-frecords table tr.w2ui-odd.w2ui-record-hover,
+.w2ui-grid .w2ui-grid-body .w2ui-grid-records table tr.w2ui-even:hover, 
+.w2ui-grid .w2ui-grid-body .w2ui-grid-frecords table tr.w2ui-even:hover, 
+.w2ui-grid .w2ui-grid-body .w2ui-grid-records table tr.w2ui-even.w2ui-record-hover, 
+.w2ui-grid .w2ui-grid-body .w2ui-grid-frecords table tr.w2ui-even.w2ui-record-hover {
+    background-color: unset;
+}
+
+.w2ui-grid .w2ui-grid-body .w2ui-grid-columns, .w2ui-grid .w2ui-grid-body .w2ui-grid-fcolumns {
+    box-shadow: unset;
+}
+
+.w2ui-grid .w2ui-grid-body table .w2ui-head {
+    border-right: unset;
+    border-bottom: unset;
+}
+
+.w2ui-grid .w2ui-grid-body table td {
+    border-right: unset;
+}
+
+.w2ui-grid .w2ui-grid-body .w2ui-grid-scroll1 {
+    background-color: unset;
+    border-top: unset;
+    border-right: unset;
+}
+
+
+/*ajusta el icono de orden para que este en el medio independientemente del tamaño de la cabecera*/
+.w2ui-grid .w2ui-grid-body div.w2ui-col-header > div.w2ui-sort-down {
+    margin-top: 0.3rem;
+}
+.w2ui-grid .w2ui-grid-body div.w2ui-col-header > div.w2ui-sort-up {
+    margin-top: 0;
+}
+
+
+.w2ui-grid.w2grid-light.w2grid-column-borders .w2ui-grid-body table td:not(.w2ui-head):not(:last-child),
+.w2ui-grid.w2grid-light.w2grid-column-borders .w2ui-grid-body table td.w2ui-head:not(:nth-last-child(2)),
+.w2ui-grid.w2grid-light.w2grid-column-borders .w2ui-grid-body table td.w2ui-head.w2ui-col-select {
+    border-right: 0.0625rem solid rgb(222, 226, 230);
+}
+.w2ui-grid.w2grid-dark.w2grid-column-borders .w2ui-grid-body table td:not(.w2ui-head):not(:last-child),
+.w2ui-grid.w2grid-dark.w2grid-column-borders .w2ui-grid-body table td.w2ui-head:not(:nth-last-child(2)),
+.w2ui-grid.w2grid-dark.w2grid-column-borders .w2ui-grid-body table td.w2ui-head.w2ui-col-select
+{
+    border-right: 0.0625rem solid rgb(55, 58, 64);
+}
+
+.w2ui-grid.w2grid-light.w2grid-border {
+    border: 0.0625rem solid rgb(222, 226, 230);
+}
+.w2ui-grid.w2grid-dark.w2grid-border {
+    border: 0.0625rem solid rgb(55, 58, 64);
+}
+
+.w2ui-grid.w2grid-light.w2grid-row-borders .w2ui-grid-body .w2ui-grid-records table tr.w2ui-odd,
+.w2ui-grid.w2grid-light.w2grid-row-borders .w2ui-grid-body .w2ui-grid-frecords table tr.w2ui-odd,
+.w2ui-grid.w2grid-light.w2grid-row-borders .w2ui-grid-body .w2ui-grid-records table tr.w2ui-even,
+.w2ui-grid.w2grid-light.w2grid-row-borders .w2ui-grid-body .w2ui-grid-frecords table tr.w2ui-even {
+    border-top: 0.0625rem solid #dee2e6;
+}
+.w2ui-grid.w2grid-dark.w2grid-row-borders .w2ui-grid-body .w2ui-grid-records table tr.w2ui-odd,
+.w2ui-grid.w2grid-dark.w2grid-row-borders .w2ui-grid-body .w2ui-grid-frecords table tr.w2ui-odd,
+.w2ui-grid.w2grid-dark.w2grid-row-borders .w2ui-grid-body .w2ui-grid-records table tr.w2ui-even,
+.w2ui-grid.w2grid-dark.w2grid-row-borders .w2ui-grid-body .w2ui-grid-frecords table tr.w2ui-even {
+    border-top: 0.0625rem solid rgb(55, 58, 64);
+}
+
+.w2ui-grid.w2grid-light.w2grid-stripped .w2ui-grid-body .w2ui-grid-records table tr.w2ui-odd,
+.w2ui-grid.w2grid-light.w2grid-stripped .w2ui-grid-body .w2ui-grid-frecords table tr.w2ui-odd {
+    background-color: #f8f9fa;
+}
+.w2ui-grid.w2grid-dark.w2grid-stripped .w2ui-grid-body .w2ui-grid-records table tr.w2ui-odd,
+.w2ui-grid.w2grid-dark.w2grid-stripped .w2ui-grid-body .w2ui-grid-frecords table tr.w2ui-odd {
+    background-color: rgb(37, 38, 43);
+}
+
+.w2ui-grid.w2grid-light.w2grid-highlight-hover .w2ui-grid-body .w2ui-grid-records table tr.w2ui-odd:hover, 
+.w2ui-grid.w2grid-light.w2grid-highlight-hover .w2ui-grid-body .w2ui-grid-frecords table tr.w2ui-odd:hover, 
+.w2ui-grid.w2grid-light.w2grid-highlight-hover .w2ui-grid-body .w2ui-grid-records table tr.w2ui-odd.w2ui-record-hover, 
+.w2ui-grid.w2grid-light.w2grid-highlight-hover .w2ui-grid-body .w2ui-grid-frecords table tr.w2ui-odd.w2ui-record-hover,
+.w2ui-grid.w2grid-light.w2grid-highlight-hover .w2ui-grid-body .w2ui-grid-records table tr.w2ui-even:hover, 
+.w2ui-grid.w2grid-light.w2grid-highlight-hover .w2ui-grid-body .w2ui-grid-frecords table tr.w2ui-even:hover, 
+.w2ui-grid.w2grid-light.w2grid-highlight-hover .w2ui-grid-body .w2ui-grid-records table tr.w2ui-even.w2ui-record-hover, 
+.w2ui-grid.w2grid-light.w2grid-highlight-hover .w2ui-grid-body .w2ui-grid-frecords table tr.w2ui-even.w2ui-record-hover {
+    background-color: #f1f3f5;
+}
+.w2ui-grid.w2grid-dark.w2grid-highlight-hover .w2ui-grid-body .w2ui-grid-records table tr.w2ui-odd:hover, 
+.w2ui-grid.w2grid-dark.w2grid-highlight-hover .w2ui-grid-body .w2ui-grid-frecords table tr.w2ui-odd:hover, 
+.w2ui-grid.w2grid-dark.w2grid-highlight-hover .w2ui-grid-body .w2ui-grid-records table tr.w2ui-odd.w2ui-record-hover, 
+.w2ui-grid.w2grid-dark.w2grid-highlight-hover .w2ui-grid-body .w2ui-grid-frecords table tr.w2ui-odd.w2ui-record-hover,
+.w2ui-grid.w2grid-dark.w2grid-highlight-hover .w2ui-grid-body .w2ui-grid-records table tr.w2ui-even:hover, 
+.w2ui-grid.w2grid-dark.w2grid-highlight-hover .w2ui-grid-body .w2ui-grid-frecords table tr.w2ui-even:hover, 
+.w2ui-grid.w2grid-dark.w2grid-highlight-hover .w2ui-grid-body .w2ui-grid-records table tr.w2ui-even.w2ui-record-hover, 
+.w2ui-grid.w2grid-dark.w2grid-highlight-hover .w2ui-grid-body .w2ui-grid-frecords table tr.w2ui-even.w2ui-record-hover {
+    background-color: rgb(44, 46, 51);
+}
+
+.w2ui-grid.w2grid-light .w2ui-grid-body .w2ui-grid-records table tr.w2ui-selected,
+.w2ui-grid.w2grid-light .w2ui-grid-body .w2ui-grid-frecords table tr.w2ui-selected,
+.w2ui-grid.w2grid-light .w2ui-grid-body .w2ui-grid-records table tr td.w2ui-selected,
+.w2ui-grid.w2grid-light .w2ui-grid-body .w2ui-grid-frecords table tr td.w2ui-selected {
+    color: #003d75 !important;
+    background-color: #c5e7ff !important;
+}
+.w2ui-grid.w2grid-dark .w2ui-grid-body .w2ui-grid-records table tr.w2ui-selected,
+.w2ui-grid.w2grid-dark .w2ui-grid-body .w2ui-grid-frecords table tr.w2ui-selected,
+.w2ui-grid.w2grid-dark .w2ui-grid-body .w2ui-grid-records table tr td.w2ui-selected,
+.w2ui-grid.w2grid-dark .w2ui-grid-body .w2ui-grid-frecords table tr td.w2ui-selected {
+    color: #d0ebff !important;
+    background-color: #2781d5bf !important;
+}

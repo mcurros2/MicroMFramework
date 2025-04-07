@@ -1,0 +1,48 @@
+{
+  "compilerOptions": {
+    /* Visit https://aka.ms/tsconfig to read more about this file */
+    "baseUrl": "./src",
+
+    /* Language and Environment */
+    "target": "es2016", /* Set the JavaScript language version for emitted JavaScript and include compatible library declarations. */
+    "outDir": "./dist",
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "ES2019",
+      "es2017",
+      "esnext"
+    ],
+
+    /* Modules */
+    "module": "ES2020", /* Specify what module code is generated. */
+    "moduleResolution": "bundler",
+
+    /* Interop Constraints */
+    "forceConsistentCasingInFileNames": true, /* Ensure that casing is correct in imports. */
+
+    "allowSyntheticDefaultImports": true,
+    "strict": true, /* Enable all strict type-checking options. */
+
+    "noFallthroughCasesInSwitch": true,
+    "isolatedModules": true,
+
+    "allowJs": true,
+
+    "noEmit": true,
+    "sourceMap": true, /* Create source map files for emitted JavaScript files. */
+
+    /* Completeness */
+    "skipLibCheck": true, /* Skip type checking all .d.ts files. */
+    "jsx": "react-jsx"
+  },
+  "exclude": [
+    "**/dist",
+    "**/bin",
+    "**/bower_components",
+    "**/jspm_packages",
+    "**/node_modules",
+    "**/obj",
+    "**/platforms"
+  ]
+}

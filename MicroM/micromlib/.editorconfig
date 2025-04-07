@@ -1,0 +1,9 @@
+
+[*]
+charset = utf-8
+
+[*.ts]
+charset = utf-8
+
+[*.tsx]
+charset = utf-8

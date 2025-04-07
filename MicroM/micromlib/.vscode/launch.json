@@ -1,0 +1,25 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "msedge",
+      "request": "launch",
+      "name": "localhost (Edge)",
+      "url": "https://localhost:1234",
+      "webRoot": "${workspaceFolder}",
+      "sourceMapPathOverrides": { "/__parcel_source_root/*": "${webRoot}/*" },
+      "console": "externalTerminal",
+      "launchBrowser": false
+    },
+    {
+      "type": "chrome",
+      "request": "launch",
+      "name": "localhost (Chrome)",
+      "url": "https://localhost:1234",
+      "webRoot": "${workspaceFolder}",
+      "sourceMapPathOverrides": { "/__parcel_source_root/*": "${webRoot}/*" },
+      "console": "externalTerminal",
+      "launchBrowser": false
+    }
+  ]
+}

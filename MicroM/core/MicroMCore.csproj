@@ -1,0 +1,158 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup Label="Globals">
+    <SccProjectName>SAK</SccProjectName>
+    <SccProvider>SAK</SccProvider>
+    <SccAuxPath>SAK</SccAuxPath>
+    <SccLocalPath>SAK</SccLocalPath>
+  </PropertyGroup>
+  
+  <PropertyGroup>
+    <VersionPrefix>1.0.1</VersionPrefix>
+    <VersionSuffix Condition="'$(DesignTimeBuild)' != 'true' OR '$(BuildingProject)' == 'true'">$([System.DateTime]::UtcNow.ToString(yyyyMMdd-HHmmss))</VersionSuffix>
+  </PropertyGroup>
+  
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <RootNamespace>MicroM</RootNamespace>
+    <AssemblyName>MicroM.Core</AssemblyName>
+    <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
+    <Title>MicroM Framework</Title>
+    <Description>MicroM, lightweight framework to create SQL Server Database centric apps.</Description>
+    <GenerateDocumentationFile>False</GenerateDocumentationFile>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    
+    <ProduceReferenceAssembly>False</ProduceReferenceAssembly>
+
+    <IncludeSymbols>False</IncludeSymbols>
+    <IncludeBuildOutput>true</IncludeBuildOutput>
+    <AnalysisLevel>latest-minimum</AnalysisLevel>
+    <!-- Do not create a separate symbols package -->
+  </PropertyGroup>
+  
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <DebugType>embedded</DebugType>
+    <EmbedAllSources>True</EmbedAllSources>
+  </PropertyGroup>
+  
+  
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <DebugType>embedded</DebugType>
+    <EmbedAllSources>True</EmbedAllSources>
+  </PropertyGroup>
+  
+  
+  <ItemGroup>
+    <None Remove="DataDictionary\Entities\EmailService\SQL\EmailServiceConfiguration\eqc_get.sql" />
+    <None Remove="DataDictionary\Entities\EmailService\SQL\EmailServiceConfiguration\eqc_iupdate.sql" />
+    <None Remove="DataDictionary\Entities\EmailService\SQL\EmailServiceQueue\emq_EmailTagsTableType.sql" />
+    <None Remove="DataDictionary\Entities\EmailService\SQL\EmailServiceQueue\emq_fGetEmailDestinationAndTags.sql" />
+    <None Remove="DataDictionary\Entities\EmailService\SQL\EmailServiceQueue\emq_fGetTags.sql" />
+    <None Remove="DataDictionary\Entities\EmailService\SQL\EmailServiceQueue\emq_SubmitEmailTemplate.sql" />
+    <None Remove="DataDictionary\Entities\EmailService\SQL\EmailServiceQueue\emq_SubmitToQueueProcess.sql" />
+    <None Remove="DataDictionary\Entities\ImportProcess\SQL\ipr_get.sql" />
+    <None Remove="DataDictionary\Entities\ImportProcess\SQL\ipr_update.sql" />
+    <None Remove="DataDictionary\Entities\ImportProcess\SQL\ipr_UpdateStatus.sql" />
+    <None Remove="DataDictionary\Entities\MicromRoutes\SQL\mro_iupdate.sql" />
+    <None Remove="DataDictionary\Entities\MicromUsers\SQL\MicromUsersGroups\mug_iupdate.sql" />
+    <None Remove="DataDictionary\Entities\MicromUsers\SQL\MicromUsers\usr_GetRecoveryCode.sql" />
+    <None Remove="DataDictionary\Entities\MicromUsers\SQL\MicromUsers\usr_getRecoveryEmails.sql" />
+    <None Remove="DataDictionary\Entities\MicromUsers\SQL\MicromUsers\usr_RecoverPassword.sql" />
+    <None Remove="DataDictionary\Entities\MicromUsers\SQL\MicromUsers\usr_tfGetUserEmails.sql" />
+  </ItemGroup>
+   
+  <ItemGroup>
+    <EmbeddedResource Include="DataDictionary\Entities\EmailService\SQL\EmailServiceConfiguration\eqc_get.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\EmailService\SQL\EmailServiceConfiguration\eqc_iupdate.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\EmailService\SQL\EmailServiceQueue\emq_EmailTagsTableType.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\EmailService\SQL\EmailServiceQueue\emq_fGetEmailDestinationAndTags.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\EmailService\SQL\EmailServiceQueue\emq_fGetTags.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\EmailService\SQL\EmailServiceQueue\emq_fReplaceTags.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\EmailService\SQL\EmailServiceQueue\emq_qryGetQueuedItems.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\EmailService\SQL\EmailServiceQueue\emq_SubmitEmailTemplate.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\EmailService\SQL\EmailServiceQueue\emq_SubmitToQueue.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\EmailService\SQL\EmailServiceQueue\emq_SubmitToQueueProcess.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\EmailService\SQL\EmailServiceQueue\emq_update.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\FileStore\SQL\FileStoreProcess\fsp_idrop.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\FileStore\SQL\FileStoreStatus\fsts_iupdate.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\FileStore\SQL\FileStore\fst_brwFiles.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\FileStore\SQL\FileStore\fst_getByGUID.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\FileStore\SQL\FileStore\fst_get.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\FileStore\SQL\FileStore\fst_idrop.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\FileStore\SQL\FileStore\fst_iupdate.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\ImportProcess\SQL\ipr_get.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\ImportProcess\SQL\ipr_update.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\ImportProcess\SQL\ipr_UpdateStatus.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\MicromMenus\SQL\MicromMenusItemsAllowedRoutes\mir_drop.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\MicromMenus\SQL\MicromMenusItemsAllowedRoutes\mir_get.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\MicromMenus\SQL\MicromMenusItemsAllowedRoutes\mir_update.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\MicromRoutes\SQL\mro_iupdate.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\MicromUsers\SQL\MicromUsersDevices\usd_iupdate.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\MicromUsers\SQL\MicromUsersGroupsMenus\mmn_brwMenuItems.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\MicromUsers\SQL\MicromUsersGroupsMenus\mmn_drop.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\MicromUsers\SQL\MicromUsersGroupsMenus\mmn_update.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\MicromUsers\SQL\MicromUsersGroups\mug_drop.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\MicromUsers\SQL\MicromUsersGroups\mug_get.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\MicromUsers\SQL\MicromUsersGroups\mug_GetAllGroupsAllowedRoutes.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\MicromUsers\SQL\MicromUsersGroups\mug_iupdate.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\MicromUsers\SQL\MicromUsersGroups\mug_update.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\MicromUsers\SQL\MicromUsers\usr_brwStandard.sql" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="DataDictionary\Entities\ApplicationAssemblyTypes\apt_brwStandard.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\ApplicationsAssemblies\apa_iupdateAssembly.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\ApplicationsAssemblies\apa_GetAssemblies.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\Applications\app_get.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\Applications\app_drop.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\Applications\app_iupdate.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\Applications\app_brwStandard.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\Applications\app_GetConfiguration.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\EntitiesAssembliesTypes\eat_deleteAllTypes.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\EntitiesAssembliesTypes\eat_iupdate.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\EntitiesAssemblies\eas_dropUnusedAssemblies.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\EntitiesAssemblies\eas_idropUnusedAssemblies.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\EntitiesAssemblies\eas_idrop.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\MicromUsers\SQL\MicromUsers\usr_get.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\MicromUsers\SQL\MicromUsers\usr_GetClientClaims.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\MicromUsers\SQL\MicromUsers\usr_GetEnabledMenus.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\MicromUsers\SQL\MicromUsers\usr_GetRecoveryCode.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\MicromUsers\SQL\MicromUsers\usr_getRecoveryEmails.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\MicromUsers\SQL\MicromUsers\usr_GetServerClaims.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\MicromUsers\SQL\MicromUsers\usr_idrop.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\MicromUsers\SQL\MicromUsers\usr_iupdate.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\MicromUsers\SQL\MicromUsers\usr_logoff.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\MicromUsers\SQL\MicromUsersDevices\usd_refreshToken.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\MicromUsers\SQL\MicromUsers\usr_RecoverPassword.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\MicromUsers\SQL\MicromUsers\usr_setPassword.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\MicromUsers\SQL\MicromUsers\usr_resetPassword.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\MicromUsers\SQL\MicromUsers\usr_tfGetUserEmails.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\MicromUsers\SQL\MicromUsers\usr_updateLoginAttempt.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\MicromUsers\SQL\MicromUsers\usr_GetUserData.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\Numbering\num_iGetNewNumber.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\sys\sys_tfLike.sql" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Azure.Identity" Version="1.13.1" />
+    <PackageReference Include="DocumentFormat.OpenXml" Version="3.3.0" />
+    <PackageReference Include="MailKit" Version="4.8.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.11" />
+    <PackageReference Include="Microsoft.Data.SqlClient" Version="5.2.2" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.2" />
+    <PackageReference Include="Microsoft.Extensions.Options" Version="8.0.2" />
+    <PackageReference Include="SkiaSharp" Version="2.88.9" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.3.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="DataDictionary\Entities\MicromPermissions\" />
+  </ItemGroup>
+
+  <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
+    <Exec Command="del /Q &quot;$(PackageOutputPath)*.nupkg&quot;" />
+  </Target>
+
+
+</Project>

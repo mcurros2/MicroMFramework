@@ -1,0 +1,42 @@
+﻿<Project Sdk="Microsoft.VisualStudio.JavaScript.Sdk/0.5.105-alpha">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|AnyCPU">
+      <Configuration>Debug</Configuration>
+      <Platform>AnyCPU</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|AnyCPU">
+      <Configuration>Release</Configuration>
+      <Platform>AnyCPU</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="test|AnyCPU">
+      <Configuration>test</Configuration>
+      <Platform>AnyCPU</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup>
+    <ShouldRunNPMInstall>false</ShouldRunNPMInstall>
+    <StartupCommand>
+    </StartupCommand>
+    <!-- Command to run on project build -->
+    <BuildCommand>
+    </BuildCommand>
+    <!-- Command to create an optimized build of the project that's ready for publishing -->
+    <ProductionBuildCommand>
+    </ProductionBuildCommand>
+    <!-- Folder where production build objects will be placed -->
+    <BuildOutputFolder>$(MSBuildProjectDirectory)\build</BuildOutputFolder>
+  </PropertyGroup>
+  <ItemGroup>
+    <Folder Include="src\DataDictionary\FileStore\" />
+    <Folder Include="src\DataDictionary\Status\" />
+    <Folder Include="src\UI\AvatarUploader\" />
+    <Folder Include="src\UI\AutoFiltersForm\" />
+    <Folder Include="src\UI\Tabs\" />
+  </ItemGroup>
+  <ItemGroup>
+    <TypeScriptConfiguration Remove="dist\**" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Remove="dist\**" />
+  </ItemGroup>
+</Project>

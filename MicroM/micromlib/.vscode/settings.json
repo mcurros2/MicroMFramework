@@ -1,0 +1,11 @@
+{
+    "editor.detectIndentation": false,
+    "cSpell.words": [
+        "autosize",
+        "mantine",
+        "microm",
+        "recid",
+        "tabler"
+    ],
+    "explorer.excludeGitIgnore": true
+}
