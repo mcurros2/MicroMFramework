@@ -89,6 +89,9 @@ namespace MicroM.Web.Services
         // Security
         public ISecurityService SecurityService { get; }
 
+        // File Upload
+        public IFileUploadService FileUploadService { get; }
+
 
     }
 

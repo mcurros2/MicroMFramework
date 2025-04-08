@@ -11,7 +11,7 @@ using System.Globalization;
 
 namespace MicroM.Web.Services
 {
-    public class FileUploadService(IOptions<MicroMOptions> options, ILogger<FileUploadService> logger, ILoggerFactory loggerFactory, IThumbnailService thumbnailService) : IFileUpload, IDisposable
+    public class FileUploadService(IOptions<MicroMOptions> options, ILogger<FileUploadService> logger, ILoggerFactory loggerFactory, IThumbnailService thumbnailService) : IFileUploadService, IDisposable
     {
         private readonly MicroMOptions _options = options.Value;
         private readonly FileExtensionContentTypeProvider _contentTypeProvider = new();

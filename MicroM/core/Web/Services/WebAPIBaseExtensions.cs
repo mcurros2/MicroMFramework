@@ -29,7 +29,7 @@ namespace MicroM.Web.Services
 
         public static IServiceCollection AddFileUploadService(this IServiceCollection services)
         {
-            services.AddSingleton<IFileUpload, FileUploadService>();
+            services.AddSingleton<IFileUploadService, FileUploadService>();
             return services;
         }
 

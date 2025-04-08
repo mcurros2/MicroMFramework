@@ -29,7 +29,7 @@ namespace MicroM.Web.Services
         private readonly IMicroMEncryption _encryptor;
         private readonly IMicroMAppConfiguration _app_config;
         private readonly IBackgroundTaskQueue _backgroundTaskQueue;
-        private readonly IFileUpload _upload;
+        private readonly IFileUploadService _upload;
         private readonly IEmailService _emailService;
         private readonly ISecurityService _securityService;
         private readonly IDeviceIdService _deviceIdService;
@@ -81,7 +81,7 @@ namespace MicroM.Web.Services
             IMicroMEncryption encryptor,
             IMicroMAppConfiguration app_config,
             IBackgroundTaskQueue queue,
-            IFileUpload upload,
+            IFileUploadService upload,
             IEmailService emailService,
             ISecurityService securityService,
             IDeviceIdService deviceIdService
@@ -111,6 +111,8 @@ namespace MicroM.Web.Services
         public IEmailService EmailService => _emailService;
 
         public ISecurityService SecurityService => _securityService;
+
+        public IFileUploadService FileUploadService => _upload;
 
         public async Task<bool> RefreshConfig(string? app_id, CancellationToken ct)
         {

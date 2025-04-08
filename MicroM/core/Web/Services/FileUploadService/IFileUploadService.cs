@@ -2,7 +2,7 @@
 
 namespace MicroM.Web.Services
 {
-    public interface IFileUpload
+    public interface IFileUploadService
     {
         //public Task<UploadFileResult> QueueFile(string app_id, string fileprocess_id, string file_name, Stream fileData, IEntityClient ec, CancellationToken ct);
 
