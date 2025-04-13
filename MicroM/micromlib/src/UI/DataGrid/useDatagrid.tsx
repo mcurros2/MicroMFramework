@@ -145,8 +145,8 @@ export function useDataGrid(props: DataGridProps, stateProps: DataGridStateProps
 
         if (!rows?.length || !columns?.length) return;
 
-        const fechaActual = new Date();
-        const filename = `export-${fechaActual.getFullYear()}${(fechaActual.getDate() + '').padStart(2, '0')}${(fechaActual.getMonth() + 1 + '').padStart(2, '0')}_${(fechaActual.getHours() + '').padStart(2, '0')}${(fechaActual.getMinutes() + '').padStart(2, '0')}${(fechaActual.getSeconds() + '').padStart(2, '0')}.xlsx`;
+        const currentDate = new Date();
+        const filename = `export-${currentDate.getFullYear()}${(currentDate.getDate() + '').padStart(2, '0')}${(currentDate.getMonth() + 1 + '').padStart(2, '0')}_${(currentDate.getHours() + '').padStart(2, '0')}${(currentDate.getMinutes() + '').padStart(2, '0')}${(currentDate.getSeconds() + '').padStart(2, '0')}.xlsx`;
 
         const workbook = new ExcelJS.Workbook();
         const worksheet = workbook.addWorksheet('Data');
@@ -180,7 +180,7 @@ export function useDataGrid(props: DataGridProps, stateProps: DataGridStateProps
                 URL.revokeObjectURL(link.href);
             }
         } catch (ex) {
-            alert("Your browser does not support exporting data.");
+            console.error("Your browser does not support exporting data.");
         }
     }, [columns, rows]);
 

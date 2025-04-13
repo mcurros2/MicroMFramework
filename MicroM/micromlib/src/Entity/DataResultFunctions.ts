@@ -1,3 +1,4 @@
+import ExcelJS from 'exceljs';
 import { DataResult, SQLType, Value, ValuesObject, ValuesRecord } from "../client";
 import { namesOf } from "./ColumnsFunctions";
 
@@ -156,28 +157,53 @@ export function exportToCSV(viewResult: DataResult, notExportableColumns?: numbe
             document.body.removeChild(linkElement);
             URL.revokeObjectURL(csv_url);
         }
-    } catch (ex) {
-        try {
-            const msSaveBlob = (window.navigator as unknown as { msSaveBlob: (...args: unknown[]) => void }/*evita warn no existe*/).msSaveBlob;
-            if (msSaveBlob) {
-                const blob = new Blob([decodeURIComponent(csv_data)], {
-                    type: 'text/csv;charset=utf8'
-                });
-                // Crashes in IE 10, IE 11 and Microsoft Edge
-                // See MS Edge Issue #10396033
-                msSaveBlob(blob, filename);
-            } else {
-                const encoded_data = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv_data);
-                const linkElement = document.createElement('a');
-                linkElement.setAttribute('download', filename);
-                linkElement.setAttribute('href', encoded_data);
-                linkElement.click();
-                // MMC: cleanup
-                document.body.removeChild(linkElement);
-            }
-        } catch (ex2) {
-            console.log("Your browser does not support exporting data.");
+        else {
+            console.error("Your browser does not support exporting data.");
         }
+    } catch (ex) {
+        console.error("exportToCSV", ex);
+    }
+}
+
+export async function exportToExcel(data: DataResult[], notExportableColumns?: number[], sheetNames?: string[]) {
+    // MMC: some security checks can cause an exception
+    try {
+        if (window.Blob && window.URL) {
+            const currentDate = new Date();
+            const filename = `export-${currentDate.getFullYear()}${(currentDate.getDate() + '').padStart(2, '0')}${(currentDate.getMonth() + 1 + '').padStart(2, '0')}_${(currentDate.getHours() + '').padStart(2, '0')}${(currentDate.getMinutes() + '').padStart(2, '0')}${(currentDate.getSeconds() + '').padStart(2, '0')}.xlsx`;
+
+            const workbook = new ExcelJS.Workbook();
+            data.forEach((result, index) => {
+                const worksheet = workbook.addWorksheet(sheetNames ? sheetNames[index] : `Data ${index + 1}`);
+
+                const columns = result.Header
+                    .map((header, index) => notExportableColumns?.includes(index) ? null : { header, key: header })
+                    .filter((column): column is { header: string; key: string } => column !== null);
+
+                worksheet.columns = columns;
+
+                result.records.forEach(row => {
+                    const filteredRow = row.filter((_, index) => !notExportableColumns?.includes(index));
+                    worksheet.addRow(filteredRow);
+                });
+            });
+
+            const buffer = await workbook.xlsx.writeBuffer();
+            const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+        else {
+            console.error("Your browser does not support exporting data.");
+        }
+    } catch (ex) {
+        console.error("exportToExcel", ex);
     }
 }
 

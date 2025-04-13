@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { EntityClientAction, convertRecordToValuesObject, exportToCSV, toCamelCase } from "../../Entity";
+import { EntityClientAction, convertRecordToValuesObject, exportToCSV, exportToExcel, toCamelCase } from "../../Entity";
 import { DBStatusResult, DataResult, OperationStatus, SQLType, Value, ValuesObject, ValuesRecord } from "../../client";
 import { useEntityUI, useLocaleFormat } from "../Core";
 import { DataGridStateProps } from "../DataGrid/DataGrid.types";
@@ -195,7 +195,7 @@ export function useDataView(props: DataViewProps, stateProps: DataGridStateProps
 
     const handleExport = useCallback(() => {
         if (!viewResult) return;
-        exportToCSV(viewResult, notExportableColumns);
+        exportToExcel([viewResult], notExportableColumns);
     }, [notExportableColumns, viewResult]);
 
     const formatValue = useCallback((value: Value, sqlType: SQLType) => {
