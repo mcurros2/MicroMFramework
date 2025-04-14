@@ -37,7 +37,7 @@ export function useDataGrid(props: DataGridProps, stateProps: DataGridStateProps
     }, [setRefresh, setSearchText]);
 
     const handleModalSaved = useCallback(async (new_status: OperationStatus<DBStatusResult | null>) => {
-        if (!new_status.error && !new_status.loading && new_status.data) internalRefresh();
+        if (!new_status.error && !new_status.loading && new_status.data && !handleAlwaysRefreshOnClose) internalRefresh();
         if (onModalSaved) await onModalSaved(new_status);
     }, [internalRefresh, onModalSaved]);
 

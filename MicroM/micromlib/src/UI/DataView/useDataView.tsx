@@ -37,7 +37,7 @@ export interface useDataViewReturnType {
 
 export function useDataView(props: DataViewProps, stateProps: DataGridStateProps): useDataViewReturnType {
     const {
-        entity, parentKeys, viewName, limit, onSelectionChanged, modalFormSize,
+        entity, parentKeys, viewName, limit, onSelectionChanged, modalFormSize, onModalSaved,
         labels, saveFormBeforeAdd, parentFormAPI, allwaysRefreshOnEntityClose, notExportableColumns, itemsPerPage, onActionExecuted,
         convertResultToLocaleString,
         onDataRefresh
@@ -65,22 +65,23 @@ export function useDataView(props: DataViewProps, stateProps: DataGridStateProps
 
 
     // MMC: we can't use callbacks here because we need to use the latest values of the state variables
-    function internalRefresh() {
+    const internalRefresh = useCallback(() => {
         setRefresh((prev) => !prev);
-    };
+    }, [setRefresh]);
 
-    function handleRefresh (search_text: string[] | undefined) {
+    const handleRefresh = useCallback((search_text: string[] | undefined) => {
         setSearchText(search_text);
         setRefresh((prev) => !prev);
-    };
+    }, [setRefresh, setSearchText]);
 
-    function handleModalSaved (new_status: OperationStatus<DBStatusResult | null>) {
-        if (!new_status.error && !new_status.loading && new_status.data) internalRefresh();
-    };
+    const handleModalSaved = useCallback(async (new_status: OperationStatus<DBStatusResult | null>) => {
+        if (!new_status.error && !new_status.loading && new_status.data && !allwaysRefreshOnEntityClose) internalRefresh();
+        if (onModalSaved) await onModalSaved(new_status);
+    }, [allwaysRefreshOnEntityClose, internalRefresh, onModalSaved]);
 
-    function handleAllwaysRefreshOnClose() {
+    const handleAllwaysRefreshOnClose = useCallback(() => {
         if (allwaysRefreshOnEntityClose) internalRefresh();
-    };
+    }, [allwaysRefreshOnEntityClose, internalRefresh]);
 
     const UIAPI = useEntityUI({
         entity, parentKeys, modalFormSize, parentFormAPI, saveFormBeforeAdd, onModalSaved: handleModalSaved,
@@ -210,7 +211,7 @@ export function useDataView(props: DataViewProps, stateProps: DataGridStateProps
     useEffect(() => {
         if (executeViewState.loading) {
             setIsLoading(true);
-            setDisplayedItemsCount(itemsPerPage!);            
+            setDisplayedItemsCount(itemsPerPage!);
         } else if (executeViewState.error) {
             setIsLoading(false);
         } else if (!executeViewState.error && executeViewState.data?.length) {

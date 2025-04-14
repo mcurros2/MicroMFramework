@@ -78,6 +78,8 @@ export interface DataViewProps extends Omit<UseEntityUIProps, 'labels'> {
     showActions?: boolean,
     showToolbar?: boolean,
 
+    showDeleteOnlyWhenMultiselect?: boolean,
+
     // Cards
 
     CardContainer?: ComponentType<DataViewCardContainerProps>,

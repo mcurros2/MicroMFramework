@@ -51,18 +51,19 @@ export const DataViewDefaultProps: Partial<DataViewProps> = {
     convertResultToLocaleString: true,
     showActions: true,
     showToolbar: true,
+    showDeleteOnlyWhenMultiselect: true,
 }
 
 export const DataView = forwardRef(function DataView(props: DataViewProps, ref: ForwardedRef<HTMLElement> | undefined) {
-    const effective_props = useComponentDefaultProps('DataView', DataViewDefaultProps, props);
+    props = useComponentDefaultProps('DataView', DataViewDefaultProps, props);
     const {
         entity, autoFocus, toolbarIconVariant,
         actionsButtonVariant, enableAdd, enableEdit, enableDelete, enableView, enableExport, labels,
         Card, CardContainer, limit, search, viewName, filtersFormSize, toolbarSize,
         showAppliedFilters, showRefreshButton, hideCheckboxToggle, showFiltersButton, searchPlaceholder,
         showActions, parentKeys, visibleFilters, setInitialFiltersFromColumns, cardHrefRootURL, cardHrefTarget,
-        showSearchInput, showSelectRowsButton, showToolbar
-    } = effective_props;
+        showSearchInput, showSelectRowsButton, showToolbar, showDeleteOnlyWhenMultiselect
+    } = props;
 
     const [searchData, setSearchData] = useState<SelectItem[]>(search?.map(s => { return { value: s, label: s } }) as SelectItem[]);
 
@@ -70,7 +71,7 @@ export const DataView = forwardRef(function DataView(props: DataViewProps, ref: 
 
     const executeViewState = useExecuteView(entity, parentKeys, viewName, viewState.searchText, viewState.limitRows, viewState.refresh, viewState.filterValues);
 
-    const dataViewAPI = useDataView(effective_props, { executeViewState, setRefresh: viewState.setRefresh, setSearchText: viewState.setSearchText });
+    const dataViewAPI = useDataView(props, { executeViewState, setRefresh: viewState.setRefresh, setSearchText: viewState.setSearchText });
     const { handleLoadMore } = dataViewAPI;
 
     const limit_number = parseInt(limit || '0');
@@ -137,7 +138,7 @@ export const DataView = forwardRef(function DataView(props: DataViewProps, ref: 
 
                         enableAdd={enableAdd}
                         enableEdit={false}
-                        enableDelete={enableDelete}
+                        enableDelete={enableDelete && (showDeleteOnlyWhenMultiselect ? dataViewAPI.showSelectCheckbox : true)}
                         enableView={false}
 
                         actionsButtonVariant={actionsButtonVariant}
