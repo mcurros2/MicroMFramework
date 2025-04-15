@@ -3,8 +3,10 @@ import { useMemo, useRef, useState } from "react";
 import { AlertError, FakeProgressBar, useExecuteView, useFirstVisible, useViewState } from "../../UI/Core";
 import { DataViewLimitData } from "../DataView/DataView.types";
 import { Grid } from "../Grid";
+import { w2grid } from "../Grid/W2Grid";
 import { DataGridProps } from "./DataGrid.types";
 import { DataGridActionsToolbar } from "./DataGridActionsToolbar";
+import { DataGridColumnsMenu } from "./DataGridColumnsMenu";
 import { DataGridToolbar } from "./DataGridToolbar";
 import { useDataGrid } from "./useDatagrid";
 
@@ -56,6 +58,7 @@ export const DataGridDefaultProps: Partial<DataGridProps> = {
     showToolbar: true,
     showActionsToolbar: true,
     doubleClickAction: "edit",
+    showColumnsConfigMenu: true,
 }
 
 export function DataGrid(props: DataGridProps) {
@@ -64,7 +67,8 @@ export function DataGrid(props: DataGridProps) {
         entity, selectionMode, gridHeight, preserveSelection, autoSelectFirstRow, autoFocus, toolbarIconVariant, actionsButtonVariant,
         enableAdd, enableEdit, enableDelete, enableView, enableExport, columnBorders, autoSizeColumnsOnLoad, rowBorders, withBorder,
         labels, columnsOverrides, toolbarSize, viewName, showActions, renderOnlyWhenVisible, filtersFormSize, parentKeys, search,
-        limit, parentFormAPI, showToolbar, showActionsToolbar, enableImport, setInitialFiltersFromColumns, visibleFilters, formMode
+        limit, parentFormAPI, showToolbar, showActionsToolbar, enableImport, setInitialFiltersFromColumns, visibleFilters, formMode,
+        showColumnsConfigMenu
     } = props;
 
     const theme = useMantineTheme();
@@ -80,12 +84,24 @@ export function DataGrid(props: DataGridProps) {
 
     const dataGridAPI = useDataGrid(props, { executeViewState, setRefresh: viewState.setRefresh, setSearchText: viewState.setSearchText });
 
-    const { isLoading, rows, columns } = dataGridAPI;
+    const { isLoading, rows, columns, setColumns } = dataGridAPI;
 
     const effectiveColumnOverrides = useMemo(() => {
         if (!entity || !viewName) return columnsOverrides;
         return columnsOverrides ? columnsOverrides : entity?.def.views[viewName]?.gridColumnsOverrides?.(theme) ?? columnsOverrides;
     }, [columnsOverrides, entity, theme, viewName]);
+
+    const [openColumnsConfigMenu, setOpenColumnsConfigMenu] = useState(false);
+
+    const gridRef = useRef<w2grid | null>(null);
+
+    const ConfigMenuDropDown = useMemo(() => (
+        <DataGridColumnsMenu
+            setOpened={setOpenColumnsConfigMenu}
+            columns={columns}
+            setColumns={setColumns}
+        />
+    ), [columns, setColumns]);
 
     return (
         <>
@@ -127,6 +143,11 @@ export function DataGrid(props: DataGridProps) {
 
                             visibleFilters={visibleFilters}
                             initialColumnFilters={setInitialFiltersFromColumns && entity ? entity.def.columns : undefined}
+
+                            showColumnsConfig={showColumnsConfigMenu}
+                            configMenuOpened={openColumnsConfigMenu}
+                            setConfigMenuOpened={setOpenColumnsConfigMenu}
+                            configMenuDropdown={ConfigMenuDropDown}
                         />
                     }
                     {showActionsToolbar &&
@@ -179,6 +200,7 @@ export function DataGrid(props: DataGridProps) {
                             rowBorders={rowBorders}
                             withBorder={withBorder}
                             columnsOverrides={effectiveColumnOverrides}
+                            ref={gridRef}
                         />
                     </Box>
                     {showToolbar &&

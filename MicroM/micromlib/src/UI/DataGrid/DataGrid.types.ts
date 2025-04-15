@@ -64,6 +64,10 @@ export interface DataGridProps extends UseEntityUIProps {
     onSelectionChanged?: DataGridSelectionChangedCallback,
     doubleClickAction?: 'edit' | 'view' | 'none' | ((record: GridRecord) => void),
     formMode?: FormMode,
+
+    notExportableColumns?: number[],
+
+    showColumnsConfigMenu?: boolean,
 }
 
 export type DataGridSelectionKeys = ValuesObject[]

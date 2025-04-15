@@ -10,7 +10,7 @@ export function useDataGrid(props: DataGridProps, stateProps: DataGridStateProps
     const {
         entity, parentKeys, viewName, onSelectionChanged, modalFormSize,
         labels, saveFormBeforeAdd, parentFormAPI, allwaysRefreshOnEntityClose, onAddClick, onModalSaved,
-        onDataRefresh, onActionExecuted, formMode, doubleClickAction
+        onDataRefresh, onActionExecuted, formMode, doubleClickAction, notExportableColumns
     } = props;
 
     const { setRefresh, setSearchText, executeViewState } = stateProps;
@@ -151,15 +151,19 @@ export function useDataGrid(props: DataGridProps, stateProps: DataGridStateProps
         const workbook = new ExcelJS.Workbook();
         const worksheet = workbook.addWorksheet('Data');
 
+        // filter columns to exclude not exportable columns in notExportableColumns
+        const exportableColumns = columns.filter((col, index) => {
+            return !notExportableColumns?.includes(index);
+        });
+
         // headers
-        const visibleColumns = columns.filter(col => !col.hidden);
-        worksheet.addRow(visibleColumns.map(col => col.text));
+        worksheet.addRow(exportableColumns.map(col => col.text));
 
         // Rows
         for (let r = 0; r < rows.length; r++) {
             const excel_row: Value[] = [];
             for (let c = 0; c < columns.length; c++) {
-                if (columns[c].hidden === true) continue;
+                if (notExportableColumns?.includes(c)) continue;
 
                 excel_row[c] = rows[r][c];
             }
@@ -182,7 +186,7 @@ export function useDataGrid(props: DataGridProps, stateProps: DataGridStateProps
         } catch (ex) {
             console.error("Your browser does not support exporting data.");
         }
-    }, [columns, rows]);
+    }, [columns, notExportableColumns, rows]);
 
     useEffect(() => {
         if (executeViewState.loading) {
@@ -219,6 +223,7 @@ export function useDataGrid(props: DataGridProps, stateProps: DataGridStateProps
         columns,
         rows,
         isLoading,
-        handleImportDataClick
+        handleImportDataClick,
+        setColumns,
     }
 }

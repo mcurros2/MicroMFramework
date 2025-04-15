@@ -64,6 +64,7 @@ export function DataGridForm(props: DataGridFormProps) {
                 enableAdd={formMode === 'view' ? false : enableAdd}
                 enableEdit={formMode === 'view' ? false : enableEdit}
                 enableDelete={formMode === 'view' ? false : enableDelete}
+                enableView={formMode === 'view' || enableView}
                 formMode={formMode}
                 {...gridProps}
                 //ref={gridRef}

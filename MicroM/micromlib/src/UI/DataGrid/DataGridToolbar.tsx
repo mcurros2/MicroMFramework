@@ -1,7 +1,7 @@
-import { Accordion, ActionIcon, Badge, BadgeVariant, Group, MantineNumberSize, MantineSize, SelectItem, Stack, Text, rem, useComponentDefaultProps, useMantineTheme } from "@mantine/core";
+import { Accordion, ActionIcon, Badge, BadgeVariant, Group, MantineNumberSize, MantineSize, Menu, SelectItem, Stack, Text, rem, useComponentDefaultProps, useMantineTheme } from "@mantine/core";
 import { AccordionVariant } from "@mantine/core/lib/Accordion/Accordion.types";
-import { IconCloudUpload, IconDownload, IconFilter, IconFilterOff, IconPencil, IconReload, IconSquareCheck, IconSquareCheckFilled, IconX } from "@tabler/icons-react";
-import { Dispatch, SetStateAction } from "react";
+import { IconCloudUpload, IconDownload, IconEyeCog, IconFilter, IconFilterOff, IconPencil, IconReload, IconSquareCheck, IconSquareCheckFilled, IconX } from "@tabler/icons-react";
+import { Dispatch, ReactNode, SetStateAction } from "react";
 import { ColumnsObject, EntityConstructor } from "../../Entity";
 import { MicroMClient, ValuesObject } from "../../client";
 import { ActionIconVariant, SearchFilterInput, ToggleActionIcon } from "../Core";
@@ -68,7 +68,12 @@ export interface DataGridToolbarOptions {
     editFitersLabel?: string,
     clearFiltersLabel?: string,
 
-    filtersAccordionVariant?: AccordionVariant
+    filtersAccordionVariant?: AccordionVariant,
+
+    showColumnsConfig?: boolean,
+    configMenuOpened?: boolean,
+    setConfigMenuOpened?: Dispatch<SetStateAction<boolean>>,
+    configMenuDropdown?: ReactNode,
 }
 
 export const DataGridToolbarDefaultProps: Partial<DataGridToolbarOptions> = {
@@ -117,8 +122,8 @@ export function DataGridToolbar(props: DataGridToolbarOptions) {
         showAppliedFilters, showRefreshButton, showFiltersButton, visibleFilters,
         filtersDescription, setFiltersDescription, initialColumnFilters, filtersTitle,
         editFitersLabel, clearFiltersLabel, filtersAccordionVariant, filtersBadgeVariant,
-        showSearchInput, showSelectRowsButton
-        // , toolbarOnColor, toolbarOnShade
+        showSearchInput, showSelectRowsButton, showColumnsConfig, configMenuOpened, setConfigMenuOpened,
+        configMenuDropdown
     } = useComponentDefaultProps('DataGridToolbar', DataGridToolbarDefaultProps, props);
 
     const theme = useMantineTheme();
@@ -223,6 +228,18 @@ export function DataGridToolbar(props: DataGridToolbarOptions) {
                         onClick={() => {
                             if (onImportClick) onImportClick()
                         }} size={actionIconSize} radius="xl" color={theme.primaryColor} variant={toolbarIconVariant} ><IconCloudUpload size={iconsSize} stroke="1.5" /></ActionIcon>
+                }
+                {showColumnsConfig && setConfigMenuOpened && configMenuDropdown &&
+                    <Menu opened={configMenuOpened} onChange={setConfigMenuOpened}>
+                        <Menu.Target>
+                            <ActionIcon
+                                title="Configure columns"
+                                size={actionIconSize} radius="xl" color={theme.primaryColor} variant={toolbarIconVariant} >
+                                <IconEyeCog size={iconsSize} stroke="1.5" />
+                            </ActionIcon>
+                        </Menu.Target>
+                        {configMenuDropdown}
+                    </Menu>
                 }
             </Group>
             {showAppliedFilters && FiltersEntity && filtersAPI.filtersDescription && Object.keys(filtersAPI.filtersDescription).length > 0 &&
