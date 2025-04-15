@@ -58,7 +58,8 @@ export const DataGridDefaultProps: Partial<DataGridProps> = {
     showActionsToolbar: true,
     doubleClickAction: "edit",
     showColumnsConfigMenu: true,
-    withModalFullscreenButton: true
+    withModalFullscreenButton: true,
+    showSelectRowsButton: true
 }
 
 export function DataGrid(props: DataGridProps) {
@@ -68,7 +69,7 @@ export function DataGrid(props: DataGridProps) {
         enableAdd, enableEdit, enableDelete, enableView, enableExport, columnBorders, autoSizeColumnsOnLoad, rowBorders, withBorder,
         labels, columnsOverrides, toolbarSize, viewName, showActions, renderOnlyWhenVisible, filtersFormSize, parentKeys, search,
         limit, parentFormAPI, showToolbar, showActionsToolbar, enableImport, setInitialFiltersFromColumns, visibleFilters, formMode,
-        showColumnsConfigMenu
+        showColumnsConfigMenu, showSelectRowsButton
     } = props;
 
     const theme = useMantineTheme();
@@ -146,6 +147,8 @@ export function DataGrid(props: DataGridProps) {
                             configMenuOpened={openColumnsConfigMenu}
                             setConfigMenuOpened={setOpenColumnsConfigMenu}
                             configMenuDropdown={ConfigMenuDropDown}
+
+                            showSelectRowsButton={showSelectRowsButton}
                         />
                     }
                     {showActionsToolbar &&

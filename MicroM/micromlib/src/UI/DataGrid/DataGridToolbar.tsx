@@ -230,7 +230,7 @@ export function DataGridToolbar(props: DataGridToolbarOptions) {
                         }} size={actionIconSize} radius="xl" color={theme.primaryColor} variant={toolbarIconVariant} ><IconCloudUpload size={iconsSize} stroke="1.5" /></ActionIcon>
                 }
                 {showColumnsConfig && setConfigMenuOpened && configMenuDropdown &&
-                    <Menu opened={configMenuOpened} onChange={setConfigMenuOpened}>
+                    <Menu opened={configMenuOpened} onChange={setConfigMenuOpened} withinPortal closeOnItemClick={false}>
                         <Menu.Target>
                             <ActionIcon
                                 title="Configure columns"

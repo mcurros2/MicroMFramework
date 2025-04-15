@@ -1,4 +1,4 @@
-﻿import { Text } from "@mantine/core";
+import { Text } from "@mantine/core";
 import { ModalSettings } from "@mantine/modals/lib/context";
 import { useRef } from "react";
 import { Entity, EntityDefinition } from "../../Entity";
@@ -23,12 +23,20 @@ export interface ModalLookupOptions {
     selectLabel?: string,
     parentKeys?: ValuesObject,
     showActions?: boolean,
+    enableAdd?: boolean,
+    enableEdit?: boolean,
+    enableDelete?: boolean,
+    enableView?: boolean,
 }
 
 export const UseLookupFormDefaultProps: Partial<ModalLookupOptions> = {
     modalProps: { size: 'xl' },
     selectLabel: "Select",
-    showActions: false
+    showActions: false,
+    enableAdd: false,
+    enableEdit: false,
+    enableDelete: false,
+    enableView: true,
 }
 export function useLookupForm() {
     const modals = useModal();
@@ -37,7 +45,7 @@ export function useLookupForm() {
     const open = async (props: ModalLookupOptions) => {
         const {
             entity, viewName, onOK, onCancel, modalProps, selectionMode, search, selectLabel, onClosed,
-            parentKeys, showActions
+            parentKeys, showActions, enableAdd, enableEdit, enableDelete, enableView
         } = { ...UseLookupFormDefaultProps, ...props };
 
         buttonResult.current = 'Quit';
@@ -78,7 +86,11 @@ export function useLookupForm() {
                         refreshOnInit: true,
                         selectionMode: (selectionMode) ? selectionMode : 'multi',
                         search: search,
-                        showActions: showActions
+                        showActions: showActions,
+                        enableAdd: enableAdd,
+                        enableEdit: enableEdit,
+                        enableDelete: enableDelete,
+                        enableView: enableView,
                     }}
                     onOK={async (selectedKeys: ValuesObject[]) => await handleOK(selectedKeys)}
                     onCancel={() => handleCancel()}

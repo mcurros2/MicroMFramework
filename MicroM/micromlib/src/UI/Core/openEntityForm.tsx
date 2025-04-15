@@ -22,6 +22,7 @@ export async function openEntityForm<T extends FormOptions<Entity<EntityDefiniti
     handleModalClosed, withModalFullscreenButton
 }: openEntityFormProps<T>) {
 
+    withModalFullscreenButton = withModalFullscreenButton === undefined ? true : withModalFullscreenButton;
     const showOK = formProps.initialFormMode !== 'view';
     const onSaved = formProps.initialFormMode !== 'view' ? (new_status: OperationStatus<DBStatusResult | null>) => handleModalSaved(new_status) : () => Promise.resolve();
     const onCancel = () => handleModalCancel();

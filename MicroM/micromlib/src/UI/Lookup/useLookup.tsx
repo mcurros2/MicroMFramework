@@ -23,6 +23,10 @@ export interface UseLookupOptions {
     lookupDefName: string,
     required?: boolean,
     HTMLDescriptionRef: React.MutableRefObject<any>,
+    enableAdd?: boolean,
+    enableEdit?: boolean,
+    enableDelete?: boolean,
+    enableView?: boolean,
 }
 
 export interface UseLookupReturnType {
@@ -32,7 +36,10 @@ export interface UseLookupReturnType {
     onBlur: (bindingColumn: string, force?: boolean, event?: React.FocusEvent | null) => void;
 }
 
-export const useLookup = ({ entityForm, entity, lookupDefName, column, parentKeys, required, HTMLDescriptionRef }: UseLookupOptions): UseLookupReturnType => {
+export const useLookup = ({
+    entityForm, entity, lookupDefName, column, parentKeys, required, HTMLDescriptionRef,
+    enableAdd, enableEdit, enableDelete, enableView
+}: UseLookupOptions): UseLookupReturnType => {
     const [status, setStatus] = useState<OperationStatus<ValuesObject>>({});
     const [previousLookupResult, setPreviousLookupResult] = useState<LookupResultState>();
     const [lookupResult, setLookupResult] = useState<LookupResultState>();
@@ -114,6 +121,10 @@ export const useLookup = ({ entityForm, entity, lookupDefName, column, parentKey
                     onOK: onOK,
                     onCancel: onCancel,
                     modalProps: { size: "xl", trapFocus: true },
+                    enableAdd: enableAdd,
+                    enableEdit: enableEdit,
+                    enableDelete: enableDelete,
+                    enableView: enableView,
                 });
             }
 
@@ -136,7 +147,7 @@ export const useLookup = ({ entityForm, entity, lookupDefName, column, parentKey
             }
 
         });
-    }, [column, entityForm.form, lookupForm, parentKeys]);
+    }, [column, entityForm.form, lookupForm, parentKeys, enableAdd, enableEdit, enableDelete, enableView]);
 
     const updateLookupType = useCallback((result: LookupResultState) => {
         if (!result.error && !result.cancel) {

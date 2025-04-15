@@ -61,9 +61,9 @@ export function DataGridActionsToolbar(props: DataGridActionsToolbarProps) {
     return (
         <Box>
             <Group>
-                {enableAdd && onAddClick && <Button size={buttonsSize} ref={addElement} variant={actionsButtonVariant} onClick={async () => await onAddClick(addElement.current as HTMLElement)}>{addLabel}</Button>}
-                {enableEdit && onEditClick && <Button size={buttonsSize} ref={editElement} variant={actionsButtonVariant} onClick={async () => await onEditClick(editElement.current as HTMLElement)}>{editLabel}</Button>}
-                {enableDelete && onDeleteClick && <Button size={buttonsSize} ref={deleteElement} variant={actionsButtonVariant} onClick={async () => await onDeleteClick(deleteElement.current as HTMLElement)}>{deleteLabel}</Button>}
+                {enableAdd && onAddClick && parentFormMode !== 'view' && <Button size={buttonsSize} ref={addElement} variant={actionsButtonVariant} onClick={async () => await onAddClick(addElement.current as HTMLElement)}>{addLabel}</Button>}
+                {enableEdit && onEditClick && parentFormMode !== 'view' && <Button size={buttonsSize} ref={editElement} variant={actionsButtonVariant} onClick={async () => await onEditClick(editElement.current as HTMLElement)}>{editLabel}</Button>}
+                {enableDelete && onDeleteClick && parentFormMode !== 'view' && <Button size={buttonsSize} ref={deleteElement} variant={actionsButtonVariant} onClick={async () => await onDeleteClick(deleteElement.current as HTMLElement)}>{deleteLabel}</Button>}
                 {enableView && onViewClick && <Button size={buttonsSize} ref={viewElement} variant={actionsButtonVariant} onClick={async () => await onViewClick(viewElement.current as HTMLElement)}>{viewLabel}</Button>}
                 {showActions &&
                     Object.values(clientActions).map(

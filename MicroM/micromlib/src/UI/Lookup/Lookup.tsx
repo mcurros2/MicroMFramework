@@ -25,7 +25,11 @@ export interface LookupProps {
     requiredLabel?: string
     description?: string,
     size?: MantineSize
-    onLookupPerformed?: (lookupResult: LookupResultState) => void
+    onLookupPerformed?: (lookupResult: LookupResultState) => void,
+    enableAdd?: boolean,
+    enableEdit?: boolean,
+    enableDelete?: boolean,
+    enableView?: boolean,
 }
 
 export const LookupDefaultProps: Partial<LookupProps> = {
@@ -33,13 +37,17 @@ export const LookupDefaultProps: Partial<LookupProps> = {
     icon: <IconSearch size="1rem" stroke="1.5" />,
     iconVariant: "light",
     requiredLabel: "A value is required",
-    size: "sm"
+    size: "sm",
+    enableAdd: false,
+    enableEdit: false,
+    enableDelete: false,
+    enableView: true,
 }
 
 export function Lookup(props: LookupProps) {
     const {
         entityForm, entity, lookupDefName, autoFocus, label, parentKeys, column, required, readonly, disabled, idMaxWidth, icon, iconVariant,
-        requiredLabel, description, size, onLookupPerformed
+        requiredLabel, description, size, onLookupPerformed, enableAdd, enableEdit, enableDelete, enableView
     } = useComponentDefaultProps('Lookup', LookupDefaultProps, props);
 
 
@@ -54,7 +62,11 @@ export function Lookup(props: LookupProps) {
         column: column.name,
         parentKeys: parentKeys,
         required: required,
-        HTMLDescriptionRef: HTMLDescriptionRef
+        HTMLDescriptionRef: HTMLDescriptionRef,
+        enableAdd: enableAdd,
+        enableEdit: enableEdit,
+        enableDelete: enableDelete,
+        enableView: enableView,
     });
 
     useEffect(() => {

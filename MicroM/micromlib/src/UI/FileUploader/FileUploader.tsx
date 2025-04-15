@@ -7,6 +7,7 @@ import { ImagePreview } from "./ImagePreview";
 import { PDFPreview } from "./PDFPreview";
 import { getFileType } from "./getFileType";
 import { UploadProgressReport, UseFileUploadReturnType } from "./useFileUpload";
+import { UseEntityFormReturnType } from "../Form/useEntityForm";
 
 export interface FileUploaderProps extends Omit<DropzoneProps, 'children' | 'onDrop' | 'maxSize' | 'maxFiles'> {
     IdleIcon?: (props: IconProps) => ReactNode,
@@ -23,6 +24,7 @@ export interface FileUploaderProps extends Omit<DropzoneProps, 'children' | 'onD
     pdfCannotBeViewedText?: string,
     showCancelButton?: boolean,
     cancelLabel?: string,
+    parentFormAPI?: UseEntityFormReturnType,
 }
 
 
@@ -53,7 +55,7 @@ export function FileUploader(props: FileUploaderProps) {
     const {
         IdleIcon, UploadText, uploadAPI, EachFileShouldNotExceedText, AttachUpToText, FilesText,
         imageProps, onDelete, closeText, cancelledText, operationCancelledText, pdfCannotBeViewedText,
-        showCancelButton, cancelLabel, ...dropzoneProps
+        showCancelButton, cancelLabel, parentFormAPI, ...dropzoneProps
     } = useComponentDefaultProps('FileUploader', FileUploaderDefaultProps, props);
 
     const {
@@ -63,6 +65,8 @@ export function FileUploader(props: FileUploaderProps) {
 
     const theme = useMantineTheme();
     const modals = useModal();
+
+    dropzoneProps.disabled = dropzoneProps.disabled || (parentFormAPI?.formMode === 'view');
 
     const handleUpload = async (selectedFiles: File[]) => {
         await uploadFiles(selectedFiles);
@@ -112,7 +116,9 @@ export function FileUploader(props: FileUploaderProps) {
                                 </ActionIcon>
                             }
                             <ActionIcon color={theme.primaryColor} variant="light" onClick={async () => await downloadFile(report.documentURL!)}><IconDownload size="1rem" /></ActionIcon>
-                            <ActionIcon disabled={dropzoneProps.disabled} color={theme.primaryColor} variant="light" onClick={async () => await handleDeleteFile(report.file_id!)}><IconTrash size="1rem" /></ActionIcon>
+                            {parentFormAPI?.formMode !== 'view' &&
+                                    <ActionIcon disabled={dropzoneProps.disabled} color={theme.primaryColor} variant="light" onClick={async () => await handleDeleteFile(report.file_id!)}><IconTrash size="1rem" /></ActionIcon>
+                            }
                         </Group>
                     </Card.Section>
                 }

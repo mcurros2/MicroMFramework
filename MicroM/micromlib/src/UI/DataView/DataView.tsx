@@ -63,7 +63,7 @@ export const DataView = forwardRef(function DataView(props: DataViewProps, ref: 
         Card, CardContainer, limit, search, viewName, filtersFormSize, toolbarSize,
         showAppliedFilters, showRefreshButton, hideCheckboxToggle, showFiltersButton, searchPlaceholder,
         showActions, parentKeys, visibleFilters, setInitialFiltersFromColumns, cardHrefRootURL, cardHrefTarget,
-        showSearchInput, showSelectRowsButton, showToolbar, showDeleteOnlyWhenMultiselect
+        showSearchInput, showSelectRowsButton, showToolbar, showDeleteOnlyWhenMultiselect, parentFormAPI, formMode,
     } = props;
 
     const [searchData, setSearchData] = useState<SelectItem[]>(search?.map(s => { return { value: s, label: s } }) as SelectItem[]);
@@ -76,6 +76,8 @@ export const DataView = forwardRef(function DataView(props: DataViewProps, ref: 
     const { handleLoadMore } = dataViewAPI;
 
     const limit_number = parseInt(limit || '0');
+
+    const effectiveFormMode = formMode || parentFormAPI?.formMode || 'view';
 
     return (
         <section ref={ref}>
@@ -144,8 +146,10 @@ export const DataView = forwardRef(function DataView(props: DataViewProps, ref: 
 
                         actionsButtonVariant={actionsButtonVariant}
                         clientActions={entity ? entity.def.clientActions : {}}
+
                         handleExecuteAction={dataViewAPI.handleExecuteAction}
 
+                        parentFormMode={effectiveFormMode}
                     />
                 }
                 {dataViewAPI.isLoading &&
@@ -173,9 +177,9 @@ export const DataView = forwardRef(function DataView(props: DataViewProps, ref: 
                                     EntityCard={Card}
                                     recordIndex={index}
                                     entity={entity}
-                                    enableDelete={enableDelete}
-                                    enableEdit={enableEdit}
-                                    enableView={enableView}
+                                    enableDelete={effectiveFormMode !== 'view' && enableDelete}
+                                    enableEdit={effectiveFormMode !== 'view' && enableEdit}
+                                    enableView={enableView || effectiveFormMode === 'view'}
                                     handleSelectRecord={dataViewAPI.handleSelectRecord}
                                     handleDeselectRecord={dataViewAPI.handleDeselectRecord}
                                     handleDeleteClick={dataViewAPI.handleDeleteRecord}
