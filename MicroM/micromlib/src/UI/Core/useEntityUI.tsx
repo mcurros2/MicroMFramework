@@ -34,6 +34,7 @@ export interface UseEntityUIProps {
     entity?: Entity<EntityDefinition>,
     parentKeys?: ValuesObject,
     modalFormSize?: MicroMModalSize,
+    withModalFullscreenButton?: boolean,
     parentFormAPI?: UseEntityFormReturnType,
     saveFormBeforeAdd?: boolean,
     onModalSaved?: (new_status: OperationStatus<DBStatusResult | null>) => void,
@@ -51,7 +52,8 @@ export interface UseEntityUIProps {
 export function useEntityUI(props: UseEntityUIProps) {
     const {
         entity, onModalCancelled, onModalSaved, modalFormSize, parentFormAPI, saveFormBeforeAdd, onModalClosed,
-        parentKeys, labels, onRecordsDeleted, onActionRefreshOnClose, onAddClick, onEditClick, onDeleteClick, onActionExecuted
+        parentKeys, labels, onRecordsDeleted, onActionRefreshOnClose, onAddClick, onEditClick, onDeleteClick, onActionExecuted,
+        withModalFullscreenButton,
     } = props;
 
     const modals = useModal();
@@ -76,7 +78,7 @@ export function useEntityUI(props: UseEntityUIProps) {
     const openForm = useCallback(async (entity: Entity<EntityDefinition>, initialFormMode: FormMode, title?: string, element?: HTMLElement, getDataOnInit?: boolean, onClosed?: () => Promise<void>) => {
 
         await openEntityForm({
-            modals, title, element, handleModalSaved, handleModalCancel, modalFormSize, handleModalClosed: async () => {
+            modals, title, element, handleModalSaved, handleModalCancel, modalFormSize, withModalFullscreenButton, handleModalClosed: async () => {
                 await handleModalClosed();
                 if (onClosed) await onClosed();
             },
@@ -87,7 +89,7 @@ export function useEntityUI(props: UseEntityUIProps) {
             }
         });
 
-    }, [modals, modalFormSize, handleModalSaved, handleModalCancel, handleModalClosed]);
+    }, [modals, handleModalSaved, handleModalCancel, modalFormSize, withModalFullscreenButton, handleModalClosed]);
 
     const importData = useImportDataForm({
         initialFormMode: 'add',

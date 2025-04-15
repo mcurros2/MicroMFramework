@@ -3,7 +3,6 @@ import { useMemo, useRef, useState } from "react";
 import { AlertError, FakeProgressBar, useExecuteView, useFirstVisible, useViewState } from "../../UI/Core";
 import { DataViewLimitData } from "../DataView/DataView.types";
 import { Grid } from "../Grid";
-import { w2grid } from "../Grid/W2Grid";
 import { DataGridProps } from "./DataGrid.types";
 import { DataGridActionsToolbar } from "./DataGridActionsToolbar";
 import { DataGridColumnsMenu } from "./DataGridColumnsMenu";
@@ -59,6 +58,7 @@ export const DataGridDefaultProps: Partial<DataGridProps> = {
     showActionsToolbar: true,
     doubleClickAction: "edit",
     showColumnsConfigMenu: true,
+    withModalFullscreenButton: true
 }
 
 export function DataGrid(props: DataGridProps) {
@@ -92,8 +92,6 @@ export function DataGrid(props: DataGridProps) {
     }, [columnsOverrides, entity, theme, viewName]);
 
     const [openColumnsConfigMenu, setOpenColumnsConfigMenu] = useState(false);
-
-    const gridRef = useRef<w2grid | null>(null);
 
     const ConfigMenuDropDown = useMemo(() => (
         <DataGridColumnsMenu
@@ -200,7 +198,6 @@ export function DataGrid(props: DataGridProps) {
                             rowBorders={rowBorders}
                             withBorder={withBorder}
                             columnsOverrides={effectiveColumnOverrides}
-                            ref={gridRef}
                         />
                     </Box>
                     {showToolbar &&

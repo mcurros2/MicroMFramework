@@ -52,6 +52,7 @@ export const DataViewDefaultProps: Partial<DataViewProps> = {
     showActions: true,
     showToolbar: true,
     showDeleteOnlyWhenMultiselect: true,
+    withModalFullscreenButton: true
 }
 
 export const DataView = forwardRef(function DataView(props: DataViewProps, ref: ForwardedRef<HTMLElement> | undefined) {

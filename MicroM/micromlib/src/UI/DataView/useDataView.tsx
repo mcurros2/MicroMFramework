@@ -39,7 +39,7 @@ export function useDataView(props: DataViewProps, stateProps: DataGridStateProps
     const {
         entity, parentKeys, viewName, limit, onSelectionChanged, modalFormSize, onModalSaved,
         labels, saveFormBeforeAdd, parentFormAPI, allwaysRefreshOnEntityClose, notExportableColumns, itemsPerPage, onActionExecuted,
-        convertResultToLocaleString,
+        convertResultToLocaleString, withModalFullscreenButton,
         onDataRefresh
     } = props;
 
@@ -84,7 +84,7 @@ export function useDataView(props: DataViewProps, stateProps: DataGridStateProps
     }, [allwaysRefreshOnEntityClose, internalRefresh]);
 
     const UIAPI = useEntityUI({
-        entity, parentKeys, modalFormSize, parentFormAPI, saveFormBeforeAdd, onModalSaved: handleModalSaved,
+        entity, parentKeys, modalFormSize, parentFormAPI, saveFormBeforeAdd, withModalFullscreenButton, onModalSaved: handleModalSaved,
         onModalClosed: handleAllwaysRefreshOnClose,
         onRecordsDeleted: internalRefresh, onActionRefreshOnClose: internalRefresh, labels, onActionExecuted
     });

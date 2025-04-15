@@ -12,13 +12,14 @@ export interface openEntityFormProps<T extends FormOptions<Entity<EntityDefiniti
     handleModalSaved: (newStatus: OperationStatus<DBStatusResult | null>) => Promise<void>,
     handleModalCancel: () => Promise<void>,
     handleModalClosed?: () => void,
-    modalFormSize?: MicroMModalSize
+    modalFormSize?: MicroMModalSize,
+    withModalFullscreenButton?: boolean,
     formProps: T
 }
 
 export async function openEntityForm<T extends FormOptions<Entity<EntityDefinition>>>({
     modals, title, element, handleModalCancel, handleModalSaved, modalFormSize, formProps,
-    handleModalClosed
+    handleModalClosed, withModalFullscreenButton
 }: openEntityFormProps<T>) {
 
     const showOK = formProps.initialFormMode !== 'view';
@@ -34,7 +35,8 @@ export async function openEntityForm<T extends FormOptions<Entity<EntityDefiniti
     await modals.open({
         modalProps: {
             title: <Text fw="700">{title} {formProps.entity.Title}</Text>,
-            size: modalFormSize
+            size: modalFormSize,
+            withFullscreenButton: withModalFullscreenButton
         },
         onClosed: handleModalClosed,
         focusOnClosed: element,

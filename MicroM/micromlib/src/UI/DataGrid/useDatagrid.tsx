@@ -10,7 +10,8 @@ export function useDataGrid(props: DataGridProps, stateProps: DataGridStateProps
     const {
         entity, parentKeys, viewName, onSelectionChanged, modalFormSize,
         labels, saveFormBeforeAdd, parentFormAPI, allwaysRefreshOnEntityClose, onAddClick, onModalSaved,
-        onDataRefresh, onActionExecuted, formMode, doubleClickAction, notExportableColumns
+        onDataRefresh, onActionExecuted, formMode, doubleClickAction, notExportableColumns, withModalFullscreenButton,
+        initialHiddenColumns
     } = props;
 
     const { setRefresh, setSearchText, executeViewState } = stateProps;
@@ -47,7 +48,7 @@ export function useDataGrid(props: DataGridProps, stateProps: DataGridStateProps
 
     const UIAPI = useEntityUI({
         entity, parentKeys, modalFormSize, parentFormAPI, saveFormBeforeAdd, onModalSaved: handleModalSaved, onModalClosed: handleAlwaysRefreshOnClose,
-        onRecordsDeleted: internalRefresh, onActionRefreshOnClose: internalRefresh, labels, onAddClick, onActionExecuted
+        onRecordsDeleted: internalRefresh, onActionRefreshOnClose: internalRefresh, labels, onAddClick, onActionExecuted, withModalFullscreenButton
     });
 
 
@@ -197,13 +198,14 @@ export function useDataGrid(props: DataGridProps, stateProps: DataGridStateProps
             setColumns(executeViewState.data[0].Header.map((columnText, index) => ({
                 field: index.toString(),
                 text: columnText,
-                sqlType: executeViewState.data![0].typeInfo[index]
+                sqlType: executeViewState.data![0].typeInfo[index],
+                hidden: initialHiddenColumns ? initialHiddenColumns.includes(index) : false,
             })));
             setRows(executeViewState.data[0].records);
             setIsLoading(false);
             if (onDataRefresh) onDataRefresh(executeViewState);
         }
-    }, [executeViewState.data, executeViewState.error, executeViewState.loading, onDataRefresh]);
+    }, [executeViewState.data, executeViewState.error, executeViewState.loading, onDataRefresh, initialHiddenColumns]);
 
 
     return {

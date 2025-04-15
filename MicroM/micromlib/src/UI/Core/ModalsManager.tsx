@@ -1,14 +1,30 @@
-import { MantineNumberSize, Modal, ModalBaseOverlayProps, Skeleton } from '@mantine/core';
+import { ActionIcon, Group, MantineNumberSize, Modal, ModalBaseOverlayProps, Skeleton } from '@mantine/core';
 import { randomId, useViewportSize } from '@mantine/hooks';
 import { ModalSettings } from '@mantine/modals/lib/context';
+import { IconSquareChevronDown, IconSquareChevronUp } from '@tabler/icons-react';
 import { PropsWithChildren, ReactNode, createContext, useCallback, useContext, useState } from 'react';
 import { isPromise } from '../../Entity';
 
+export const ModalsManagerDefaultProps = {
+    closeLabel: 'Close',
+    fullscreenLabel: 'Fullscreen',
+    minimizeLabel: 'Minimize',
+    toggleLabel: 'Toggle',
+    FullScreenIcon: IconSquareChevronUp,
+    RestoreScreeSizeIcon: IconSquareChevronDown,
+    withCloseButton: true,
+}
+
 export type MicroMModalSize = MantineNumberSize | 'fullscreen';
 
+
+
 export type MicroMModalSettings = Partial<Omit<ModalSettings, 'size'>> & {
-    size?: MicroMModalSize;
+    size?: MicroMModalSize,
+    withFullscreenButton?: boolean,
 };
+
+
 
 export interface ModalOpenProps {
     content: ReactNode | Promise<ReactNode>,
@@ -29,7 +45,9 @@ export interface ModalType {
     id: string,
     opened: boolean,
     onClosed?: () => void,
-    focusOnClosed?: HTMLElement
+    focusOnClosed?: HTMLElement,
+    initialSize?: MicroMModalSize,
+    withFullscreenButton?: boolean,
 }
 
 export interface ModalsManagerProps extends PropsWithChildren {
@@ -81,6 +99,11 @@ export const ModalsManager = ({ modalProps, animationDuration, children }: Modal
             focusOnClosed = document.activeElement as HTMLElement;
         }
 
+        // Default for closeButton
+        if (modalProps.withCloseButton === undefined) {
+            modalProps.withCloseButton = ModalsManagerDefaultProps.withCloseButton;
+        }
+
         // If content is a Promise
         if (isPromise<ReactNode>(content)) {
             content.then(resolvedContent => {
@@ -99,7 +122,9 @@ export const ModalsManager = ({ modalProps, animationDuration, children }: Modal
                     id: modal_id,
                     props: modalProps,
                     onClosed,
-                    focusOnClosed
+                    focusOnClosed,
+                    initialSize: modalProps.size,
+                    withFullscreenButton: modalProps.withFullscreenButton,
                 }
             ]);
         }
@@ -114,7 +139,9 @@ export const ModalsManager = ({ modalProps, animationDuration, children }: Modal
                     id: modal_id,
                     props: modalProps,
                     onClosed,
-                    focusOnClosed
+                    focusOnClosed,
+                    initialSize: modalProps.size,
+                    withFullscreenButton: modalProps.withFullscreenButton,
                 }
             ]);
         }
@@ -152,7 +179,7 @@ export const ModalsManager = ({ modalProps, animationDuration, children }: Modal
                                 closedModal.focusOnClosed.focus();
                             }
                             resolve();
-                        }, animationDuration); // Adjust this delay to match your closing animation duration
+                        }, animationDuration); // Adjust this delay to match the closing animation duration
                     }
 
                     return newModals;
@@ -162,6 +189,9 @@ export const ModalsManager = ({ modalProps, animationDuration, children }: Modal
         });
     }, [animationDuration]);
 
+    const IconFullscreen = ModalsManagerDefaultProps.FullScreenIcon;
+    const IconRestore = ModalsManagerDefaultProps.RestoreScreeSizeIcon;
+
     return (
         <ModalContext.Provider value={{ open, close }}>
             {children}
@@ -169,29 +199,73 @@ export const ModalsManager = ({ modalProps, animationDuration, children }: Modal
                 modals.map((modal, index) => {
                     const computedSizes = getModalSize(modal.props.size);
 
+                    return (
+                        <Modal.Root
+                            key={modal.id}
+                            opened={modal.opened}
+                            onClose={async () => { await close(); }}
+                            size={computedSizes.size}
+                            fullScreen={computedSizes.fullscreen}
+                            zIndex={(index + 1) * 5000}
+                            returnFocus={false}
+                            trapFocus
+                        >
+                            <Modal.Overlay {...((index === modals.length - 1) ? modalProps.overlayProps : transparentOverlay)} />
 
-                    return (<Modal
-                        {...modal.props}
-                        trapFocus
-                        size={computedSizes.size}
-                        overlayProps={(index === modals.length - 1) ? modalProps.overlayProps : transparentOverlay}
-                        fullScreen={computedSizes.fullscreen}
-                        zIndex={((index + 1) * 5000)}
-                        key={modal.id}
-                        opened={modal.opened}
-                        returnFocus={false}
-                        onClose={
-                            async () => {
-                                await close();
-                            }
-                        }
-                    >
-                        {
-                            modal.resolvedContent ?
-                                modal.resolvedContent :
-                                (isPromise<ReactNode>(modal.originalContent) ? <Skeleton /> : modal.originalContent)
-                        }
-                    </Modal>)
+                            <Modal.Content>
+                                <Modal.Header>
+                                    <Modal.Title>
+                                        {modal.props.title}
+                                    </Modal.Title>
+                                    <Group position="right">
+                                        {modal.withFullscreenButton &&
+                                            <ActionIcon
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setModals((prev) =>
+                                                        prev.map((m, i) => {
+                                                            if (i !== index) return m;
+                                                            const original = m.initialSize ?? 'lg';
+                                                            const currentSize = m.props.size;
+                                                            const newSize =
+                                                                currentSize === 'fullscreen'
+                                                                    ? original === 'fullscreen'
+                                                                        ? 'lg'
+                                                                        : original
+                                                                    : 'fullscreen';
+
+                                                            return {
+                                                                ...m,
+                                                                props: { ...m.props, size: newSize },
+                                                            };
+                                                        })
+                                                    );
+                                                }}
+                                                variant="subtle"
+                                                size="sm"
+                                                title={`${ModalsManagerDefaultProps.toggleLabel} ${ModalsManagerDefaultProps.fullscreenLabel}`}
+                                            >
+                                                {modal.props.size === 'fullscreen' ? (
+                                                    <IconRestore size="1rem" />
+                                                ) : (
+                                                    <IconFullscreen size="1rem" />
+                                                )}
+                                            </ActionIcon>
+                                        }
+                                        {modal.props.withCloseButton &&
+                                            <Modal.CloseButton title={ModalsManagerDefaultProps.closeLabel} />
+                                        }
+                                    </Group>
+                                </Modal.Header>
+
+                                <Modal.Body>
+                                    {modal.resolvedContent ?
+                                        modal.resolvedContent :
+                                        (isPromise<ReactNode>(modal.originalContent) ? <Skeleton /> : modal.originalContent)}
+                                </Modal.Body>
+                            </Modal.Content>
+                        </Modal.Root>
+                    );
                 })
             }
         </ModalContext.Provider>
