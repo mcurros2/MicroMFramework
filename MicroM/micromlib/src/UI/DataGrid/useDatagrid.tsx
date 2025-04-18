@@ -105,7 +105,7 @@ export function useDataGrid(props: DataGridProps, stateProps: DataGridStateProps
         await UIAPI.handleDeleteClick(keys, element);
     }, [UIAPI]);
 
-    const handleExecuteAction = useCallback(async (action: EntityClientAction, element?: HTMLElement) => {
+    const handleExecuteAction = useCallback(async (action: EntityClientAction, recordIndex?: number, element?: HTMLElement) => {
         const keys = selectionKeys.current;
         await UIAPI.handleExecuteAction(action, keys, element);
     }, [UIAPI]);

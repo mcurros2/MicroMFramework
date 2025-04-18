@@ -18,7 +18,7 @@ export function DataViewCardContainer(props: DataViewCardContainerProps) {
     const {
         recordIndex, selected, handleDeleteClick, handleDeselectRecord, handleEditClick, handleSelectRecord, handleViewClick,
         enableDelete, enableEdit, enableView, entity, record, toggleSelectable, EntityCard, CardProps, refreshView, handleCardClick,
-        cardHrefRootURL, cardHrefTarget
+        cardHrefRootURL, cardHrefTarget, handleExecuteAction
     } = useComponentDefaultProps('DataViewCardContainer', DataViewCardContainerDefaultProps, props);
 
     const theme = useMantineTheme();
@@ -47,6 +47,7 @@ export function DataViewCardContainer(props: DataViewCardContainerProps) {
                     handleEditClick={handleEditClick}
                     handleViewClick={handleViewClick}
                     handleCardClick={handleCardClick}
+                    handleExecuteAction={handleExecuteAction}
                     selected={selected}
                     toggleSelectable={toggleSelectable}
                     refreshView={refreshView}

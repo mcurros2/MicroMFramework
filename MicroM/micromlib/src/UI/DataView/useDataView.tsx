@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { EntityClientAction, convertRecordToValuesObject, exportToCSV, exportToExcel, toCamelCase } from "../../Entity";
+import { EntityClientAction, convertRecordToValuesObject, exportToExcel, toCamelCase } from "../../Entity";
 import { DBStatusResult, DataResult, OperationStatus, SQLType, Value, ValuesObject, ValuesRecord } from "../../client";
 import { useEntityUI, useLocaleFormat } from "../Core";
 import { DataGridStateProps } from "../DataGrid/DataGrid.types";
@@ -14,7 +14,7 @@ export interface useDataViewReturnType {
     handleViewClick: (keys: ValuesObject, element?: HTMLElement) => Promise<void>;
     handleToggleSelectable: () => void;
     handleRefresh: (searchText: string[] | undefined) => void;
-    handleExecuteAction: (action: EntityClientAction, element?: HTMLElement) => Promise<void>;
+    handleExecuteAction: (action: EntityClientAction, recordIndex?: number, element?: HTMLElement) => Promise<boolean | undefined>;
     handleExport: () => void;
     selectedRowsCount: number;
     limitRows: string | null;
@@ -189,9 +189,12 @@ export function useDataView(props: DataViewProps, stateProps: DataGridStateProps
         await UIAPI.handleDeleteRecord(keys, element);
     }, [UIAPI]);
 
-    const handleExecuteAction = useCallback(async (action: EntityClientAction, element?: HTMLElement) => {
+    const handleExecuteAction = useCallback(async (action: EntityClientAction, recordIndex?: number, element?: HTMLElement) => {
+        if (recordIndex !== undefined) {
+            selectedRecords.current = [recordIndex];
+        }
         const keys = getSelectionKeys();
-        await UIAPI.handleExecuteAction(action, keys, element);
+        return await UIAPI.handleExecuteAction(action, keys, element);
     }, [UIAPI, getSelectionKeys]);
 
     const handleExport = useCallback(() => {

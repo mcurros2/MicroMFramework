@@ -1,7 +1,7 @@
 import { ActionIcon, Group, MantineNumberSize, Modal, ModalBaseOverlayProps, Skeleton } from '@mantine/core';
 import { randomId, useViewportSize } from '@mantine/hooks';
 import { ModalSettings } from '@mantine/modals/lib/context';
-import { IconSquareChevronDown, IconSquareChevronUp } from '@tabler/icons-react';
+import { IconArrowsDiagonal, IconArrowsDiagonalMinimize2 } from '@tabler/icons-react';
 import { PropsWithChildren, ReactNode, createContext, useCallback, useContext, useState } from 'react';
 import { isPromise } from '../../Entity';
 
@@ -10,8 +10,8 @@ export const ModalsManagerDefaultProps = {
     fullscreenLabel: 'Fullscreen',
     minimizeLabel: 'Minimize',
     toggleLabel: 'Toggle',
-    FullScreenIcon: IconSquareChevronUp,
-    RestoreScreeSizeIcon: IconSquareChevronDown,
+    FullScreenIcon: IconArrowsDiagonal,
+    RestoreScreeSizeIcon: IconArrowsDiagonalMinimize2,
     withCloseButton: true,
 }
 
@@ -228,8 +228,8 @@ export const ModalsManager = ({ modalProps, animationDuration, children }: Modal
                                                             const original = m.initialSize ?? 'lg';
                                                             const currentSize = m.props.size;
                                                             const newSize =
-                                                                currentSize === 'fullscreen'
-                                                                    ? original === 'fullscreen'
+                                                                (currentSize === 'fullscreen' || currentSize === '100%')
+                                                                    ? (original === 'fullscreen' || original === '100%')
                                                                         ? 'lg'
                                                                         : original
                                                                     : 'fullscreen';

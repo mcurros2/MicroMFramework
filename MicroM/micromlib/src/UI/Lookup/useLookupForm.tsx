@@ -99,6 +99,7 @@ export function useLookupForm() {
                     ...modalProps,
                     trapFocus: true,
                     returnFocus: true,
+                    withFullscreenButton: true,
                     title: <Text fw="700">{selectLabel} {entity.Title}</Text>,
                 },
                 onClosed: async () => {

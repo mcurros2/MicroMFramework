@@ -52,7 +52,8 @@ export const DataViewDefaultProps: Partial<DataViewProps> = {
     showActions: true,
     showToolbar: true,
     showDeleteOnlyWhenMultiselect: true,
-    withModalFullscreenButton: true
+    withModalFullscreenButton: true,
+    CardRowAlign: "flex-start",
 }
 
 export const DataView = forwardRef(function DataView(props: DataViewProps, ref: ForwardedRef<HTMLElement> | undefined) {
@@ -64,6 +65,7 @@ export const DataView = forwardRef(function DataView(props: DataViewProps, ref: 
         showAppliedFilters, showRefreshButton, hideCheckboxToggle, showFiltersButton, searchPlaceholder,
         showActions, parentKeys, visibleFilters, setInitialFiltersFromColumns, cardHrefRootURL, cardHrefTarget,
         showSearchInput, showSelectRowsButton, showToolbar, showDeleteOnlyWhenMultiselect, parentFormAPI, formMode,
+        CardRowAlign
     } = props;
 
     const [searchData, setSearchData] = useState<SelectItem[]>(search?.map(s => { return { value: s, label: s } }) as SelectItem[]);
@@ -77,7 +79,11 @@ export const DataView = forwardRef(function DataView(props: DataViewProps, ref: 
 
     const limit_number = parseInt(limit || '0');
 
-    const effectiveFormMode = formMode || parentFormAPI?.formMode || 'view';
+    const effectiveFormMode = formMode || parentFormAPI?.formMode || 'add';
+
+    if (entity?.def.views[viewName] === undefined) {
+        console.warn(`DataView: View ${viewName} not found in entity ${entity?.def.name}`);
+    }
 
     return (
         <section ref={ref}>
@@ -102,7 +108,7 @@ export const DataView = forwardRef(function DataView(props: DataViewProps, ref: 
 
                             client={entity?.API.client}
 
-                            FiltersEntity={(entity && viewName) ? entity?.def.views[viewName].FiltersEntity : undefined}
+                            FiltersEntity={(entity && viewName && entity?.def.views[viewName]) ? entity?.def.views[viewName].FiltersEntity : undefined}
 
                             filterValues={viewState.filterValues}
                             setFilterValues={viewState.setFilterValues}
@@ -168,7 +174,7 @@ export const DataView = forwardRef(function DataView(props: DataViewProps, ref: 
                     <Text fz="sm" align="center" fw={500} c="dimmed">{labels?.noRecordsFoundLabel}</Text>
                 }
                 {dataViewAPI.data.length > 0 &&
-                    <Group>
+                    <Group align={CardRowAlign}>
                         {
                             CardContainer && entity && dataViewAPI.data.map((record, index) => {
                                 return <CardContainer
@@ -179,12 +185,13 @@ export const DataView = forwardRef(function DataView(props: DataViewProps, ref: 
                                     entity={entity}
                                     enableDelete={effectiveFormMode !== 'view' && enableDelete}
                                     enableEdit={effectiveFormMode !== 'view' && enableEdit}
-                                    enableView={enableView || effectiveFormMode === 'view'}
+                                    enableView={enableView !== undefined ? enableView : effectiveFormMode === 'view'}
                                     handleSelectRecord={dataViewAPI.handleSelectRecord}
                                     handleDeselectRecord={dataViewAPI.handleDeselectRecord}
                                     handleDeleteClick={dataViewAPI.handleDeleteRecord}
                                     handleEditClick={dataViewAPI.handleEditClick}
                                     handleViewClick={dataViewAPI.handleViewClick}
+                                    handleExecuteAction={dataViewAPI.handleExecuteAction}
                                     selected={dataViewAPI.selectedRecords.includes(index)}
                                     toggleSelectable={dataViewAPI.toggleSelectable}
                                     refreshView={() => viewState.setRefresh((prev) => !prev)}

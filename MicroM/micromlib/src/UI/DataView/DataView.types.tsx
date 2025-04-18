@@ -1,5 +1,5 @@
 import { MantineNumberSize, SelectItem } from "@mantine/core";
-import { ComponentType } from "react";
+import { ComponentType, CSSProperties } from "react";
 import { DataResult, OperationStatus, ValuesObject } from "../../client";
 import { ActionIconVariant, ButtonVariant, EntityUILabels, FormMode, UseEntityUIProps } from "../Core";
 import { DataGridToolbarSizes } from "../DataGrid";
@@ -83,6 +83,7 @@ export interface DataViewProps extends Omit<UseEntityUIProps, 'labels'> {
     // Cards
 
     CardContainer?: ComponentType<DataViewCardContainerProps>,
+    CardRowAlign?: CSSProperties['alignItems'],
     cardHrefRootURL?: string
     cardHrefTarget?: string
     Card: ComponentType<EntityCardProps<ValuesObject>>,

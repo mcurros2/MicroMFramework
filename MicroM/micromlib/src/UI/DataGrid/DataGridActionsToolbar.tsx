@@ -22,7 +22,7 @@ export interface DataGridActionsToolbarProps {
     showActions?: boolean,
     clientActions: Record<string, EntityClientAction>,
     actionsButtonVariant?: ButtonVariant,
-    handleExecuteAction: (action: EntityClientAction, element?: HTMLElement) => void,
+    handleExecuteAction: (action: EntityClientAction, recordIndex?: number, element?: HTMLElement) => void,
 
     onAddClick?: (element: HTMLElement) => void,
     onEditClick?: (element: HTMLElement) => void,
@@ -72,7 +72,7 @@ export function DataGridActionsToolbar(props: DataGridActionsToolbarProps) {
                             if (parentFormMode === 'view' && !action.showActionInViewMode) return null;
                             if (viewName && action.views && !action.views.includes(viewName)) return null;
                             return (
-                                <Button leftIcon={action.icon} key={action.name} ref={(el) => (actionElements.current[index] = el)} size={buttonsSize} variant={actionsButtonVariant} onClick={() => handleExecuteAction(action, actionElements.current[index] ?? undefined)}>{action.label}</Button>
+                                <Button leftIcon={action.icon} key={action.name} ref={(el) => (actionElements.current[index] = el)} size={buttonsSize} variant={actionsButtonVariant} onClick={() => handleExecuteAction(action, undefined, actionElements.current[index] ?? undefined)}>{action.label}</Button>
                             )
                         }
                     )
