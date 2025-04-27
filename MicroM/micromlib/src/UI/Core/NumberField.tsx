@@ -36,6 +36,7 @@ export const NumberField = forwardRef<HTMLInputElement, NumberFieldProps>(functi
 
     // MMC: disabled when loading is done at the form level in EntityForm and fieldset
     //data-autofocus={autoFocus}  disabled={(disableOnLoading) ? loading : disabled}
+
     return (
         <NumberInput
             {...others}

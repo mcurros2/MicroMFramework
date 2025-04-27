@@ -37,7 +37,9 @@ export async function openEntityForm<T extends FormOptions<Entity<EntityDefiniti
         modalProps: {
             title: <Text fw="700">{title} {formProps.entity.Title}</Text>,
             size: modalFormSize,
-            withFullscreenButton: withModalFullscreenButton
+            withFullscreenButton: withModalFullscreenButton,
+            closeOnClickOutside: false,
+            closeOnEscape: true
         },
         onClosed: handleModalClosed,
         focusOnClosed: element,

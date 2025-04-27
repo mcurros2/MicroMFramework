@@ -1,7 +1,7 @@
 import { useComponentDefaultProps } from "@mantine/core";
 import { UseFormReturnType, useForm } from "@mantine/form";
 import { LooseKeys } from "@mantine/form/lib/types";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Entity, EntityColumn, EntityDefinition, isIn, setValues } from "../../Entity";
 import { ValidationRule } from "../../Validation";
 import { DBStatus, DBStatusResult, OperationStatus, SQLType, Value, ValuesObject, toDBStatusMicroMError, toMicroMError } from "../../client";
@@ -318,7 +318,7 @@ export function useEntityForm(props: UseEntityFormOptions): UseEntityFormReturnT
         delete validationObject.current[column.name];
     }, []);
 
-    return {
+    const result = useMemo(() => ({
         form: form,
         formMode: formMode,
         status: status,
@@ -337,5 +337,7 @@ export function useEntityForm(props: UseEntityFormOptions): UseEntityFormReturnT
         clearAllAsyncErrors: clearAllAsyncErrors,
         isFormValid: isFormValid,
         isFormFieldValid: isFormFieldValid
-    };
+    }), [addValidation, clearAllAsyncErrors, clearAsyncError, entity, form, formMode, handleCancel, handleSubmit, isFormFieldValid, isFormValid, notifyValidationErrorState, performGetData, removeValidation, saveAndGet, saveAndGetOverride, setAsyncError, showDescriptionState, status]);
+
+    return result;
 }

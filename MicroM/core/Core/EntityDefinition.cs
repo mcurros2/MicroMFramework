@@ -1,6 +1,8 @@
-﻿using MicroM.Data;
+﻿using DocumentFormat.OpenXml.Vml.Spreadsheet;
+using MicroM.Data;
 using MicroM.Extensions;
 using MicroM.Generators.SQLGenerator;
+using MicroM.Web.Authentication;
 using System.Collections.Concurrent;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -191,7 +193,7 @@ namespace MicroM.Core
         #region "Column methods"
 
         private bool _DefaultColumnsAdded = false;
-        private void AddDefaultColumns()
+        private void AddDefaultColumns(bool webuser_delete_flag = false)
         {
             if (_DefaultColumnsAdded) return;
 
@@ -204,7 +206,7 @@ namespace MicroM.Core
             vc_webluuser = def_cols.vc_webluuser;
             vc_insuser = def_cols.vc_insuser;
             vc_luuser = def_cols.vc_luuser;
-            webusr = def_cols.webusr;
+            webusr = !webuser_delete_flag ? def_cols.webusr : Column<string>.Text(column_flags: ColumnFlags.Insert | ColumnFlags.Update | ColumnFlags.Fake | ColumnFlags.Delete, override_with: nameof(MicroMServerClaimTypes.MicroMUsername), value: ""); ;
 
             _DefaultColumnsAdded = true;
         }
@@ -219,12 +221,12 @@ namespace MicroM.Core
         /// <param name="name">Sets the name for this entity. Use nameof(YourEntityName). This will rsult in the table name in the DB</param>
         /// <param name="add_default_columns">If true it will add the default columns to the entity</param>
         /// <exception cref="ArgumentNullException"></exception>
-        protected EntityDefinition(string mneo, string name, bool add_default_columns = true)
+        protected EntityDefinition(string mneo, string name, bool add_default_columns = true, bool webusr_delete_flag = false)
         {
             Mneo = mneo ?? throw new ArgumentNullException(nameof(mneo));
             TableName = name ?? throw new ArgumentNullException(nameof(name));
 
-            if (add_default_columns) AddDefaultColumns();
+            if (add_default_columns) AddDefaultColumns(webusr_delete_flag);
 
             FillColumnsCollectionAndColumnNames(); // MMC: set the names of columns first as they can be used in other definitions
 

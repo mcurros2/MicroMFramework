@@ -515,6 +515,7 @@ export class MicroMClient {
             abort_signal = null;
             if (this.#REDIRECT_ON_401) {
                 if ((error as MicroMError).status === 401) {
+                    console.warn(`${route} 401, redirecting to login page: ${this.#REDIRECT_ON_401}`);
                     await this.localLogoff();
                     window.location.href = this.#REDIRECT_ON_401;
                 }

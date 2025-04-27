@@ -1,7 +1,7 @@
 import { Accordion, ActionIcon, Badge, BadgeVariant, Group, MantineNumberSize, MantineSize, Menu, SelectItem, Stack, Text, rem, useComponentDefaultProps, useMantineTheme } from "@mantine/core";
 import { AccordionVariant } from "@mantine/core/lib/Accordion/Accordion.types";
 import { IconCloudUpload, IconDownload, IconEyeCog, IconFilter, IconFilterOff, IconPencil, IconReload, IconSquareCheck, IconSquareCheckFilled, IconX } from "@tabler/icons-react";
-import { Dispatch, ReactNode, SetStateAction } from "react";
+import { Dispatch, ReactNode, SetStateAction, useRef } from "react";
 import { ColumnsObject, EntityConstructor } from "../../Entity";
 import { MicroMClient, ValuesObject } from "../../client";
 import { ActionIconVariant, SearchFilterInput, ToggleActionIcon } from "../Core";
@@ -130,9 +130,11 @@ export function DataGridToolbar(props: DataGridToolbarOptions) {
 
     const { buttonsSize, actionIconSize, iconsSize, badgeSize } = getToolbarSizes(size!);
 
+    const filterInputRef = useRef<HTMLInputElement>(null);
+
     const filtersAPI = useDataGridToolbarFilters({
         filterValues, setFilterValues, filtersDescription, setFiltersDescription, client: client, parentKeys, FiltersEntity, setSearchData, setSearchText, onRefreshClick, searchData, onSearchTextChange,
-        filtersFormSize, visibleFilters, initialColumnFilters
+        filtersFormSize, visibleFilters, initialColumnFilters, filterInputRef
     });
 
     const appliedFiltersCount = filtersAPI.filtersDescription ? Object.values(filtersAPI.filtersDescription).filter(value => value?.toString() !== '').length : 0;
@@ -164,7 +166,7 @@ export function DataGridToolbar(props: DataGridToolbarOptions) {
 
                         onSearchClick={() => onRefreshClick(searchText)}
                         onChange={filtersAPI.handleSearchFilterInputOnChange}
-                        onSearchChange={(text) => filtersAPI.setQueryText(text)}
+                        onSearchChange={(text: string) => filtersAPI.setQueryText(text)}
                         onCreate={filtersAPI.createSearchPhrase}
 
                         clearSearchOnChange
@@ -174,6 +176,7 @@ export function DataGridToolbar(props: DataGridToolbarOptions) {
                         autoFocus={autoFocus}
                         iconVariant={toolbarIconVariant}
                         sx={{ flexGrow: 1 }}
+                        ref={filterInputRef}
                     />
                 }
                 {showFiltersButton && FiltersEntity &&

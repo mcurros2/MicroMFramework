@@ -1,6 +1,6 @@
 import { Button, Group, Stepper, StepperProps, useComponentDefaultProps } from "@mantine/core";
 import { IconCircleCheck } from "@tabler/icons-react";
-import { ReactNode, useEffect, useState } from "react";
+import { ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 import { DBStatusResult } from "../../client";
 import { EntityForm, EntityFormProps } from "./EntityForm";
 
@@ -63,16 +63,16 @@ export function StepperForm(props: StepperFormProps) {
 
     const activeStepItem = steps[activeStep];
 
-    const validateCurrentStepFields = (): boolean => {
+    const validateCurrentStepFields = useCallback((): boolean => {
         const currentStep = steps[activeStep];
         if (currentStep.validateFields) {
             const validationResults = currentStep.validateFields.map((field) => formAPI.form.validateField(field));
             return validationResults.every((result) => result.hasError === false);
         }
         return true;
-    };
+    }, [activeStep, formAPI.form, steps]);
 
-    const nextStep = async (event: React.MouseEvent) => {
+    const nextStep = useCallback(async (event: React.MouseEvent) => {
         event.preventDefault();
 
         const currentStep = steps[activeStep];
@@ -109,7 +109,7 @@ export function StepperForm(props: StepperFormProps) {
                 if (activeStep < steps.length - 1) {
                     setActiveStep((current) => current + 1);
                 } else {
-                    setActiveStep(steps.length);  // Completed step
+                    if (formMode === 'view') setActiveStep(steps.length);  // Completed step
                 }
 
             } else {
@@ -123,13 +123,12 @@ export function StepperForm(props: StepperFormProps) {
             if (activeStep < steps.length - 1) {
                 setActiveStep((current) => current + 1);
             } else {
-                setActiveStep(steps.length);  // Completed step
+                if (formMode === 'view') setActiveStep(steps.length);  // Completed step
             }
-
         }
-    };
+    }, [activeStep, formMode, onNextStep, stepValid, steps, validateCurrentStepFields]);
 
-    const prevStep = async (event: React.MouseEvent) => {
+    const prevStep = useCallback(async (event: React.MouseEvent) => {
         event.preventDefault();
         let isValid = true;
         if (activeStep > 0) {
@@ -147,9 +146,9 @@ export function StepperForm(props: StepperFormProps) {
                 setActiveStep((current) => current - 1);
             }
         }
-    };
+    }, [activeStep, onPrevStep, steps]);
 
-    const handleStepClick = async (stepIndex: number) => {
+    const handleStepClick = useCallback(async (stepIndex: number) => {
         if (stepIndex < activeStep) {
             setActiveStep(stepIndex);
         } else if (allowStepClickForward) {
@@ -158,7 +157,43 @@ export function StepperForm(props: StepperFormProps) {
                 setActiveStep(stepIndex);
             }
         }
-    };
+    }, [activeStep, allowStepClickForward, validateCurrentStepFields]);
+
+    const buttons = useMemo(() => (
+        !(hideNextAndBackWhenCompleted && activeStep === steps.length) &&
+        <Group position={activeStep > 0 ? 'apart' : 'right'} style={{ flex: 'auto' }}>
+            <Button
+                key="stepper-back"
+                loading={stepValidating}
+                variant="default"
+                type="button"
+                onClick={prevStep}
+                display={activeStep > 0 ? 'inline-block' : 'none'}
+            >
+                {prevStepLabel}
+            </Button>
+            <Button
+                type="submit"
+                key="stepper-submit"
+                loading={status?.loading}
+                leftIcon={<IconCircleCheck size="1.125rem" />}
+                display={formMode !== "view" && activeStep === steps.length - 1 ? 'inline-block' : 'none'}
+            >
+                {activeStepItem.nextStepLabel || nextStepLabel}
+            </Button>
+            <Button
+                loading={stepValidating}
+                key="stepper-next"
+                onClick={nextStep}
+                type="button"
+                display={activeStep < steps.length - 1 ? 'inline-block' : 'none'}
+            >
+                {(stepValid[activeStep]
+                    ? activeStepItem.nextStepValidLabel
+                    : activeStepItem.nextStepLabel) || nextStepLabel}
+            </Button>
+        </Group>
+    ), [activeStep, activeStepItem, formMode, hideNextAndBackWhenCompleted, nextStep, nextStepLabel, prevStep, prevStepLabel, status?.loading, stepValid, stepValidating, steps.length]);
 
     useEffect(() => {
         setStepValid((prev) => {
@@ -166,7 +201,7 @@ export function StepperForm(props: StepperFormProps) {
             newStepValid[activeStep] = false;
             return newStepValid;
         });
-    }, [formAPI.form.values, activeStep]);
+    }, [activeStep]);
 
     useEffect(() => {
         if (!status.error && !status.loading && status.data) {
@@ -178,13 +213,13 @@ export function StepperForm(props: StepperFormProps) {
     }, [status.data, status.error, status.loading, steps.length]);
 
     useEffect(() => {
-        if(activeStep === steps.length && onCompleted) {
+        if (activeStep === steps.length && onCompleted) {
             onCompleted();
         }
     }, [activeStep, onCompleted, steps.length]);
 
     return (
-        <EntityForm {...rest} formAPI={formAPI} showCancel={false} showOK={false} OKText={OKText}>
+        <EntityForm {...rest} buttons={buttons} formAPI={formAPI} showCancel={false} showOK={false} OKText={OKText}>
             <Stepper active={activeStep} onStepClick={handleStepClick} {...stepperProps}>
                 {steps.map((step) =>
                 (
@@ -199,40 +234,6 @@ export function StepperForm(props: StepperFormProps) {
                     </Stepper.Completed>
                 }
             </Stepper>
-            {!(hideNextAndBackWhenCompleted && activeStep === steps.length) &&
-                <Group position={activeStep > 0 ? 'apart' : 'right'} mt="xl">
-                    {activeStep > 0 && (
-                        <Button
-                            loading={stepValidating}
-                            variant="default"
-                            onClick={prevStep}
-                        >
-                            {prevStepLabel}
-                        </Button>
-                    )}
-                    {formMode !== "view" && activeStep === steps.length - 1 ? (
-                        <Button
-                            type="submit"
-                            key="stepper-submit"
-                            loading={status?.loading}
-                            leftIcon={<IconCircleCheck size="1.125rem" />}
-                        >
-                            {activeStepItem.nextStepLabel || nextStepLabel}
-                        </Button>
-                    ) : (
-                        <Button
-                            loading={stepValidating}
-                            key="stepper-next"
-                            onClick={nextStep}
-                        >
-                            {(stepValid[activeStep]
-                                ? activeStepItem.nextStepValidLabel
-                                : activeStepItem.nextStepLabel) || nextStepLabel}
-                        </Button>
-                    )}
-                </Group>
-            }
-
         </EntityForm>
     )
 }

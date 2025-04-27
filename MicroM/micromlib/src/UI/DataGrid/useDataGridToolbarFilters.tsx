@@ -1,5 +1,5 @@
 import { MantineNumberSize, SelectItem } from "@mantine/core";
-import { Dispatch, SetStateAction, useCallback, useEffect, useState } from "react";
+import { Dispatch, RefObject, SetStateAction, useCallback, useEffect, useState } from "react";
 import { ColumnsObject, EntityConstructor, SYSTEM_COLUMNS_NAMES, setValues } from "../../Entity";
 import { MicroMClient, ValuesObject } from "../../client";
 import { useOpenForm } from "../Core";
@@ -22,14 +22,16 @@ export interface UseDataGridToolbarFiltersProps {
     filtersFormSize: MantineNumberSize,
     visibleFilters?: string[],
 
-    initialColumnFilters?: ColumnsObject
+    initialColumnFilters?: ColumnsObject,
+    filterInputRef: RefObject<HTMLInputElement>,
 }
 
 export function useDataGridToolbarFilters(props: UseDataGridToolbarFiltersProps) {
     const {
         filterValues, setFilterValues, client,
         parentKeys, FiltersEntity, setSearchData, setSearchText, onRefreshClick, onSearchTextChange,
-        searchData, filtersFormSize, visibleFilters, filtersDescription, setFiltersDescription, initialColumnFilters
+        searchData, filtersFormSize, visibleFilters, filtersDescription, setFiltersDescription, initialColumnFilters,
+        filterInputRef
     } = props;
 
     const openFilters = useOpenForm();

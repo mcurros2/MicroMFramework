@@ -1,6 +1,6 @@
 {
   "name": "@mcurros2/microm",
-  "version": "1.1.55-0",
+  "version": "1.1.89-0",
   "source": "src/index.ts",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

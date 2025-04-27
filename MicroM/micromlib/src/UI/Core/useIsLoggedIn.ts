@@ -5,7 +5,8 @@ import { getInitials } from "./loginSupport";
 
 export interface useIsLoggedInProps {
     client: MicroMClient
-    useLocalLoggedInCheck?: boolean
+    useLocalLoggedInCheck?: boolean,
+    userInitialsClientClaimsNames?: string[]
 }
 
 export type useIsLoggedInReturnType = {
@@ -15,7 +16,7 @@ export type useIsLoggedInReturnType = {
     loggedInInfo: Partial<MicroMClientClaimTypes>,
 };
 
-export function useIsLoggedIn({ client, useLocalLoggedInCheck }: useIsLoggedInProps): useIsLoggedInReturnType {
+export function useIsLoggedIn({ client, useLocalLoggedInCheck, userInitialsClientClaimsNames }: useIsLoggedInProps): useIsLoggedInReturnType {
     const [isLoggedIn, setIsLoggedIn] = useState<boolean | undefined>(undefined);
 
     const [loggedInInfo, setLoggedInInfo] = useState<Partial<MicroMClientClaimTypes>>({});
@@ -41,7 +42,13 @@ export function useIsLoggedIn({ client, useLocalLoggedInCheck }: useIsLoggedInPr
         async function getInfo() {
             if (isLoggedIn) {
                 const info = client.LOGGED_IN_USER;
-                if(info?.username) info.userinitials = getInitials(info.username);
+
+                // get intials from the client claims using userInitialsClientClaimsNames. Take the properties values from the client claims it those exist,
+                // join them in a string separated with ' ' and use that as the input for the getInitials function
+                // if not use the default client.userInitialsInput
+                const userInitialsClientClaims = info ? userInitialsClientClaimsNames?.map((name) => info[name]).filter((value) => value as string).join(' ') || info.username || '': '';
+
+                if(info?.username) info.userinitials = getInitials(userInitialsClientClaims);
                 setLoggedInInfo(info ?? {});
             }
             else {

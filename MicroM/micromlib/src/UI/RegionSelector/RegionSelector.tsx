@@ -43,7 +43,7 @@ export const RegionSelectorDefaultProps: Partial<RegionSelectorProps> = {
     unknownStateLabel: "Unknown state",
     regionListMode: 'names',
     suppressCountyString: 'county',
-    searchDescriptionLabel: "Search for a region, place or address",
+    searchDescriptionLabel: "Search for a region, place or address and click on the map to select regions",
     mapHelpLabel: "* Use the zoom to select States, Counties or Zip codes. Click over the region to select/deselect",
     selectedRegionsLabel: "Selected Regions",
     maxRegions: Infinity

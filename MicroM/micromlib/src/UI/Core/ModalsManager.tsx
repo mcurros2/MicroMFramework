@@ -209,6 +209,8 @@ export const ModalsManager = ({ modalProps, animationDuration, children }: Modal
                             zIndex={(index + 1) * 5000}
                             returnFocus={false}
                             trapFocus
+                            closeOnClickOutside={modal.props.closeOnClickOutside ?? false}
+                            closeOnEscape={modal.props.closeOnEscape ?? true}
                         >
                             <Modal.Overlay {...((index === modals.length - 1) ? modalProps.overlayProps : transparentOverlay)} />
 

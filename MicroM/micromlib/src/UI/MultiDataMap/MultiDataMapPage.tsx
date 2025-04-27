@@ -51,7 +51,7 @@ export function MultiDataMapPage(props: MultiDataMapPageProps) {
                 enableAdd: formMode === 'view' ? false : dataMapView.enableAdd,
                 enableEdit: formMode === 'view' ? false : dataMapView.enableEdit,
                 enableDelete: formMode === 'view' ? false : dataMapView.enableDelete,
-                enableView: formMode === 'view' ? true : dataMapView.enableView,
+                enableView: dataMapView.enableView,
             };
 
             // Only return a new object if any of the properties changed
