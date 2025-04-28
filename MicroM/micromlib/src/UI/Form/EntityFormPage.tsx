@@ -12,11 +12,14 @@ export interface EntityFormPageProps extends Omit<FormOptions<Entity<any>>, 'ent
 
 export const EntityFormPagePropsDefaultProps: Partial<EntityFormPageProps> = {
     saveAndGetOnSubmit: true,
-    defaultLoadingComponent: <Skeleton />
+    defaultLoadingComponent: <Skeleton />,
 }
 
 export function EntityFormPage(props: EntityFormPageProps) {
-    const { entityConstructor, client, defaultLoadingComponent, ...rest } = useComponentDefaultProps('EntityFormPage', EntityFormPagePropsDefaultProps, props);
+    const {
+        entityConstructor, client, defaultLoadingComponent,
+        ...rest
+    } = useComponentDefaultProps('EntityFormPage', EntityFormPagePropsDefaultProps, props);
 
     const [entityForm, setEntityForm] = useState<React.ReactNode | null>(null);
 

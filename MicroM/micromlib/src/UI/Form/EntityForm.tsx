@@ -23,6 +23,8 @@ export interface EntityFormProps extends PropsWithChildren {
     isDirtyColor?: DefaultMantineColor,
     cancelButtonVariant?: Variants<'filled' | 'outline' | 'light' | 'white' | 'default' | 'subtle' | 'gradient'>,
     okButtonVariant?: Variants<'filled' | 'outline' | 'light' | 'white' | 'default' | 'subtle' | 'gradient'>,
+    saveBeforeLocalNavigation?: boolean,
+    saveBeforeRemoteNavigation?: boolean,
 }
 
 export const EntityFormDefaultProps: Partial<EntityFormProps> = {

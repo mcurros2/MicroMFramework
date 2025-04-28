@@ -114,6 +114,10 @@ export function areValuesObjectsEqual(objA: ValuesObject | undefined, objB: Valu
             if (valueA.getTime() !== valueB.getTime()) {
                 return false;
             }
+        } else if (Array.isArray(valueA) && Array.isArray(valueB)) {
+            if (valueA.length !== valueB.length || !valueA.every((val, index) => val === valueB[index])) {
+                return false;
+            }
         } else if (valueA !== valueB) {
             return false;
         }

@@ -2,7 +2,7 @@ import { useComponentDefaultProps } from "@mantine/core";
 import { UseFormReturnType, useForm } from "@mantine/form";
 import { LooseKeys } from "@mantine/form/lib/types";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Entity, EntityColumn, EntityDefinition, isIn, setValues } from "../../Entity";
+import { areValuesObjectsEqual, Entity, EntityColumn, EntityDefinition, isIn, setValues } from "../../Entity";
 import { ValidationRule } from "../../Validation";
 import { DBStatus, DBStatusResult, OperationStatus, SQLType, Value, ValuesObject, toDBStatusMicroMError, toMicroMError } from "../../client";
 import { FormMode, FormOptions, useStateReturnType } from "../Core";
@@ -11,9 +11,7 @@ import { getMantineInitialValuesObject, getMantineValuesObject } from "./Mantine
 export interface UseEntityFormOptions extends FormOptions<Entity<EntityDefinition>> {
     validateInputOnBlur?: boolean,
     validateInputOnChange?: boolean | LooseKeys<ValuesObject>[],
-    getDataOnInit: boolean,
     forceDirty?: boolean,
-    initialShowDescriptionInFields?: boolean
     saveAndGetOverride?: (get_data_if_saved: boolean, override_values?: ValuesObject) => Promise<OperationStatus<DBStatusResult>>,
     noSaveOnSubmit?: boolean,
     bindedColumnNames?: string[],
@@ -75,6 +73,8 @@ export function useEntityForm(props: UseEntityFormOptions): UseEntityFormReturnT
         saveAndGetOnSubmit,
         cancelGetOnUnmount,
         cancelSaveOnUnmount,
+        saveBeforeLocalNavigation,
+        saveBeforeRemoteNavigation,
     } = useComponentDefaultProps('', UseEntityFormDefaultProps, props);
 
     const [status, setStatus] = useState<OperationStatus<DBStatusResult | ValuesObject>>({}); // Initial queryStatus is empty on purpose to not disable fields before data is loaded
@@ -90,8 +90,6 @@ export function useEntityForm(props: UseEntityFormOptions): UseEntityFormReturnT
     const validationObject = useRef<Record<string, ValidationRule>>({});
     const initialValues = useRef<ValuesObject>(getMantineInitialValuesObject(entity.def.columns, bindedColumnNames));
     const initialDirty = useRef<Record<string, boolean>>({});
-
-
 
     const form = useForm<ValuesObject>(
         {
@@ -131,6 +129,7 @@ export function useEntityForm(props: UseEntityFormOptions): UseEntityFormReturnT
         return !asyncErrors.current[column_name] && form.isValid(column_name);
     }, [form]);
 
+    const lastGetValues = useRef<ValuesObject | undefined>();
 
     // Form Handlers
     const performGetData = useCallback(async () => {
@@ -142,8 +141,11 @@ export function useEntityForm(props: UseEntityFormOptions): UseEntityFormReturnT
             if (ret) {
                 const new_values = getMantineValuesObject(form.values, entity.def.columns, true);
                 form.setValues(new_values);
+                lastGetValues.current = new_values;
                 const new_status: OperationStatus<ValuesObject> = { loading: false, operationType: "get" }
                 setStatus(new_status);
+                form.resetDirty();
+                form.resetTouched();
             }
             return ret;
         }
@@ -270,6 +272,20 @@ export function useEntityForm(props: UseEntityFormOptions): UseEntityFormReturnT
         }
     }, [form, onSaved, saveAndGet, saveAndGetOverride, setNotifyValidationError, saveAndGetOnSubmit]);
 
+    // Validation, InitialValues, InitialDirty
+    const addValidation = useCallback((column: EntityColumn<Value>, validation?: ValidationRule) => {
+        if (validation) validationObject.current[column.name] = validation;
+        if (initialFormMode === "add" || forceDirty) {
+            initialDirty.current[column.name] = (column.value !== '' || column.value !== null || column.value !== undefined) ? true : false;
+        }
+        initialValues.current[column.name] = column.value ?? '';
+    }, [forceDirty, initialFormMode]);
+
+    const removeValidation = useCallback((column: EntityColumn<Value>) => {
+        delete validationObject.current[column.name];
+    }, []);
+
+    // getDataOnInit
     useEffect(() => {
         const cancellation = getAbortController.current;
 
@@ -305,18 +321,51 @@ export function useEntityForm(props: UseEntityFormOptions): UseEntityFormReturnT
         }
     }, [initialFormMode]);
 
-    // Validation, InitialValues, InitialDirty
-    const addValidation = useCallback((column: EntityColumn<Value>, validation?: ValidationRule) => {
-        if (validation) validationObject.current[column.name] = validation;
-        if (initialFormMode === "add" || forceDirty) {
-            initialDirty.current[column.name] = (column.value !== '' || column.value !== null || column.value !== undefined) ? true : false;
-        }
-        initialValues.current[column.name] = column.value ?? '';
-    }, [forceDirty, initialFormMode]);
+    // save before navigation
+    useEffect(() => {
+        const handleBeforeUnload = async () => {
+            try {
+                if (saveBeforeRemoteNavigation) {
+                    form.validate();
+                    if (!areValuesObjectsEqual(form.values, lastGetValues.current)) {
+                        await saveAndGet();
+                    }
+                }
+            } catch (ex) {
+                console.error('SaveBeforeRemoteNavigation', ex);
+            }
+        };
 
-    const removeValidation = useCallback((column: EntityColumn<Value>) => {
-        delete validationObject.current[column.name];
-    }, []);
+        window.addEventListener("beforeunload", handleBeforeUnload);
+
+        return () => {
+            window.removeEventListener("beforeunload", handleBeforeUnload);
+        };
+    }, [form, saveAndGet, saveBeforeRemoteNavigation]);
+
+    const prevLocationRef = useRef(window.location.hash);
+
+    useEffect(() => {
+        const handleLocalNavigation = async () => {
+            try {
+                if (saveBeforeLocalNavigation && form.isDirty() && (prevLocationRef.current !== window.location.hash)) {
+                    form.validate();
+                    if (!areValuesObjectsEqual(form.values, lastGetValues.current)) {
+                        await saveAndGet();
+                    }
+                }
+            } catch (ex) {
+                console.error('SaveBeforeLocalNavigation', ex);
+            }
+        }
+
+        window.addEventListener("hashchange", handleLocalNavigation);
+
+        return () => {
+            window.removeEventListener("hashchange", handleLocalNavigation);
+        }
+
+    }, [form, saveAndGet, saveBeforeLocalNavigation]);
 
     const result = useMemo(() => ({
         form: form,
@@ -337,7 +386,8 @@ export function useEntityForm(props: UseEntityFormOptions): UseEntityFormReturnT
         clearAllAsyncErrors: clearAllAsyncErrors,
         isFormValid: isFormValid,
         isFormFieldValid: isFormFieldValid
-    }), [addValidation, clearAllAsyncErrors, clearAsyncError, entity, form, formMode, handleCancel, handleSubmit, isFormFieldValid, isFormValid, notifyValidationErrorState, performGetData, removeValidation, saveAndGet, saveAndGetOverride, setAsyncError, showDescriptionState, status]);
+    }), [addValidation, clearAllAsyncErrors, clearAsyncError, entity, form, formMode, handleCancel, handleSubmit, isFormFieldValid, isFormValid, notifyValidationErrorState, performGetData,
+        removeValidation, saveAndGet, saveAndGetOverride, setAsyncError, showDescriptionState, status]);
 
     return result;
 }
