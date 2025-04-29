@@ -117,17 +117,6 @@ namespace MicroM.Extensions
             entity.Def.Columns.CopyColumnValuesByName(source.Def.Columns);
         }
 
-        public static string IfNullOrEmpty(this string value, string null_or_empty_value)
-        {
-            return string.IsNullOrEmpty(value) ? null_or_empty_value : value;
-        }
-
-        public static string ThrowIfNullOrEmpty(this string value, string? parm_name)
-        {
-            if (string.IsNullOrEmpty(value)) throw new ArgumentNullException(parm_name);
-            return value;
-        }
-
         public static (bool allowed, string extension) IsFileExtensionAllowed(this string fileName, string[] allowedExtensions)
         {
             var fileExtension = Path.GetExtension(fileName);

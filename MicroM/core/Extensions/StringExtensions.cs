@@ -38,5 +38,22 @@
             return value.Select(x => x.Trim()).ToArray();
         }
 
+        public static string IfNullOrEmpty(this string value, string null_or_empty_value)
+        {
+            return string.IsNullOrEmpty(value) ? null_or_empty_value : value;
+        }
+
+        public static string ThrowIfNullOrEmpty(this string value, string? parm_name)
+        {
+            if (string.IsNullOrEmpty(value)) throw new ArgumentNullException(parm_name);
+            return value;
+        }
+
+        public static bool IsNullOrEmpty(this string? value)
+        {
+            return string.IsNullOrEmpty(value);
+        }
+
+
     }
 }
