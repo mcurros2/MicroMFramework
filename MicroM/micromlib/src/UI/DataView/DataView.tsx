@@ -133,7 +133,6 @@ export const DataView = forwardRef(function DataView(props: DataViewProps, ref: 
                             visibleFilters={visibleFilters}
                             initialColumnFilters={setInitialFiltersFromColumns && entity ? entity.def.columns : undefined}
                         />
-                        <Space h="xs" />
                     </>
                 }
                 {showActions &&
@@ -157,6 +156,9 @@ export const DataView = forwardRef(function DataView(props: DataViewProps, ref: 
 
                         parentFormMode={effectiveFormMode}
                     />
+                }
+                {!showActions &&
+                    <Space h="xs" />
                 }
                 {dataViewAPI.isLoading &&
                     <Group>

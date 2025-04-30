@@ -8,6 +8,7 @@ import { AvatarUploaderTest } from './AvatarUploadTest/AvatarUploaderTest';
 import { ContentPlaceholder } from './ContentPlaceholder';
 import { FileUploaderTest } from './FileUploaderTest/FileUploaderTest';
 import { GoogleMapsAPIKey } from './GoogleMapsAPIKey/GoogleMapsAPIKey';
+import { AncestorResizeTest } from './GoogleMapsTest/AcenstorResizeTest';
 import { AddressAutocompleteTest } from './GoogleMapsTest/AddressAutocompleteTest';
 import { AddressSearchTest } from './GoogleMapsTest/AddressSearchTest';
 import { RegionSelectorTest } from './GoogleMapsTest/CountySelectorTest';
@@ -39,6 +40,7 @@ export function App() {
                                     <NavLink onClick={() => setContent(<AvatarUploaderTest></AvatarUploaderTest>)} label="Avatar uploader" />
                                     <NavLink onClick={() => setContent(<RegionSelectorTest />)} label="Google region selector" />
                                     <NavLink onClick={() => setContent(<RingProgressFieldTest />)} label="Stats test" />
+                                    <NavLink onClick={() => setContent(<AncestorResizeTest />)} label="Ancestor resize test" />
                                 </Navbar.Section>
                             </Navbar>}
                         header={
