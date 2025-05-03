@@ -1,5 +1,5 @@
 import { Modal, OverlayProps, TransitionProps, useComponentDefaultProps } from "@mantine/core";
-import { useDisclosure } from "@mantine/hooks";
+import { useDisclosure, useMediaQuery } from "@mantine/hooks";
 import { useEffect } from "react";
 import { MicroMClient, MicroMClientClaimTypes, MicroMToken, OperationStatus } from "../../client";
 import { Login } from "./Login";
@@ -14,7 +14,8 @@ export interface LoginModalFormProps {
     closeOnClickOutside?: boolean,
     closeOnEscape?: boolean,
     overlayProps?: OverlayProps,
-    transitionProps?: Partial<Omit<TransitionProps, 'mounted'>>
+    transitionProps?: Partial<Omit<TransitionProps, 'mounted'>>,
+    centered?: boolean,
 }
 
 export const LoginModalFormDefaultProps: Partial<LoginModalFormProps> = {
@@ -26,7 +27,7 @@ export const LoginModalFormDefaultProps: Partial<LoginModalFormProps> = {
 export function LoginModalForm(props: LoginModalFormProps) {
     const {
         client, title, onClose, onLoggedIn, openState, withCloseButton, closeOnClickOutside, closeOnEscape, overlayProps,
-        transitionProps
+        transitionProps, centered
     } = useComponentDefaultProps('LoginModalForm', LoginModalFormDefaultProps, props);
     const [opened, { open, close }] = useDisclosure(false);
 
@@ -53,13 +54,15 @@ export function LoginModalForm(props: LoginModalFormProps) {
 
     }, [close, open, openState]);
 
+    const matchesTouchDevice = useMediaQuery('(hover: none)');
+
     return (
         <Modal
             trapFocus
             opened={opened}
             onClose={closeHandler}
             title={title}
-            centered
+            centered={centered === undefined ? (matchesTouchDevice ? false : true) : centered}
             withCloseButton={withCloseButton}
             closeOnClickOutside={closeOnClickOutside}
             closeOnEscape={closeOnEscape}
