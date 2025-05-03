@@ -275,6 +275,8 @@ export function useEntityForm(props: UseEntityFormOptions): UseEntityFormReturnT
     // Validation, InitialValues, InitialDirty
     const addValidation = useCallback((column: EntityColumn<Value>, validation?: ValidationRule) => {
         if (validation) validationObject.current[column.name] = validation;
+        else delete validationObject.current[column.name];
+
         if (initialFormMode === "add" || forceDirty) {
             initialDirty.current[column.name] = (column.value !== '' || column.value !== null || column.value !== undefined) ? true : false;
         }

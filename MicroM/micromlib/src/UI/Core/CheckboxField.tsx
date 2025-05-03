@@ -15,7 +15,9 @@ export function CheckboxField(props: CheckboxFieldProps) {
 
     const { column, required, entityForm, loading, disableOnLoading, label, readOnly, disabled, requiredMessage, description, ...others } = props;
 
-    useFieldConfiguration({ entityForm, column, required, requiredMessage, readOnly });
+    const effectiveRequired = !readOnly && !(entityForm.formMode === 'view') && (required ?? !column.hasFlag(EntityColumnFlags.nullable));
+
+    useFieldConfiguration({ entityForm, column, required: effectiveRequired, requiredMessage, readOnly });
 
     const [showDescription,] = entityForm.showDescriptionState;
 
@@ -25,7 +27,6 @@ export function CheckboxField(props: CheckboxFieldProps) {
             label={label ?? column.prompt}
             description={showDescription ? (description ?? column.description) : ''}
             disabled={disabled ?? (entityForm.formMode === 'view' || (disableOnLoading && loading) || readOnly)}
-            required={(!readOnly && !(entityForm.formMode === 'view') && (required ?? !column.hasFlag(EntityColumnFlags.nullable)))}
             {...entityForm.form.getInputProps(column.name, { type: 'checkbox' })}
         />);
 

@@ -1,4 +1,4 @@
-import { ActionIcon, Button, DefaultMantineColor, FocusTrap, Group, Notification, ScrollArea, Space, Variants, useComponentDefaultProps, useMantineTheme } from "@mantine/core";
+import { ActionIcon, Button, DefaultMantineColor, FocusTrap, Group, Notification, Space, Variants, useComponentDefaultProps, useMantineTheme } from "@mantine/core";
 import { IconCircleCheck, IconCircleX, IconHelp, IconHelpOff, IconX } from "@tabler/icons-react";
 import { PropsWithChildren, ReactNode, useEffect } from "react";
 import { AlertError, FakeProgressBar, usePreventEnterSubmission } from "../Core";
