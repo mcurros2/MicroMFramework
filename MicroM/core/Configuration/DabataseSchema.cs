@@ -47,7 +47,10 @@ namespace MicroM.Configuration
             }
         }
 
-        public static async Task<T> CreateSchema<T>(IEntityClient ec, bool create_or_alter, bool with_iupdate, bool create_if_not_exists, bool with_idrop, bool create_custom_procs, CancellationToken ct) where T : EntityBase, new()
+        public static async Task<T> CreateSchema<T>(
+            IEntityClient ec, bool create_or_alter, bool with_iupdate, bool create_if_not_exists, bool with_idrop, bool create_custom_procs,
+            CancellationToken ct
+            ) where T : EntityBase, new()
         {
             T ent = new();
             ent.Init(ec);
@@ -64,11 +67,23 @@ namespace MicroM.Configuration
 
                 if (create)
                 {
-                    await ec.ExecuteSQLNonQuery(ent.AsCreateTable(), ct);
+                    await ec.ExecuteSQLNonQuery(ent.AsCreateTable(table_and_primary_key_only: true), ct);
                 }
 
-                if(table_exists || create)
+                if (table_exists || create)
                 {
+                    // Drop and recreate foreign keys, uniques, indexes
+                    if (table_exists)
+                    {
+                        await ec.ExecuteSQLNonQuery(ent.AsDropIndexes() ?? "", ct);
+                        await ec.ExecuteSQLNonQuery(ent.AsDropForeignKeys() ?? "", ct);
+                        await ec.ExecuteSQLNonQuery(ent.AsDropUniqueConstraints() ?? "", ct);
+                    }
+
+                    await ec.ExecuteSQLNonQuery(ent.AsAlterUniqueConstraints() ?? "", ct);
+                    await ec.ExecuteSQLNonQuery(ent.AsAlterForeignKeys(with_drop: false) ?? "", ct);
+                    await ec.ExecuteSQLNonQuery(ent.AsAlterIndexes() ?? "", ct);
+
                     await ec.ExecuteSQLNonQuery(ent.AsCreateUpdateProc(create_or_alter, with_iupdate), ct);
                     await ec.ExecuteSQLNonQuery(ent.AsCreateGetProc(create_or_alter), ct);
                     await ec.ExecuteSQLNonQuery(ent.AsCreateDropProc(create_or_alter, with_idrop), ct);
@@ -82,8 +97,6 @@ namespace MicroM.Configuration
             {
                 if (create_custom_procs) await CreateCustomProcs<T>(ent, ec, ct);
             }
-
-
 
             return ent;
         }
@@ -312,7 +325,6 @@ namespace MicroM.Configuration
             T sst = new();
             return await sst.AddStatus(ec, ct);
         }
-
 
     }
 }

@@ -14,6 +14,8 @@ namespace LibraryTest
         private BackgroundTaskQueue _queue;
         private TestOutputLogger<BackgroundTaskQueue> _testOutputLogger;
         public TestContext TestContext { get; set; }
+        private CancellationTokenSource _cts;
+
 
         [TestInitialize]
         public void Initialize()
@@ -22,13 +24,22 @@ namespace LibraryTest
             {
                 TestContext = this.TestContext
             };
-            _queue = new BackgroundTaskQueue(10, 100, _testOutputLogger, new CancellationToken());
+            _cts = new CancellationTokenSource();
+            _queue = new BackgroundTaskQueue(15, 100, _testOutputLogger, _cts.Token);
+        }
+
+        [TestCleanup]
+        public void Cleanup()
+        {
+            _cts.Cancel();
+            _queue.Dispose();
+            _cts.Dispose();
         }
 
         [TestMethod]
         public async Task Enqueue_SingleInstance_AcceptsOneTask()
         {
-            var taskFunc = new Func<CancellationToken, Task<string>>(ct => Task.FromResult("Done"));
+            var taskFunc = new Func<CancellationToken, Task<string>>(async ct => { await Task.Delay(100, ct); return "Done"; });
 
             var taskName = "singleInstance";
 
@@ -39,14 +50,14 @@ namespace LibraryTest
             Assert.AreEqual(Guid.Empty, id2);
 
             // Wait for the queue to stop processing
-            await Task.Delay(200);
+            await Task.Delay(300);
         }
 
 
         [TestMethod]
         public async Task Enqueue_MultipleInstances_AcceptsMultipleTasks()
         {
-            var taskFunc = new Func<CancellationToken, Task<string>>(ct => Task.FromResult("Done"));
+            var taskFunc = new Func<CancellationToken, Task<string>>(async ct => { await Task.Delay(100, ct); return "Done"; });
 
             var taskName = "multiInstance";
 
@@ -57,14 +68,17 @@ namespace LibraryTest
             Assert.AreNotEqual(Guid.Empty, id2);
 
             // Wait for the queue to stop processing
-            await Task.Delay(200);
+            await Task.Delay(300);
         }
 
 
         [TestMethod]
         public async Task GetQueueStatus_ReturnsCorrectStatus()
         {
-            var taskFunc = new Func<CancellationToken, Task<string>>(ct => Task.FromResult("Done"));
+            var taskFunc = new Func<CancellationToken, Task<string>>(async ct =>  {
+                await Task.Delay(200, ct);
+                return "Done"; 
+            });
 
             _queue.Enqueue(nameof(GetQueueStatus_ReturnsCorrectStatus), taskFunc, false);
 
@@ -75,7 +89,7 @@ namespace LibraryTest
                 $"Expected either QueuedCount or RunningCount to be 1, but found QueuedCount = {status.QueuedCount}, RunningCount = {status.RunningCount}");
 
             // Wait for the queue to stop processing
-            await Task.Delay(200);
+            await Task.Delay(300);
         }
 
 
@@ -92,7 +106,11 @@ namespace LibraryTest
         [TestMethod]
         public async Task GetTasksStatus_ReturnsAllTaskStatus()
         {
-            static Task<string> workItem(CancellationToken ct) => Task.FromResult("Test");
+            static async Task<string> workItem(CancellationToken ct)
+            {
+                await Task.Delay(100, ct);
+                return "Test";
+            }
 
             var id1 = _queue.Enqueue("taskOne", workItem, false);
             var id2 = _queue.Enqueue("taskTwo", workItem, false);
@@ -103,7 +121,7 @@ namespace LibraryTest
             Assert.IsTrue(statuses.ContainsKey(id2));
 
             // Wait for the queue to stop processing
-            await Task.Delay(200);
+            await Task.Delay(300);
 
         }
 
@@ -111,7 +129,11 @@ namespace LibraryTest
         [TestMethod]
         public async Task GetTaskStatus_ReturnsCorrectStatus()
         {
-            static Task<string> workItem(CancellationToken ct) => Task.FromResult("Test");
+            static async Task<string> workItem(CancellationToken ct)
+            {
+                await Task.Delay(100, ct);
+                return "Test";
+            }
 
             var id = _queue.Enqueue(nameof(GetTaskStatus_ReturnsCorrectStatus), workItem, false);
             var status = _queue.GetTaskStatus(id);
@@ -119,7 +141,7 @@ namespace LibraryTest
             Assert.AreEqual(QueueTaskStatus.Queued, status.Status);
 
             // Wait for the queue to stop processing
-            await Task.Delay(200);
+            await Task.Delay(300);
         }
 
 

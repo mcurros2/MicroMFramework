@@ -3,8 +3,8 @@ using LibraryTest.DataDictionary.CategoriesData;
 using MicroM.Configuration;
 using MicroM.Core;
 using MicroM.Data;
-using MicroM.DataDictionary.CategoriesDefinitions;
 using MicroM.DataDictionary;
+using MicroM.DataDictionary.CategoriesDefinitions;
 using MicroM.Extensions;
 using MicroM.Web.Authentication;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -12,6 +12,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using static LibraryTest.A_DatabaseClientTests;
@@ -31,27 +32,29 @@ namespace LibraryTest
             await init.DeleteTestDBAsync().ConfigureAwait(false);
             await init.CreateTestDBAsync().ConfigureAwait(false);
 
-            await A01_DataDictionary_InitialConfigurationAsync();
-            await A02_DataDictionary_TestAesGSMEncryption();
-            await A03_DataDictionary_CreateSchemaAsync();
-            await A04_Configure_Categories();
-            await A05_Configure_Status();
+            await DataDictionary_InitialConfigurationAsync();
+            await DataDictionary_TestAesGSMEncryption();
+            await DataDictionary_CreateSchemaAsync();
+            await Configure_Categories();
+            await Configure_Status();
 
-            await A06_Entity_CreateSchemaAsync();
-            await B_Queue_Insert();
-            await C_Queue_Get();
-            await D_Queue_Update();
-            await E_Queue_Status();
-            await F_Queue_Delete();
-            await G_Queue_Test_Action();
-            await E_Queue_Status();
-            await F_Queue_Delete();
-            await G_Queue_Test_Action();
+            await Entity_CreateSchemaAsync();
+
+
+            await Queue_Insert();
+            await Queue_Get();
+            await Queue_Update();
+            await Queue_Status();
+            await Queue_Delete();
+            await Queue_Test_Action();
+            await Queue_Status();
+            await Queue_Delete();
+            await Queue_Test_Action();
 
         }
 
 
-        public async Task A01_DataDictionary_InitialConfigurationAsync()
+        public async Task DataDictionary_InitialConfigurationAsync()
         {
 
             var cts = new CancellationTokenSource();
@@ -111,7 +114,7 @@ namespace LibraryTest
         }
 
 
-        public Task A02_DataDictionary_TestAesGSMEncryption()
+        public Task DataDictionary_TestAesGSMEncryption()
         {
             const string CertificateName = "microm_test_certificate";
 
@@ -138,7 +141,7 @@ namespace LibraryTest
             return Task.CompletedTask;
         }
 
-        public async Task A03_DataDictionary_CreateSchemaAsync()
+        public async Task DataDictionary_CreateSchemaAsync()
         {
 
             using var client = new DatabaseClient(DatabaseConfiguration.Server, DatabaseConfiguration.TestDatabase, DatabaseConfiguration.user, DatabaseConfiguration.password);
@@ -164,7 +167,7 @@ namespace LibraryTest
             await users.InsertData(cts.Token, true);
         }
 
-        public async Task A04_Configure_Categories()
+        public async Task Configure_Categories()
         {
 
             using var client = new DatabaseClient(DatabaseConfiguration.Server, DatabaseConfiguration.TestDatabase, DatabaseConfiguration.user, DatabaseConfiguration.password);
@@ -197,7 +200,7 @@ namespace LibraryTest
 
         }
 
-        public async Task A05_Configure_Status()
+        public async Task Configure_Status()
         {
 
             using var client = new DatabaseClient(DatabaseConfiguration.Server, DatabaseConfiguration.TestDatabase, DatabaseConfiguration.user, DatabaseConfiguration.password);
@@ -230,7 +233,7 @@ namespace LibraryTest
 
         }
 
-        public async Task A06_Entity_CreateSchemaAsync()
+        public async Task Entity_CreateSchemaAsync()
         {
 
             using var client = new DatabaseClient(DatabaseConfiguration.Server, DatabaseConfiguration.TestDatabase, DatabaseConfiguration.user, DatabaseConfiguration.password);
@@ -249,12 +252,16 @@ namespace LibraryTest
             await CreateSchemaAndDictionary<TestQueueStatus>(client, cts.Token);
             await CreateSchemaAndDictionary<TestQueueItems>(client, cts.Token, with_iupdate: true, with_idrop: true);
 
+            var asm = Assembly.GetExecutingAssembly();
+            await asm.DropAllConstraintsAndIndexes(client, cts.Token);
+            await asm.CreateAllConstraintsAndIndexes(client, cts.Token);
+            await asm.CreateAssemblyCustomProcs(client, cts.Token);
 
             await client.Disconnect();
         }
 
 
-        public async Task B_Queue_Insert()
+        public async Task Queue_Insert()
         {
             using var client = new DatabaseClient(DatabaseConfiguration.Server, DatabaseConfiguration.TestDatabase, DatabaseConfiguration.user, DatabaseConfiguration.password);
             var cts = new CancellationTokenSource();
@@ -273,7 +280,7 @@ namespace LibraryTest
 
         }
 
-        public async Task C_Queue_Get()
+        public async Task Queue_Get()
         {
             using var client = new DatabaseClient(DatabaseConfiguration.Server, DatabaseConfiguration.TestDatabase, DatabaseConfiguration.user, DatabaseConfiguration.password);
             var cts = new CancellationTokenSource();
@@ -286,7 +293,7 @@ namespace LibraryTest
 
         }
 
-        public async Task D_Queue_Update()
+        public async Task Queue_Update()
         {
             using var client = new DatabaseClient(DatabaseConfiguration.Server, DatabaseConfiguration.TestDatabase, DatabaseConfiguration.user, DatabaseConfiguration.password);
             var cts = new CancellationTokenSource();
@@ -301,7 +308,7 @@ namespace LibraryTest
 
         }
 
-        public async Task E_Queue_Status()
+        public async Task Queue_Status()
         {
             using var client = new DatabaseClient(DatabaseConfiguration.Server, DatabaseConfiguration.TestDatabase, DatabaseConfiguration.user, DatabaseConfiguration.password);
             var cts = new CancellationTokenSource();
@@ -313,7 +320,7 @@ namespace LibraryTest
 
         }
 
-        public async Task F_Queue_Delete()
+        public async Task Queue_Delete()
         {
             using var client = new DatabaseClient(DatabaseConfiguration.Server, DatabaseConfiguration.TestDatabase, DatabaseConfiguration.user, DatabaseConfiguration.password);
             var cts = new CancellationTokenSource();
@@ -336,7 +343,7 @@ namespace LibraryTest
 
         }
 
-        public async Task G_Queue_Test_Action()
+        public async Task Queue_Test_Action()
         {
             using var client = new DatabaseClient(DatabaseConfiguration.Server, DatabaseConfiguration.TestDatabase, DatabaseConfiguration.user, DatabaseConfiguration.password);
             var cts = new CancellationTokenSource();

@@ -47,7 +47,8 @@ export interface UseEntityFormReturnType {
     clearAsyncError: (column_name: string) => void,
     clearAllAsyncErrors: () => void,
     isFormValid: () => boolean,
-    isFormFieldValid: (column_name: string) => boolean
+    isFormFieldValid: (column_name: string) => boolean,
+    silentSave: () => Promise<void>,
 }
 
 export const UseEntityFormDefaultProps: Partial<UseEntityFormOptions> = {
@@ -287,6 +288,18 @@ export function useEntityForm(props: UseEntityFormOptions): UseEntityFormReturnT
         delete validationObject.current[column.name];
     }, []);
 
+    const silentSave = useCallback(async () => {
+        try {
+            form.validate();
+            if (!areValuesObjectsEqual(form.values, lastGetValues.current)) {
+                await saveAndGet();
+            }
+        }
+        catch (ex) {
+            console.error('SilentSave', ex);
+        }
+    }, [form, saveAndGet]);
+
     // getDataOnInit
     useEffect(() => {
         const cancellation = getAbortController.current;
@@ -326,15 +339,8 @@ export function useEntityForm(props: UseEntityFormOptions): UseEntityFormReturnT
     // save before navigation
     useEffect(() => {
         const handleBeforeUnload = async () => {
-            try {
-                if (saveBeforeRemoteNavigation) {
-                    form.validate();
-                    if (!areValuesObjectsEqual(form.values, lastGetValues.current)) {
-                        await saveAndGet();
-                    }
-                }
-            } catch (ex) {
-                console.error('SaveBeforeRemoteNavigation', ex);
+            if (saveBeforeRemoteNavigation) {
+                await silentSave();
             }
         };
 
@@ -343,21 +349,15 @@ export function useEntityForm(props: UseEntityFormOptions): UseEntityFormReturnT
         return () => {
             window.removeEventListener("beforeunload", handleBeforeUnload);
         };
-    }, [form, saveAndGet, saveBeforeRemoteNavigation]);
+    }, [saveBeforeRemoteNavigation, silentSave]);
 
     const prevLocationRef = useRef(window.location.hash);
 
+    // savew before local navigation
     useEffect(() => {
         const handleLocalNavigation = async () => {
-            try {
-                if (saveBeforeLocalNavigation && form.isDirty() && (prevLocationRef.current !== window.location.hash)) {
-                    form.validate();
-                    if (!areValuesObjectsEqual(form.values, lastGetValues.current)) {
-                        await saveAndGet();
-                    }
-                }
-            } catch (ex) {
-                console.error('SaveBeforeLocalNavigation', ex);
+            if (saveBeforeLocalNavigation && form.isDirty() && (prevLocationRef.current !== window.location.hash)) {
+                await silentSave();
             }
         }
 
@@ -367,7 +367,7 @@ export function useEntityForm(props: UseEntityFormOptions): UseEntityFormReturnT
             window.removeEventListener("hashchange", handleLocalNavigation);
         }
 
-    }, [form, saveAndGet, saveBeforeLocalNavigation]);
+    }, [form, saveBeforeLocalNavigation, silentSave]);
 
     const result = useMemo(() => ({
         form: form,
@@ -387,9 +387,10 @@ export function useEntityForm(props: UseEntityFormOptions): UseEntityFormReturnT
         clearAsyncError: clearAsyncError,
         clearAllAsyncErrors: clearAllAsyncErrors,
         isFormValid: isFormValid,
-        isFormFieldValid: isFormFieldValid
+        isFormFieldValid: isFormFieldValid,
+        silentSave
     }), [addValidation, clearAllAsyncErrors, clearAsyncError, entity, form, formMode, handleCancel, handleSubmit, isFormFieldValid, isFormValid, notifyValidationErrorState, performGetData,
-        removeValidation, saveAndGet, saveAndGetOverride, setAsyncError, showDescriptionState, status]);
+        removeValidation, saveAndGet, saveAndGetOverride, setAsyncError, showDescriptionState, status, silentSave]);
 
     return result;
 }

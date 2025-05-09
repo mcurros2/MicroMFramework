@@ -145,32 +145,6 @@ namespace MicroM.Extensions
                 scale: scale, column_flags: ColumnFlags.Insert | ColumnFlags.Update | ColumnFlags.Delete | ColumnFlags.Get | ColumnFlags.FK);
         }
 
-        /*
-         * MMC: this is done through reflection now and is not needed
-         * 
-        internal static DefaultColumns AddDefaultColumns(this CustomOrderedDictionary<ColumnBase> collection)
-        {
-            if (collection.Contains(SystemColumnNames.dt_inserttime) || collection.Contains(SystemColumnNames.dt_lu) ||
-                collection.Contains(SystemColumnNames.vc_webinsuser) || collection.Contains(SystemColumnNames.vc_webluuser) ||
-                collection.Contains(SystemColumnNames.vc_insuser) || collection.Contains(SystemColumnNames.vc_luuser)
-                || collection.Contains(SystemColumnNames.webusr))
-            {
-                throw new InvalidOperationException($"The columns defined cannot use a reserved column name. Reserved names: {SystemColumnNames.AsString}");
-            }
-
-            DefaultColumns default_cols = new();
-
-            collection.Add(nameof(default_cols.dt_inserttime), default_cols.dt_inserttime);
-            collection.Add(nameof(default_cols.dt_lu), default_cols.dt_lu);
-            collection.Add(nameof(default_cols.webusr), default_cols.webusr);
-            collection.Add(nameof(default_cols.vc_webluuser), default_cols.vc_webluuser);
-            collection.Add(nameof(default_cols.vc_insuser), default_cols.vc_insuser);
-            collection.Add(nameof(default_cols.vc_luuser), default_cols.vc_luuser);
-
-            return default_cols;
-        }
-        */
-
         public static SqlParameter CreateSQLParameter(this ColumnBase sql_col)
         {
             var parm = new SqlParameter
@@ -384,71 +358,6 @@ namespace MicroM.Extensions
             result = default!;
             return false;
         }
-
-        //public static bool TryConvertFromJsonElement<T>(this JsonElement element, out T? converted_value)
-        //{
-        //    bool result = false;
-        //    converted_value = default(T);
-        //    switch (element.ValueKind)
-        //    {
-        //        case JsonValueKind.String:
-        //            string? value = element.GetString();
-        //            if (typeof(T) == typeof(string))
-        //            {
-        //                converted_value = (T)(object)element.GetString();
-        //                result = true;
-        //            }
-        //            else
-        //            {
-
-        //            }
-        //            break;
-        //        case JsonValueKind.Undefined:
-        //            converted_value = (T)(object)null;
-        //            result = true;
-        //            break;
-        //        case JsonValueKind.False:
-        //            if (typeof(T) == typeof(bool))
-        //            {
-        //                converted_value = (T)(object)false;
-        //                result = true;
-        //            }
-        //            break;
-        //        case JsonValueKind.True:
-        //            if (typeof(T) == typeof(bool))
-        //            {
-        //                converted_value = (T)(object)true;
-        //                result = true;
-        //            }
-        //            break;
-        //        case JsonValueKind.Number:
-        //            if (typeof(T) == typeof(int))
-        //            {
-        //                if (element.TryGetInt32(out int i_value)) { converted_value = (T)(object)i_value; result = true; }
-        //            }
-        //            else if (typeof(T) == typeof(long))
-        //            {
-        //                if (element.TryGetInt64(out long l_value)) { converted_value = (T)(object)l_value; result = true; }
-        //            }
-        //            else if (typeof(T) == typeof(double))
-        //            {
-        //                if (element.TryGetDouble(out double d_value)) { converted_value = (T)(object)d_value; result = true; }
-        //            }
-        //            else if (typeof(T) == typeof(decimal))
-        //            {
-        //                if (element.TryGetDecimal(out decimal e_value)) { converted_value = (T)(object)e_value; result = true; }
-        //            }
-        //            break;
-        //        case JsonValueKind.Null:
-        //            converted_value = (T)(object)null;
-        //            result = true;
-        //            break;
-        //        default:
-        //            break;
-
-        //    }
-        //    return result;
-        //}
 
         public static bool TryConvertFromJsonElement(this JsonElement element, ColumnBase col, out object? converted_value)
         {

@@ -9,7 +9,6 @@ using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using static MicroM.Data.IEntityClient;
-using static MicroM.Extensions.CoreExtensions;
 
 namespace MicroM.Data
 {
@@ -356,6 +355,7 @@ namespace MicroM.Data
 
         private async Task ExecuteNonQuery(CommandType cmd_type, string query_text, CancellationToken ct, IEnumerable<ColumnBase>? parms = null)
         {
+            if (query_text.IsNullOrEmpty()) return;
             CheckQueryConnectionStatusAndThrow(sql_connection);
 
             if (cmd_type == CommandType.StoredProcedure && DataDefaults.AppendDBOtoProcs && !query_text.StartsWith("dbo.", StringComparison.OrdinalIgnoreCase))

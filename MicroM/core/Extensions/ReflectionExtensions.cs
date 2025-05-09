@@ -206,6 +206,5 @@ namespace MicroM.Extensions
             return instance_members;
         }
 
-
     }
 }

@@ -153,6 +153,11 @@ namespace MicroM.Extensions
 
         public static async Task<T> AddToDataDictionary<T>(this T ent, CancellationToken ct) where T : EntityBase, new()
         {
+            return (T)await AddInstanceToDataDictionary(ent, ct);
+        }
+
+        public static async Task<EntityBase> AddInstanceToDataDictionary(this EntityBase ent, CancellationToken ct)
+        {
             var ec = ent.Client;
 
             // MMC: create the object in Data Dictionary
@@ -175,7 +180,6 @@ namespace MicroM.Extensions
             await ent.AddStatusRelations(ec, ct);
 
             return ent;
-
         }
 
         public static async Task AddMenu(this MenuDefinition menu_definition, IEntityClient ec, CancellationToken ct)
@@ -198,7 +202,7 @@ namespace MicroM.Extensions
                         menu_item.Def.c_menu_id.Value = menu_definition.MenuID;
                         menu_item.Def.c_menu_item_id.Value = item.MenuItemID;
 
-                        if(item.ParentMenuItemID != null)
+                        if (item.ParentMenuItemID != null)
                         {
                             menu_item.Def.c_parent_menu_id.Value = menu_definition.MenuID;
                             menu_item.Def.c_parent_item_id.Value = item.ParentMenuItemID;
@@ -213,7 +217,7 @@ namespace MicroM.Extensions
                         menu_item.Def.vc_menu_item_path.Value = item.ItemPath;
                         await menu_item.InsertData(ct);
 
-                        if(item.AllowedRoutes != null)
+                        if (item.AllowedRoutes != null)
                         {
                             var allowed = new MicromMenusItemsAllowedRoutes(ec);
                             foreach (var route in item.AllowedRoutes)

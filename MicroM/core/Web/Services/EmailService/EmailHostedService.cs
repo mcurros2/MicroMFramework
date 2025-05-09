@@ -4,12 +4,12 @@ using Microsoft.Extensions.Logging;
 
 namespace MicroM.Web.Services
 {
-    public class EmailHostedService : IHostedService, IEmailService
+    public class EmailHostedService : IHostedService, IEmailService, IDisposable
     {
         private static int _instanceCounter = 0;
         private CancellationTokenSource? _serviceCTS;
         private EmailService? _emailService;
-
+        private bool disposedValue;
         private readonly ILogger<EmailHostedService> logger;
         private readonly ILogger<EmailService> emailLogger;
         private readonly IMicroMAppConfiguration app_config;
@@ -69,8 +69,30 @@ namespace MicroM.Web.Services
             logger.LogInformation("EmailServiceHostedService is stopping.");
             _serviceCTS?.Cancel();
             return Task.CompletedTask;
-
         }
 
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposedValue)
+            {
+                if (disposing)
+                {
+                    _serviceCTS?.Cancel();
+                    _serviceCTS?.Dispose();
+                }
+
+                // TODO: free unmanaged resources (unmanaged objects) and override finalizer
+                // TODO: set large fields to null
+                disposedValue = true;
+            }
+        }
+
+
+        public void Dispose()
+        {
+            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
+        }
     }
 }

@@ -9,21 +9,23 @@ namespace MicroM.Web.Services
     public class MemoryQueueHostedService : IMemoryQueueHostedService, IDisposable
     {
         private readonly BackgroundTaskQueue _taskQueue;
+        private CancellationTokenSource _queueCts = new();
+
         private readonly ILogger<MemoryQueueHostedService> _logger;
         private bool disposedValue;
 
-        public CancellationToken QueueCT { get => _taskQueue.QueueCT; set => throw new NotImplementedException(); }
+        public CancellationToken QueueCT => _taskQueue.QueueCT;
 
         public MemoryQueueHostedService(ILogger<MemoryQueueHostedService> logger, ILogger<BackgroundTaskQueue> queueLogger)
         {
             _logger = logger;
-            _taskQueue = new BackgroundTaskQueue(maxConcurrency: 50, maxRetainedStatuses: 1000, queueLogger, CancellationToken.None);
+            _taskQueue = new BackgroundTaskQueue(maxConcurrency: 50, maxRetainedStatuses: 1000, queueLogger, _queueCts.Token);
         }
 
         public Task StartAsync(CancellationToken cancellationToken)
         {
             _logger.LogInformation("MemoryQueueHostedService is starting.");
-            _taskQueue.QueueCT = cancellationToken;
+            cancellationToken.Register(() => _queueCts.Cancel());
             return Task.CompletedTask;
         }
 
@@ -31,6 +33,7 @@ namespace MicroM.Web.Services
         {
             _logger.LogInformation("MemoryQueueHostedService is stopping.");
             // cancel all running tasks
+            _queueCts.Cancel();
             _taskQueue.CancelAllTasks();
 
             return Task.CompletedTask;
@@ -80,6 +83,8 @@ namespace MicroM.Web.Services
             {
                 if (disposing)
                 {
+                    _queueCts.Cancel();
+                    _queueCts.Dispose();
                     _taskQueue.Dispose();
                 }
 
