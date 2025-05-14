@@ -20,7 +20,10 @@ export interface OpenFormProps {
     CancelText?: string,
     showCancel?: boolean,
     otherFormProps?: any,
-    dontAddEntityTitle?: boolean
+    dontAddEntityTitle?: boolean,
+    withFullscreenButton?: boolean,
+    closeOnEscape?: boolean,
+    closeOnClickOutside?: boolean,
 }
 
 export function useOpenForm() {
@@ -30,7 +33,7 @@ export function useOpenForm() {
     const openForm = useCallback(async (props: OpenFormProps) => {
         const {
             entity, initialFormMode, getDataOnInit, modalFormSize, title, element, onModalSaved, onModalCancelled, OKText, CancelText
-            , showCancel, onModalClosed, otherFormProps, dontAddEntityTitle
+            , showCancel, onModalClosed, otherFormProps, dontAddEntityTitle, withFullscreenButton, closeOnEscape, closeOnClickOutside
         } = props;
 
         const showOK = initialFormMode !== 'view';
@@ -55,6 +58,9 @@ export function useOpenForm() {
             modalProps: {
                 title: <Text fw="700">{title && title}{!dontAddEntityTitle && ` ${entity.Title}`}</Text>,
                 size: modalFormSize,
+                withFullscreenButton: withFullscreenButton,
+                closeOnEscape: closeOnEscape,
+                closeOnClickOutside: closeOnClickOutside
             },
             focusOnClosed: element,
             content: entity_form,

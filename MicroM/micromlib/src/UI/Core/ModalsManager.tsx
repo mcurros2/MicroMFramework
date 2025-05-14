@@ -260,7 +260,9 @@ export const ModalsManager = ({ modalProps, animationDuration, children }: Modal
                                     </Group>
                                 </Modal.Header>
 
-                                <Modal.Body>
+                                <Modal.Body style={{
+                                    paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 1rem)'
+                                }}>
                                     {modal.resolvedContent ?
                                         modal.resolvedContent :
                                         (isPromise<ReactNode>(modal.originalContent) ? <Skeleton /> : modal.originalContent)}

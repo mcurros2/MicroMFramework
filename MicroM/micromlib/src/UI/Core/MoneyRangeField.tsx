@@ -22,8 +22,8 @@ export function MoneyRangeField(props: MoneyRangeFieldProps) {
     } = useComponentDefaultProps('MoneyRangeField', MoneyRangeFieldDefaultProps, props);
 
     const formatter = useCallback((value: string) => {
-        const formattedValue = moneyFormatter(value, currencySymbol!);
-        column.valueDescription = formattedValue;
+        const formattedValue = moneyFormatter(value, '');
+        column.valueDescription = `${currencySymbol} ${formattedValue}`;
         return formattedValue;
     }, [currencySymbol]);
 
@@ -45,6 +45,7 @@ export function MoneyRangeField(props: MoneyRangeFieldProps) {
             step={variable_step}
             stepHoldDelay={500}
             stepHoldInterval={(t) => Math.max(1000 / t ** 2, 25)}
+            icon={currencySymbol}
         />
     )
 }

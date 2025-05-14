@@ -14,18 +14,24 @@ export interface EntityFormModalProps {
     setOpenState: (open: boolean) => void,
     onModalClosed?: () => void,
     onModalSaved?: (status: OperationStatus<DBStatusResult | null>) => Promise<void>,
-    modalFormSize?: MicroMModalSize
+    modalFormSize?: MicroMModalSize,
+    withFullscreenButton?: boolean,
+    closeOnEscape?: boolean,
+    closeOnClickOutside?: boolean,
 }
 
 export const EntityFormModalDefaultProps: Partial<EntityFormModalProps> = {
     initialFormMode: 'add',
-    modalFormSize: 'xl'
+    modalFormSize: 'xl',
+    withFullscreenButton: true,
+    closeOnEscape: true,
+    closeOnClickOutside: false,
 }
 
 export function EntityFormModal(props: EntityFormModalProps) {
     const {
         client, entityConstructor, openState, setOpenState, initialFormMode, getDataOnInit,
-        onModalClosed, onModalSaved, modalFormSize
+        onModalClosed, onModalSaved, modalFormSize, withFullscreenButton, closeOnClickOutside, closeOnEscape
     } = useComponentDefaultProps('EntityFormModal', EntityFormModalDefaultProps, props);
 
     const openForm = useOpenForm();
@@ -40,6 +46,9 @@ export function EntityFormModal(props: EntityFormModalProps) {
                 entity: entity,
                 initialFormMode: initialFormMode!,
                 getDataOnInit: getDataOnInit,
+                withFullscreenButton,
+                closeOnClickOutside,
+                closeOnEscape,
                 onModalClosed: () => {
                     setOpenState(false);
                     hasOpened.current = false;
@@ -56,7 +65,7 @@ export function EntityFormModal(props: EntityFormModalProps) {
             open();
         }
 
-    }, [client, entityConstructor, getDataOnInit, initialFormMode, onModalClosed, onModalSaved, openForm, openState, setOpenState, modalFormSize]);
+    }, [client, entityConstructor, getDataOnInit, initialFormMode, onModalClosed, onModalSaved, openForm, openState, setOpenState, modalFormSize, withFullscreenButton, closeOnEscape, closeOnClickOutside]);
 
     return null;
 }
