@@ -48,6 +48,10 @@ export const NumberField = forwardRef<HTMLInputElement, NumberFieldProps>(functi
             data-autofocus={autoFocus}
             precision={column.scale}
             {...entityForm.form.getInputProps(column.name)}
+
+            // FIX for maintine NumberInput not supporting null
+            value={entityForm.form.values[column.name] === null ? '' : entityForm.form.values[column.name] as number}
+
             ref={ref}
         />
     )

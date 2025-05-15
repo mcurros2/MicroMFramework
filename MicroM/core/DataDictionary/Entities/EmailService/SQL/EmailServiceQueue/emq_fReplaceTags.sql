@@ -34,7 +34,7 @@ begin
 
     while exists (select 1 from @Replacements)
     begin
-        select top 1 @CurrentTag = tag, @CurrentValue = value from @Replacements;
+        select top 1 @CurrentTag = tag, @CurrentValue = isnull(value,'') from @Replacements;
 
         set @FinalResult = replace(@FinalResult, @CurrentTag, @CurrentValue);
 
