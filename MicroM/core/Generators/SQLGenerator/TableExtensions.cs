@@ -268,7 +268,7 @@ namespace MicroM.Generators.SQLGenerator
             if (pks != null)
             {
                 string col_names = string.Join(", ", pks.Values.Select(x => x.Name));
-                result = $"if object_id('{entity.Def.TableName}') is not null ALTER TABLE [{entity.Def.TableName}] ADD CONSTRAINT PK{entity.Def.Mneo} PRIMARY KEY ({col_names})\n";
+                result = $"if object_id('{entity.Def.TableName}') is not null and object_id('PK{entity.Def.Mneo}') is null ALTER TABLE [{entity.Def.TableName}] ADD CONSTRAINT PK{entity.Def.Mneo} PRIMARY KEY ({col_names})\n";
             }
 
             return result;

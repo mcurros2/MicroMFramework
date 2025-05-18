@@ -80,6 +80,7 @@ namespace MicroM.Configuration
                         await ec.ExecuteSQLNonQuery(ent.AsDropUniqueConstraints() ?? "", ct);
                     }
 
+                    await ec.ExecuteSQLNonQuery(ent.AsAlterPrimaryKey() ?? "", ct);
                     await ec.ExecuteSQLNonQuery(ent.AsAlterUniqueConstraints() ?? "", ct);
                     await ec.ExecuteSQLNonQuery(ent.AsAlterForeignKeys(with_drop: false) ?? "", ct);
                     await ec.ExecuteSQLNonQuery(ent.AsAlterIndexes() ?? "", ct);
