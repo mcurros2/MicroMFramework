@@ -1,5 +1,5 @@
 import { MantineNumberSize, SelectItem } from "@mantine/core";
-import { ComponentType, CSSProperties } from "react";
+import { ComponentType, CSSProperties, PropsWithChildren } from "react";
 import { DataResult, OperationStatus, ValuesObject } from "../../client";
 import { ActionIconVariant, ButtonVariant, EntityUILabels, FormMode, UseEntityUIProps } from "../Core";
 import { DataGridToolbarSizes } from "../DataGrid";
@@ -94,6 +94,10 @@ export interface DataViewProps extends Omit<UseEntityUIProps, 'labels'> {
 
     convertResultToLocaleString?: boolean
     formMode?: FormMode,
+
+    // Rows container
+    RowsContainer?: ComponentType<PropsWithChildren>,
+
 
 
 }

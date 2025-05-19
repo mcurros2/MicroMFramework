@@ -54,6 +54,7 @@ export const DataViewDefaultProps: Partial<DataViewProps> = {
     showDeleteOnlyWhenMultiselect: true,
     withModalFullscreenButton: true,
     CardRowAlign: "flex-start",
+    RowsContainer: Group,
 }
 
 export const DataView = forwardRef(function DataView(props: DataViewProps, ref: ForwardedRef<HTMLElement> | undefined) {
@@ -65,7 +66,7 @@ export const DataView = forwardRef(function DataView(props: DataViewProps, ref: 
         showAppliedFilters, showRefreshButton, hideCheckboxToggle, showFiltersButton, searchPlaceholder,
         showActions, parentKeys, visibleFilters, setInitialFiltersFromColumns, cardHrefRootURL, cardHrefTarget,
         showSearchInput, showSelectRowsButton, showToolbar, showDeleteOnlyWhenMultiselect, parentFormAPI, formMode,
-        CardRowAlign
+        CardRowAlign, RowsContainer
     } = props;
 
     const [searchData, setSearchData] = useState<SelectItem[]>(search?.map(s => { return { value: s, label: s } }) as SelectItem[]);
@@ -175,8 +176,8 @@ export const DataView = forwardRef(function DataView(props: DataViewProps, ref: 
                 {!dataViewAPI.isLoading && !dataViewAPI.executeViewState.error && dataViewAPI.data.length === 0 && search &&
                     <Text fz="sm" align="center" fw={500} c="dimmed">{labels?.noRecordsFoundLabel}</Text>
                 }
-                {dataViewAPI.data.length > 0 &&
-                    <Group align={CardRowAlign}>
+                {dataViewAPI.data.length > 0 && RowsContainer &&
+                    <RowsContainer {...(CardRowAlign ? { align: CardRowAlign } : null)}>
                         {
                             CardContainer && entity && dataViewAPI.data.map((record, index) => {
                                 return <CardContainer
@@ -202,7 +203,7 @@ export const DataView = forwardRef(function DataView(props: DataViewProps, ref: 
                                 />
                             })
                         }
-                    </Group>
+                    </RowsContainer>
                 }
                 {!dataViewAPI.isLoading && !dataViewAPI.executeViewState.error && dataViewAPI.data.length > 0 && (dataViewAPI.recordsCount || 0) > dataViewAPI.displayedItemsCount &&
                     <Button size="xs" variant="light" onClick={handleLoadMore}>{labels?.loadMoreLabel}</Button>
