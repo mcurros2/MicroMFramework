@@ -57,7 +57,7 @@ namespace MicroM.DataDictionary
             assemblytype_id.ThrowIfNullOrEmpty(nameof(assemblytype_id));
 
             var claims = parms.ServerClaims;
-            if (claims == null) throw new ArgumentNullException(nameof(claims));
+            if (claims == null) throw new ArgumentNullException(nameof(parms.ServerClaims));
 
             // MMC: this is the logged in user to the control panel
             claims.TryGetValue(MicroMServerClaimTypes.MicroMUsername, out var admin_user_obj);
@@ -66,7 +66,7 @@ namespace MicroM.DataDictionary
             string? admin_user = (string?)admin_user_obj;
             string? admin_password = (string?)admin_password_obj;
 
-            if (string.IsNullOrEmpty(admin_user)) throw new ArgumentNullException(nameof(claims));
+            if (string.IsNullOrEmpty(admin_user)) throw new ArgumentNullException(nameof(MicroMServerClaimTypes.MicroMUsername));
 
             using IEntityClient admin_dbc = entity.Client.Clone(new_user: admin_user, new_password: admin_password ?? "");
 

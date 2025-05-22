@@ -7,8 +7,10 @@
         public const string ControlPanelAppID = "micromcp";
         public const string CertificateSubjectName = "MicroMEncryptionCertificate";
         public static string SecretsFilename = "microm_config.cry";
+        public static string MicroMCommonID = "MicroM";
+        public static string SecretsFilePath = Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData);
         public const string UploadsFolder = "uploads";
-        public static string[] AlowedFileUploadExtensions = [
+        public static string[] AllowedFileUploadExtensions = [
             ".doc",
             ".docx",
             ".pdf",

@@ -23,7 +23,7 @@ namespace MicroM.Web.Services
         private async Task<(string? errorMessage, FileStore? file_store, string? fullPath, string? extension)>
             QueueFile(string app_id, string fileprocess_id, string file_name, IEntityClient ec, CancellationToken ct)
         {
-            var (allowed, extension) = file_name.IsFileExtensionAllowed(_options.AllowedUploadFileExtensions ?? ConfigurationDefaults.AlowedFileUploadExtensions);
+            var (allowed, extension) = file_name.IsFileExtensionAllowed(_options.AllowedUploadFileExtensions ?? ConfigurationDefaults.AllowedFileUploadExtensions);
 
             if (!allowed)
             {

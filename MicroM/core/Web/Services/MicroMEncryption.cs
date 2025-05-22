@@ -2,7 +2,6 @@
 using MicroM.Core;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using System.Security.Cryptography.X509Certificates;
 
 namespace MicroM.Web.Services
 {
@@ -56,10 +55,7 @@ namespace MicroM.Web.Services
             }
         }
 
-        public X509Certificate2? GetCertificate()
-        {
-            return _encryptor?.Certificate;
-        }
+        public string? CertificateThumbprint => _encryptor?.CertificateThumbprint;
 
         public string Decrypt(string base64_encrypted)
         {
@@ -71,6 +67,19 @@ namespace MicroM.Web.Services
         {
             if (string.IsNullOrEmpty(plaintext)) return plaintext;
             return _encryptor?.Encrypt(plaintext) ?? throw new InvalidOperationException("Certificate thumbprint not configured");
+        }
+
+        public string EncryptObject<T>(T obj)
+        {
+            if (obj == null) throw new ArgumentNullException(nameof(obj));
+            return _encryptor?.EncryptObject(obj) ?? throw new InvalidOperationException("Certificate thumbprint not configured");
+        }
+
+        public T? DecryptObject<T>(string encryptedString)
+        {
+            if (string.IsNullOrEmpty(encryptedString)) throw new ArgumentException("Encrypted string cannot be null or empty.", nameof(encryptedString));
+            if(_encryptor == null) throw new InvalidOperationException("Certificate thumbprint not configured");
+            return _encryptor.DecryptObject<T>(encryptedString);
         }
 
         protected virtual void Dispose(bool disposing)

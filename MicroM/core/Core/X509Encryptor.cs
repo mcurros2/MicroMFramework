@@ -1,8 +1,9 @@
-﻿using System.Security.Cryptography.X509Certificates;
+﻿using MicroM.Web.Services;
+using System.Security.Cryptography.X509Certificates;
 
 namespace MicroM.Core
 {
-    public class X509Encryptor : IDisposable
+    public class X509Encryptor : IDisposable, IMicroMEncryption
     {
         private readonly X509Certificate2? _certificate;
         private bool disposedValue;
@@ -27,6 +28,8 @@ namespace MicroM.Core
             
         }
 
+        public string? CertificateThumbprint => _certificate?.Thumbprint;
+
         public string Decrypt(string base64_encrypted)
         {
             if(_certificate == null) throw new ArgumentException("Certificate not configured");
@@ -41,6 +44,20 @@ namespace MicroM.Core
             return CryptClass.EncryptObject<string>(plaintext, _certificate) ?? throw new ArgumentException($"Invalid base64 encrypted text", nameof(plaintext));
         }
 
+        public string EncryptObject<T>(T obj)
+        {
+            if (_certificate == null) throw new ArgumentException("Certificate not configured");
+            if (obj == null) throw new ArgumentNullException(nameof(obj));
+            return CryptClass.EncryptObject<T>(obj, _certificate) ?? throw new ArgumentException($"Invalid base64 encrypted text", nameof(obj));
+        }
+
+        public T? DecryptObject<T>(string encryptedString)
+        {
+            if (_certificate == null) throw new ArgumentException("Certificate not configured");
+            if (string.IsNullOrEmpty(encryptedString)) throw new ArgumentException($"Empty base64 encrypted text", nameof(encryptedString));
+            return CryptClass.DecryptObject<T>(encryptedString, _certificate) ?? throw new ArgumentException($"Invalid base64 encrypted text", nameof(encryptedString));
+        }
+
         protected virtual void Dispose(bool disposing)
         {
             if (!disposedValue)
@@ -53,13 +70,6 @@ namespace MicroM.Core
                 disposedValue = true;
             }
         }
-
-        // // TODO: override finalizer only if 'Dispose(bool disposing)' has code to free unmanaged resources
-        // ~X509Encryptor()
-        // {
-        //     // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
-        //     Dispose(disposing: false);
-        // }
 
         public void Dispose()
         {

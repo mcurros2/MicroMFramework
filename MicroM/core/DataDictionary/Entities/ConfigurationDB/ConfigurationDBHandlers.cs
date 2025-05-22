@@ -34,8 +34,17 @@ namespace MicroM.DataDictionary
             using var cert = CryptClass.FindCertificate(certificate_thumbprint) ?? throw new ArgumentException($"Certificate not found {certificate_thumbprint}");
 
             var encrypted = CryptClass.EncryptObject<SecretsOptions>(options, cert);
-            string config_path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, ConfigurationDefaults.SecretsFilename);
-            await File.WriteAllTextAsync(config_path, encrypted, ct);
+            
+            string config_path = Path.Combine(ConfigurationDefaults.SecretsFilePath, ConfigurationDefaults.MicroMCommonID);
+
+            if(!Directory.Exists(config_path))
+            {
+                Directory.CreateDirectory(config_path);
+            }
+
+            string config_file = Path.Combine(config_path, ConfigurationDefaults.SecretsFilename);
+
+            await File.WriteAllTextAsync(config_file, encrypted, ct);
         }
 
         public async static Task<SecretsOptions?> ReadConfigurationDBParms(string certificate_thumbprint, CancellationToken ct)
@@ -45,8 +54,8 @@ namespace MicroM.DataDictionary
             using var cert = CryptClass.FindCertificate(certificate_thumbprint);
             if (cert != null)
             {
-                string config_path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, ConfigurationDefaults.SecretsFilename);
-                if (Path.Exists(config_path))
+                string config_path = Path.Combine(ConfigurationDefaults.SecretsFilePath, ConfigurationDefaults.MicroMCommonID, ConfigurationDefaults.SecretsFilename);
+                if (File.Exists(config_path))
                 {
                     string encrypted = await File.ReadAllTextAsync(config_path, ct);
                     result = CryptClass.DecryptObject<SecretsOptions>(encrypted, cert);

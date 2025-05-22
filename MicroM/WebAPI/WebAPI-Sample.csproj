@@ -11,8 +11,4 @@
     <ProjectReference Include="..\core\MicroMCore.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="JwtModels\" />
-  </ItemGroup>
-
 </Project>

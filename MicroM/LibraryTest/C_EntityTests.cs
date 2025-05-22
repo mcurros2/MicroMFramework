@@ -73,7 +73,13 @@ namespace LibraryTest
             cfg.Def.b_recreatedatabase.Value = true;
 
             ConfigurationDefaults.SecretsFilename = "config_test.cry";
-            string config_path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, ConfigurationDefaults.SecretsFilename);
+            
+            var common_app_path = Path.Combine(ConfigurationDefaults.SecretsFilePath, ConfigurationDefaults.MicroMCommonID);
+
+            if (!Directory.Exists(common_app_path)) Directory.CreateDirectory(common_app_path);
+
+            string config_path = Path.Combine(common_app_path, ConfigurationDefaults.SecretsFilename);
+
             if (File.Exists(config_path)) File.Delete(config_path);
 
             Dictionary<string, object> claims = new()
@@ -106,6 +112,7 @@ namespace LibraryTest
 
             Debug.Print($"CertificateThumbprint: {read_cfg.Def.vc_certificatethumbprint.Value}");
             Debug.Print($"Config user: {read_cfg.Def.vc_configsqluser.Value}");
+            Debug.Print($"Config path: {config_path}");
 
             Assert.IsTrue(read_cfg.Def.b_adminuserhasrights.Value);
             Assert.IsTrue(read_cfg.Def.b_configdbexists.Value);

@@ -9,7 +9,6 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Reflection;
-using System.Security.Cryptography.X509Certificates;
 using static MicroM.Extensions.DataExtensions;
 using static System.ArgumentNullException;
 
@@ -61,21 +60,15 @@ namespace MicroM.Web.Services
         private async Task<(SecretsOptions? secrets, string? thumbprint)> ReadConfigurationDBParms(CancellationToken ct)
         {
 
-            // MMC: try to find the configured certificate first
-            X509Certificate2? cert = _encryptor.GetCertificate();
-            string? thumbprint = cert?.Thumbprint;
-
             // MMC: a certificate was found, try to get sql configuration user from secrets
             SecretsOptions? result = null;
-            if (cert != null)
-            {
-                string config_path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, ConfigurationDefaults.SecretsFilename);
-                if (Path.Exists(config_path))
-                {
-                    string encrypted = await File.ReadAllTextAsync(config_path, ct);
-                    result = CryptClass.DecryptObject<SecretsOptions>(encrypted, cert);
-                }
+            string? thumbprint = _encryptor.CertificateThumbprint;
 
+            string config_path = Path.Combine(ConfigurationDefaults.SecretsFilePath, ConfigurationDefaults.MicroMCommonID, ConfigurationDefaults.SecretsFilename);
+            if (File.Exists(config_path))
+            {
+                string encrypted = await File.ReadAllTextAsync(config_path, ct);
+                result = _encryptor.DecryptObject<SecretsOptions>(encrypted);
             }
 
             return (result, thumbprint);
@@ -91,7 +84,7 @@ namespace MicroM.Web.Services
             }
             if (secrets == null)
             {
-                _log.LogError("ERROR: The API is not configured. Secrets not found {secrets}", ConfigurationDefaults.SecretsFilename);
+                _log.LogError("ERROR: The API is not configured. Secrets not found {secrets}", Path.Combine(ConfigurationDefaults.SecretsFilePath, ConfigurationDefaults.MicroMCommonID, ConfigurationDefaults.SecretsFilename));
             }
 
             _ApplicationsCache.TryGetValue(ConfigurationDefaults.ControlPanelAppID, out var control_panel);
