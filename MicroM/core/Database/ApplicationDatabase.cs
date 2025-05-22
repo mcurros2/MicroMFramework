@@ -41,7 +41,6 @@ namespace MicroM.Database
 
                                 await app_ec.ExecuteSQLNonQuery("delete microm_menus_items_allowed_routes; delete microm_routes;", ct);
 
-                                //await instance.CreateRoutes(app_ec, ct);
                                 await instance.CreateMenus(app_ec, ct);
 
                             }

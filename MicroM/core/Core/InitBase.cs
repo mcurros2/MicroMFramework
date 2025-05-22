@@ -6,7 +6,7 @@
     public abstract class InitBase
     {
         /// <summary>
-        /// Determines is tha class has been initialized
+        /// Determines is the class has been initialized
         /// </summary>
         public bool IsInitialized { get; protected set; }
 
