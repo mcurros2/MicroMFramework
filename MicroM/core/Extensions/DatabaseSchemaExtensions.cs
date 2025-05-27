@@ -76,7 +76,7 @@ namespace MicroM.Extensions
 
             MethodInfo genericMethod = (method?.MakeGenericMethod(entityType)) ?? throw new ArgumentException("The provided type is not an Entity");
 
-            string? grant_statement = (string?)genericMethod.Invoke(null, new object[] { login_or_group });
+            string? grant_statement = (string?)genericMethod.Invoke(null, [login_or_group]);
 
             if (!string.IsNullOrEmpty(grant_statement)) await ec.ExecuteSQLNonQuery(grant_statement, ct);
         }
@@ -160,7 +160,7 @@ namespace MicroM.Extensions
                             sb_create_tables.Append(ent.AsCreateTable(table_and_primary_key_only: true));
                             sb_create_UNs.Append(ent.AsAlterUniqueConstraints());
                             sb_create_FKs.Append(ent.AsAlterForeignKeys());
-                            sb_create_IDXs.Append(ent.AsAlterIndexes());
+                            sb_create_IDXs.Append(ent.AsCreateIndexes());
 
                             sb_create_PROCS.AppendLine(string.Join("\n", ent.AsCreateUpdateProc(create_or_alter: true)));
                             sb_create_PROCS.AppendLine(ent.AsCreateGetProc(create_or_alter: true));
@@ -297,7 +297,7 @@ namespace MicroM.Extensions
                             sb_create_PKs.Append(ent.AsAlterPrimaryKey());
                             sb_create_UNs.Append(ent.AsAlterUniqueConstraints());
                             sb_create_FKs.Append(ent.AsAlterForeignKeys());
-                            sb_create_IDXs.Append(ent.AsAlterIndexes());
+                            sb_create_IDXs.Append(ent.AsCreateIndexes());
                         }
                     }
                 }
@@ -384,7 +384,7 @@ namespace MicroM.Extensions
                         if (ent != null)
                         {
                             ent.Init(ec);
-                            sb_create_IDXs.Append(ent.AsAlterIndexes());
+                            sb_create_IDXs.Append(ent.AsCreateIndexes());
                         }
                     }
                 }

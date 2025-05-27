@@ -196,7 +196,7 @@ namespace MicroM.Generators.SQLGenerator
             return sb_indexes.ToString();
         }
 
-        public static string? AsAlterIndexes<T>(this T entity) where T : EntityBase
+        public static string? AsCreateIndexes<T>(this T entity) where T : EntityBase
         {
             if (entity.Def.Fake) return null;
 

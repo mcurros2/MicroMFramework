@@ -13,11 +13,14 @@ namespace MicroM.Database
 {
     public class ApplicationDatabase
     {
-        private static async Task InitializeDatabase(IEntityClient ec, Applications app, string grant_user, CancellationToken ct)
+        private static async Task InitializeDatabase(IEntityClient admin_dbc, Applications app, string grant_user, CancellationToken ct)
         {
+            // MMC: Clone here is used to create a connection to the same server with the app database name
+            using var app_ec = admin_dbc.Clone(new_db: app.Def.vc_database.Value);
+
             try
             {
-                await ec.Connect(ct);
+                await app_ec.Connect(ct);
 
                 List<string> assemblies = [app.Def.vc_assembly1.Value, app.Def.vc_assembly2.Value, app.Def.vc_assembly3.Value, app.Def.vc_assembly4.Value, app.Def.vc_assembly5.Value];
 
@@ -34,25 +37,26 @@ namespace MicroM.Database
                             if (result != null)
                             {
                                 IDatabaseSchema instance = (IDatabaseSchema)result;
-                                using var app_ec = ec.Clone(new_db: app.Def.vc_database.Value);
+                                var migration_result = await instance.MigrateDatabase(app_ec, ct);
+                                
+                                if (migration_result == DatabaseMigrationResult.NoMigrationNeeded)
+                                {
+                                    await instance.CreateDBSchemaAndProcs(app_ec, ct);
+                                }
 
-                                await instance.CreateDBSchemaAndProcs(app_ec, ct);
                                 await instance.GrantPermissions(app_ec, grant_user, ct);
 
                                 await app_ec.ExecuteSQLNonQuery("delete microm_menus_items_allowed_routes; delete microm_routes;", ct);
 
                                 await instance.CreateMenus(app_ec, ct);
-
                             }
                         }
                     }
-
-
                 }
             }
             finally
             {
-                await ec.Disconnect();
+                await app_ec.Disconnect();
             }
         }
 
@@ -279,6 +283,8 @@ namespace MicroM.Database
             {
                 //ignore exceptions here
             }
+
+            await admin_dbc.Disconnect();
 
             return new() { Results = [new() { Status = DBStatusCodes.OK }] };
         }

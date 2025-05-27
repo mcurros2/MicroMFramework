@@ -111,7 +111,6 @@ namespace MicroM.DataDictionary
             if (this.Def.b_createdatabase.Value)
             {
                 this.Def.vc_app_admin_password.Value = CryptClass.CreateRandomPassword();
-
             }
 
             var result = await base.UpdateData(ct, throw_dbstat_exception, options, server_claims, api);
@@ -122,7 +121,6 @@ namespace MicroM.DataDictionary
                 if (!result.Failed)
                 {
                     await api.RefreshConfig(this.Def.c_application_id.Value.Trim(), ct);
-                    //if (!result.Failed) await api.RefreshConfig(this.Def.c_application_id.value.Trim(), ct);
                 }
             }
             return result;
@@ -130,11 +128,25 @@ namespace MicroM.DataDictionary
 
         public override async Task<bool> GetData(CancellationToken ct, MicroMOptions? options = null, Dictionary<string, object>? server_claims = null, IMicroMWebAPI? api = null, string? app_id = null)
         {
-            var result = await base.GetData(ct, options, server_claims, api);
-            if (result)
+            bool should_close = !(this.Client.ConnectionState == System.Data.ConnectionState.Open);
+            bool result = false;
+
+            try
             {
-                await GetAppDatabaseStatus(this, ct, options, server_claims, api);
+                await this.Client.Connect(ct);
+
+                result = await base.GetData(ct, options, server_claims, api);
+                if (result)
+                {
+                    await GetAppDatabaseStatus(this, ct, options, server_claims, api);
+                }
+
             }
+            finally
+            {
+                if(should_close) await this.Client.Disconnect();
+            }   
+            
             return result;
         }
 

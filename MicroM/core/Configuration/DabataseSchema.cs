@@ -15,9 +15,17 @@ namespace MicroM.Configuration
 
         public static async Task AddToDataDictionary<T>(IEntityClient ec, CancellationToken ct) where T : EntityBase, new()
         {
-            T ent = new();
-            ent.Init(ec);
-            await ent.AddToDataDictionary(ct);
+            bool should_close = !(ec.ConnectionState == System.Data.ConnectionState.Open);
+            try
+            {
+                T ent = new();
+                ent.Init(ec);
+                await ent.AddToDataDictionary(ct);
+            }
+            finally
+            {
+                if (should_close) await ec.Disconnect();
+            }
 
         }
 
@@ -29,82 +37,105 @@ namespace MicroM.Configuration
 
         public static async Task CreateCustomProcs<T>(T? ent, IEntityClient ec, CancellationToken ct) where T : EntityBase, new()
         {
-            T new_ent;
+            bool should_close = !(ec.ConnectionState == System.Data.ConnectionState.Open);
+            try {
+                T new_ent;
 
-            if (ent == null)
-            {
-                new_ent = new();
-                new_ent.Init(ec);
-            }
-            else
-            {
-                new_ent = ent;
-            }
+                if (ent == null)
+                {
+                    new_ent = new();
+                    new_ent.Init(ec);
+                }
+                else
+                {
+                    new_ent = ent;
+                }
 
-            foreach (string script in await new_ent.GetAllCustomProcs(new_ent.Def.Mneo, ct))
+                foreach (string script in await new_ent.GetAllCustomProcs(new_ent.Def.Mneo, ct))
+                {
+                    await ec.ExecuteSQLNonQuery(script, ct);
+                }
+            }
+            finally
             {
-                await ec.ExecuteSQLNonQuery(script, ct);
+                if (should_close) await ec.Disconnect();
             }
         }
 
         public static async Task<T> CreateSchema<T>(
-            IEntityClient ec, bool create_or_alter, bool with_iupdate, bool create_if_not_exists, bool with_idrop, bool create_custom_procs,
+            IEntityClient ec, bool create_or_alter, bool with_iupdate, bool create_if_not_exists, bool with_idrop, bool create_custom_procs, bool drop_and_recreate_indexes,
             CancellationToken ct
             ) where T : EntityBase, new()
         {
+
+            bool should_close = !(ec.ConnectionState == System.Data.ConnectionState.Open);
             T ent = new();
-            ent.Init(ec);
 
-            if (ent.Def.Fake == false)
+            try
             {
-                bool create = true;
-                bool table_exists = await TableExists(ec, ent.Def.TableName, "dbo", ct);
+                ent.Init(ec);
 
-                if (create_if_not_exists)
+                if (ent.Def.Fake == false)
                 {
-                    create = !table_exists;
-                }
+                    bool create = true;
+                    bool table_exists = await TableExists(ec, ent.Def.TableName, "dbo", ct);
 
-                if (create)
-                {
-                    await ec.ExecuteSQLNonQuery(ent.AsCreateTable(table_and_primary_key_only: true), ct);
-                }
-
-                if (table_exists || create)
-                {
-                    // Drop and recreate foreign keys, uniques, indexes
-                    if (table_exists)
+                    if (create_if_not_exists)
                     {
-                        await ec.ExecuteSQLNonQuery(ent.AsDropIndexes() ?? "", ct);
-                        await ec.ExecuteSQLNonQuery(ent.AsDropForeignKeys() ?? "", ct);
-                        await ec.ExecuteSQLNonQuery(ent.AsDropUniqueConstraints() ?? "", ct);
+                        create = !table_exists;
                     }
 
-                    await ec.ExecuteSQLNonQuery(ent.AsAlterPrimaryKey() ?? "", ct);
-                    await ec.ExecuteSQLNonQuery(ent.AsAlterUniqueConstraints() ?? "", ct);
-                    await ec.ExecuteSQLNonQuery(ent.AsAlterForeignKeys(with_drop: false) ?? "", ct);
-                    await ec.ExecuteSQLNonQuery(ent.AsAlterIndexes() ?? "", ct);
+                    if (create)
+                    {
+                        // If drop_and_recreate_indexes is true, we should only get the script with the primiary key and no indexes
+                        // as we will drop and recreate them
+                        await ec.ExecuteSQLNonQuery(ent.AsCreateTable(table_and_primary_key_only: drop_and_recreate_indexes), ct);
+                    }
 
-                    await ec.ExecuteSQLNonQuery(ent.AsCreateUpdateProc(create_or_alter, with_iupdate), ct);
-                    await ec.ExecuteSQLNonQuery(ent.AsCreateGetProc(create_or_alter), ct);
-                    await ec.ExecuteSQLNonQuery(ent.AsCreateDropProc(create_or_alter, with_idrop), ct);
-                    await ec.ExecuteSQLNonQuery(ent.AsCreateLookupProc(create_or_alter), ct);
-                    await ec.ExecuteSQLNonQuery(ent.AsCreateViewProc(create_or_alter), ct);
+                    if (table_exists || create)
+                    {
+                        // Drop and recreate foreign keys, uniques, indexes
+                        if (table_exists && drop_and_recreate_indexes)
+                        {
+                            await ec.ExecuteSQLNonQuery(ent.AsDropIndexes() ?? "", ct);
+                            await ec.ExecuteSQLNonQuery(ent.AsDropForeignKeys() ?? "", ct);
+                            await ec.ExecuteSQLNonQuery(ent.AsDropUniqueConstraints() ?? "", ct);
+
+                            await ec.ExecuteSQLNonQuery(ent.AsAlterPrimaryKey() ?? "", ct);
+                            await ec.ExecuteSQLNonQuery(ent.AsAlterUniqueConstraints() ?? "", ct);
+                            await ec.ExecuteSQLNonQuery(ent.AsAlterForeignKeys(with_drop: false) ?? "", ct);
+                            await ec.ExecuteSQLNonQuery(ent.AsCreateIndexes() ?? "", ct);
+                        }
+
+                        await ec.ExecuteSQLNonQuery(ent.AsCreateUpdateProc(create_or_alter, with_iupdate), ct);
+                        await ec.ExecuteSQLNonQuery(ent.AsCreateGetProc(create_or_alter), ct);
+                        await ec.ExecuteSQLNonQuery(ent.AsCreateDropProc(create_or_alter, with_idrop), ct);
+                        await ec.ExecuteSQLNonQuery(ent.AsCreateLookupProc(create_or_alter), ct);
+                        await ec.ExecuteSQLNonQuery(ent.AsCreateViewProc(create_or_alter), ct);
+                        if (create_custom_procs) await CreateCustomProcs<T>(ent, ec, ct);
+                    }
+
+                }
+                else
+                {
                     if (create_custom_procs) await CreateCustomProcs<T>(ent, ec, ct);
                 }
 
             }
-            else
+            finally
             {
-                if (create_custom_procs) await CreateCustomProcs<T>(ent, ec, ct);
+                if (should_close) await ec.Disconnect();
             }
 
             return ent;
         }
 
-        public static async Task<T> CreateSchemaAndDictionary<T>(IEntityClient ec, CancellationToken ct, bool create_or_alter = false, bool with_iupdate = false, bool create_if_not_exists = true, bool with_idrop = false, bool create_custom_procs = false) where T : EntityBase, new()
+        public static async Task<T> CreateSchemaAndDictionary<T>(
+            IEntityClient ec, CancellationToken ct, bool create_or_alter = false, bool with_iupdate = false, bool create_if_not_exists = true, bool with_idrop = false
+            , bool create_custom_procs = false, bool drop_and_recreate_indexes = false
+            ) where T : EntityBase, new()
         {
-            T ent = await CreateSchema<T>(ec, create_or_alter, with_iupdate, create_if_not_exists, with_idrop, create_custom_procs, ct);
+            T ent = await CreateSchema<T>(ec, create_or_alter, with_iupdate, create_if_not_exists, with_idrop, create_custom_procs, drop_and_recreate_indexes, ct);
 
             await ent.AddToDataDictionary(ct);
 
@@ -142,9 +173,9 @@ namespace MicroM.Configuration
                 await ec.Connect(ct);
 
                 // MMC: Order is important here
-                await CreateSchema<SystemProcs>(ec, create_or_alter, false, true, false, true, ct);
-                await CreateSchema<Objects>(ec, create_or_alter, false, true, false, true, ct);
-                await CreateSchema<Numbering>(ec, create_or_alter, false, true, false, true, ct);
+                await CreateSchema<SystemProcs>(ec, create_or_alter, false, true, false, true, false, ct);
+                await CreateSchema<Objects>(ec, create_or_alter, false, true, false, true, false, ct);
+                await CreateSchema<Numbering>(ec, create_or_alter, false, true, false, true, false, ct);
 
                 await CreateSchemaAndDictionary<Classes>(ec, ct, create_or_alter, create_custom_procs: true);
                 await CreateSchemaAndDictionary<Categories>(ec, ct, create_or_alter, create_custom_procs: true);

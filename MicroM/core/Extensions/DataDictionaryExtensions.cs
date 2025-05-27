@@ -109,16 +109,26 @@ namespace MicroM.Extensions
         /// <returns></returns>
         public async static Task<Status> AddStatus(this StatusDefinition stc, IEntityClient ec, CancellationToken ct)
         {
+            bool should_close = !(ec.ConnectionState == System.Data.ConnectionState.Open);
+
             var stat = new Status(ec);
             stat.Def.c_status_id.Value = stc.StatusID;
             stat.Def.vc_description.Value = stc.Description;
-            await stat.InsertData(ct);
-            await stat.GetData(ct);
 
-            var status_values = stc.GetPropertiesOrFields<StatusValuesDefinition, StatusDefinition>();
-            foreach (var stv in status_values)
+            try
             {
-                await stat.AddStatusValue(ec, stv.StatusValueID, stv.Description, stv.InitialValue, ct);
+                await stat.InsertData(ct);
+                await stat.GetData(ct);
+
+                var status_values = stc.GetPropertiesOrFields<StatusValuesDefinition, StatusDefinition>();
+                foreach (var stv in status_values)
+                {
+                    await stat.AddStatusValue(ec, stv.StatusValueID, stv.Description, stv.InitialValue, ct);
+                }
+            }
+            finally
+            {
+                if (should_close) await ec.Disconnect();
             }
 
             return stat;
@@ -134,17 +144,27 @@ namespace MicroM.Extensions
         /// <returns></returns>
         public async static Task<Categories> AddCategory(this CategoryDefinition cac, IEntityClient ec, CancellationToken ct)
         {
+            bool should_close = !(ec.ConnectionState == System.Data.ConnectionState.Open);
+
             var cat = new Categories(ec);
             cat.Def.c_category_id.Value = cac.CategoryID;
             cat.Def.vc_description.Value = cac.Description;
 
-            await cat.InsertData(ct);
-            await cat.GetData(ct);
-
-            var cat_values = cac.GetPropertiesOrFields<CategoryValuesDefinition, CategoryDefinition>();
-            foreach (var cav in cat_values)
+            try
             {
-                await cat.AddCategoryValue(ec, cav.CategoryValueID, cav.Description, ct);
+                await cat.InsertData(ct);
+                await cat.GetData(ct);
+
+                var cat_values = cac.GetPropertiesOrFields<CategoryValuesDefinition, CategoryDefinition>();
+                foreach (var cav in cat_values)
+                {
+                    await cat.AddCategoryValue(ec, cav.CategoryValueID, cav.Description, ct);
+                }
+
+            }
+            finally
+            {
+                if (should_close) await ec.Disconnect();
             }
 
             return cat;
@@ -184,6 +204,8 @@ namespace MicroM.Extensions
 
         public static async Task AddMenu(this MenuDefinition menu_definition, IEntityClient ec, CancellationToken ct)
         {
+            bool should_close = !(ec.ConnectionState == System.Data.ConnectionState.Open);
+
             try
             {
                 await ec.Connect(ct);
@@ -234,12 +256,13 @@ namespace MicroM.Extensions
             }
             finally
             {
-                await ec.Disconnect();
+                if (should_close) await ec.Disconnect();
             }
         }
 
         public static async Task AddUserGroup(this UsersGroupDefinition user_group, IEntityClient ec, CancellationToken ct)
         {
+            bool should_close = !(ec.ConnectionState == System.Data.ConnectionState.Open);
             try
             {
                 await ec.Connect(ct);
@@ -260,7 +283,7 @@ namespace MicroM.Extensions
             }
             finally
             {
-                await ec.Disconnect();
+                if (should_close) await ec.Disconnect();
             }
         }
 
