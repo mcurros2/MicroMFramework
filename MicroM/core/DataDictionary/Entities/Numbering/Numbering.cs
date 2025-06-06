@@ -16,27 +16,25 @@ using MicroM.Web.Services;
  * 
 */
 
-namespace MicroM.DataDictionary
+namespace MicroM.DataDictionary;
+
+public class NumberingDef : EntityDefinition
 {
-    public class NumberingDef : EntityDefinition
-    {
-        public NumberingDef() : base("num", nameof(Numbering)) { }
+    public NumberingDef() : base("num", nameof(Numbering)) { }
 
-        public readonly Column<string> c_object_id = Column<string>.PK();
-        public readonly Column<long> bi_lastnumber = new();
+    public readonly Column<string> c_object_id = Column<string>.PK();
+    public readonly Column<long> bi_lastnumber = new();
 
-        public ViewDefinition num_brwStandard { get; private set; } = new(nameof(c_object_id));
+    public readonly ViewDefinition num_brwStandard = new(nameof(c_object_id));
 
-        public readonly EntityForeignKey<Objects, Numbering> FKObjects = new();
+    public readonly EntityForeignKey<Objects, Numbering> FKObjects = new();
 
-    }
+}
 
-    public class Numbering : Entity<NumberingDef>
-    {
-        public Numbering() : base() { }
+public class Numbering : Entity<NumberingDef>
+{
+    public Numbering() : base() { }
 
-        public Numbering(IEntityClient ec, IMicroMEncryption? encryptor = null) : base(ec, encryptor) { }
-
-    }
+    public Numbering(IEntityClient ec, IMicroMEncryption? encryptor = null) : base(ec, encryptor) { }
 
 }

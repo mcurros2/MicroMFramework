@@ -26,6 +26,15 @@ if @@trancount = 0 throw 50001, 'apa_iupdateAssembly must be called within a tra
 
 begin try
 
+	-- if @assembly_id is null, get the assembly ID from the order field
+	if isnull(@assembly_id,'') = ''
+	begin
+		select	@assembly_id=a.c_assembly_id
+		from	applications_assemblies a
+		where	a.c_application_id=@application_id
+				and a.i_order=@order
+	end
+
 	-- If @assembly_path is '' then we may need to drop the relation and assembly
 	if isnull(@assembly_path,'') = ''
 	begin

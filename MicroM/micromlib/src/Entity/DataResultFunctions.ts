@@ -57,14 +57,12 @@ export function mapRecordToType<T extends ValuesObject>(
 
         const mappedKey = map_properties ? map_properties[header] : header;
 
-        if ((valueExists || mapping_behavior === 'lax') && mappedKey !== undefined)
-        {
+        if ((valueExists || mapping_behavior === 'lax') && mappedKey !== undefined) {
             const value = valueExists ? record[index] as T[keyof T] : undefined;
-            if(skipUndefinedOrNull && (value === undefined || value === null)) return;
+            if (skipUndefinedOrNull && (value === undefined || value === null)) return;
             mappedRecord[mappedKey as keyof T] = value;
         }
-        else if (mapping_behavior === 'enforceObject' && !enforceObjectKeys.has(header))
-        {
+        else if (mapping_behavior === 'enforceObject' && !enforceObjectKeys.has(header)) {
             throw new Error(`Key ${header} from record is missing in object T`);
         }
     });
@@ -176,24 +174,107 @@ export async function exportToExcel(data: DataResult[], notExportableColumns?: n
             data.forEach((result, index) => {
                 const worksheet = workbook.addWorksheet(sheetNames ? sheetNames[index] : `Data ${index + 1}`);
 
-                const columns = result.Header
-                    .map((header, index) => notExportableColumns?.includes(index) ? null : { header, key: header })
-                    .filter((column): column is { header: string; key: string } => column !== null);
+                const exportableColumnsConfig: { header: string; key: string; originalIndex: number }[] = [];
+                result.Header.forEach((header, colIndex) => {
+                    if (!notExportableColumns?.includes(colIndex)) {
+                        exportableColumnsConfig.push({ header, key: header, originalIndex: colIndex });
+                    }
+                });
 
-                worksheet.columns = columns;
+                worksheet.columns = exportableColumnsConfig.map(col => ({ header: col.header, key: col.key }));
+
+                exportableColumnsConfig.forEach(colInfo => {
+                    const originalColIndex = colInfo.originalIndex;
+                    const columnType = result.typeInfo[originalColIndex];
+                    const column = worksheet.getColumn(colInfo.key);
+
+                    if (column) {
+                        switch (columnType) {
+                            case 'tinyint':
+                            case 'smallint':
+                            case 'int':
+                            case 'bigint':
+                                column.numFmt = '0';
+                                break;
+                            case 'float':
+                            case 'decimal':
+                            case 'real':
+                                column.numFmt = '#,##0.00';
+                                break;
+                            case 'money':
+                                column.numFmt = '$#,##0.00';
+                                break;
+                            case 'bit':
+                                column.numFmt = '0';
+                                break;
+                            case 'date':
+                                column.numFmt = 'yyyy-mm-dd';
+                                break;
+                            case 'datetime':
+                            case 'datetime2':
+                            case 'smalldatetime':
+                                column.numFmt = 'yyyy-mm-dd hh:mm:ss';
+                                break;
+                            case 'time':
+                                column.numFmt = 'hh:mm:ss';
+                                break;
+                        }
+                    }
+                });
 
                 result.records.forEach(row => {
-                    const filteredRow = row.filter((_, index) => !notExportableColumns?.includes(index));
-                    worksheet.addRow(filteredRow);
+                    const rowForExcel: ValuesObject = {};
+                    exportableColumnsConfig.forEach(colInfo => {
+                        const originalValue = row[colInfo.originalIndex];
+                        let processedValue = originalValue;
+
+                        const columnType = result.typeInfo[colInfo.originalIndex];
+
+                        if (processedValue !== null) {
+                            switch (columnType) {
+                                case 'date':
+                                case 'datetime':
+                                case 'datetime2':
+                                case 'smalldatetime':
+                                case 'time':
+                                    if (typeof processedValue === 'string') {
+                                        try {
+                                            const dateObj = new Date(processedValue);
+                                            if (!isNaN(dateObj.getTime())) {
+                                                processedValue = dateObj;
+                                            } else {
+                                                console.warn(`Invalid date string "${processedValue}" for column "${colInfo.header}". Keeping as string.`);
+                                            }
+                                        } catch (e) {
+                                            console.error(`Error parsing date string "${processedValue}" for column "${colInfo.header}":`, e);
+                                        }
+                                    }
+                                    break;
+                                case 'bit':
+                                    if (processedValue === 0) {
+                                        processedValue = false;
+                                    } else if (processedValue === 1) {
+                                        processedValue = true;
+                                    }
+                                    break;
+                            }
+                        }
+
+                        rowForExcel[colInfo.key] = processedValue;
+                    });
+                    worksheet.addRow(rowForExcel);
                 });
+
             });
 
-            const buffer = await workbook.xlsx.writeBuffer();
+            const buffer = await workbook.xlsx.writeBuffer({ useStyles: true });
             const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
             a.download = filename;
+
+            document.body.appendChild(a);
             a.click();
 
             document.body.removeChild(a);
