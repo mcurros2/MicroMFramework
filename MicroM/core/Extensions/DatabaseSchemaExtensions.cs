@@ -282,7 +282,7 @@ namespace MicroM.Extensions
             {
                 await ec.Connect(ct);
 
-                StringBuilder sb_create_PKs = new StringBuilder();    
+                StringBuilder sb_create_PKs = new StringBuilder();
                 StringBuilder sb_create_UNs = new();
                 StringBuilder sb_create_FKs = new();
                 StringBuilder sb_create_IDXs = new();

@@ -20,15 +20,17 @@
         public readonly Type ChildEntityType;
         public readonly List<BaseColumnMapping> KeyMappings = [];
         public readonly bool Fake;
+        public readonly bool DoNotCreateIndex;
 
         public readonly Dictionary<string, EntityLookup> EntityLookups = new(StringComparer.OrdinalIgnoreCase);
 
-        public EntityForeignKeyBase(string name, Type parent_type, Type child_type, bool fake, List<BaseColumnMapping>? key_mappings)
+        public EntityForeignKeyBase(string name, Type parent_type, Type child_type, bool fake, bool do_not_create_index, List<BaseColumnMapping>? key_mappings)
         {
             Name = name;
             ParentEntityType = parent_type ?? throw new ArgumentNullException(nameof(parent_type));
             ChildEntityType = child_type ?? throw new ArgumentNullException(nameof(child_type));
             Fake = fake;
+            DoNotCreateIndex = do_not_create_index;
 
             if (key_mappings != null) KeyMappings.AddRange(key_mappings);
 

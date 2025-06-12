@@ -5,8 +5,8 @@ using MicroM.Extensions;
 using MicroM.Web.Authentication;
 using MicroM.Web.Services;
 using System.Security.Cryptography;
-using static MicroM.Configuration.DatabaseSchema;
 using static MicroM.Database.DatabaseManagement;
+using static MicroM.Database.DatabaseSchema;
 using static MicroM.Validators.Expressions;
 
 
@@ -34,10 +34,10 @@ namespace MicroM.DataDictionary
             using var cert = CryptClass.FindCertificate(certificate_thumbprint) ?? throw new ArgumentException($"Certificate not found {certificate_thumbprint}");
 
             var encrypted = CryptClass.EncryptObject<SecretsOptions>(options, cert);
-            
+
             string config_path = Path.Combine(ConfigurationDefaults.SecretsFilePath, ConfigurationDefaults.MicroMCommonID);
 
-            if(!Directory.Exists(config_path))
+            if (!Directory.Exists(config_path))
             {
                 Directory.CreateDirectory(config_path);
             }
@@ -219,7 +219,7 @@ namespace MicroM.DataDictionary
 
             // MMC: create uploads folder
             string uploads_path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, options.UploadsFolder ?? ConfigurationDefaults.UploadsFolder);
-            if(!Path.Exists(uploads_path)) Directory.CreateDirectory(uploads_path);
+            if (!Path.Exists(uploads_path)) Directory.CreateDirectory(uploads_path);
 
             using IEntityClient dbc = cfg.Client.Clone(options.ConfigSQLServer ?? "", cfg.Client.MasterDatabase, admin_user, admin_password ?? "");
 

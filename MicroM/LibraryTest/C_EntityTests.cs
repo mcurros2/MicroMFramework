@@ -16,7 +16,7 @@ using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using static LibraryTest.A_DatabaseClientTests;
-using static MicroM.Configuration.DatabaseSchema;
+using static MicroM.Database.DatabaseSchema;
 
 namespace LibraryTest
 {
@@ -73,7 +73,7 @@ namespace LibraryTest
             cfg.Def.b_recreatedatabase.Value = true;
 
             ConfigurationDefaults.SecretsFilename = "config_test.cry";
-            
+
             var common_app_path = Path.Combine(ConfigurationDefaults.SecretsFilePath, ConfigurationDefaults.MicroMCommonID);
 
             if (!Directory.Exists(common_app_path)) Directory.CreateDirectory(common_app_path);

@@ -17,9 +17,9 @@ namespace MicroM.Extensions
             return proc;
         }
 
-        public static EntityForeignKey<TParent, TChild> AddFK<TParent, TChild>(this Dictionary<string, EntityForeignKeyBase> collection, string name, bool fake = false, List<BaseColumnMapping>? key_mappings = null) where TParent : EntityBase where TChild : EntityBase
+        public static EntityForeignKey<TParent, TChild> AddFK<TParent, TChild>(this Dictionary<string, EntityForeignKeyBase> collection, string name, bool fake = false, bool do_not_create_index = false, List<BaseColumnMapping>? key_mappings = null) where TParent : EntityBase where TChild : EntityBase
         {
-            var fk = new EntityForeignKey<TParent, TChild>(name, fake, key_mappings);
+            var fk = new EntityForeignKey<TParent, TChild>(name, fake, do_not_create_index, key_mappings);
             collection.Add(name, fk);
             return fk;
         }

@@ -65,6 +65,7 @@
     <None Remove="DataDictionary\Entities\MicromUsers\SQL\MicromUsers\usr_getRecoveryEmails.sql" />
     <None Remove="DataDictionary\Entities\MicromUsers\SQL\MicromUsers\usr_RecoverPassword.sql" />
     <None Remove="DataDictionary\Entities\MicromUsers\SQL\MicromUsers\usr_tfGetUserEmails.sql" />
+    <None Remove="DataDictionary\Entities\sys\sys_GetDropDuplicateIndexes.sql" />
   </ItemGroup>
    
   <ItemGroup>
@@ -136,6 +137,7 @@
     <EmbeddedResource Include="DataDictionary\Entities\MicromUsers\SQL\MicromUsers\usr_updateLoginAttempt.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\MicromUsers\SQL\MicromUsers\usr_GetUserData.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\Numbering\num_iGetNewNumber.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\sys\sys_GetDropDuplicateIndexes.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\sys\sys_tfLike.sql" />
   </ItemGroup>
 

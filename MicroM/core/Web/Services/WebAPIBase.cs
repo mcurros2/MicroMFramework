@@ -5,6 +5,7 @@ using MicroM.Data;
 using MicroM.DataDictionary;
 using MicroM.DataDictionary.CategoriesDefinitions;
 using MicroM.DataDictionary.Entities.MicromUsers;
+using MicroM.DataDictionary.StatusDefs;
 using MicroM.Extensions;
 using MicroM.ImportData;
 using MicroM.Web.Authentication;
@@ -17,9 +18,8 @@ using System.Reflection;
 using System.Security.Claims;
 using System.Text.Json;
 using static MicroM.Extensions.ColumnExtensions;
-using static System.ArgumentNullException;
 using static MicroM.ImportData.EntityImportData;
-using MicroM.DataDictionary.StatusDefs;
+using static System.ArgumentNullException;
 
 namespace MicroM.Web.Services
 {
@@ -311,7 +311,7 @@ namespace MicroM.Web.Services
                         }
                         else
                         {
-                            _log.LogWarning("REFRESH_TOKEN: APP_ID {app_id} can't refresh token. Status: {status} Message {message} refresh-token: {token}", app_id, refresh_result.Status, refresh_result.Message, refreshRequest.RefreshToken);
+                            _log.LogTrace("REFRESH_TOKEN: APP_ID {app_id} can't refresh token. Status: {status} Message {message} refresh-token: {token}", app_id, refresh_result.Status, refresh_result.Message, refreshRequest.RefreshToken);
                         }
                     }
                     else
@@ -326,7 +326,7 @@ namespace MicroM.Web.Services
             }
             else
             {
-                _log.LogWarning("REFRESH_TOKEN: APP_ID {app_id} Invalid expired token", app_id);
+                _log.LogTrace("REFRESH_TOKEN: APP_ID {app_id} Invalid expired token", app_id);
             }
 
             return (null, null);
@@ -1019,7 +1019,7 @@ namespace MicroM.Web.Services
                             {
                                 await import_process.UpdateStatus(nameof(ImportStatus.Importing), ct);
 
-                                if(ext == ".csv")
+                                if (ext == ".csv")
                                 {
                                     var csv = await CSVParser.ParseFile(file_path, ct);
 

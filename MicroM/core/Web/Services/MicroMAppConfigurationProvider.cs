@@ -1,6 +1,7 @@
 ﻿using MicroM.Configuration;
 using MicroM.Core;
 using MicroM.Data;
+using MicroM.Database;
 using MicroM.DataDictionary;
 using MicroM.DataDictionary.CategoriesDefinitions;
 using MicroM.Extensions;
