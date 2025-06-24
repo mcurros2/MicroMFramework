@@ -221,13 +221,13 @@ namespace MicroM.Data
                 {
                     await ExecuteNonQuery(CommandType.Text, "SET XACT_ABORT ON", ct);
                 }
-                if(isolation_level_read_committed)
+                if (isolation_level_read_committed)
                 {
                     await ExecuteNonQuery(CommandType.Text, "SET TRANSACTION ISOLATION LEVEL READ COMMITTED", ct);
                 }
                 return true;
             }
-            catch (Exception x)
+            catch (Exception x) when (x is not TaskCanceledException)
             {
                 if (throw_exception) throw new DataAbstractionException($"An error ocurred while connecting: {x.Message}.", x);
                 return false;
@@ -267,7 +267,7 @@ namespace MicroM.Data
                 await RollbackUnexpectedOpenTransactions();
                 await sql_connection.CloseAsync();
             }
-            catch (Exception x)
+            catch (Exception x) when (x is not TaskCanceledException)
             {
                 throw new DataAbstractionException($"An error ocurred while disconnecting: {x.Message}.", x);
             }
@@ -291,7 +291,7 @@ namespace MicroM.Data
                 _logger?.LogTrace("Begin transaction. Server: {Server}, DB {DB}, User {User}, Integrated Security {IntegratedSecurity}, Web User {WebUsr}", Server, DB, User, IntegratedSecurity, WebUser);
                 sql_transaction = (SqlTransaction)await sql_connection.BeginTransactionAsync(ct);
             }
-            catch (Exception x)
+            catch (Exception x) when (x is not TaskCanceledException)
             {
                 throw new DataAbstractionException($"An error ocurred while creating a transaction: {x.Message}.", x);
             }
@@ -309,11 +309,14 @@ namespace MicroM.Data
                 _logger?.LogTrace("Rollback transaction. Server: {Server}, DB {DB}, User {User}, Integrated Security {IntegratedSecurity}, Web User {WebUsr}", Server, DB, User, IntegratedSecurity, WebUser);
                 await sql_transaction.RollbackAsync(ct);
                 await sql_transaction.DisposeAsync();
-                sql_transaction = null;
             }
-            catch (Exception x)
+            catch (Exception x) when (x is not TaskCanceledException)
             {
                 throw new DataAbstractionException($"An error ocurred while rolling back the transaction: {x.Message}.", x);
+            }
+            finally
+            {
+                sql_transaction = null;
             }
         }
 
@@ -329,12 +332,14 @@ namespace MicroM.Data
                 _logger?.LogTrace("Commit transaction. Server: {Server}, DB {DB}, User {User}, Integrated Security {IntegratedSecurity}, Web User {WebUsr}", Server, DB, User, IntegratedSecurity, WebUser);
                 await sql_transaction.CommitAsync(ct);
                 await sql_transaction.DisposeAsync();
-                sql_transaction = null;
             }
-            catch (Exception x)
+            catch (Exception x) when (x is not TaskCanceledException)
+            {
+                throw new DataAbstractionException($"An error ocurred while commiting the transaction: {x.Message}.", x);
+            }
+            finally
             {
                 sql_transaction = null;
-                throw new DataAbstractionException($"An error ocurred while commiting the transaction: {x.Message}.", x);
             }
         }
 

@@ -7,7 +7,7 @@ import { useW2ColumnRender } from "./useW2ColumnRender";
 export function useGrid({
     columns, rows, selectionMode, onDoubleClick, preserveSelection, onSelectionChanged, showSelectCheckbox,
     rowHeight, stripped, highlightOnHover, columnBorders, rowBorders, withBorder, autoSizeColumnsOnLoad, autoSelectFirstRow,
-    columnsOverrides, selectedRows, setSelectedRows
+    columnsOverrides, selectedRows, setSelectedRows, timeZoneOffset
 }: GridOptions) {
     const gridRef = useRef<w2grid>(undefined!);
     const boxRef = useRef<HTMLDivElement>(null); //TODO: support different elements
@@ -18,7 +18,7 @@ export function useGrid({
 
     const {
         w2columnRender, cellsPortals, clearCellPortals, isFirstVisible, performAutosize
-    } = useW2ColumnRender({ columns, rows, columnsOverrides, columnAutoResizeSource, gridRef, autoSizeColumnsOnLoad, boxRef });
+    } = useW2ColumnRender({ columns, rows, columnsOverrides, columnAutoResizeSource, gridRef, autoSizeColumnsOnLoad, boxRef, timeZoneOffset });
 
     //if (isFirstVisible) console.log('grid is visible');
 

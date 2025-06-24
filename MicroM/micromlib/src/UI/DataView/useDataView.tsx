@@ -43,7 +43,7 @@ export function useDataView(props: DataViewProps, stateProps: DataGridStateProps
         onDataRefresh
     } = props;
 
-    const localeFormat = useLocaleFormat({});
+    const localeFormat = useLocaleFormat({timeZoneOffset: entity?.API.client.TIMEZONE_OFFSET || 0});
 
     const { setRefresh, setSearchText, executeViewState } = stateProps;
 
@@ -203,7 +203,7 @@ export function useDataView(props: DataViewProps, stateProps: DataGridStateProps
     }, [notExportableColumns, viewResult]);
 
     const formatValue = useCallback((value: Value, sqlType: SQLType) => {
-        const rawValue = localeFormat.formatValue(localeFormat.getNativeType(value, sqlType), sqlType);
+        const rawValue = localeFormat.formatValue(localeFormat.getNativeValue(value, sqlType), sqlType);
         return (rawValue === 'null') ? '' : rawValue;
     }, [localeFormat]);
 

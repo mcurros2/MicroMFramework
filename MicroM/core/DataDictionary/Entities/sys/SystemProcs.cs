@@ -10,6 +10,7 @@ public class SystemProcsDef : EntityDefinition
 
     public readonly Column<string> c_system_id = Column<string>.PK(fake: true);
 
+    public readonly ProcedureDefinition sys_GetTimeZoneOffset = new(readonly_locks: true);
 }
 
 public class SystemProcs : Entity<SystemProcsDef>

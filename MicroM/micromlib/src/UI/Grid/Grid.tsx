@@ -60,6 +60,7 @@ export type GridOptions = {
     columnsOverrides?: GridColumnsOverrides,
     selectedRows?: GridSelection,
     setSelectedRows?: (rows: GridSelection) => void,
+    timeZoneOffset?: number,
 }
 
 export type GridImperative = {

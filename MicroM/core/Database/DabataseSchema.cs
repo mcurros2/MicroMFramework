@@ -174,9 +174,10 @@ public static class DatabaseSchema
             await ec.Connect(ct);
 
             // MMC: Order is important here
-            await CreateSchema<SystemProcs>(ec, create_or_alter, false, true, false, true, false, ct);
             await CreateSchema<Objects>(ec, create_or_alter, false, true, false, true, false, ct);
             await CreateSchema<Numbering>(ec, create_or_alter, false, true, false, true, false, ct);
+
+            await CreateSchemaAndDictionary<SystemProcs>(ec, ct, create_or_alter, create_custom_procs: true);
 
             await CreateSchemaAndDictionary<Classes>(ec, ct, create_or_alter, create_custom_procs: true);
             await CreateSchemaAndDictionary<Categories>(ec, ct, create_or_alter, create_custom_procs: true);
@@ -259,6 +260,7 @@ public static class DatabaseSchema
     public static Dictionary<string, Type> GetCoreEntitiesTypes()
     {
         Dictionary<string, Type> result = [];
+        result.TryAddType<SystemProcs>();
         result.TryAddType<Categories>();
         result.TryAddType<CategoriesValues>();
 
@@ -325,6 +327,7 @@ public static class DatabaseSchema
             await ec.ExecuteSQLNonQuery(GrantExecutionToAllProcs<ImportProcess>(login_or_group), ct);
             await ec.ExecuteSQLNonQuery(GrantExecutionToAllProcs<ImportProcessErrors>(login_or_group), ct);
             await ec.ExecuteSQLNonQuery(GrantExecutionToAllProcs<ImportProcessStatus>(login_or_group), ct);
+            await ec.ExecuteSQLNonQuery(GrantExecutionToAllProcs<SystemProcs>(login_or_group), ct);
         }
         finally
         {

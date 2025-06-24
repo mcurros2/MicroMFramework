@@ -43,6 +43,9 @@ namespace MicroM.Web.Services
 
         public Task<(bool failed, string? error_message)> HandleRecoverPassword(IAuthenticationProvider auth, string app_id, string user_name, string new_password, string recovery_code, CancellationToken ct);
 
+        // Timezone
+        public Task<int> HandleGetTimeZoneOffset(IAuthenticationProvider auth, string app_id, IEntityClient ec, CancellationToken ct);
+
         // Entities
         public Task<Dictionary<string, object?>?> HandleGetEntity(IAuthenticationProvider auth, string app_id, string entity_name, DataWebAPIRequest parms, IEntityClient ec, CancellationToken ct);
 

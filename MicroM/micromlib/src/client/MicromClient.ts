@@ -8,7 +8,7 @@ import { PublicEndpoint } from "./PublicEndpoint";
 import { TokenStorage, TokenWebStorage } from "./TokenStorage";
 import { DBStatusResult, DataResult, ValuesObject } from "./client.types";
 
-export type APIAction = "get" | "insert" | "update" | "delete" | "lookup" | "view" | "action" | "upload" | "proc" | "process" | "import";
+export type APIAction = "get" | "insert" | "update" | "delete" | "lookup" | "view" | "action" | "upload" | "proc" | "process" | "import" | "timezoneoffset";
 
 export interface FileUploadResponse {
     ErrorMessage?: string,
@@ -36,6 +36,8 @@ const ENABLED_MENUS_DATA_KEY = 'mm_menus';
 
 const REMEMBER_USER_DATA_KEY = 'mm_remember_me';
 
+const TIMEZONE_OFFSET_DATA_KEY = 'mm_server_timezone_offset';
+
 export class MicroMClient {
     #API_URL;
     #TOKEN_STORAGE;
@@ -53,6 +55,8 @@ export class MicroMClient {
     ;
 
     #REDIRECT_ON_401?: string;
+
+    #TIMEZONE_OFFSET: number = 0;
 
     constructor
         (
@@ -210,7 +214,7 @@ export class MicroMClient {
                 try {
                     await this.#DATA_STORAGE.saveData(this.#APP_ID, REMEMBER_USER_DATA_KEY, rememberme ? username : null);
                 }
-                catch(error) {
+                catch (error) {
                     console.warn('Error remembering user', error);
                 }
 
@@ -219,6 +223,13 @@ export class MicroMClient {
                 }
                 catch (error) {
                     console.warn('Error getting enabled menus', error);
+                }
+
+                try {
+                    await this.#getTimeZoneOffset();
+                }
+                catch (error) {
+                    console.warn('Error getting server timezone offset', error);
                 }
 
                 return token;
@@ -283,6 +294,40 @@ export class MicroMClient {
         }
 
     }
+
+    async #saveTimeZoneOffset(data: number) {
+        await this.#DATA_STORAGE.saveData(this.#APP_ID, TIMEZONE_OFFSET_DATA_KEY, data);
+    }
+
+    async #readTimeZoneOffset(): Promise<number> {
+        const result: number | null = await this.#DATA_STORAGE.readData(this.#APP_ID, TIMEZONE_OFFSET_DATA_KEY);
+        if (result === null) {
+            console.warn('No timezone offset found, using default 0');
+            this.#TIMEZONE_OFFSET = 0;
+            return 0;
+        }
+        this.#TIMEZONE_OFFSET = result;
+        return result;
+    }
+
+    async #getTimeZoneOffset(abort_signal: AbortSignal | null = null) {
+        if (!this.#TOKEN) return;
+
+        const result: DataResult[] = await this.#submitToAPI('SystemProcs', null, {}, [], 'proc', abort_signal, 'sys_GetTimeZoneOffset');
+
+        const offset = result[0].records[0][0] as number;
+
+        if (isNaN(offset)) {
+            console.warn('No timezone offset found, using default 0');
+            return 0;
+        }
+
+        await this.#saveTimeZoneOffset(offset);
+
+        return result;
+    }
+
+    get TIMEZONE_OFFSET(): number { return this.#TIMEZONE_OFFSET; }
 
     async #getAPIEnabledMenus(username: string, abort_signal: AbortSignal | null = null) {
         if (!this.#TOKEN) return;
@@ -469,6 +514,7 @@ export class MicroMClient {
 
     async #checkAndRefreshToken() {
         await this.#loadToken();
+        await this.#readTimeZoneOffset();
 
         if (!this.#TOKEN) {
             return;

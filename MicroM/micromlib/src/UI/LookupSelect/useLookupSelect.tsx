@@ -24,7 +24,7 @@ export const useLookupSelect = (props: UseLookupSelectOptions) => {
 
     const [triggerRefresh, setTriggerRefresh] = triggerRefreshState;
 
-    const localeFormat = useLocaleFormat({});
+    const localeFormat = useLocaleFormat({ timeZoneOffset: entity.API.client.TIMEZONE_OFFSET });
 
     const { lookupEntity, lookupDef, lookupViewName } = useLookupEntity({ entity, lookupDefName, parentKeys });
 

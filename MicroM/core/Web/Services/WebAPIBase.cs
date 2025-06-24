@@ -34,6 +34,8 @@ namespace MicroM.Web.Services
         private readonly ISecurityService _securityService;
         private readonly IDeviceIdService _deviceIdService;
 
+        private readonly ConcurrentDictionary<string, int> _ApplicationsTimeZoneOffset = new(StringComparer.OrdinalIgnoreCase);
+
         #region "Applications Keys"
 
         private readonly ConcurrentDictionary<string, Dictionary<string, object>> _ApplicationKeys = new(StringComparer.OrdinalIgnoreCase);
@@ -378,6 +380,33 @@ namespace MicroM.Web.Services
         }
 
         #endregion
+
+
+        public async Task<int> HandleGetTimeZoneOffset(IAuthenticationProvider auth, string app_id, IEntityClient ec, CancellationToken ct)
+        {
+            try
+            {
+                ApplicationOption? app = _app_config.GetAppConfiguration(app_id, ct);
+
+                if (app == null) return 0;
+
+                if (_ApplicationsTimeZoneOffset.TryGetValue(app_id, out var offset))
+                {
+                    return offset;
+                }
+                else
+                {
+                    var sys = new SystemProcs(ec);
+                    var new_offset = await sys.ExecuteProcSingleColumn<int>(ct, sys.Def.sys_GetTimeZoneOffset);
+                    _ApplicationsTimeZoneOffset.TryAdd(app_id, new_offset);
+                    return new_offset;
+                }
+            }
+            finally
+            {
+                await ec.Disconnect();
+            }
+        }
 
 
         #region "WebAPI standard calls"

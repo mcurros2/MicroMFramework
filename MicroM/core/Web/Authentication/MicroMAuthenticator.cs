@@ -153,7 +153,8 @@ namespace MicroM.Web.Authentication
 
             string cookie_token = ReadRefreshTokenFromCookie(app_config) ?? "";
 
-            if (!string.IsNullOrEmpty(cookie_token)) {
+            if (!string.IsNullOrEmpty(cookie_token))
+            {
                 if (cookie_token != refresh_token)
                 {
                     _log.LogWarning("Refresh token from cookie is different from the one in the request:  cookie [{cookie_token}] request : [{refresh_token}] user_id: {user_id}, device_id: {device_id}, ipaddress: {ipaddress}, user-agent: {user_agent}. Taking cookie_token", cookie_token, refresh_token, user_id, device_id, ipaddress, user_agent);
@@ -161,9 +162,16 @@ namespace MicroM.Web.Authentication
                 refresh_token = cookie_token;
             }
 
-            if (string.IsNullOrEmpty(refresh_token) || string.IsNullOrEmpty(user_id))
+            if (string.IsNullOrEmpty(user_id))
             {
-                _log.LogWarning("Refresh token or user id is null or empty token: {refresh_token} user_id: {user_id}, device_id: {device_id}, ipaddress: {ipaddress}, user-agent: {user_agent}", refresh_token, user_id, device_id, ipaddress, user_agent);
+                _log.LogTrace("Refresh token: User id is null {refresh_token} user_id: {user_id}, device_id: {device_id}, ipaddress: {ipaddress}, user-agent: {user_agent}", refresh_token, user_id, device_id, ipaddress, user_agent);
+                result.Status = LoginAttemptStatus.InvalidRefreshToken;
+                return result;
+            }
+
+            if (string.IsNullOrEmpty(refresh_token))
+            {
+                _log.LogTrace("Refresh token is null or empty token: {refresh_token} user_id: {user_id}, device_id: {device_id}, ipaddress: {ipaddress}, user-agent: {user_agent}", refresh_token, user_id, device_id, ipaddress, user_agent);
                 result.Status = LoginAttemptStatus.InvalidRefreshToken;
                 return result;
             }
@@ -194,7 +202,7 @@ namespace MicroM.Web.Authentication
                 }
                 else
                 {
-                    _log.LogWarning("Can't refresh token. User Data: {refresh_token} user_id: {user_id}, device_id: {device_id}, ipaddress: {ipaddress}, user-agent: {user_agent}, disabled: {disabled}, refresh_expired: {expired}, locked: {locked}", refresh_token, user_id, device_id, ipaddress, user_agent, login_data?.disabled, login_data?.refresh_expired, login_data?.locked);
+                    _log.LogTrace("Can't refresh token. User Data: {refresh_token} user_id: {user_id}, device_id: {device_id}, ipaddress: {ipaddress}, user-agent: {user_agent}, disabled: {disabled}, refresh_expired: {expired}, locked: {locked}", refresh_token, user_id, device_id, ipaddress, user_agent, login_data?.disabled, login_data?.refresh_expired, login_data?.locked);
                 }
 
             }
@@ -258,9 +266,13 @@ namespace MicroM.Web.Authentication
                 }
 
                 EmailServiceTags recovery_tag = new() { tag = IAuthenticator.AuthenticatorRecoveryEmailTemplateCodeTAG, value = get_code.recovery_code };
-                EmailServiceDestination[] destinations = emails.Select(e => 
-                new EmailServiceDestination { 
-                    reference_id = Guid.NewGuid().ToString(), destination_name = "", destination_email = e, tags = [recovery_tag] 
+                EmailServiceDestination[] destinations = emails.Select(e =>
+                new EmailServiceDestination
+                {
+                    reference_id = Guid.NewGuid().ToString(),
+                    destination_name = "",
+                    destination_email = e,
+                    tags = [recovery_tag]
                 }).ToArray();
 
                 var email = new EmailServiceItem()

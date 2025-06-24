@@ -21,24 +21,19 @@ export function formatNumber(value: Value, locale?: string): string {
 }
 
 // fix to handle dates without timezone
-export function convertDateToNative(value: string) {
-    if (!value.endsWith('Z') && !value.includes('GMT+') && !value.includes('GMT-')) {
-        const date = new Date(value);
-
-        const isoString = date.toISOString().slice(0, -1);
-
-        const offset = date.getTimezoneOffset();
-        const hours = Math.floor(Math.abs(offset) / 60);
-        const minutes = Math.abs(offset) % 60;
-        const sign = offset <= 0 ? "+" : "-";
-
-        const formattedOffset = `${sign}${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
-
-        if (formattedOffset) {
-            return new Date(`${isoString}${formattedOffset}`);
-        }
+export function convertDateToNative(value: string, serverTimeZoneOffset: number): Date {
+    // If the value already includes an explicit timezone indicator, parse as is.
+    if (value.endsWith('Z') || value.includes('GMT') || value.includes('GMT+') || value.includes('GMT-')) {
+        return new Date(value);
     }
-    return new Date(value);
+
+    if (serverTimeZoneOffset === undefined) serverTimeZoneOffset = 0;
+
+    // Otherwise, add server timezone offset to the date string.
+    const date = new Date(value);
+    const localTimeZoneOffset = date.getTimezoneOffset() * 60000; // Convert minutes to milliseconds
+    const adjustedTime = date.getTime() + localTimeZoneOffset + (serverTimeZoneOffset * 3600000); // Convert hours to milliseconds
+    return new Date(adjustedTime);
 }
 
 export function formatSQLValue(value: Value, sqlType: SQLType, locale?: string): string {
@@ -78,7 +73,7 @@ export function formatSQLValue(value: Value, sqlType: SQLType, locale?: string):
     }
 }
 
-export function convertToNativeType(value: Value, sqlType: SQLType): Value {
+export function convertToNativeValue(value: Value, sqlType: SQLType, serverTimezoneOffset: number): Value {
     if (typeof value !== 'string') {
         return value;
     }
@@ -109,7 +104,7 @@ export function convertToNativeType(value: Value, sqlType: SQLType): Value {
         case 'datetime':
         case 'smalldatetime':
         case 'date':
-            return convertDateToNative(value);
+            return convertDateToNative(value, serverTimezoneOffset);
 
         default:
             return value;

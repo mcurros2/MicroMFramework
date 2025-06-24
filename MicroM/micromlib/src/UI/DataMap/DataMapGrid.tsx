@@ -88,6 +88,7 @@ export function DataMapGrid(props: DataMapGridProps) {
                             columnsOverrides={columnsOverrides}
                             selectedRows={selectedRows}
                             setSelectedRows={setSelectedRows}
+                            timeZoneOffset={entity?.API.client.TIMEZONE_OFFSET}
                         />
                     </Box>
                     <Group>

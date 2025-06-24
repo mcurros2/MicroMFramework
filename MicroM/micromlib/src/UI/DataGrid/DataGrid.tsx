@@ -201,6 +201,7 @@ export function DataGrid(props: DataGridProps) {
                             rowBorders={rowBorders}
                             withBorder={withBorder}
                             columnsOverrides={effectiveColumnOverrides}
+                            timeZoneOffset={entity?.API.client.TIMEZONE_OFFSET}
                         />
                     </Box>
                     {showToolbar &&

@@ -26,6 +26,7 @@ namespace MicroM.Web.Services.Security
                     $"/{base_path}/{app_id}/{nameof(MicroMEveryoneAllowedRoutes.recoverpassword)}",
                     $"/{base_path}/{app_id}/{nameof(MicroMEveryoneAllowedRoutes.recoveryemail)}",
                     $"/{base_path}/{app_id}/{nameof(MicromUsers)}/proc/{nameof(MicromUsersDef.usr_GetEnabledMenus)}",
+                    $"/{base_path}/{app_id}/{nameof(SystemProcs)}/proc/{nameof(SystemProcsDef.sys_GetTimeZoneOffset)}",
                     $"/{base_path}/{app_id}/{nameof(FileStoreProcess)}/insert",
                     $"/{base_path}/{app_id}/{nameof(FileStore)}/delete",
                     $"/{base_path}/{app_id}/{nameof(CategoriesValues)}/view/{nameof(CategoriesValuesDef.cav_brwStandard)}",

@@ -192,12 +192,14 @@ export const ModalsManager = ({ modalProps, animationDuration, children }: Modal
     const IconFullscreen = ModalsManagerDefaultProps.FullScreenIcon;
     const IconRestore = ModalsManagerDefaultProps.RestoreScreeSizeIcon;
 
+
     return (
         <ModalContext.Provider value={{ open, close }}>
             {children}
             {
                 modals.map((modal, index) => {
                     const computedSizes = getModalSize(modal.props.size);
+                    const mobileSize = (viewportWidth < 768 && (['md', 'lg', 'xl', 'fullscreen'] as MicroMModalSize[]).includes(modal.initialSize ?? ''));
 
                     return (
                         <Modal.Root
@@ -214,13 +216,17 @@ export const ModalsManager = ({ modalProps, animationDuration, children }: Modal
                         >
                             <Modal.Overlay {...((index === modals.length - 1) ? modalProps.overlayProps : transparentOverlay)} />
 
-                            <Modal.Content>
+                            <Modal.Content
+                                sx={{
+                                    height: computedSizes.fullscreen ? '100dvh' : undefined,
+                                }}
+                            >
                                 <Modal.Header>
                                     <Modal.Title>
                                         {modal.props.title}
                                     </Modal.Title>
                                     <Group position="right">
-                                        {modal.withFullscreenButton &&
+                                        {modal.withFullscreenButton && mobileSize === false &&
                                             <ActionIcon
                                                 onClick={(e) => {
                                                     e.stopPropagation();

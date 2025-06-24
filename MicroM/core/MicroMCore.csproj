@@ -49,6 +49,13 @@
   
   
   <ItemGroup>
+    <Compile Remove="DataDictionary\Entities\MicromPermissions\**" />
+    <EmbeddedResource Remove="DataDictionary\Entities\MicromPermissions\**" />
+    <None Remove="DataDictionary\Entities\MicromPermissions\**" />
+  </ItemGroup>
+  
+  
+  <ItemGroup>
     <None Remove="DataDictionary\Entities\EmailService\SQL\EmailServiceConfiguration\eqc_get.sql" />
     <None Remove="DataDictionary\Entities\EmailService\SQL\EmailServiceConfiguration\eqc_iupdate.sql" />
     <None Remove="DataDictionary\Entities\EmailService\SQL\EmailServiceQueue\emq_EmailTagsTableType.sql" />
@@ -138,6 +145,7 @@
     <EmbeddedResource Include="DataDictionary\Entities\MicromUsers\SQL\MicromUsers\usr_GetUserData.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\Numbering\num_iGetNewNumber.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\sys\sys_GetDropDuplicateIndexes.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\sys\sys_GetTimeZoneOffset.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\sys\sys_tfLike.sql" />
   </ItemGroup>
 
@@ -151,10 +159,6 @@
     <PackageReference Include="Microsoft.Extensions.Options" Version="8.0.2" />
     <PackageReference Include="SkiaSharp" Version="2.88.9" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.3.0" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="DataDictionary\Entities\MicromPermissions\" />
   </ItemGroup>
 
   <ItemGroup>

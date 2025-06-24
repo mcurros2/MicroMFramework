@@ -44,7 +44,7 @@ export function WeekPickerField(props: WeekPickerFieldProps) {
     } = useComponentDefaultProps('WeekPickerField', WeekPickerFieldDefaultProps, props);
 
     const theme = useMantineTheme();
-    const localeFormat = useLocaleFormat({});
+    const localeFormat = useLocaleFormat({ timeZoneOffset: entityForm.entity.API.client.TIMEZONE_OFFSET });
 
     useFieldConfiguration({ entityForm, column: weekStartDateColumn, validationContainer, validate, required: false, requiredMessage, readOnly: false });
 
@@ -100,7 +100,7 @@ export function WeekPickerField(props: WeekPickerFieldProps) {
                     <Accordion.Panel>
                         <WeekPicker
                             {...others}
-                            static={ readonly || disabled }
+                            static={readonly || disabled}
                             weekStartDatevalue={entityForm.form.values[weekStartDateColumn.name] as Date | null}
                             setWeekStartValue={(value: Date | null) => {
                                 entityForm.form.setFieldValue(weekStartDateColumn.name, value);

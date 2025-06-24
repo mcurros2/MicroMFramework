@@ -38,7 +38,7 @@ namespace MicroM.Database
                             {
                                 IDatabaseSchema instance = (IDatabaseSchema)result;
                                 var migration_result = await instance.MigrateDatabase(app_ec, ct);
-                                
+
                                 if (migration_result == DatabaseMigrationResult.NoMigrationNeeded)
                                 {
                                     await instance.CreateDBSchemaAndProcs(app_ec, ct);

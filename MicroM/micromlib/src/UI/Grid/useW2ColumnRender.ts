@@ -13,7 +13,8 @@ export interface UseW2ColumnRenderProps {
     columnAutoResizeSource: React.MutableRefObject<"system" | "user">,
     gridRef: React.MutableRefObject<w2grid>,
     autoSizeColumnsOnLoad?: boolean,
-    boxRef: React.RefObject<HTMLDivElement>
+    boxRef: React.RefObject<HTMLDivElement>,
+    timeZoneOffset?: number,
 }
 
 function escapeHTML(text: string) {
@@ -29,12 +30,12 @@ const emptyCellsPortals = {}; //optimization, avoids unnecessary rerenders on mu
 
 export function useW2ColumnRender(props: UseW2ColumnRenderProps) {
     const {
-        columns, rows, columnsOverrides, columnAutoResizeSource, gridRef, autoSizeColumnsOnLoad, boxRef
+        columns, rows, columnsOverrides, columnAutoResizeSource, gridRef, autoSizeColumnsOnLoad, boxRef, timeZoneOffset
     } = props;
 
     const isFirstVisible = useFirstVisible(boxRef);
 
-    const emptyLocaleProps = useRef({});
+    const emptyLocaleProps = useRef({ timeZoneOffset: timeZoneOffset || 0});
 
     const localeFormat = useLocaleFormat(emptyLocaleProps.current);
 
@@ -116,13 +117,14 @@ export function useW2ColumnRender(props: UseW2ColumnRenderProps) {
         let value = options.value;
 
         if (sqlType) {
-                if (value === null) {
-                    value = '';
-                }
-                else {
-                    const rawValue = localeFormat.formatValue(localeFormat.getNativeType(options.value as Value, sqlType), sqlType);
-                    value = (rawValue === 'null') ? '' : rawValue;
-                }
+            if (value === null) {
+                value = '';
+            }
+            else {
+                const nativeValue = localeFormat.getNativeValue(value as Value, sqlType);
+                const rawValue = localeFormat.formatValue(nativeValue, sqlType);
+                value = (rawValue === 'null') ? '' : rawValue;
+            }
         }
 
         //
@@ -221,7 +223,7 @@ export function useW2ColumnRender(props: UseW2ColumnRenderProps) {
                     // MMC: remove the old element when everything is rendered (hopefully as there can be complex react components)
                     setTimeout(() => {
                         const cellElement = document.getElementById(renderElementID);
-                        if(cellElement) cellElement.hidden = false;
+                        if (cellElement) cellElement.hidden = false;
                         const cellOldElement = document.getElementById(`${renderElementID}_old`);
                         if (cellOldElement) cellOldElement.remove();
                     });
