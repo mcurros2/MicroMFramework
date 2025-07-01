@@ -9,7 +9,7 @@ namespace MicroM.DataDictionary
 
     public class FileStoreDef : EntityDefinition
     {
-        public FileStoreDef() : base("fst", nameof(FileStore)) { }
+        public FileStoreDef() : base("fst", nameof(FileStore)) { SQLCreationOptions = SQLCreationOptionsMetadata.WithIUpdateAndIDrop; }
 
         public readonly Column<string> c_file_id = Column<string>.PK(autonum: true);
         public readonly Column<string> c_fileprocess_id = Column<string>.FK();
@@ -25,7 +25,7 @@ namespace MicroM.DataDictionary
         public readonly ProcedureDefinition fst_getByGUID = new(new[] { nameof(vc_fileguid) });
 
         public readonly EntityForeignKey<FileStoreProcess, FileStore> FKFileStoreProcess = new();
-        public readonly EntityUniqueConstraint UCFileStore = new(keys: new[] {nameof(vc_fileguid)});
+        public readonly EntityUniqueConstraint UCFileStore = new(keys: new[] { nameof(vc_fileguid) });
 
     }
 
@@ -33,7 +33,7 @@ namespace MicroM.DataDictionary
     {
         public FileStore() : base() { }
         public FileStore(IEntityClient ec, IMicroMEncryption? encryptor = null) : base(ec, encryptor) { }
-       
+
     }
 
 

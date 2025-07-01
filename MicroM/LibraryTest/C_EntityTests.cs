@@ -16,7 +16,7 @@ using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using static LibraryTest.A_DatabaseClientTests;
-using static MicroM.Database.DatabaseSchema;
+using static MicroM.Database.DataDictionarySchema;
 
 namespace LibraryTest
 {
@@ -254,14 +254,12 @@ namespace LibraryTest
 
             Assert.AreEqual(db_name, DatabaseConfiguration.TestDatabase, $"Incorrect database found while creating schema. Expecting {DatabaseConfiguration.TestDatabase} found {db_name}");
 
-            await CreateSchemaAndDictionary<TestQueue>(client, cts.Token, with_iupdate: true, with_idrop: true);
+            await CreateSchemaAndDictionary<TestQueue>(client, cts.Token);
             await CreateSchemaAndDictionary<TestQueueCat>(client, cts.Token);
             await CreateSchemaAndDictionary<TestQueueStatus>(client, cts.Token);
-            await CreateSchemaAndDictionary<TestQueueItems>(client, cts.Token, with_iupdate: true, with_idrop: true);
+            await CreateSchemaAndDictionary<TestQueueItems>(client, cts.Token);
 
             var asm = Assembly.GetExecutingAssembly();
-            await asm.DropAllConstraintsAndIndexes(client, cts.Token);
-            await asm.CreateAllConstraintsAndIndexes(client, cts.Token);
             await asm.CreateAssemblyCustomProcs(client, cts.Token);
 
             await client.Disconnect();

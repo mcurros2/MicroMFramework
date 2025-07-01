@@ -7,7 +7,7 @@ namespace MicroM.DataDictionary
 {
     public class MicromUsersDevicesDef : EntityDefinition
     {
-        public MicromUsersDevicesDef() : base("usd", nameof(MicromUsersDevices)) { }
+        public MicromUsersDevicesDef() : base("usd", nameof(MicromUsersDevices)) { SQLCreationOptions = SQLCreationOptionsMetadata.WithIUpdate; }
 
         public readonly Column<string> c_user_id = Column<string>.PK();
         public readonly Column<string> c_device_id = Column<string>.PK(sql_type: SqlDbType.VarChar, size: 255);

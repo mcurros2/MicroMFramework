@@ -36,7 +36,7 @@ namespace MicroM.DataDictionary
     {
         public APTGeneratedSQL SQL = new APTGeneratedSQL();
         public APTGeneratedReact React = new APTGeneratedReact();
-        public List<string> CustomSQL = new();
+        public List<string> CustomSQL = [];
     }
 
 

@@ -5,8 +5,9 @@ using MicroM.Extensions;
 using MicroM.Web.Authentication;
 using MicroM.Web.Services;
 using System.Security.Cryptography;
+using static MicroM.Database.ConfigurationDatabaseSchema;
 using static MicroM.Database.DatabaseManagement;
-using static MicroM.Database.DatabaseSchema;
+using static MicroM.Database.DatabaseSchemaPermissions;
 using static MicroM.Validators.Expressions;
 
 
@@ -256,22 +257,10 @@ namespace MicroM.DataDictionary
                 }
 
                 await dbc.ExecuteSQLNonQuery($"use [{cfg.Def.vc_configdatabase.Value}]", ct);
-                await CreateConfigurationDBSchemaAndProcs(dbc, ct, true);
 
-                await dbc.ExecuteSQLNonQuery(GrantExecutionToAllProcs<Categories>(cfg.Def.vc_configsqluser.Value), ct);
-                await dbc.ExecuteSQLNonQuery(GrantExecutionToAllProcs<CategoriesValues>(cfg.Def.vc_configsqluser.Value), ct);
-                await dbc.ExecuteSQLNonQuery(GrantExecutionToAllProcs<EntitiesAssemblies>(cfg.Def.vc_configsqluser.Value), ct);
-                await dbc.ExecuteSQLNonQuery(GrantExecutionToAllProcs<EntitiesAssembliesTypes>(cfg.Def.vc_configsqluser.Value), ct);
-                await dbc.ExecuteSQLNonQuery(GrantExecutionToAllProcs<Applications>(cfg.Def.vc_configsqluser.Value), ct);
-                await dbc.ExecuteSQLNonQuery(GrantExecutionToAllProcs<ApplicationsAssemblies>(cfg.Def.vc_configsqluser.Value), ct);
-                await dbc.ExecuteSQLNonQuery(GrantExecutionToAllProcs<ApplicationAssemblyTypes>(cfg.Def.vc_configsqluser.Value), ct);
-                await dbc.ExecuteSQLNonQuery(GrantExecutionToAllProcs<ApplicationsUrls>(cfg.Def.vc_configsqluser.Value), ct);
-
-                await dbc.ExecuteSQLNonQuery(GrantExecutionToAllProcs<EmailServiceConfiguration>(cfg.Def.vc_configsqluser.Value), ct);
-                await dbc.ExecuteSQLNonQuery(GrantExecutionToAllProcs<EmailServiceQueue>(cfg.Def.vc_configsqluser.Value), ct);
-                await dbc.ExecuteSQLNonQuery(GrantExecutionToAllProcs<EmailServiceQueueStatus>(cfg.Def.vc_configsqluser.Value), ct);
-
-                await dbc.ExecuteSQLNonQuery(GrantExecutionToAllProcs<MicromUsersGroups>(cfg.Def.vc_configsqluser.Value), ct);
+                var entities = GetConfigurationEntitiesTypes(dbc);
+                await CreateConfigurationDBSchemaAndProcs(dbc, entities, ct, true);
+                await GrantExecutionToAllProcs(dbc, entities, cfg.Def.vc_configsqluser.Value, ct);
 
                 secrets = new() { ConfigSQLUser = cfg.Def.vc_configsqluser.Value, ConfigSQLPassword = new_password };
                 await SaveConfigurationDBParms(secrets, existing_config.Def.vc_certificatethumbprint.Value, ct);

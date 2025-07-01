@@ -6,7 +6,7 @@ namespace MicroM.Generators
 {
     internal abstract class TemplateValuesBase
     {
-        public readonly Dictionary<string, string> tokens = new();
+        public readonly Dictionary<string, string> tokens = [];
 
         public TemplateValuesBase()
         {

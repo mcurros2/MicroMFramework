@@ -8,7 +8,7 @@ namespace MicroM.DataDictionary
 
     public class FileStoreProcessDef : EntityDefinition
     {
-        public FileStoreProcessDef() : base("fsp", nameof(FileStoreProcess)) { }
+        public FileStoreProcessDef() : base("fsp", nameof(FileStoreProcess)) { SQLCreationOptions = SQLCreationOptionsMetadata.WithIUpdateAndIDrop; }
 
         public readonly Column<string> c_fileprocess_id = Column<string>.PK(autonum: true);
 

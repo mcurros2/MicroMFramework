@@ -11,7 +11,7 @@ namespace MicroM.DataDictionary
 {
     public class ApplicationsDef : EntityDefinition
     {
-        public ApplicationsDef() : base("app", nameof(Applications)) { }
+        public ApplicationsDef() : base("app", nameof(Applications)) { SQLCreationOptions = SQLCreationOptionsMetadata.WithIUpdate; }
 
         public readonly Column<string> c_application_id = Column<string>.PK();
         public readonly Column<string> vc_appname = Column<string>.Text();
@@ -23,7 +23,7 @@ namespace MicroM.DataDictionary
         public readonly Column<string> vc_database = Column<string>.Text();
 
         public readonly Column<string?> vc_app_admin_user = Column<string?>.Text(nullable: true);
-        public readonly Column<string?> vc_app_admin_password = Column<string?>.Text(size: 2048, encrypted: true, nullable: true); 
+        public readonly Column<string?> vc_app_admin_password = Column<string?>.Text(size: 2048, encrypted: true, nullable: true);
 
         public readonly Column<string> vc_JWTIssuer = Column<string>.Text();
         public readonly Column<string?> vc_JWTAudience = Column<string?>.Text(nullable: true);
@@ -144,15 +144,15 @@ namespace MicroM.DataDictionary
             }
             finally
             {
-                if(should_close) await this.Client.Disconnect();
-            }   
-            
+                if (should_close) await this.Client.Disconnect();
+            }
+
             return result;
         }
 
         public async static Task<List<ApplicationOption>?> GetAPPSConfiguration(IEntityClient ec, CancellationToken ct, IMicroMEncryption? encryptor = null)
         {
-            List<ApplicationOption> result = new();
+            List<ApplicationOption> result = [];
             Applications app = new(ec);
 
             var proc = app.Def.app_GetConfiguration;

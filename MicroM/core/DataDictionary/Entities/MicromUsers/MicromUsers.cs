@@ -14,7 +14,7 @@ namespace MicroM.DataDictionary
 
     public class MicromUsersDef : EntityDefinition
     {
-        public MicromUsersDef() : base("usr", nameof(MicromUsers)) { }
+        public MicromUsersDef() : base("usr", nameof(MicromUsers)) { SQLCreationOptions = SQLCreationOptionsMetadata.WithIUpdateAndIDrop; }
 
         public readonly Column<string> c_user_id = Column<string>.PK(autonum: true);
         public readonly Column<string> vc_username = Column<string>.Text();

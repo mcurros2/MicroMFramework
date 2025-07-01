@@ -19,7 +19,7 @@ namespace LibraryTest
     {
 
 
-        public TestQueueDef() : base("queu", nameof(TestQueue)) { }
+        public TestQueueDef() : base("queu", nameof(TestQueue)) { SQLCreationOptions = SQLCreationOptionsMetadata.WithIUpdateAndIDrop; }
 
         public readonly Column<string> c_queue_id = Column<string>.PK();
         public readonly Column<string> vc_description = new(sql_type: SqlDbType.VarChar, size: 255);

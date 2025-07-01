@@ -1,6 +1,4 @@
-﻿using System.Security.Cryptography.X509Certificates;
-
-namespace MicroM.Web.Services
+﻿namespace MicroM.Web.Services
 {
     public interface IMicroMEncryption
     {

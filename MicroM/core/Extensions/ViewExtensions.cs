@@ -6,7 +6,7 @@ namespace MicroM.Extensions
     {
         public static IEnumerable<ColumnBase> ToColumnBaseEnumerable(this Dictionary<string, ViewParm> parms)
         {
-            List<ColumnBase> ret = new();
+            List<ColumnBase> ret = [];
 
             foreach (var parm in parms.Values)
             {
@@ -18,7 +18,7 @@ namespace MicroM.Extensions
 
         public static IEnumerable<ColumnBase> FilterByName(this Dictionary<string, ColumnBase> parms, string[]? include = null, string[]? exclude = null)
         {
-            List<ColumnBase> ret = new();
+            List<ColumnBase> ret = [];
 
             foreach (var parm in parms.Values)
             {

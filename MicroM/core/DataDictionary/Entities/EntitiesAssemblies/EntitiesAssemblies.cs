@@ -7,7 +7,7 @@ namespace MicroM.DataDictionary
 {
     public class EntitiesAssembliesDef : EntityDefinition
     {
-        public EntitiesAssembliesDef() : base("eas", nameof(EntitiesAssemblies)) { }
+        public EntitiesAssembliesDef() : base("eas", nameof(EntitiesAssemblies)) { SQLCreationOptions = SQLCreationOptionsMetadata.WithIUpdateAndIDrop; }
 
         public readonly Column<string> c_assembly_id = Column<string>.PK(autonum: true);
         public readonly Column<string> vc_assemblypath = new(sql_type: SqlDbType.VarChar, size: 2048);

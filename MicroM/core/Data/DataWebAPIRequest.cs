@@ -13,9 +13,9 @@
 
         public DataWebAPIRequest()
         {
-            ParentKeys = new Dictionary<string, object>();
-            Values = new Dictionary<string, object>();
-            RecordsSelection = new List<Dictionary<string, object>>();
+            ParentKeys = [];
+            Values = [];
+            RecordsSelection = [];
         }
 
     }

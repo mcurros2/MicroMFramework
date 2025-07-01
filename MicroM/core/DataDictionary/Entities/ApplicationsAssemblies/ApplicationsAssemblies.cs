@@ -6,7 +6,7 @@ namespace MicroM.DataDictionary
 {
     public class ApplicationsAssembliesDef : EntityDefinition
     {
-        public ApplicationsAssembliesDef() : base("apa", nameof(ApplicationsAssemblies)) { }
+        public ApplicationsAssembliesDef() : base("apa", nameof(ApplicationsAssemblies)) { SQLCreationOptions = SQLCreationOptionsMetadata.WithIUpdateAndIDrop; }
 
         public readonly Column<string> c_application_id = Column<string>.PK();
         public readonly Column<string> c_assembly_id = Column<string>.PK();

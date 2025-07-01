@@ -59,5 +59,9 @@ namespace MicroM.Core
             return true;
         }
 
+        public void Clear()
+        {
+            this._Dictionary.Clear();
+        }
     }
 }

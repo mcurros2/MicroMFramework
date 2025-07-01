@@ -39,16 +39,31 @@ namespace MicroM.Database
                                 IDatabaseSchema instance = (IDatabaseSchema)result;
                                 var migration_result = await instance.MigrateDatabase(app_ec, ct);
 
-                                if (migration_result == DatabaseMigrationResult.NoMigrationNeeded)
+                                var entities = await instance.GetEntitiesTypes(app_ec, ct);
+                                try
                                 {
-                                    await instance.CreateDBSchemaAndProcs(app_ec, ct);
+                                    if (entities == null || entities.Count == 0)
+                                    {
+                                        throw new InvalidOperationException($"No entities found in assembly {assembly}");
+                                    }
+
+                                    if (migration_result == DatabaseMigrationResult.NoMigrationNeeded)
+                                    {
+                                        await instance.CreateDBSchemaAndProcs(app_ec, entities, ct);
+                                    }
+
+                                    await instance.GrantPermissions(app_ec, entities, grant_user, ct);
+
+                                    await app_ec.ExecuteSQLNonQuery("delete microm_menus_items_allowed_routes; delete microm_routes;", ct);
+
+                                    await instance.CreateMenus(app_ec, entities, ct);
+
+                                    entities.Clear();
                                 }
-
-                                await instance.GrantPermissions(app_ec, grant_user, ct);
-
-                                await app_ec.ExecuteSQLNonQuery("delete microm_menus_items_allowed_routes; delete microm_routes;", ct);
-
-                                await instance.CreateMenus(app_ec, ct);
+                                finally
+                                {
+                                    if (entities?.Count > 0) entities.Clear();
+                                }
                             }
                         }
                     }

@@ -6,7 +6,7 @@ namespace MicroM.DataDictionary
 {
     public class EmailServiceTemplatesDef : EntityDefinition
     {
-        public EmailServiceTemplatesDef() : base("eqt", nameof(EmailServiceTemplates)) { }
+        public EmailServiceTemplatesDef() : base("eqt", nameof(EmailServiceTemplates)) { SQLCreationOptions = SQLCreationOptionsMetadata.WithIUpdateAndIDrop; }
 
         public readonly Column<string> c_email_template_id = Column<string>.PK();
 

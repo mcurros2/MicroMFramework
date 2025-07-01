@@ -8,7 +8,7 @@ namespace MicroM.DataDictionary
 
     public class FileStoreStatusDef : EntityDefinition
     {
-        public FileStoreStatusDef() : base("fsts", nameof(FileStoreStatus)) { }
+        public FileStoreStatusDef() : base("fsts", nameof(FileStoreStatus)) { SQLCreationOptions = SQLCreationOptionsMetadata.WithIUpdateAndIDrop; }
 
         public readonly Column<string> c_file_id = Column<string>.PK();
         public readonly Column<string> c_status_id = Column<string>.PK();

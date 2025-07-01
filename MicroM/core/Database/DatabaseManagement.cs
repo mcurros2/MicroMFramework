@@ -1,7 +1,4 @@
-﻿using MicroM.Core;
-using MicroM.Data;
-using System.Globalization;
-using System.Text;
+﻿using MicroM.Data;
 
 namespace MicroM.Database;
 
@@ -93,31 +90,10 @@ public static class DatabaseManagement
         }
     }
 
-    public static string GrantExecutionToAllProcs<T>(string login_or_group_name) where T : EntityBase, new()
+    public static async Task<bool> TableExists(IEntityClient ec, string table_name, string schema_name, CancellationToken ct)
     {
-        StringBuilder sb = new();
-
-        T entity = new();
-
-        sb.AppendFormat(CultureInfo.InvariantCulture, "if(select object_id('{0}_update')) is not null grant exec on [{0}_update] to [{1}]\n", entity.Def.Mneo, login_or_group_name);
-        sb.AppendFormat(CultureInfo.InvariantCulture, "if(select object_id('{0}_get')) is not null grant exec on [{0}_get] to [{1}]\n", entity.Def.Mneo, login_or_group_name);
-        sb.AppendFormat(CultureInfo.InvariantCulture, "if(select object_id('{0}_drop')) is not null grant exec on [{0}_drop] to [{1}]\n", entity.Def.Mneo, login_or_group_name);
-        sb.AppendFormat(CultureInfo.InvariantCulture, "if(select object_id('{0}_lookup')) is not null grant exec on [{0}_lookup] to [{1}]\n", entity.Def.Mneo, login_or_group_name);
-
-        foreach (var proc in entity.Def.Procs.Values)
-        {
-            sb.AppendFormat(CultureInfo.InvariantCulture, "if(select object_id('{0}')) is not null grant exec on [{0}] to [{1}]\n", proc.Name, login_or_group_name);
-        }
-
-        foreach (var view in entity.Def.Views.Values)
-        {
-            sb.AppendFormat(CultureInfo.InvariantCulture, "if(select object_id('{0}')) is not null grant exec on [{0}] to [{1}]\n", view.Proc.Name, login_or_group_name);
-        }
-
-        return sb.ToString();
+        string query = $"SELECT count(*) FROM information_schema.tables WHERE table_schema = '{schema_name}' AND table_name = '{table_name}'";
+        return await ec.ExecuteSQLSingleColumn<int>(query, ct) == 1;
     }
-
-
-
 
 }

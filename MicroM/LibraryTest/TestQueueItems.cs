@@ -11,7 +11,7 @@ namespace LibraryTest
     {
 
 
-        public TestQueueItemsDef() : base("tqit", nameof(TestQueueItems)) { }
+        public TestQueueItemsDef() : base("tqit", nameof(TestQueueItems)) { SQLCreationOptions = SQLCreationOptionsMetadata.WithIUpdateAndIDrop; }
 
 
         public readonly Column<string> c_queue_id = Column<string>.PK();
@@ -48,7 +48,7 @@ namespace LibraryTest
 
         protected override void DefineConstraints()
         {
-            LKP_tque_lookup = FK_tque_tqit.AddLookup(nameof(TestQueueDef.queu_brwStandard), nameof(TestQueueDef.queu_lookup), 0 , 1);
+            LKP_tque_lookup = FK_tque_tqit.AddLookup(nameof(TestQueueDef.queu_brwStandard), nameof(TestQueueDef.queu_lookup), 0, 1);
         }
 
     }

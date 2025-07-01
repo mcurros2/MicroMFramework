@@ -43,7 +43,9 @@ namespace MicroM.Core
         /// <summary>
         /// Indicates that this entity is fake. Fake entities don´t have tables in SQL Server. They can have stored procedures and there own mnemonic code.
         /// </summary>
-        public bool Fake = false;
+        public bool Fake { get; init; } = false;
+
+        public SQLCreationOptionsMetadata SQLCreationOptions = SQLCreationOptionsMetadata.None;
 
         private readonly CustomOrderedDictionary<ColumnBase> _Columns = new();
         /// <summary>
@@ -60,7 +62,7 @@ namespace MicroM.Core
         private readonly Dictionary<string, ViewDefinition> _Views = new(StringComparer.OrdinalIgnoreCase);
         /// <summary>
         /// Dictionary with defined views for this entity. Views are expected to not update data and will enforce a no locking transaction isolation level.
-        /// This will be reflected when executing the View to enforce CQRS. Views in MicroM are stored procedures not SQL views.
+        /// This will be reflected when executing the StandardView to enforce CQRS. Views in MicroM are stored procedures not SQL views.
         /// </summary>
         public IReadOnlyDictionary<string, ViewDefinition> Views => _Views;
 

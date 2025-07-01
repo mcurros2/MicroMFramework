@@ -8,7 +8,7 @@ namespace MicroM.DataDictionary
 
     public class MicromMenusItemsRoutesDef : EntityDefinition
     {
-        public MicromMenusItemsRoutesDef() : base("mir", nameof(MicromMenusItemsAllowedRoutes)) { }
+        public MicromMenusItemsRoutesDef() : base("mir", nameof(MicromMenusItemsAllowedRoutes)) { SQLCreationOptions = SQLCreationOptionsMetadata.WithIUpdate; }
 
         public readonly Column<string> c_menu_id = Column<string>.PK(size: 50);
         public readonly Column<string> c_menu_item_id = Column<string>.PK(size: 50);

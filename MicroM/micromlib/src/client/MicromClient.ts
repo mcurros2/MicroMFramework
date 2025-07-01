@@ -5,6 +5,7 @@ import { AllowedRouteFlags, RECORDED_ACCESS_DATA_STORAGE_KEY, RecordedAccessData
 import { MicroMError } from "./MicroMError";
 import { MicroMClientClaimTypes, MicroMToken } from "./MicroMToken";
 import { PublicEndpoint } from "./PublicEndpoint";
+import { TimeoutSignal } from "./TimeoutSignal";
 import { TokenStorage, TokenWebStorage } from "./TokenStorage";
 import { DBStatusResult, DataResult, ValuesObject } from "./client.types";
 
@@ -114,32 +115,41 @@ export class MicroMClient {
     }
 
     async logoff() {
+        const loginTimeout = new TimeoutSignal(this.#LOGIN_TIMEOUT, 'Login request timed out');
 
-        await this.#removeToken();
-        await this.#deleteEnabledMenus();
+        try {
+            await this.#removeToken();
+            await this.#deleteEnabledMenus();
 
-        if (this.#RECORD_PATHS) {
-            this.#saveAllRecordedAccess();
+            if (this.#RECORD_PATHS) {
+                this.#saveAllRecordedAccess();
+            }
+
+            //TODO: explicar por que no envía el token con esta solicitud? 
+            const response = await fetch(`${this.#API_URL}/${this.#APP_ID}/logoff`, {
+                method: 'POST',
+                headers: { "Content-Type": "application/json; charset=utf-8", "Authorization": `Bearer ${this.#TOKEN?.access_token || ''}` },
+                mode: this.#REQUEST_MODE,
+                cache: 'no-store',
+                credentials: 'include',
+                referrerPolicy: 'strict-origin-when-cross-origin',
+                signal: loginTimeout.signal,
+                body: JSON.stringify({})
+            });
+
+            if (!response.ok) {
+                throw { status: response.status, statusMessage: response.statusText, message: response.statusText, url: response.url } as MicroMError;
+            }
+
         }
-
-        //TODO: explicar por que no envía el token con esta solicitud? 
-        const response = await fetch(`${this.#API_URL}/${this.#APP_ID}/logoff`, {
-            method: 'POST',
-            headers: { "Content-Type": "application/json; charset=utf-8", "Authorization": `Bearer ${this.#TOKEN?.access_token || ''}` },
-            mode: this.#REQUEST_MODE,
-            cache: 'no-store',
-            credentials: 'include',
-            referrerPolicy: 'strict-origin-when-cross-origin',
-            signal: AbortSignal.timeout(this.#LOGIN_TIMEOUT),
-            body: JSON.stringify({})
-        });
-
-        if (!response.ok) {
-            throw { status: response.status, statusMessage: response.statusText, message: response.statusText, url: response.url } as MicroMError;
+        finally {
+            loginTimeout.clear();
         }
     }
 
     async isLoggedIn(): Promise<boolean> {
+        const loginTimeout = new TimeoutSignal(this.#LOGIN_TIMEOUT, 'Login request timed out');
+
         try {
 
             await this.#checkAndRefreshToken();
@@ -152,7 +162,7 @@ export class MicroMClient {
                     cache: 'no-store',
                     credentials: 'include',
                     referrerPolicy: 'strict-origin-when-cross-origin',
-                    signal: AbortSignal.timeout(this.#LOGIN_TIMEOUT)
+                    signal: loginTimeout.signal
                 });
 
                 return response.ok;
@@ -160,6 +170,9 @@ export class MicroMClient {
         }
         catch (error) {
             //console.log(error);
+        }
+        finally {
+            loginTimeout.clear();
         }
         return false;
     }
@@ -185,7 +198,10 @@ export class MicroMClient {
 
     async login(username: string, password: string, rememberme?: boolean) {
         //Intentionally not accounting for tokenRefreshInProgress (see refresh logic)
+
+        const loginTimeout = new TimeoutSignal(this.#LOGIN_TIMEOUT, 'Login request timed out');
         try {
+
             if (this.#RECORD_PATHS) {
                 this.#RECORDED_PATHS = {};
             }
@@ -197,7 +213,7 @@ export class MicroMClient {
                 cache: 'no-store',
                 credentials: 'include',
                 referrerPolicy: 'strict-origin-when-cross-origin',
-                signal: AbortSignal.timeout(this.#LOGIN_TIMEOUT),
+                signal: loginTimeout.signal,
                 body: JSON.stringify({ username: username, password: password })
             });
 
@@ -219,14 +235,14 @@ export class MicroMClient {
                 }
 
                 try {
-                    await this.#getAPIEnabledMenus(username);
+                    await this.#getAPIEnabledMenus(username, loginTimeout.signal);
                 }
                 catch (error) {
                     console.warn('Error getting enabled menus', error);
                 }
 
                 try {
-                    await this.#getTimeZoneOffset();
+                    await this.#getTimeZoneOffset(loginTimeout.signal);
                 }
                 catch (error) {
                     console.warn('Error getting server timezone offset', error);
@@ -238,14 +254,21 @@ export class MicroMClient {
             }
         }
         catch (error) {
-            if (!(error instanceof Error && error.name === 'AbortError')) {
-                //console.log(error);
-                throw error;
+            console.warn('Login error', error);
+            try {
+                await this.logoff();
             }
+            catch { }
+            throw error;
+        }
+        finally {
+            loginTimeout.clear();
         }
     }
 
     async recoveryemail(username: string): Promise<DBStatusResult> {
+        const loginTimeout = new TimeoutSignal(this.#LOGIN_TIMEOUT * 4, 'Login request timed out');
+
         try {
             const response = await fetch(`${this.#API_URL}/${this.#APP_ID}/recoveryemail`, {
                 method: 'POST',
@@ -254,7 +277,7 @@ export class MicroMClient {
                 cache: 'no-store',
                 credentials: 'include',
                 referrerPolicy: 'strict-origin-when-cross-origin',
-                signal: AbortSignal.timeout(this.#LOGIN_TIMEOUT * 4),
+                signal: loginTimeout.signal,
                 body: JSON.stringify({ username: username })
             });
 
@@ -267,9 +290,13 @@ export class MicroMClient {
         catch (error) {
             throw error;
         }
+        finally {
+            loginTimeout.clear();
+        }
     }
 
     async recoverpassword(username: string, password: string, recoverycode: string): Promise<DBStatusResult> {
+        const loginTimeout = new TimeoutSignal(this.#LOGIN_TIMEOUT * 4, 'Login request timed out');
         try {
 
             const response = await fetch(`${this.#API_URL}/${this.#APP_ID}/recoverpassword`, {
@@ -279,7 +306,7 @@ export class MicroMClient {
                 cache: 'no-store',
                 credentials: 'include',
                 referrerPolicy: 'strict-origin-when-cross-origin',
-                signal: AbortSignal.timeout(this.#LOGIN_TIMEOUT * 4),
+                signal: loginTimeout.signal,
                 body: JSON.stringify({ username: username, password: password, recoverycode: recoverycode })
             });
 
@@ -291,6 +318,9 @@ export class MicroMClient {
         }
         catch (error) {
             throw error;
+        }
+        finally {
+            loginTimeout.clear();
         }
 
     }
@@ -428,6 +458,8 @@ export class MicroMClient {
         }
 
         const _performTokenRefresh = async () => {
+            const loginTimeout = new TimeoutSignal(this.#LOGIN_TIMEOUT, 'Login request timed out');
+
             try {
 
                 if (!this.#TOKEN) { throw new Error('Token not found'); }
@@ -441,7 +473,7 @@ export class MicroMClient {
                     cache: 'no-store',
                     credentials: 'include',
                     referrerPolicy: 'strict-origin-when-cross-origin',
-                    signal: AbortSignal.timeout(this.#LOGIN_TIMEOUT),
+                    signal: loginTimeout.signal,
                     body: JSON.stringify({ Bearer: this.#TOKEN.access_token, RefreshToken: this.#TOKEN.refresh_token })
                 });
 
@@ -469,6 +501,7 @@ export class MicroMClient {
                 throw error;
             } finally {
                 this.#tokenRefreshInProgress = null; // Clear the ongoing refresh promise once done.
+                loginTimeout.clear();
             }
         }
 

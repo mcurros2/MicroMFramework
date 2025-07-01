@@ -21,7 +21,7 @@ namespace MicroM.Extensions
                 throw new ArgumentException($"The type {entity_type.Name} is not an EntityBase type.");
             }
 
-            if(!route_flags.HasFlag(AllowedRouteFlags.Views) && (views?.Length > 0))
+            if (!route_flags.HasFlag(AllowedRouteFlags.Views) && (views?.Length > 0))
             {
                 route_flags |= AllowedRouteFlags.Views;
             }
@@ -122,21 +122,14 @@ namespace MicroM.Extensions
 
         }
 
-        public async static Task CreateEntityRoutes(this Type entity_type, IEntityClient ec, CancellationToken ct)
+        public async static Task CreateEntityRoutes(this EntityBase entity, IEntityClient ec, CancellationToken ct)
         {
-            ArgumentNullException.ThrowIfNull(entity_type);
-            if (!typeof(EntityBase).IsAssignableFrom(entity_type))
-            {
-                throw new ArgumentException($"The type {entity_type.Name} is not an EntityBase type.");
-            }
-
+            ArgumentNullException.ThrowIfNull(entity);
             bool should_close = !(ec.ConnectionState == System.Data.ConnectionState.Open);
 
             try
             {
-                EntityBase? entity = (EntityBase?)Activator.CreateInstance(entity_type);
-                if (entity == null) return;
-
+                var entity_type = entity.GetType();
                 var paths = entity.GetRoutePaths(entity_type.Name, AllowedRouteFlags.All);
 
                 var routes = new MicromRoutes(ec);
@@ -153,6 +146,21 @@ namespace MicroM.Extensions
             {
                 if (should_close) await ec.Disconnect();
             }
+        }
+
+        public async static Task CreateEntityRoutes(this Type entity_type, IEntityClient ec, CancellationToken ct)
+        {
+            ArgumentNullException.ThrowIfNull(entity_type);
+            if (!typeof(EntityBase).IsAssignableFrom(entity_type))
+            {
+                throw new ArgumentException($"The type {entity_type.Name} is not an EntityBase type.");
+            }
+
+            EntityBase? entity = (EntityBase?)Activator.CreateInstance(entity_type);
+            if (entity == null) return;
+
+            await entity.CreateEntityRoutes(ec, ct);
+
         }
 
     }

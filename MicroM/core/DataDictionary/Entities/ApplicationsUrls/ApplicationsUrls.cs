@@ -6,7 +6,7 @@ namespace MicroM.DataDictionary
 {
     public class ApplicationsUrlsDef : EntityDefinition
     {
-        public ApplicationsUrlsDef() : base("apu", nameof(ApplicationsUrls)) { }
+        public ApplicationsUrlsDef() : base("apu", nameof(ApplicationsUrls)) { SQLCreationOptions = SQLCreationOptionsMetadata.WithIUpdate; }
 
         public readonly Column<string> c_application_id = Column<string>.PK();
         public readonly Column<string> c_application_url_id = Column<string>.PK(autonum: true);

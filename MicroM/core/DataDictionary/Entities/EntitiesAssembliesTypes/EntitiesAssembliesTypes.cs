@@ -7,7 +7,7 @@ namespace MicroM.DataDictionary
 {
     public class EntitiesAssembliesTypesDef : EntityDefinition
     {
-        public EntitiesAssembliesTypesDef() : base("eat", nameof(EntitiesAssembliesTypes)) { }
+        public EntitiesAssembliesTypesDef() : base("eat", nameof(EntitiesAssembliesTypes)) { SQLCreationOptions = SQLCreationOptionsMetadata.WithIUpdateAndIDrop; }
 
         public readonly Column<string> c_assembly_id = Column<string>.PK();
         public readonly Column<string> c_assemblytype_id = Column<string>.PK(autonum: true);

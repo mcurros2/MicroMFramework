@@ -100,7 +100,7 @@ namespace MicroM.Data
         }
 
         /// <summary>
-        /// View constructor indicating the defined column names. When the entity definition is created, the view parameters are created.
+        /// StandardView constructor indicating the defined column names. When the entity definition is created, the view parameters are created.
         /// </summary>
         /// <param name="parms"></param>
         public ViewDefinition(params string[] parms) : this(add_default_parms: true, parms)

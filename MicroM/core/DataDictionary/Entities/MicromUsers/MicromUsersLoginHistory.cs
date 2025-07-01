@@ -8,7 +8,7 @@ namespace MicroM.DataDictionary
 
     public class MicromUsersLoginHistoryDef : EntityDefinition
     {
-        public MicromUsersLoginHistoryDef() : base("ulh", nameof(MicromUsersLoginHistory)) { }
+        public MicromUsersLoginHistoryDef() : base("ulh", nameof(MicromUsersLoginHistory)) { SQLCreationOptions = SQLCreationOptionsMetadata.WithIUpdate; }
 
         public readonly Column<string> c_user_history_id = Column<string>.PK(autonum: true);
         public readonly Column<string> c_user_id = Column<string>.PK();

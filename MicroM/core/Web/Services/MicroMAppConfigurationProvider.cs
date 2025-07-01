@@ -207,7 +207,7 @@ namespace MicroM.Web.Services
                             Dictionary<string, Type>? types;
                             if (assembly_path.Equals(GetCoreAssemblyPath(), StringComparison.OrdinalIgnoreCase))
                             {
-                                types = DatabaseSchema.GetCoreEntitiesTypes();
+                                types = DataDictionarySchema.GetCoreEntitiesTypes();
                             }
                             else
                             {
