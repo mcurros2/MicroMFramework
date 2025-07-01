@@ -11,7 +11,7 @@ namespace MicroM.Web.Authentication
 
         public abstract Task<AuthenticatorResult> AuthenticateLogin(ApplicationOption app_config, UserLogin user_login, CancellationToken ct);
 
-        public abstract Task<RefreshTokenResult> AuthenticateRefresh(ApplicationOption app_config, string user_id, string refresh_token, CancellationToken ct);
+        public abstract Task<RefreshTokenResult> AuthenticateRefresh(ApplicationOption app_config, string user_id, string refresh_token, string local_device_id, CancellationToken ct);
 
         public abstract Task Logoff(ApplicationOption app_config, string user_name, CancellationToken ct);
 

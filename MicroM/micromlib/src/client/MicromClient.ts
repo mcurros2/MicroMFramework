@@ -39,6 +39,8 @@ const REMEMBER_USER_DATA_KEY = 'mm_remember_me';
 
 const TIMEZONE_OFFSET_DATA_KEY = 'mm_server_timezone_offset';
 
+const LOCAL_DEVICE_ID_KEY = 'mm_ldid';
+
 export class MicroMClient {
     #API_URL;
     #TOKEN_STORAGE;
@@ -46,6 +48,7 @@ export class MicroMClient {
     #LOGIN_TIMEOUT;
     #REQUEST_MODE;
     #TOKEN: MicroMToken | null = null;
+    #LOCAL_DEVICE_ID: string | null = null;
     #tokenRefreshInProgress: Promise<void> | null = null;
     #publicEndpoints: Record<string, PublicEndpoint> = {};
     #DATA_STORAGE;
@@ -196,6 +199,23 @@ export class MicroMClient {
         }
     }
 
+    async #getLocalDeviceId() {
+        const local_device: string | null = await this.#DATA_STORAGE.readData(this.#APP_ID, LOCAL_DEVICE_ID_KEY);
+        if (local_device !== null) {
+            this.#LOCAL_DEVICE_ID = local_device;
+            return local_device;
+        }
+
+        // Generate a new local device ID if it doesn't exist
+        const randomId = "10000000-1000-4000-8000-100000000000".replace(/[018]/g, c =>
+            (+c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> +c / 4).toString(16)
+        );
+
+        await this.#DATA_STORAGE.saveData(this.#APP_ID, LOCAL_DEVICE_ID_KEY, randomId);
+        this.#LOCAL_DEVICE_ID = randomId;
+        return randomId;
+    } 
+
     async login(username: string, password: string, rememberme?: boolean) {
         //Intentionally not accounting for tokenRefreshInProgress (see refresh logic)
 
@@ -205,6 +225,8 @@ export class MicroMClient {
             if (this.#RECORD_PATHS) {
                 this.#RECORDED_PATHS = {};
             }
+            
+            const localDeviceId = await this.#getLocalDeviceId();
 
             const response = await fetch(`${this.#API_URL}/${this.#APP_ID}/login`, {
                 method: 'POST',
@@ -214,7 +236,7 @@ export class MicroMClient {
                 credentials: 'include',
                 referrerPolicy: 'strict-origin-when-cross-origin',
                 signal: loginTimeout.signal,
-                body: JSON.stringify({ username: username, password: password })
+                body: JSON.stringify({ username: username, password: password, LocalDeviceId: localDeviceId })
             });
 
             if (!response.ok) {

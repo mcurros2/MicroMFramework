@@ -148,8 +148,10 @@ namespace MicroM.Web.Services
             string user = app.AuthenticationType == nameof(AuthenticationTypes.SQLServerAuthentication) && string.IsNullOrEmpty(app.SQLUser) ? (string?)server_claims?[MicroMServerClaimTypes.MicroMUsername] ?? "" : app.SQLUser;
             string pass = app.AuthenticationType == nameof(AuthenticationTypes.SQLServerAuthentication) && string.IsNullOrEmpty(app.SQLUser) ? (string?)server_claims?[MicroMServerClaimTypes.MicroMPassword] ?? "" : app.SQLPassword;
 
-            var (device_id, ipaddress, user_agent) = _deviceIdService.GetDeviceID();
-            string workstation_id = $"{ipaddress} {user_agent}";
+            string local_device_id = server_claims?[MicroMServerClaimTypes.MicroMUserDeviceID]?.ToString() ?? string.Empty;
+
+            var (device_id, ipaddress, user_agent) = _deviceIdService.GetDeviceID(local_device_id);
+            string workstation_id = $"{ipaddress} {user_agent} {device_id}";
 
             DatabaseClient dbc = new(server: app.SQLServer, user: user, password: pass, db: app.SQLDB, logger: _log, server_claims: server_claims)
             {
@@ -304,16 +306,25 @@ namespace MicroM.Web.Services
                     var authenticator = auth.GetAuthenticator(app);
                     if (authenticator != null)
                     {
-                        var refresh_result = await authenticator.AuthenticateRefresh(app, user_id, refreshRequest.RefreshToken, ct);
-
-                        if (refresh_result.Status.IsIn(LoginAttemptStatus.Updated, LoginAttemptStatus.RefreshTokenValid))
+                        var device_id = claims.FindFirstValue(MicroMServerClaimTypes.MicroMUserDeviceID);
+                        if (device_id != null)
                         {
-                            var dicClaim = claims.Claims.GroupBy(claim => claim.Type).ToDictionary(group => group.Key, group => (object)group.Last().Value);
-                            return (refresh_result, jwt_handler.GenerateJwtTokenWEBApi(dicClaim, app));
+                            var refresh_result = await authenticator.AuthenticateRefresh(app, user_id, refreshRequest.RefreshToken, device_id, ct);
+
+                            if (refresh_result.Status.IsIn(LoginAttemptStatus.Updated, LoginAttemptStatus.RefreshTokenValid))
+                            {
+                                var dicClaim = claims.Claims.GroupBy(claim => claim.Type).ToDictionary(group => group.Key, group => (object)group.Last().Value);
+                                return (refresh_result, jwt_handler.GenerateJwtTokenWEBApi(dicClaim, app));
+                            }
+                            else
+                            {
+                                _log.LogTrace("REFRESH_TOKEN: APP_ID {app_id} can't refresh token. Status: {status} Message {message} refresh-token: {token}", app_id, refresh_result.Status, refresh_result.Message, refreshRequest.RefreshToken);
+                            }
+
                         }
                         else
                         {
-                            _log.LogTrace("REFRESH_TOKEN: APP_ID {app_id} can't refresh token. Status: {status} Message {message} refresh-token: {token}", app_id, refresh_result.Status, refresh_result.Message, refreshRequest.RefreshToken);
+                            _log.LogTrace("REFRESH_TOKEN: APP_ID {app_id} empty device_id. refresh-token: {token}", app_id, refreshRequest.RefreshToken);
                         }
                     }
                     else

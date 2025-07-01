@@ -9,5 +9,6 @@
         public const string MicroMPassword = nameof(MicroMPassword);
         public const string MicroMUserType_id = nameof(MicroMUserType_id);
         public const string MicroMUserGroups = nameof(MicroMUserGroups);
+        public const string MicroMUserDeviceID = nameof(MicroMUserDeviceID);
     }
 }

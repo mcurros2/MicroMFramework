@@ -110,6 +110,7 @@ namespace MicroM.Web.Authentication
                 result.ServerClaims.Add(MicroMServerClaimTypes.MicroMAPP_id, app_config.ApplicationID);
                 result.ServerClaims.Add(MicroMServerClaimTypes.MicroMUsername, user_login.Username);
                 result.ServerClaims.Add(MicroMServerClaimTypes.MicroMUserType_id, is_admin ? nameof(UserTypes.ADMIN) : nameof(UserTypes.USER));
+                result.ServerClaims.Add(MicroMServerClaimTypes.MicroMUserDeviceID, "none");
                 result.ServerClaims[MicroMServerClaimTypes.MicroMUserGroups] = (List<string>)[];
 
 
@@ -134,7 +135,7 @@ namespace MicroM.Web.Authentication
             return result;
         }
 
-        public Task<RefreshTokenResult> AuthenticateRefresh(ApplicationOption app_config, string user_id, string refresh_token, CancellationToken ct)
+        public Task<RefreshTokenResult> AuthenticateRefresh(ApplicationOption app_config, string user_id, string refresh_token, string local_device_id, CancellationToken ct)
         {
             RefreshTokenResult result = new();
 

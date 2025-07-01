@@ -73,7 +73,7 @@ namespace MicroM.Web.Authentication
             {
                 await ec.Connect(ct);
 
-                var (device_id, ipaddress, user_agent) = _deviceIdService.GetDeviceID();
+                var (device_id, ipaddress, user_agent) = _deviceIdService.GetDeviceID(user_login.LocalDeviceID);
 
                 // MMC: Get the data needed to perform the login attempt: password hash and account status
                 login_data = await MicromUsers.GetUserData(user_login.Username, null, device_id, ec, ct);
@@ -129,6 +129,7 @@ namespace MicroM.Web.Authentication
                         result.ServerClaims[MicroMServerClaimTypes.MicroMAPP_id] = app_config.ApplicationID;
                         result.ServerClaims[MicroMServerClaimTypes.MicroMUsername] = user_login.Username;
                         result.ServerClaims[MicroMServerClaimTypes.MicroMUserType_id] = login_data.usertype_id ?? "";
+                        result.ServerClaims[MicroMServerClaimTypes.MicroMUserDeviceID] = device_id;
 
                         // Json string array of user groups ids
                         result.ServerClaims[MicroMServerClaimTypes.MicroMUserGroups] = login_data.user_groups ?? "[]";
@@ -145,11 +146,11 @@ namespace MicroM.Web.Authentication
             return result;
         }
 
-        public async Task<RefreshTokenResult> AuthenticateRefresh(ApplicationOption app_config, string user_id, string refresh_token, CancellationToken ct)
+        public async Task<RefreshTokenResult> AuthenticateRefresh(ApplicationOption app_config, string user_id, string refresh_token, string local_device_id, CancellationToken ct)
         {
             RefreshTokenResult result = new();
 
-            var (device_id, ipaddress, user_agent) = _deviceIdService.GetDeviceID();
+            var (device_id, ipaddress, user_agent) = _deviceIdService.GetDeviceID(local_device_id);
 
             string cookie_token = ReadRefreshTokenFromCookie(app_config) ?? "";
 

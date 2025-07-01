@@ -1,6 +1,4 @@
 ﻿using Microsoft.AspNetCore.Http;
-using System.Security.Cryptography;
-using System.Text;
 
 namespace MicroM.Web.Authentication
 {
@@ -18,20 +16,14 @@ namespace MicroM.Web.Authentication
         /// The device ID constructed from the HttpContext
         /// </summary>
         /// <returns></returns>
-        public (string device_id, string? ipaddress, string? user_agent) GetDeviceID()
+        public (string device_id, string? ipaddress, string? user_agent) GetDeviceID(string local_device_id)
         {
             var httpc = _contextAccessor.HttpContext;
-            var userAgent = httpc?.Request.Headers["User-Agent"].ToString();
+            var userAgent = httpc?.Request.Headers.UserAgent.ToString();
 
             var ipAddress = httpc?.Connection.RemoteIpAddress?.ToString();
 
-            var fingerprint = $"{ipAddress}-{userAgent}";
-
-            // Generate a SHA-256 hash based on the fingerprint
-            var hashedBytes = SHA256.HashData(Encoding.UTF8.GetBytes(fingerprint));
-            var hash = Convert.ToHexString(hashedBytes).ToLowerInvariant();
-
-            return (hash, ipAddress, userAgent);
+            return (device_id: local_device_id, ipAddress, userAgent);
         }
 
 
