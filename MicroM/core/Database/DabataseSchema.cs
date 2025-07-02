@@ -221,7 +221,6 @@ public static class DatabaseSchema
         finally
         {
             if (custom_procs?.Count > 0) custom_procs.Clear();
-            if (entities?.Count > 0) entities.Clear();
             if (created_tables?.Count > 0) created_tables.Clear();
             if (should_close) await ec.Disconnect();
         }

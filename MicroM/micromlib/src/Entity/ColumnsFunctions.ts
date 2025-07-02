@@ -270,8 +270,18 @@ export function setSourceValue(columnName: string, sourceValue: Value | EntityCo
     // Convert string to Date if necessary
     if (isIn<SQLType>(column.type, 'date', 'datetime', 'datetime2', 'smalldatetime') && typeof valueToSet === 'string' && !isIn(columnName, 'dt_lu')) {
         try {
-            //valueToSet = new Date(valueToSet) as Value;
+            // FIX to handle dayjs issue parsing string ISO 8601 with trimmed zeroes at the end of the milliseconds
+            // 2025-07-02T16:58:45.57 57 here means 570 milliseconds but dayJS has a bug and parses it as 57 milliseconds
+
+            const endsWithDotAndTwoDigits = /\.\d{2}$/;
+
+            if (valueToSet.length === 22 && endsWithDotAndTwoDigits.test(valueToSet)) {
+                valueToSet = valueToSet + '0'; // add the missing zero to milliseconds
+            }
+
+            // dayjs is used here for compatibility with mantine calendar component which formats the date with dayjs
             valueToSet = dayjs(valueToSet).toDate();
+
         }
         catch (e) {
             console.log(`Error converting string to Date: ${e}`, e);
