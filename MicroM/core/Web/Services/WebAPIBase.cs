@@ -148,10 +148,16 @@ namespace MicroM.Web.Services
             string user = app.AuthenticationType == nameof(AuthenticationTypes.SQLServerAuthentication) && string.IsNullOrEmpty(app.SQLUser) ? (string?)server_claims?[MicroMServerClaimTypes.MicroMUsername] ?? "" : app.SQLUser;
             string pass = app.AuthenticationType == nameof(AuthenticationTypes.SQLServerAuthentication) && string.IsNullOrEmpty(app.SQLUser) ? (string?)server_claims?[MicroMServerClaimTypes.MicroMPassword] ?? "" : app.SQLPassword;
 
-            string local_device_id = server_claims?[MicroMServerClaimTypes.MicroMUserDeviceID]?.ToString() ?? string.Empty;
+            string local_device_id = "";
+            if (server_claims != null)
+            {
+                server_claims.TryGetValue(MicroMServerClaimTypes.MicroMUserDeviceID, out var local_device_claim);
+
+                local_device_id = local_device_claim?.ToString() ?? "";
+            }
 
             var (device_id, ipaddress, user_agent) = _deviceIdService.GetDeviceID(local_device_id);
-            string workstation_id = $"{ipaddress} {user_agent} {device_id}";
+            string workstation_id = $"{ipaddress} {device_id} {user_agent}"[..128];
 
             DatabaseClient dbc = new(server: app.SQLServer, user: user, password: pass, db: app.SQLDB, logger: _log, server_claims: server_claims)
             {
@@ -171,8 +177,6 @@ namespace MicroM.Web.Services
             ApplicationOption app = _app_config.GetAppConfiguration(app_id, ct)!;
             return Task.FromResult(CreateDbConnection(app, server_claims, auth));
         }
-
-
 
         /// <summary>
         /// Creates an Entity if exists in the configured assembly <see cref="LoadEntityTypes(Assembly)"/>.
