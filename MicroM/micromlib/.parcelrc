@@ -1,8 +1,20 @@
 {
   "extends": "@parcel/config-default",
-  "transformers": {
-    "*.ts": [ "@parcel/transformer-typescript-tsc" ],
-    "*.tsx": [ "@parcel/transformer-typescript-tsc" ]
+  "optimizers": {
+    "*.{jpg,jpeg,png}": []
   },
-  "reporters": ["...", "@parcel/reporter-bundle-analyzer"]
+  "transformers": {
+    "*.jpg": [ "@parcel/transformer-raw" ],
+    "*.jpeg": [ "@parcel/transformer-raw" ],
+    "*.png": [ "@parcel/transformer-raw" ],
+    "*.gif": [ "@parcel/transformer-raw" ]
+  },
+  "packagers": {
+    "*.jpg": "@parcel/packager-raw",
+    "*.jpeg": "@parcel/packager-raw",
+    "*.png": "@parcel/packager-raw",
+    "*.gif": "@parcel/packager-raw",
+    "raw:*": "@parcel/packager-raw"
+  },
+  "reporters": [ "...", "@parcel/reporter-bundle-analyzer" ]
 }

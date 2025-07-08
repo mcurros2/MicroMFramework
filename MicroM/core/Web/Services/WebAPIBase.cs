@@ -157,7 +157,7 @@ namespace MicroM.Web.Services
             }
 
             var (device_id, ipaddress, user_agent) = _deviceIdService.GetDeviceID(local_device_id);
-            string workstation_id = $"{ipaddress} {device_id} {user_agent}"[..128];
+            string workstation_id = $"{ipaddress} {device_id} {user_agent}".Truncate(128);
 
             DatabaseClient dbc = new(server: app.SQLServer, user: user, password: pass, db: app.SQLDB, logger: _log, server_claims: server_claims)
             {
