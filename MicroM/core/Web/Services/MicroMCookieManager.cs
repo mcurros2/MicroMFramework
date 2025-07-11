@@ -17,26 +17,36 @@ namespace MicroM.Web.Services
         {
             _config = microm_config;
             _log = logger;
-            var basePath = microm_config?.Value.MicroMAPICookieRootPath?.Trim('/') ?? string.Empty;
-            _basePathString = new PathString("/" + basePath);
+
+            var raw = microm_config?.Value.MicroMAPICookieRootPath ?? string.Empty;
+            var trimmed = raw.Trim().Trim('/');
+
+            if (string.IsNullOrEmpty(trimmed))
+            {
+                _basePathString = PathString.Empty;
+            }
+            else
+            {
+                _basePathString = new PathString("/" + trimmed);
+            }
         }
 
 
         private string? GetTenantPath(HttpContext context)
         {
-            var path = context.Request.Path;
-
             if (_basePathString == PathString.Empty)
             {
                 _log.LogWarning("MicroMAPIBaseRootPath is not configured.");
                 return null;
             }
 
-            if (path.StartsWithSegments(_basePathString, StringComparison.OrdinalIgnoreCase, out var remainingPath))
+            var fullPath = context.Request.PathBase.Add(context.Request.Path);
+
+            if (fullPath.StartsWithSegments(_basePathString, StringComparison.OrdinalIgnoreCase, out var remainingPath))
             {
                 if (string.IsNullOrEmpty(remainingPath.Value))
                 {
-                    _log.LogWarning("No APP_ID found in path {path}", path);
+                    _log.LogWarning("No APP_ID found in path {path}", fullPath);
                     return null;
                 }
 
@@ -59,16 +69,16 @@ namespace MicroM.Web.Services
 
                 if (string.IsNullOrEmpty(appId))
                 {
-                    _log.LogWarning("No APP_ID found in path {path}", path);
+                    _log.LogWarning("No APP_ID found in path {path}", fullPath);
                     return null;
                 }
 
-                // Assemble tenant path
+                // Assemble tenant fullPath
                 var tenantPath = $"{_basePathString.Value}/{appId}/";
                 return tenantPath;
             }
 
-            _log.LogWarning("The path {path} does not match the configured base path {basePath}", path, _basePathString.Value);
+            _log.LogWarning("The path {path} does not match the configured base path {basePath}", fullPath, _basePathString.Value);
             return null;
 
         }
