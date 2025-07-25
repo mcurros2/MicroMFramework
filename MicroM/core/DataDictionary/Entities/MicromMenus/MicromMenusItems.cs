@@ -17,7 +17,7 @@ namespace MicroM.DataDictionary
         public readonly Column<string?> c_parent_item_id = Column<string?>.FK(size: 50, nullable: true);
 
 
-        public readonly Column<string> vc_menu_item_path = Column<string>.Text(size: 5000);
+        public readonly Column<string> vc_menu_item_path = Column<string>.Text(size: 0);
         public readonly Column<string> vc_menu_item_name = Column<string>.Text();
 
         public readonly ViewDefinition mmi_brwStandard = new(nameof(c_menu_id));

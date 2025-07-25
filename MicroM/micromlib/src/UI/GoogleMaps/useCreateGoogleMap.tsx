@@ -2,6 +2,7 @@ import { Children, isValidElement, useCallback, useEffect, useMemo, useRef, useS
 import { GoogleMapProps } from "./GoogleMap";
 import { GoogleMapRegionSelector } from "./GoogleMapRegionSelector";
 import { GoogleMarker } from "./GoogleMarker";
+import { DEFAULT_MAP_CENTER } from "./Mapping.types";
 
 export function useCreateGoogleMap({ mapOptions, children, setInfoWindowContent, infoWindowContentRef }: GoogleMapProps) {
     const containerRef = useRef<HTMLDivElement>(null);
@@ -12,6 +13,10 @@ export function useCreateGoogleMap({ mapOptions, children, setInfoWindowContent,
     useEffect(() => {
         if (map === null) {
             if (!containerRef.current) throw new Error("Container required.");
+
+            if (mapOptions && !mapOptions.center) {
+                mapOptions.center = DEFAULT_MAP_CENTER;
+            }
 
             const initMap = new google.maps.Map(containerRef.current, mapOptions);
             setMap(initMap);
