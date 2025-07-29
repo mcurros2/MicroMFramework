@@ -59,7 +59,7 @@ namespace MicroM.Web.Services.Security
                     {
                         // Get routes
                         var allowedRoutes = group
-                            .Select(r =>  $"/{options.Value.MicroMAPIBaseRootPath}/{app_id}/{r.vc_route_path}");
+                            .Select(r => $"/{options.Value.MicroMAPIBaseRootPath}/{app_id}/{r.vc_route_path}");
 
 
                         // last update
@@ -79,7 +79,7 @@ namespace MicroM.Web.Services.Security
 
                 logger.LogInformation("Groups security records for {app_id} loaded successfully", app_id);
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 logger.LogError("Error getting groups security records for {app_id}\nException: {ex}", app_id, ex.ToString());
             }
@@ -105,7 +105,7 @@ namespace MicroM.Web.Services.Security
                 .Where(k => k.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
                 .ToList();
 
-            if(keys_to_remove != null && keys_to_remove.Count > 0)
+            if (keys_to_remove != null && keys_to_remove.Count > 0)
             {
                 foreach (var key in keys_to_remove)
                 {

@@ -30,14 +30,17 @@ export function useCreateGoogleMapCluster({
     // Map creation
     useEffect(() => {
         if (map === null && containerRef.current) {
+            if (mapOptions && mapOptions.center && (!mapOptions.center.lat || !mapOptions.center.lng)) { mapOptions.center = undefined; }
+
             const initMap = new google.maps.Map(containerRef.current, mapOptions);
             setMap(initMap);
-
         }
     }, [map, containerRef]);
 
     // Map options update
     useEffect(() => {
+        if (mapOptions && mapOptions.center && (!mapOptions.center.lat || !mapOptions.center.lng)) { mapOptions.center = undefined; }
+
         if (map) map.setOptions(mapOptions);
     }, [map, mapOptions]);
 

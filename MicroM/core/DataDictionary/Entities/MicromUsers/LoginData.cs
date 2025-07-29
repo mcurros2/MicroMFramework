@@ -14,7 +14,7 @@
         public bool refresh_expired { get; set; } = true;
         public string? usertype_id { get; set; }
         public string? usertype_name { get; set; }
-        // This will be a json string array fo strings
+        // This will be a json string array of strings
         public string? user_groups { get; set; }
     }
 }
