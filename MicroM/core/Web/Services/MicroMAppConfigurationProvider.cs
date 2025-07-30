@@ -36,17 +36,20 @@ namespace MicroM.Web.Services
             _options = options.Value;
             _encryptor = encryptor;
             _backgroundTaskQueue = queue;
-            // MMC: the tokens for the control panel are encrypted with this key. Every time the service is restarted will yiel existing tokens invalid
+            // MMC: the tokens for the control panel are encrypted with this key. Every time the service is restarted will yield existing tokens invalid
             _jwtkey = CryptClass.GenerateRandomBase64String(32);
+            _log.LogTrace("initialized");
         }
 
         public Task StartAsync(CancellationToken cancellationToken)
         {
+            _log.LogTrace("StartAsync Called");
             return ReloadConfiguration(cancellationToken);
         }
 
         public Task StopAsync(CancellationToken cancellationToken)
         {
+            _log.LogTrace("StopAsync Called");
             // Cleanup or stop tasks.
             return Task.CompletedTask;
         }
@@ -364,12 +367,15 @@ namespace MicroM.Web.Services
             var aquired = await _refreshSemaphore.WaitAsync(0, ct);
             if (aquired)
             {
+                _log.LogTrace("RefreshConfiguration Called");
+
                 try
                 {
                     await AddControlPanelApp(ct);
 
                     await LoadEntitiesAssemblies(app_id, ct);
                     result = await LoadAppsConfiguration(ct);
+
                     return result;
                 }
                 finally
@@ -428,5 +434,7 @@ namespace MicroM.Web.Services
         {
             return _PublicAccessCache.TryGetValue(app_id, out var record) ? record : null;
         }
+
+
     }
 }

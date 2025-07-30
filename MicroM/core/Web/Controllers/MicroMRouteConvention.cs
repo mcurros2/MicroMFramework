@@ -1,4 +1,5 @@
 ﻿using MicroM.Configuration;
+using MicroM.Extensions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.ApplicationModels;
 using Microsoft.Extensions.Logging;
@@ -25,7 +26,7 @@ namespace MicroM.Web.Controllers
         {
             foreach (var controller in application.Controllers)
             {
-                if (controller.ControllerType == typeof(MicroMController))
+                if (controller.ControllerType.IsIn(typeof(AuthenticationController), typeof(EntitiesController), typeof(FileController), typeof(PublicController)))
                 {
                     if (string.IsNullOrEmpty(_basePathString))
                     {
@@ -47,7 +48,7 @@ namespace MicroM.Web.Controllers
                 }
                 else
                 {
-                    _log.LogWarning("Skipping controller {controller} is not a MicroMController", controller.ControllerType.Name);
+                    _log.LogWarning("Skipping controller {controller} is not an MicroM Controller Type", controller.ControllerType.Name);
                 }
             }
         }

@@ -73,7 +73,7 @@ namespace MicroM.ImportData
             }
         }
 
-        public static async Task<CSVImportResult> ImportDataFromCSV<T>(this T entity, List<Dictionary<string, string>> data, MicroMOptions options, Dictionary<string, object>? claims, IMicroMWebAPI api, string app_id, Dictionary<string, object>? parentKeys, CancellationToken ct) where T : EntityBase
+        public static async Task<CSVImportResult> ImportDataFromCSV<T>(this T entity, List<Dictionary<string, string>> data, MicroMOptions options, Dictionary<string, object>? claims, IWebAPIServices api, string app_id, Dictionary<string, object>? parentKeys, CancellationToken ct) where T : EntityBase
         {
 
             CSVImportResult result = new();
@@ -95,7 +95,7 @@ namespace MicroM.ImportData
                         entity.MapCSVDataToEntity(row);
 
                         // Override application keys
-                        entity.SetColumnValues(api.GetApplicationKeys(app_id));
+                        entity.SetColumnValues(api.entitiesService.GetApplicationKeys(app_id));
 
                         // Override the parentkeys
                         if (parentKeys != null && parentKeys.Count > 0)
@@ -140,7 +140,7 @@ namespace MicroM.ImportData
             int? initialRow,
             MicroMOptions options,
             Dictionary<string, object>? claims,
-            IMicroMWebAPI api,
+            IWebAPIServices api,
             string app_id,
             Dictionary<string, object>? parentKeys,
             CancellationToken ct) where T : EntityBase
@@ -185,7 +185,7 @@ namespace MicroM.ImportData
                     {
                         entity.SetColumnValues(data);
 
-                        entity.SetColumnValues(api.GetApplicationKeys(app_id));
+                        entity.SetColumnValues(api.entitiesService.GetApplicationKeys(app_id));
 
                         if (parentKeys != null && parentKeys.Count > 0) entity.SetKeyValues(parentKeys);
 

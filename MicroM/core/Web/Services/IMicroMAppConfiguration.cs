@@ -19,7 +19,7 @@ namespace MicroM.Web.Services
 
         public List<string> GetAppIDs();
 
-        public  PublicEndpointSecurityRecord? GetPublicAccessAllowedRoutes(string app_id);
+        public PublicEndpointSecurityRecord? GetPublicAccessAllowedRoutes(string app_id);
 
     }
 }

@@ -31,8 +31,6 @@ namespace MicroM.DataDictionary
                 new(parentColName: nameof(c_menu_item_id), childColName: nameof(c_parent_item_id))
                 ]);
 
-        public readonly EntityUniqueConstraint UNMenuPath = new(keys: [nameof(c_menu_id), nameof(vc_menu_item_path)]);
-
     }
 
     public class MicromMenusItems : Entity<MicromMenusItemsDef>

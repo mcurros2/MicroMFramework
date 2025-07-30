@@ -39,11 +39,23 @@ namespace MicroM.Web.Services
             return services;
         }
 
-        public static IServiceCollection AddMicroMApi(this IServiceCollection services)
+        public static IServiceCollection AddAuthenticationService(this IServiceCollection services)
         {
-            services.AddSingleton<IMicroMWebAPI, WebAPIBase>();
+            services.AddSingleton<IAuthenticationService, AuthenticationService>();
             return services;
         }
+
+        public static IServiceCollection AddEntitiesService(this IServiceCollection services)
+        {
+            services.AddSingleton<IEntitiesService, EntitiesService>();
+            return services;
+        }
+
+        //public static IServiceCollection AddWebAPIServices(this IServiceCollection services)
+        //{
+        //    services.AddSingleton<IWebAPIServices, WebAPIServices>();
+        //    return services;
+        //}
 
         public static IServiceCollection AddMicroMEncryption(this IServiceCollection services)
         {
@@ -136,7 +148,9 @@ namespace MicroM.Web.Services
             services.AddFileUploadService();
             services.AddEmailService();
             services.AddSecurityService();
-            services.AddMicroMApi();
+            services.AddAuthenticationService();
+            services.AddEntitiesService();
+            //services.AddWebAPIServices();
 
             services.AddSingleton<WebAPIJsonWebTokenHandler>();
             services.AddSingleton<IPostConfigureOptions<JwtBearerOptions>, WebAPIJwtPostConfigurationOptions>();
@@ -149,7 +163,7 @@ namespace MicroM.Web.Services
 
             services.AddSingleton<ICookieManager, MicroMCookieManager>();
             services.AddSingleton<IPostConfigureOptions<CookieAuthenticationOptions>, MicroMCookiesManagerSetup>();
-            
+
             services.AddTransient<MicroMRouteConvention>();
             services.ConfigureOptions<MicroMRouteConventionSetup>();
 

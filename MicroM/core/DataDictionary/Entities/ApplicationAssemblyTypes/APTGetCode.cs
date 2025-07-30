@@ -42,7 +42,7 @@ namespace MicroM.DataDictionary
 
     public class APTGetCode : EntityActionBase
     {
-        public override async Task<EntityActionResult> Execute(EntityBase entity, DataWebAPIRequest parms, EntityDefinition def, MicroMOptions? Options, IMicroMWebAPI? API, IMicroMEncryption? encryptor, CancellationToken ct, string? api_app_id)
+        public override async Task<EntityActionResult> Execute(EntityBase entity, DataWebAPIRequest parms, EntityDefinition def, MicroMOptions? Options, IWebAPIServices? API, IMicroMEncryption? encryptor, CancellationToken ct, string? api_app_id)
         {
             if (entity is not ApplicationAssemblyTypes) throw new InvalidOperationException($"This action can only be executed from {nameof(ApplicationAssemblyTypes)} class.");
 
@@ -76,7 +76,7 @@ namespace MicroM.DataDictionary
 
             var eat = new EntitiesAssembliesTypes(admin_dbc);
             var entity_name = await eat.LookupData(ct) ?? throw new InvalidOperationException($"Can't find entity for AppID {app_id}, AssemblyID {assembly_id}, TypeID {assemblytype_id}");
-            var entity_type = API?.GetEntityType(app_id, entity_name) ?? throw new InvalidOperationException($"Entity not found. {app_id} {entity_name}");
+            var entity_type = API?.app_config.GetEntityType(app_id, entity_name) ?? throw new InvalidOperationException($"Entity not found. {app_id} {entity_name}");
             var ent = (EntityBase?)Activator.CreateInstance(entity_type) ?? throw new InvalidOperationException($"Can't create entity instance. {app_id} {entity_name}"); ;
 
             var table = ent.AsCreateTable();

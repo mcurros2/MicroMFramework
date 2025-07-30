@@ -76,7 +76,7 @@ namespace MicroM.Database
         }
 
 
-        public static async Task GetAppDatabaseStatus(Applications app, CancellationToken ct, MicroMOptions? options = null, Dictionary<string, object>? server_claims = null, IMicroMWebAPI? api = null)
+        public static async Task GetAppDatabaseStatus(Applications app, CancellationToken ct, MicroMOptions? options = null, Dictionary<string, object>? server_claims = null, IWebAPIServices? api = null)
         {
             ArgumentNullException.ThrowIfNull(server_claims);
             // MMC: this is the logged in user to the control panel
@@ -106,7 +106,7 @@ namespace MicroM.Database
             }
         }
 
-        public static async Task DropAppDatabase(Applications app, CancellationToken ct, MicroMOptions? options = null, Dictionary<string, object>? server_claims = null, IMicroMWebAPI? api = null)
+        public static async Task DropAppDatabase(Applications app, CancellationToken ct, MicroMOptions? options = null, Dictionary<string, object>? server_claims = null, IWebAPIServices? api = null)
         {
             ArgumentNullException.ThrowIfNull(server_claims);
             // MMC: this is the logged in user to the control panel, it should be admin
@@ -130,7 +130,7 @@ namespace MicroM.Database
         /// <param name="drop_and_recreate"></param>
         /// <param name="ct"></param>
         /// <returns></returns>
-        public static async Task<DBStatusResult> CreateAppDatabase(Applications app, bool drop_and_recreate, CancellationToken ct, MicroMOptions? options = null, Dictionary<string, object>? server_claims = null, IMicroMWebAPI? api = null)
+        public static async Task<DBStatusResult> CreateAppDatabase(Applications app, bool drop_and_recreate, CancellationToken ct, MicroMOptions? options = null, Dictionary<string, object>? server_claims = null, IWebAPIServices? api = null)
         {
 
             ArgumentNullException.ThrowIfNull(server_claims);
@@ -237,7 +237,7 @@ namespace MicroM.Database
             return new() { Results = [new() { Status = DBStatusCodes.OK }] };
         }
 
-        public static async Task<DBStatusResult> UpdateAppDatabase(Applications app, CancellationToken ct, Dictionary<string, object>? server_claims = null, MicroMOptions? options = null, IMicroMWebAPI? api = null)
+        public static async Task<DBStatusResult> UpdateAppDatabase(Applications app, CancellationToken ct, Dictionary<string, object>? server_claims = null, MicroMOptions? options = null, IWebAPIServices? api = null)
         {
             ArgumentNullException.ThrowIfNull(server_claims);
             // MMC: this is the logged in user to the control panel, it should be admin

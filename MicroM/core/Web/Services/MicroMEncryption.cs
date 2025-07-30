@@ -21,7 +21,7 @@ namespace MicroM.Web.Services
                 try
                 {
                     _encryptor = new(certificate_name: ConfigurationDefaults.CertificateSubjectName);
-
+                    _log.LogInformation("Using default certificate.");
                 }
                 catch
                 {
@@ -78,7 +78,7 @@ namespace MicroM.Web.Services
         public T? DecryptObject<T>(string encryptedString)
         {
             if (string.IsNullOrEmpty(encryptedString)) throw new ArgumentException("Encrypted string cannot be null or empty.", nameof(encryptedString));
-            if(_encryptor == null) throw new InvalidOperationException("Certificate thumbprint not configured");
+            if (_encryptor == null) throw new InvalidOperationException("Certificate thumbprint not configured");
             return _encryptor.DecryptObject<T>(encryptedString);
         }
 
