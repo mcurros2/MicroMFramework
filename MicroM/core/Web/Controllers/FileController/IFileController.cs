@@ -8,7 +8,7 @@ public interface IFileController
 {
     string GetStatus();
 
-    Task<ObjectResult> Upload(IAuthenticationProvider auth, IEntitiesService ents, IFileUploadService ups, string app_id, string fileprocess_id, string file_name, int? maxSize, int? quality, CancellationToken ct);
-    Task<IActionResult> Serve(IAuthenticationProvider auth, IEntitiesService ents, IFileUploadService ups, string app_id, string fileguid, CancellationToken ct);
-    Task<IActionResult> ServeThumbnail(IAuthenticationProvider auth, IEntitiesService ents, IFileUploadService ups, string app_id, string fileguid, int? maxSize, int? quality, CancellationToken ct);
+    Task<ObjectResult> Upload(IAuthenticationProvider auth, IMicroMAppConfiguration app_config, IEntitiesService ents, IFileUploadService ups, string app_id, string fileprocess_id, string file_name, int? maxSize, int? quality, CancellationToken ct);
+    Task<IActionResult> Serve(IAuthenticationProvider auth, IMicroMAppConfiguration app_config, IEntitiesService ents, IFileUploadService ups, string app_id, string fileguid, CancellationToken ct);
+    Task<IActionResult> ServeThumbnail(IAuthenticationProvider auth, IMicroMAppConfiguration app_config, IEntitiesService ents, IFileUploadService ups, string app_id, string fileguid, int? maxSize, int? quality, CancellationToken ct);
 }

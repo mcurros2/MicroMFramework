@@ -54,7 +54,7 @@ namespace MicroM.Web.Services
             return Task.CompletedTask;
         }
 
-        public ApplicationOption? GetAppConfiguration(string app_id, CancellationToken ct)
+        public ApplicationOption? GetAppConfiguration(string app_id)
         {
             _ApplicationsCache.TryGetValue(app_id, out var app);
             return app;

@@ -46,12 +46,8 @@ public class EntitiesService : IEntitiesService
         if (_options.DefaultCommandTimeOutInMins != -1) DataDefaults.DefaultCommandTimeOutInMins = _options.DefaultCommandTimeOutInMins;
     }
 
-    public IEntityClient CreateDbConnection(ApplicationOption app, Dictionary<string, object>? server_claims, IAuthenticationProvider auth)
+    public IEntityClient CreateDbConnection(ApplicationOption app, Dictionary<string, object>? server_claims)
     {
-        var authenticator = auth.GetAuthenticator(app);
-
-        authenticator?.UnencryptClaims(server_claims);
-
         string user = app.AuthenticationType == nameof(AuthenticationTypes.SQLServerAuthentication) && string.IsNullOrEmpty(app.SQLUser) ? (string?)server_claims?[MicroMServerClaimTypes.MicroMUsername] ?? "" : app.SQLUser;
         string pass = app.AuthenticationType == nameof(AuthenticationTypes.SQLServerAuthentication) && string.IsNullOrEmpty(app.SQLUser) ? (string?)server_claims?[MicroMServerClaimTypes.MicroMPassword] ?? "" : app.SQLPassword;
 
@@ -79,10 +75,9 @@ public class EntitiesService : IEntitiesService
         return dbc;
     }
 
-    public Task<IEntityClient> CreateDbConnection(string app_id, Dictionary<string, object>? server_claims, IAuthenticationProvider auth, CancellationToken ct)
+    public Task<IEntityClient> CreateDbConnection(ApplicationOption app, Dictionary<string, object>? server_claims, CancellationToken ct)
     {
-        ApplicationOption app = _api.app_config.GetAppConfiguration(app_id, ct)!;
-        return Task.FromResult(CreateDbConnection(app, server_claims, auth));
+        return Task.FromResult(CreateDbConnection(app, server_claims));
     }
 
     /// <summary>
@@ -91,21 +86,21 @@ public class EntitiesService : IEntitiesService
     /// <param name="entity_name"></param>
     /// <param name="ec"></param>
     /// <returns></returns>
-    public EntityBase? CreateEntity(ApplicationOption app, string entity_name, Dictionary<string, object>? server_claims, IAuthenticationProvider auth, IEntityClient? ec = null)
+    public EntityBase? CreateEntity(ApplicationOption app, string entity_name, Dictionary<string, object>? server_claims, IEntityClient? ec = null)
     {
         EntityBase? entity = null;
-        ec ??= CreateDbConnection(app, server_claims, auth);
+        ec ??= CreateDbConnection(app, server_claims);
         Type? ent_type = _api.app_config.GetEntityType(app.ApplicationID, entity_name);
         if (ent_type != null) entity = (EntityBase?)Activator.CreateInstance(ent_type, ec, _api.encryptor);
 
         return entity;
     }
 
-    public EntityBase? CreateEntity(string app_id, string entity_name, Dictionary<string, object>? server_claims, IAuthenticationProvider auth, CancellationToken ct)
+    public EntityBase? CreateEntity(ApplicationOption app, string entity_name, Dictionary<string, object>? server_claims, CancellationToken ct)
     {
         EntityBase? entity = null;
-        var ec = CreateDbConnection(app_id, server_claims, auth, ct);
-        Type? ent_type = _api.app_config.GetEntityType(app_id, entity_name);
+        var ec = CreateDbConnection(app, server_claims, ct);
+        Type? ent_type = _api.app_config.GetEntityType(app.ApplicationID, entity_name);
         if (ent_type != null) entity = (EntityBase?)Activator.CreateInstance(ent_type, ec, _api.encryptor);
 
         return entity;
@@ -129,17 +124,15 @@ public class EntitiesService : IEntitiesService
         return app_keys ?? new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
     }
 
-    public async Task<DBStatusResult?> HandleDeleteEntity(IAuthenticationProvider auth, string app_id, string entity_name, DataWebAPIRequest parms, IEntityClient ec, CancellationToken ct)
+    public async Task<DBStatusResult?> HandleDeleteEntity(ApplicationOption app, string entity_name, DataWebAPIRequest parms, IEntityClient ec, CancellationToken ct)
     {
         DBStatusResult? result = null;
 
         try
         {
-            ApplicationOption? app = _api.app_config.GetAppConfiguration(app_id, ct);
+            string app_id = app.ApplicationID;
 
-            if (app == null) return null;
-
-            var entity = CreateEntity(app, entity_name, parms.ServerClaims, auth, ec);
+            var entity = CreateEntity(app, entity_name, parms.ServerClaims, ec);
             if (entity != null)
             {
 
@@ -200,17 +193,14 @@ public class EntitiesService : IEntitiesService
 
     }
 
-    public async Task<EntityActionResult?> HandleExecuteAction(IAuthenticationProvider auth, string app_id, string entity_name, string entity_action, DataWebAPIRequest parms, IEntityClient ec, CancellationToken ct)
+    public async Task<EntityActionResult?> HandleExecuteAction(ApplicationOption app, string entity_name, string entity_action, DataWebAPIRequest parms, IEntityClient ec, CancellationToken ct)
     {
         EntityActionResult? result = null;
         try
         {
-            ApplicationOption? app = _api.app_config.GetAppConfiguration(app_id, ct);
+            string app_id = app.ApplicationID;
 
-            if (app == null) return null;
-            auth.GetAuthenticator(app)?.UnencryptClaims(parms.ServerClaims);
-
-            var entity = CreateEntity(app, entity_name, parms.ServerClaims, auth, ec);
+            var entity = CreateEntity(app, entity_name, parms.ServerClaims, ec);
             if (entity != null)
             {
 
@@ -242,17 +232,15 @@ public class EntitiesService : IEntitiesService
 
     }
 
-    public async Task<List<DataResult>?> HandleExecuteProc(IAuthenticationProvider auth, string app_id, string entity_name, string proc_name, DataWebAPIRequest parms, IEntityClient ec, CancellationToken ct)
+    public async Task<List<DataResult>?> HandleExecuteProc(ApplicationOption app, string entity_name, string proc_name, DataWebAPIRequest parms, IEntityClient ec, CancellationToken ct)
     {
         List<DataResult> result = [];
 
         try
         {
-            ApplicationOption? app = _api.app_config.GetAppConfiguration(app_id, ct);
+            string app_id = app.ApplicationID;
 
-            if (app == null) return result;
-
-            var entity = CreateEntity(app, entity_name, parms.ServerClaims, auth, ec);
+            var entity = CreateEntity(app, entity_name, parms.ServerClaims, ec);
             if (entity != null)
             {
                 if (entity.Def.Procs.ContainsKey(proc_name))
@@ -313,17 +301,15 @@ public class EntitiesService : IEntitiesService
 
     }
 
-    public async Task<DBStatusResult?> HandleExecuteProcDBStatus(IAuthenticationProvider auth, string app_id, string entity_name, string proc_name, DataWebAPIRequest parms, IEntityClient ec, CancellationToken ct)
+    public async Task<DBStatusResult?> HandleExecuteProcDBStatus(ApplicationOption app, string entity_name, string proc_name, DataWebAPIRequest parms, IEntityClient ec, CancellationToken ct)
     {
         DBStatusResult result = new();
 
         try
         {
-            ApplicationOption? app = _api.app_config.GetAppConfiguration(app_id, ct);
+            string app_id = app.ApplicationID;
 
-            if (app == null) return result;
-
-            var entity = CreateEntity(app, entity_name, parms.ServerClaims, auth, ec);
+            var entity = CreateEntity(app, entity_name, parms.ServerClaims, ec);
             if (entity != null)
             {
                 if (entity.Def.Procs.ContainsKey(proc_name))
@@ -386,17 +372,15 @@ public class EntitiesService : IEntitiesService
 
     }
 
-    public async Task<List<DataResult>?> HandleExecuteView(IAuthenticationProvider auth, string app_id, string entity_name, string view_name, DataWebAPIRequest parms, IEntityClient ec, CancellationToken ct)
+    public async Task<List<DataResult>?> HandleExecuteView(ApplicationOption app, string entity_name, string view_name, DataWebAPIRequest parms, IEntityClient ec, CancellationToken ct)
     {
         List<DataResult>? result = null;
 
         try
         {
-            ApplicationOption? app = _api.app_config.GetAppConfiguration(app_id, ct);
+            string app_id = app.ApplicationID;
 
-            if (app == null) return null;
-
-            var entity = CreateEntity(app, entity_name, parms.ServerClaims, auth, ec);
+            var entity = CreateEntity(app, entity_name, parms.ServerClaims, ec);
             if (entity != null)
             {
                 if (entity.Def.Views.ContainsKey(view_name))
@@ -439,16 +423,14 @@ public class EntitiesService : IEntitiesService
 
     }
 
-    public async Task<Dictionary<string, object?>?> HandleGetEntity(IAuthenticationProvider auth, string app_id, string entity_name, DataWebAPIRequest parms, IEntityClient ec, CancellationToken ct)
+    public async Task<Dictionary<string, object?>?> HandleGetEntity(ApplicationOption app, string entity_name, DataWebAPIRequest parms, IEntityClient ec, CancellationToken ct)
     {
         Dictionary<string, object?>? result = null;
         try
         {
-            ApplicationOption? app = _api.app_config.GetAppConfiguration(app_id, ct);
+            string app_id = app.ApplicationID;
 
-            if (app == null) return null;
-
-            var entity = CreateEntity(app, entity_name, parms.ServerClaims, auth, ec);
+            var entity = CreateEntity(app, entity_name, parms.ServerClaims, ec);
             if (entity != null)
             {
 
@@ -475,12 +457,13 @@ public class EntitiesService : IEntitiesService
         return result;
     }
 
-    public EntityDefinition? HandleGetEntityDefinition(string app_id, string entity_name)
+    public EntityDefinition? HandleGetEntityDefinition(ApplicationOption app, string entity_name)
     {
         EntityDefinition? result = null;
 
+        string app_id = app.ApplicationID;
 
-        Type? ent_type = _api.app_config.GetEntityType(app_id, entity_name);
+        Type? ent_type = _api.app_config.GetEntityType(app.ApplicationID, entity_name);
         if (ent_type != null)
         {
             EntityBase? obj = (EntityBase?)Activator.CreateInstance(ent_type);
@@ -498,13 +481,11 @@ public class EntitiesService : IEntitiesService
         return result;
     }
 
-    public async Task<int> HandleGetTimeZoneOffset(IAuthenticationProvider auth, string app_id, IEntityClient ec, CancellationToken ct)
+    public async Task<int> HandleGetTimeZoneOffset(ApplicationOption app, IEntityClient ec, CancellationToken ct)
     {
         try
         {
-            ApplicationOption? app = _api.app_config.GetAppConfiguration(app_id, ct);
-
-            if (app == null) return 0;
+            string app_id = app.ApplicationID;
 
             if (_ApplicationsTimeZoneOffset.TryGetValue(app_id, out var offset))
             {
@@ -525,20 +506,14 @@ public class EntitiesService : IEntitiesService
     }
 
 
-    public async Task<CSVImportResult?> HandleImportData(IAuthenticationProvider auth, string app_id, string entity_name, string? import_proc, DataWebAPIRequest parms, IEntityClient ec, CancellationToken ct)
+    public async Task<CSVImportResult?> HandleImportData(ApplicationOption app, string entity_name, string? import_proc, DataWebAPIRequest parms, IEntityClient ec, CancellationToken ct)
     {
         try
         {
-            ApplicationOption? app = _api.app_config.GetAppConfiguration(app_id, ct);
-
-            if (app == null)
-            {
-                _api.log.LogError("ImportData ERROR: {app_id} not found.", app_id);
-                return null;
-            }
+            string app_id = app.ApplicationID;
 
             // validate entity
-            var entity = CreateEntity(app, entity_name, parms.ServerClaims, auth, ec);
+            var entity = CreateEntity(app, entity_name, parms.ServerClaims, ec);
             if (entity != null)
             {
 
@@ -668,16 +643,14 @@ public class EntitiesService : IEntitiesService
 
     }
 
-    public async Task<DBStatusResult?> HandleInsertEntity(IAuthenticationProvider auth, string app_id, string entity_name, DataWebAPIRequest parms, IEntityClient ec, CancellationToken ct)
+    public async Task<DBStatusResult?> HandleInsertEntity(ApplicationOption app, string entity_name, DataWebAPIRequest parms, IEntityClient ec, CancellationToken ct)
     {
         DBStatusResult? result = null;
         try
         {
-            ApplicationOption? app = _api.app_config.GetAppConfiguration(app_id, ct);
+            string app_id = app.ApplicationID;
 
-            if (app == null) return null;
-
-            var entity = CreateEntity(app, entity_name, parms.ServerClaims, auth, ec);
+            var entity = CreateEntity(app, entity_name, parms.ServerClaims, ec);
             if (entity != null)
             {
                 EnsureApplicationKeys(app_id, parms.Values);
@@ -744,17 +717,15 @@ public class EntitiesService : IEntitiesService
         return result;
     }
 
-    public async Task<LookupResult> HandleLookupEntity(IAuthenticationProvider auth, string app_id, string entity_name, DataWebAPIRequest parms, IEntityClient ec, CancellationToken ct, string? lookup_name = null)
+    public async Task<LookupResult> HandleLookupEntity(ApplicationOption app, string entity_name, DataWebAPIRequest parms, IEntityClient ec, CancellationToken ct, string? lookup_name = null)
     {
         string? result = null;
 
         try
         {
-            ApplicationOption? app = _api.app_config.GetAppConfiguration(app_id, ct);
+            string app_id = app.ApplicationID;
 
-            if (app == null) return new LookupResult() { Description = "" };
-
-            var entity = CreateEntity(app, entity_name, parms.ServerClaims, auth, ec);
+            var entity = CreateEntity(app, entity_name, parms.ServerClaims, ec);
             if (entity != null)
             {
 
@@ -781,17 +752,15 @@ public class EntitiesService : IEntitiesService
 
     }
 
-    public async Task<DBStatusResult?> HandleUpdateEntity(IAuthenticationProvider auth, string app_id, string entity_name, DataWebAPIRequest parms, IEntityClient ec, CancellationToken ct)
+    public async Task<DBStatusResult?> HandleUpdateEntity(ApplicationOption app, string entity_name, DataWebAPIRequest parms, IEntityClient ec, CancellationToken ct)
     {
         DBStatusResult? result = null;
 
         try
         {
-            ApplicationOption? app = _api.app_config.GetAppConfiguration(app_id, ct);
+            string app_id = app.ApplicationID;
 
-            if (app == null) return null;
-
-            var entity = CreateEntity(app, entity_name, parms.ServerClaims, auth, ec);
+            var entity = CreateEntity(app, entity_name, parms.ServerClaims, ec);
             if (entity != null)
             {
                 EnsureApplicationKeys(app_id, parms.Values);

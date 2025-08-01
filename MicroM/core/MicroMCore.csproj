@@ -172,6 +172,7 @@
 
   <ItemGroup>
     <Folder Include="Web\Authentication\SSO\" />
+    <Folder Include="Web\Services\SSOService\" />
   </ItemGroup>
 
   <Target Name="PreBuild" BeforeTargets="PreBuildEvent">

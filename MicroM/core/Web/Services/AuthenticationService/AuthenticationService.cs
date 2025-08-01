@@ -17,7 +17,7 @@ public class AuthenticationService(
     {
         if (string.IsNullOrEmpty(user_login.Username)) return (null, null);
 
-        ApplicationOption? app = app_config.GetAppConfiguration(app_id, ct);
+        ApplicationOption? app = app_config.GetAppConfiguration(app_id);
 
         if (app == null)
         {
@@ -77,7 +77,7 @@ public class AuthenticationService(
 
     public async Task HandleLogoff(IAuthenticationProvider auth, string app_id, string user_name, CancellationToken ct)
     {
-        ApplicationOption app = app_config.GetAppConfiguration(app_id, ct)!;
+        ApplicationOption app = app_config.GetAppConfiguration(app_id)!;
 
         var authenticator = auth.GetAuthenticator(app);
         if (authenticator != null)
@@ -92,7 +92,7 @@ public class AuthenticationService(
 
     public async Task<(bool failed, string? error_message)> HandleRecoverPassword(IAuthenticationProvider auth, string app_id, string user_name, string new_password, string recovery_code, CancellationToken ct)
     {
-        ApplicationOption? app = app_config.GetAppConfiguration(app_id, ct);
+        ApplicationOption? app = app_config.GetAppConfiguration(app_id);
         if (app == null)
         {
             log.LogTrace("RECOVER_PASSWORD: Invalid APP_ID {app_id}", app_id);
@@ -114,7 +114,7 @@ public class AuthenticationService(
 
     public async Task<(RefreshTokenResult? result, TokenResult? token_result)> HandleRefreshToken(IAuthenticationProvider auth, WebAPIJsonWebTokenHandler jwt_handler, string app_id, UserRefreshTokenRequest refreshRequest, CancellationToken ct)
     {
-        ApplicationOption? app = app_config.GetAppConfiguration(app_id, ct);
+        ApplicationOption? app = app_config.GetAppConfiguration(app_id);
         if (app == null)
         {
             log.LogTrace("REFRESH_TOKEN: Invalid APP_ID {app_id}", app_id);
@@ -172,7 +172,7 @@ public class AuthenticationService(
 
     public async Task<(bool failed, string? error_message)> HandleSendRecoveryEmail(IAuthenticationProvider auth, string app_id, string user_name, CancellationToken ct)
     {
-        ApplicationOption? app = app_config.GetAppConfiguration(app_id, ct);
+        ApplicationOption? app = app_config.GetAppConfiguration(app_id);
         if (app == null)
         {
             log.LogTrace("RECOVERY_EMAIL: Invalid APP_ID {app_id}", app_id);

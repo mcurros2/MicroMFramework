@@ -7,7 +7,7 @@ namespace MicroM.Web.Services
 {
     public interface IMicroMAppConfiguration
     {
-        public ApplicationOption? GetAppConfiguration(string app_id, CancellationToken ct);
+        public ApplicationOption? GetAppConfiguration(string app_id);
 
         public Type? GetEntityType(string app_id, string entity_name);
 
