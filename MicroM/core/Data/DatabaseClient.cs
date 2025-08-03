@@ -207,7 +207,7 @@ namespace MicroM.Data
         /// <param name="ct"></param>
         /// <returns>True if the connection was already opened</returns>
         /// <exception cref="DataAbstractionException"></exception>
-        public async Task<bool> Connect(CancellationToken ct, bool throw_exception = true, bool rollback_on_errors = true, bool isolation_level_read_committed = true)
+        public async Task<bool> Connect(CancellationToken ct, bool throw_exception = true, bool rollback_on_errors = true, bool isolation_level_read_committed = true, bool set_nocount_on = true)
         {
 
             if (sql_connection.State == ConnectionState.Open) return true;
@@ -217,13 +217,14 @@ namespace MicroM.Data
             {
                 _logger?.LogTrace("Connecting to {Server}, DB {DB}, User {User}, Integrated Security {IntegratedSecurity}, Web User {WebUsr}", Server, DB, User, IntegratedSecurity, WebUser);
                 await sql_connection.OpenAsync(ct);
-                if (rollback_on_errors)
+
+                // Set initial options. When using connection pooling is important to revert any settings to this options
+                string initial_options = $"{rollback_on_errors.True("SET XACT_ABORT ON; ")}{isolation_level_read_committed.True("SET TRANSACTION ISOLATION LEVEL READ COMMITTED; ")}{set_nocount_on.True("SET NOCOUNT ON;")}";
+
+                if (!string.IsNullOrEmpty(initial_options))
                 {
-                    await ExecuteNonQuery(CommandType.Text, "SET XACT_ABORT ON", ct);
-                }
-                if (isolation_level_read_committed)
-                {
-                    await ExecuteNonQuery(CommandType.Text, "SET TRANSACTION ISOLATION LEVEL READ COMMITTED", ct);
+                    // When connection pooling is enabled you can get an open transaction from the pool. Those should be closed early at Disconnect(), but re handled here for safety
+                    await ExecuteNonQuery(CommandType.Text, $"{initial_options}{(Pooling ? " if @@trancount > 0 ROLLBACK;" : "")}", ct);
                 }
                 return true;
             }
@@ -252,8 +253,11 @@ namespace MicroM.Data
 
             if (sql_connection.State != ConnectionState.Open) return;
 
-            await ExecuteNonQuery(CommandType.Text, "if @@trancount > 0 ROLLBACK TRANSACTION", CancellationToken.None);
-
+            // When connection pooling is enabled, unproperly closed connections may leave an open transaction
+            if (Pooling)
+            {
+                await ExecuteNonQuery(CommandType.Text, "if @@trancount > 0 ROLLBACK", CancellationToken.None);
+            }
         }
 
         /// <summary>

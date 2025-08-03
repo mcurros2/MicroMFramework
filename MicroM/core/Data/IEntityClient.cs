@@ -12,7 +12,7 @@ namespace MicroM.Data
         string DB { get; set; }
         bool IntegratedSecurity { get; set; }
         string Password { get; set; }
-        
+
         bool Pooling { get; set; }
         int MinPoolSize { get; set; }
         int MaxPoolSize { get; set; }
@@ -37,7 +37,7 @@ namespace MicroM.Data
         Task CommitTransaction(CancellationToken ct);
         Task RollbackTransaction(CancellationToken ct);
 
-        Task<bool> Connect(CancellationToken ct, bool throw_exception = true, bool rollback_on_errors = true, bool isolation_level_read_committed = true);
+        Task<bool> Connect(CancellationToken ct, bool throw_exception = true, bool rollback_on_errors = true, bool isolation_level_read_committed = true, bool set_nocount_on = true);
         Task Disconnect();
 
         public enum AutoMapperMode
