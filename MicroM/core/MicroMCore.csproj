@@ -66,6 +66,7 @@
     <None Remove="DataDictionary\Entities\ImportProcess\SQL\ipr_get.sql" />
     <None Remove="DataDictionary\Entities\ImportProcess\SQL\ipr_update.sql" />
     <None Remove="DataDictionary\Entities\ImportProcess\SQL\ipr_UpdateStatus.sql" />
+    <None Remove="DataDictionary\Entities\MicromMenus\SQL\MicromMenusItems\mmi_update.sql" />
     <None Remove="DataDictionary\Entities\MicromRoutes\SQL\mro_iupdate.sql" />
     <None Remove="DataDictionary\Entities\MicromUsers\SQL\MicromUsersGroups\mug_iupdate.sql" />
     <None Remove="DataDictionary\Entities\MicromUsers\SQL\MicromUsers\usr_GetRecoveryCode.sql" />
@@ -100,6 +101,7 @@
     <EmbeddedResource Include="DataDictionary\Entities\MicromMenus\SQL\MicromMenusItemsAllowedRoutes\mir_drop.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\MicromMenus\SQL\MicromMenusItemsAllowedRoutes\mir_get.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\MicromMenus\SQL\MicromMenusItemsAllowedRoutes\mir_update.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\MicromMenus\SQL\MicromMenusItems\mmi_update.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\MicromRoutes\SQL\mro_iupdate.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\MicromUsers\SQL\MicromUsersDevices\usd_iupdate.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\MicromUsers\SQL\MicromUsersGroupsMenus\mmn_brwMenuItems.sql" />
@@ -166,6 +168,10 @@
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>
     </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Web\Services\SSOService\" />
   </ItemGroup>
 
   <Target Name="PreBuild" BeforeTargets="PreBuildEvent">

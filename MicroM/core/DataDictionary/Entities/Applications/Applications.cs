@@ -62,7 +62,7 @@ namespace MicroM.DataDictionary
         public Applications() : base() { }
         public Applications(IEntityClient ec, IMicroMEncryption? encryptor = null) : base(ec, encryptor) { }
 
-        private async Task<DBStatusResult> PerformCreateOrDropDatabase(CancellationToken ct, MicroMOptions? options = null, Dictionary<string, object>? server_claims = null, IMicroMWebAPI? api = null)
+        private async Task<DBStatusResult> PerformCreateOrDropDatabase(CancellationToken ct, MicroMOptions? options = null, Dictionary<string, object>? server_claims = null, IWebAPIServices? api = null)
         {
 
             if (this.Def.b_createdatabase.Value && this.Def.b_appdbexists.Value)
@@ -91,7 +91,7 @@ namespace MicroM.DataDictionary
             return new() { Results = [new() { Status = DBStatusCodes.OK }] };
         }
 
-        public override async Task<DBStatusResult> InsertData(CancellationToken ct, bool throw_dbstat_exception = false, MicroMOptions? options = null, Dictionary<string, object>? server_claims = null, IMicroMWebAPI? api = null, string? app_id = null)
+        public override async Task<DBStatusResult> InsertData(CancellationToken ct, bool throw_dbstat_exception = false, MicroMOptions? options = null, Dictionary<string, object>? server_claims = null, IWebAPIServices? api = null, string? app_id = null)
         {
             this.Def.vc_password.Value = CryptClass.CreateRandomPassword();
             this.Def.vc_JWTKey.Value = CryptClass.CreateRandomPassword();
@@ -101,12 +101,16 @@ namespace MicroM.DataDictionary
             if (!result.Failed && api != null)
             {
                 result = await PerformCreateOrDropDatabase(ct, options, server_claims, api);
-                if (!result.Failed) await api.RefreshConfig(this.Def.c_application_id.Value.Trim(), ct);
+                if (!result.Failed)
+                {
+                    await api.app_config.RefreshConfiguration(this.Def.c_application_id.Value.Trim(), ct);
+                    await api.securityService.RefreshGroupsSecurityRecords(this.Def.c_application_id.Value.Trim(), ct);
+                }
             }
             return result;
         }
 
-        public override async Task<DBStatusResult> UpdateData(CancellationToken ct, bool throw_dbstat_exception = false, MicroMOptions? options = null, Dictionary<string, object>? server_claims = null, IMicroMWebAPI? api = null, string? app_id = null)
+        public override async Task<DBStatusResult> UpdateData(CancellationToken ct, bool throw_dbstat_exception = false, MicroMOptions? options = null, Dictionary<string, object>? server_claims = null, IWebAPIServices? api = null, string? app_id = null)
         {
             if (this.Def.b_createdatabase.Value)
             {
@@ -120,13 +124,14 @@ namespace MicroM.DataDictionary
                 result = await PerformCreateOrDropDatabase(ct, options, server_claims, api);
                 if (!result.Failed)
                 {
-                    await api.RefreshConfig(this.Def.c_application_id.Value.Trim(), ct);
+                    await api.app_config.RefreshConfiguration(this.Def.c_application_id.Value.Trim(), ct);
+                    await api.securityService.RefreshGroupsSecurityRecords(this.Def.c_application_id.Value.Trim(), ct);
                 }
             }
             return result;
         }
 
-        public override async Task<bool> GetData(CancellationToken ct, MicroMOptions? options = null, Dictionary<string, object>? server_claims = null, IMicroMWebAPI? api = null, string? app_id = null)
+        public override async Task<bool> GetData(CancellationToken ct, MicroMOptions? options = null, Dictionary<string, object>? server_claims = null, IWebAPIServices? api = null, string? app_id = null)
         {
             bool should_close = !(this.Client.ConnectionState == System.Data.ConnectionState.Open);
             bool result = false;

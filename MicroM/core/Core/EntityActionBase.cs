@@ -6,6 +6,6 @@ namespace MicroM.Core
 {
     public abstract class EntityActionBase
     {
-        public abstract Task<EntityActionResult> Execute(EntityBase entity, DataWebAPIRequest parms, EntityDefinition def, MicroMOptions? Options, IMicroMWebAPI? API, IMicroMEncryption? encryptor, CancellationToken ct, string? app_id);
+        public abstract Task<EntityActionResult> Execute(EntityBase entity, DataWebAPIRequest parms, EntityDefinition def, MicroMOptions? Options, IWebAPIServices? API, IMicroMEncryption? encryptor, CancellationToken ct, string? app_id);
     }
 }

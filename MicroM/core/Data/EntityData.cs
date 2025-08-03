@@ -218,7 +218,7 @@ namespace MicroM.Data
             {
                 def.Procs.TryGetValue(lkp_proc, out ProcedureDefinition? proc);
                 if (proc == null) throw new ArgumentException($"The lookup procedure {lkp_proc} has not been defined for entity {def.Mneo}");
-                if(!proc.isLookup) throw new ArgumentException($"The lookup procedure {lkp_proc} is not a lookup procedure");
+                if (!proc.isLookup) throw new ArgumentException($"The lookup procedure {lkp_proc} is not a lookup procedure");
 
                 proc.SetParmsValues(def.Columns);
                 parms = proc.Parms.Values;
@@ -267,7 +267,7 @@ namespace MicroM.Data
                 }
                 if (set_parms_from_columns) proc.SetParmsValues(def.Columns);
 
-                 result = await ExecuteStatusData(proc.Name, proc.Parms.Values, ct, throw_dbstat_exception);
+                result = await ExecuteStatusData(proc.Name, proc.Parms.Values, ct, throw_dbstat_exception);
             }
             finally
             {

@@ -73,7 +73,7 @@ namespace LibraryTest
 
     public class ACTTestAction : EntityActionBase
     {
-        public override Task<EntityActionResult> Execute(EntityBase entity, DataWebAPIRequest parms, EntityDefinition def, MicroMOptions? Options, IMicroMWebAPI? API, IMicroMEncryption? encryptor, CancellationToken ct, string? app_id)
+        public override Task<EntityActionResult> Execute(EntityBase entity, DataWebAPIRequest parms, EntityDefinition def, MicroMOptions? Options, IWebAPIServices? API, IMicroMEncryption? encryptor, CancellationToken ct, string? app_id)
         {
             if (Options == null || parms.ServerClaims == null) throw new ArgumentNullException();
 

@@ -14,9 +14,7 @@ export function useCreateGoogleMap({ mapOptions, children, setInfoWindowContent,
         if (map === null) {
             if (!containerRef.current) throw new Error("Container required.");
 
-            if (mapOptions && !mapOptions.center) {
-                mapOptions.center = DEFAULT_MAP_CENTER;
-            }
+            if (mapOptions && mapOptions.center && (!mapOptions.center.lat || !mapOptions.center.lng)) { mapOptions.center = undefined; }
 
             const initMap = new google.maps.Map(containerRef.current, mapOptions);
             setMap(initMap);
@@ -24,6 +22,8 @@ export function useCreateGoogleMap({ mapOptions, children, setInfoWindowContent,
     }, [map, mapOptions]);
 
     useEffect(() => {
+        if (mapOptions && mapOptions.center && (!mapOptions.center.lat || !mapOptions.center.lng)) { mapOptions.center = undefined; }
+
         if (map) map.setOptions(mapOptions);
     }, [map, mapOptions]);
 
