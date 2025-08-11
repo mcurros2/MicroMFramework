@@ -2,7 +2,7 @@ import { Button, Group, Stack, Text, useComponentDefaultProps } from "@mantine/c
 import { IconAlertCircle, IconBoxMultiple } from "@tabler/icons-react";
 import { Entity, EntityDefinition } from "../../Entity";
 import { DBStatusResult } from "../../client";
-import { ConfirmAndExecutePanel, FakeProgressBar, useModal } from "../Core";
+import { ConfirmAndExecutePanel, FakeProgressBar, MicroMModalSize, useModal } from "../Core";
 import { DataGridDefaultProps, DataGridSelectionKeys } from "../DataGrid";
 import { LookupForm } from "./LookupForm";
 
@@ -17,20 +17,32 @@ export interface LookupFormActionProps {
     addingRecords?: string
     runOnOpen?: boolean
     confirmContent?: React.ReactNode,
-    showActions?: boolean
+    showActions?: boolean,
+    enableAdd?: boolean,
+    enableEdit?: boolean,
+    enableDelete?: boolean,
+    enableView?: boolean,
+    enableExport?: boolean,
+    modalFormSize?: MicroMModalSize
 }
 
 export const LookupFormActionDefaultProps: Partial<LookupFormActionProps> = {
     addingRecords: "Adding records...",
     confirmContent: "Do you wish to add the selected records?",
-    showActions: false
+    showActions: false,
+    enableAdd: false,
+    enableEdit: false,
+    enableDelete: false,
+    enableView: false,
+    enableExport: false
 };
 
 
 export function LookupFormAction(props: LookupFormActionProps) {
     const {
         lookupEntity, viewName, onOK, addingRecords, title, onCancel, onActionFinished, runOnOpen,
-        confirmContent, showActions
+        confirmContent, showActions, enableAdd, enableEdit, enableDelete, enableView, enableExport,
+        modalFormSize
     } = useComponentDefaultProps('LookupFormAction', LookupFormActionDefaultProps, props);
 
     const modal = useModal();
@@ -48,11 +60,15 @@ export function LookupFormAction(props: LookupFormActionProps) {
                     limit: "10000",
                     refreshOnInit: true,
                     selectionMode: 'multi',
-                    enableAdd: false,
-                    enableEdit: false,
-                    enableDelete: false,
+                    enableAdd: enableAdd,
+                    enableEdit: enableEdit,
+                    enableDelete: enableDelete,
+                    enableView: enableView,
+                    enableExport: enableExport,
+                    enableImport: false,
                     parentKeys: lookupEntity.parentKeys,
-                    showActions: showActions
+                    showActions: showActions,
+                    modalFormSize: modalFormSize,
                 }
             }
             onOK={

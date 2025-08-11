@@ -72,14 +72,28 @@ namespace MicroM.Web.Services
 
             using var sourceStream = File.OpenRead(sourceFilePath);
             using SKManagedStream skiaStream = new(sourceStream);
-            using var originalBitmap = SKBitmap.Decode(skiaStream)
-                ?? throw new InvalidOperationException("Failed to decode the source image.");
 
-            (int newWidth, int newHeight) = CalculateThumbnailSize(originalBitmap.Width, originalBitmap.Height, maxSize);
+            using SKCodec codec = SKCodec.Create(skiaStream);
+            var originalBitmap = SKBitmap.Decode(codec);
+            if (originalBitmap == null)
+            {
+                throw new InvalidOperationException("Failed to decode the source image.");
+            }
 
-            using SKBitmap resizedBitmap = originalBitmap.Resize(new SKImageInfo(newWidth, newHeight), SKFilterQuality.High)
-                ?? throw new InvalidOperationException("Failed to resize the image.");
+            SKMatrix matrix = GetExifMatrix(codec.EncodedOrigin);
 
+            var orientedBitmap = new SKBitmap(originalBitmap.Width, originalBitmap.Height);
+
+            using (var canvas = new SKCanvas(orientedBitmap))
+            {
+                canvas.Clear(SKColors.Transparent);
+                canvas.SetMatrix(matrix);
+                canvas.DrawBitmap(originalBitmap, 0, 0);
+            }
+
+            (int newWidth, int newHeight) = CalculateThumbnailSize(orientedBitmap.Width, orientedBitmap.Height, maxSize);
+
+            using var resizedBitmap = originalBitmap.Resize(new SKImageInfo(newWidth, newHeight), new SKSamplingOptions(SKFilterMode.Linear, SKMipmapMode.None));
             using SKImage thumbnailImage = SKImage.FromBitmap(resizedBitmap);
 
             SKData encodedData = thumbnailImage.Encode(imageFormat.Value, quality);
@@ -88,8 +102,46 @@ namespace MicroM.Web.Services
 
             encodedData.SaveTo(thumbnailStream);
 
+            // Disponer los recursos
+            orientedBitmap.Dispose();
+            originalBitmap.Dispose();
+
             return thumbnailFilePath;
         }
+
+        // Método auxiliar para obtener la matriz de transformación
+        private static SKMatrix GetExifMatrix(SKEncodedOrigin origin)
+        {
+            SKMatrix matrix = SKMatrix.CreateIdentity();
+            switch (origin)
+            {
+                case SKEncodedOrigin.TopLeft:
+                    break;
+                case SKEncodedOrigin.TopRight:
+                    matrix = SKMatrix.CreateScale(-1, 1, 0.5f, 0);
+                    break;
+                case SKEncodedOrigin.BottomRight:
+                    matrix = SKMatrix.CreateRotation(180, 0.5f, 0.5f);
+                    break;
+                case SKEncodedOrigin.BottomLeft:
+                    matrix = SKMatrix.CreateScale(1, -1, 0, 0.5f);
+                    break;
+                case SKEncodedOrigin.LeftTop:
+                    matrix = SKMatrix.CreateRotation(90, 0.5f, 0.5f);
+                    break;
+                case SKEncodedOrigin.RightTop:
+                    matrix = SKMatrix.CreateRotation(270, 0.5f, 0.5f);
+                    break;
+                case SKEncodedOrigin.RightBottom:
+                    matrix = SKMatrix.CreateRotation(270, 0.5f, 0.5f);
+                    break;
+                case SKEncodedOrigin.LeftBottom:
+                    matrix = SKMatrix.CreateRotation(90, 0.5f, 0.5f);
+                    break;
+            }
+            return matrix;
+        }
+
 
     }
 }
