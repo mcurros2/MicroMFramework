@@ -13,6 +13,7 @@ export const ModalsManagerDefaultProps = {
     FullScreenIcon: IconArrowsDiagonal,
     RestoreScreeSizeIcon: IconArrowsDiagonalMinimize2,
     withCloseButton: true,
+    withFullscreenButton: true
 }
 
 export type MicroMModalSize = MantineNumberSize | 'fullscreen';
@@ -102,6 +103,11 @@ export const ModalsManager = ({ modalProps, animationDuration, children }: Modal
         // Default for closeButton
         if (modalProps.withCloseButton === undefined) {
             modalProps.withCloseButton = ModalsManagerDefaultProps.withCloseButton;
+        }
+
+        // Default full screen button
+        if (modalProps.withFullscreenButton === undefined) {
+            modalProps.withFullscreenButton = ModalsManagerDefaultProps.withFullscreenButton;
         }
 
         // If content is a Promise
