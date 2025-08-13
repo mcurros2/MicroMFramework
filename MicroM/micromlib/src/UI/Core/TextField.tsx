@@ -1,4 +1,4 @@
-import { Group, TextInput, TextInputProps, useComponentDefaultProps } from "@mantine/core";
+import { Group, TextInput, TextInputProps, useComponentDefaultProps, px } from "@mantine/core";
 import { ReactNode, forwardRef, useCallback } from "react";
 import { EntityColumn, EntityColumnFlags } from "../../Entity";
 import { ValidatorConfiguration } from "../../Validation";
@@ -24,7 +24,7 @@ export const TextField = forwardRef<HTMLInputElement, TextFieldProps>(function T
 
     const {
         column, entityForm, validate, validationContainer, maw, required, requiredMessage, maxLength, readOnly, label,
-        placeholder, description, withAsterisk, autoFocus, onBlur, onChange, onFocus, transform, autoTrim,
+        placeholder, description, withAsterisk, autoFocus, onBlur, onChange, onFocus, transform, autoTrim, iconWidth,
         ...others
     } = useComponentDefaultProps('TextField', defaultProps, props);
 
@@ -58,6 +58,7 @@ export const TextField = forwardRef<HTMLInputElement, TextFieldProps>(function T
         mantineOnFocus(event);
     }, [mantineOnFocus, onFocus]);
 
+
     return (
         <TextInput
             {...others}
@@ -74,6 +75,7 @@ export const TextField = forwardRef<HTMLInputElement, TextFieldProps>(function T
             onBlur={handleOnBlur}
             onChange={handleOnChange}
             onFocus={handleOnFocus}
+            iconWidth={iconWidth && typeof iconWidth === 'string' ? px(iconWidth) : iconWidth }
             ref={ref}
         />
     )
