@@ -129,7 +129,7 @@ export class MicroMClient {
             }
 
             //TODO: explicar por que no envía el token con esta solicitud? 
-            const response = await fetch(`${this.#API_URL}/${this.#APP_ID}/logoff`, {
+            const response = await fetch(`${this.#API_URL}/${this.#APP_ID}/auth/logoff`, {
                 method: 'POST',
                 headers: { "Content-Type": "application/json; charset=utf-8", "Authorization": `Bearer ${this.#TOKEN?.access_token || ''}` },
                 mode: this.#REQUEST_MODE,
@@ -158,7 +158,7 @@ export class MicroMClient {
             await this.#checkAndRefreshToken();
 
             if (this.#TOKEN !== null && this.#TOKEN.access_token !== '') {
-                const response = await fetch(`${this.#API_URL}/${this.#APP_ID}/isloggedin`, {
+                const response = await fetch(`${this.#API_URL}/${this.#APP_ID}/auth/isloggedin`, {
                     method: 'GET',
                     headers: { "Content-Type": "application/json; charset=utf-8", "Authorization": `Bearer ${this.#TOKEN.access_token}` },
                     mode: this.#REQUEST_MODE,
@@ -228,7 +228,7 @@ export class MicroMClient {
             
             const localDeviceId = await this.#getLocalDeviceId();
 
-            const response = await fetch(`${this.#API_URL}/${this.#APP_ID}/login`, {
+            const response = await fetch(`${this.#API_URL}/${this.#APP_ID}/auth/login`, {
                 method: 'POST',
                 headers: { "Content-Type": "application/json; charset=utf-8" },
                 mode: this.#REQUEST_MODE,
@@ -292,7 +292,7 @@ export class MicroMClient {
         const loginTimeout = new TimeoutSignal(this.#LOGIN_TIMEOUT * 4, 'Login request timed out');
 
         try {
-            const response = await fetch(`${this.#API_URL}/${this.#APP_ID}/recoveryemail`, {
+            const response = await fetch(`${this.#API_URL}/${this.#APP_ID}/auth/recoveryemail`, {
                 method: 'POST',
                 headers: { "Content-Type": "application/json; charset=utf-8" },
                 mode: this.#REQUEST_MODE,
@@ -321,7 +321,7 @@ export class MicroMClient {
         const loginTimeout = new TimeoutSignal(this.#LOGIN_TIMEOUT * 4, 'Login request timed out');
         try {
 
-            const response = await fetch(`${this.#API_URL}/${this.#APP_ID}/recoverpassword`, {
+            const response = await fetch(`${this.#API_URL}/${this.#APP_ID}/auth/recoverpassword`, {
                 method: 'POST',
                 headers: { "Content-Type": "application/json; charset=utf-8" },
                 mode: this.#REQUEST_MODE,
@@ -488,7 +488,7 @@ export class MicroMClient {
 
                 //console.log('Refreshing token');
                 const old_token = this.#TOKEN;
-                const response = await fetch(`${this.#API_URL}/${this.#APP_ID}/refresh`, {
+                const response = await fetch(`${this.#API_URL}/${this.#APP_ID}/auth/refresh`, {
                     method: 'POST',
                     headers: { "Content-Type": "application/json; charset=utf-8" },
                     mode: this.#REQUEST_MODE,
@@ -586,7 +586,7 @@ export class MicroMClient {
         , recordsSelection: ValuesObject[] | null, action: APIAction, abort_signal: AbortSignal | null = null, additional_route: string | null = null) {
 
         const extra_route = (additional_route !== null) ? `/${additional_route}` : '';
-        const route = `${this.#API_URL}/${this.#APP_ID}/${entity_name}/${action}${extra_route}`;
+        const route = `${this.#API_URL}/${this.#APP_ID}/ent/${entity_name}/${action}${extra_route}`;
 
         try {
             await this.#checkAndRefreshToken();
