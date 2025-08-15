@@ -20,7 +20,7 @@ public class EntitiesController : ControllerBase, IEntitiesController
     }
 
     [Authorize(policy: nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy))]
-    [HttpPost("{app_id}/{entityName}/action/{actionName}")]
+    [HttpPost("{app_id}/ent/{entityName}/action/{actionName}")]
     public async Task<ObjectResult> Action([FromServices] IAuthenticationProvider auth, [FromServices] IMicroMAppConfiguration app_config, [FromServices] IEntitiesService ents, string app_id, string entityName, string actionName, [FromBody] DataWebAPIRequest parms, CancellationToken ct)
     {
         try
@@ -45,7 +45,7 @@ public class EntitiesController : ControllerBase, IEntitiesController
     }
 
     [Authorize(policy: nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy))]
-    [HttpPost("{app_id}/{entityName}/delete")]
+    [HttpPost("{app_id}/ent/{entityName}/delete")]
     public async Task<ObjectResult> Delete([FromServices] IAuthenticationProvider auth, [FromServices] IMicroMAppConfiguration app_config, [FromServices] IEntitiesService ents, string app_id, string entityName, [FromBody] DataWebAPIRequest parms, CancellationToken ct)
     {
         try
@@ -69,7 +69,7 @@ public class EntitiesController : ControllerBase, IEntitiesController
 
 
     [Authorize(policy: nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy))]
-    [HttpPost("{app_id}/{entityName}/get")]
+    [HttpPost("{app_id}/ent/{entityName}/get")]
     public async Task<ObjectResult> Get([FromServices] IAuthenticationProvider auth, [FromServices] IMicroMAppConfiguration app_config, [FromServices] IEntitiesService ents, string app_id, string entityName, [FromBody] DataWebAPIRequest parms, CancellationToken ct)
     {
         try
@@ -96,7 +96,7 @@ public class EntitiesController : ControllerBase, IEntitiesController
 
 
     [Authorize(policy: nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy))]
-    [HttpGet("{app_id}/{entityName}/definition")]
+    [HttpGet("{app_id}/ent/{entityName}/definition")]
     public ObjectResult GetDefinition([FromServices] IEntitiesService ents, [FromServices] IMicroMAppConfiguration app_config, string app_id, string entityName)
     {
         try
@@ -120,7 +120,7 @@ public class EntitiesController : ControllerBase, IEntitiesController
 
 
     [Authorize(policy: nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy))]
-    [HttpPost("{app_id}/timezoneoffset")]
+    [HttpPost("{app_id}/ent/timezoneoffset")]
     public async Task<int> GetTimeZoneOffset([FromServices] IAuthenticationProvider auth, [FromServices] IMicroMAppConfiguration app_config, [FromServices] IEntitiesService ents, string app_id, CancellationToken ct)
     {
         try
@@ -142,7 +142,7 @@ public class EntitiesController : ControllerBase, IEntitiesController
     }
 
     [Authorize(policy: nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy))]
-    [HttpPost("{app_id}/{entityName}/import/{import_proc?}")]
+    [HttpPost("{app_id}/ent/{entityName}/import/{import_proc?}")]
     public async Task<ObjectResult> Import([FromServices] IAuthenticationProvider auth, [FromServices] IMicroMAppConfiguration app_config, [FromServices] IEntitiesService ents, string app_id, string entityName, string? import_proc, [FromBody] DataWebAPIRequest parms, CancellationToken ct)
     {
         try
@@ -167,7 +167,7 @@ public class EntitiesController : ControllerBase, IEntitiesController
     }
 
     [Authorize(policy: nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy))]
-    [HttpPost("{app_id}/{entityName}/insert")]
+    [HttpPost("{app_id}/ent/{entityName}/insert")]
     public async Task<ObjectResult> Insert(
         [FromServices] IAuthenticationProvider auth,
         [FromServices] IMicroMAppConfiguration app_config,
@@ -199,7 +199,7 @@ public class EntitiesController : ControllerBase, IEntitiesController
 
 
     [Authorize(policy: nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy))]
-    [HttpPost("{app_id}/{entityName}/lookup/{lookupName?}")]
+    [HttpPost("{app_id}/ent/{entityName}/lookup/{lookupName?}")]
     public async Task<ObjectResult> Lookup([FromServices] IAuthenticationProvider auth, [FromServices] IMicroMAppConfiguration app_config, [FromServices] IEntitiesService ents, string app_id, string entityName, string? lookupName, [FromBody] DataWebAPIRequest parms, CancellationToken ct)
     {
         try
@@ -219,7 +219,7 @@ public class EntitiesController : ControllerBase, IEntitiesController
     }
 
     [Authorize(policy: nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy))]
-    [HttpPost("{app_id}/{entityName}/proc/{procName}")]
+    [HttpPost("{app_id}/ent/{entityName}/proc/{procName}")]
     public async Task<ObjectResult> Proc([FromServices] IAuthenticationProvider auth, [FromServices] IMicroMAppConfiguration app_config, [FromServices] IEntitiesService ents, string app_id, string entityName, string procName, [FromBody] DataWebAPIRequest parms, CancellationToken ct)
     {
         try
@@ -242,7 +242,7 @@ public class EntitiesController : ControllerBase, IEntitiesController
     }
 
     [Authorize(policy: nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy))]
-    [HttpPost("{app_id}/{entityName}/process/{procName}")]
+    [HttpPost("{app_id}/ent/{entityName}/process/{procName}")]
     public async Task<ObjectResult> Process([FromServices] IAuthenticationProvider auth, [FromServices] IMicroMAppConfiguration app_config, [FromServices] IEntitiesService ents, string app_id, string entityName, string procName, [FromBody] DataWebAPIRequest parms, CancellationToken ct)
     {
         try
@@ -265,7 +265,7 @@ public class EntitiesController : ControllerBase, IEntitiesController
     }
 
     [Authorize(policy: nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy))]
-    [HttpPost("{app_id}/{entityName}/update")]
+    [HttpPost("{app_id}/ent/{entityName}/update")]
     public async Task<ObjectResult> Update([FromServices] IAuthenticationProvider auth, [FromServices] IMicroMAppConfiguration app_config, [FromServices] IEntitiesService ents, string app_id, string entityName, [FromBody] DataWebAPIRequest parms, CancellationToken ct)
     {
         try
@@ -290,7 +290,7 @@ public class EntitiesController : ControllerBase, IEntitiesController
     }
 
     [Authorize(policy: nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy))]
-    [HttpPost("{app_id}/{entityName}/view/{viewName}")]
+    [HttpPost("{app_id}/ent/{entityName}/view/{viewName}")]
     public async Task<ObjectResult> View([FromServices] IAuthenticationProvider auth, [FromServices] IMicroMAppConfiguration app_config, [FromServices] IEntitiesService ents, string app_id, string entityName, string viewName, [FromBody] DataWebAPIRequest parms, CancellationToken ct)
     {
         try

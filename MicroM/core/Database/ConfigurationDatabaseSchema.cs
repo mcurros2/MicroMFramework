@@ -21,6 +21,9 @@ public static class ConfigurationDatabaseSchema
             new ApplicationsAssemblies(ec),
             new ApplicationAssemblyTypes(ec),
             new ApplicationsUrls(ec),
+            new ApplicationOidcClients(ec),
+            new ApplicationOidcServer(ec),
+            new ApplicationOidcServerSessions(ec)
             ]);
 
         return result;
@@ -42,6 +45,9 @@ public static class ConfigurationDatabaseSchema
             await CreateSchemaAndDictionary<ApplicationsAssemblies>(ec, ct, create_custom_procs: true, create_or_alter: create_or_alter);
             await CreateSchemaAndDictionary<ApplicationAssemblyTypes>(ec, ct, create_custom_procs: true, create_or_alter: create_or_alter);
             await CreateSchemaAndDictionary<ApplicationsUrls>(ec, ct, create_custom_procs: true, create_or_alter: create_or_alter);
+            await CreateSchemaAndDictionary<ApplicationOidcClients>(ec, ct, create_custom_procs: true, create_or_alter: create_or_alter);
+            await CreateSchemaAndDictionary<ApplicationOidcServer>(ec, ct, create_custom_procs: true, create_or_alter: create_or_alter);
+            await CreateSchemaAndDictionary<ApplicationOidcServerSessions>(ec, ct, create_custom_procs: true, create_or_alter: create_or_alter);
         }
         finally
         {

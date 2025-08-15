@@ -13,7 +13,7 @@ namespace MicroM.Generators.SQLGenerator
             if (entity.Def.Fake && force == false) return "";
             if (!entity.Def.Views.ContainsKey($"{entity.Def.Mneo}_brwStandard"))
             {
-                return "// No standard view defined";
+                return "-- No standard view defined";
             }
             var likes = entity.Def.Columns.GetWithFlags(ColumnFlags.All, ColumnFlags.Fake, DefaultColumns.SystemNames);
 

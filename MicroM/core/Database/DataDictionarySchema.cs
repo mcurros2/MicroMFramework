@@ -122,6 +122,8 @@ public static class DataDictionarySchema
             await CreateAllEntitiesProcs(ec, entities, custom_procs, ct, create_or_alter);
 
             await CreateCategory<UserTypes>(ec, ct);
+            await CreateCategory<IdentityProviderRole>(ec, ct);
+
             await CreateStatus<FileUpload>(ec, ct);
             await CreateStatus<ProcessStatus>(ec, ct);
             await CreateStatus<EmailStatus>(ec, ct);

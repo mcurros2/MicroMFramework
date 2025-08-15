@@ -2,7 +2,7 @@
 
 namespace MicroM.Web.Authentication.SSO;
 
-public interface IOIDCIdentityProvider
+public interface IIdentityProviderService
 {
     Task<Dictionary<string, string>> GetWellKnown(ApplicationOption app_config, CancellationToken ct);
 

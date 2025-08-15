@@ -20,17 +20,17 @@ namespace MicroM.Web.Services.Security
         public static bool IsEveryoneAllowedRoute(string base_path, string app_id, string route_path)
         {
             if (route_path.IsIn(
-                    [$"/{base_path}/{app_id}/{nameof(MicroMEveryoneAllowedRoutes.isloggedin)}",
-                    $"/{base_path}/{app_id}/{nameof(MicroMEveryoneAllowedRoutes.refresh)}",
-                    $"/{base_path}/{app_id}/{nameof(MicroMEveryoneAllowedRoutes.logoff)}",
-                    $"/{base_path}/{app_id}/{nameof(MicroMEveryoneAllowedRoutes.recoverpassword)}",
-                    $"/{base_path}/{app_id}/{nameof(MicroMEveryoneAllowedRoutes.recoveryemail)}",
-                    $"/{base_path}/{app_id}/{nameof(MicromUsers)}/proc/{nameof(MicromUsersDef.usr_GetEnabledMenus)}",
-                    $"/{base_path}/{app_id}/{nameof(SystemProcs)}/proc/{nameof(SystemProcsDef.sys_GetTimeZoneOffset)}",
-                    $"/{base_path}/{app_id}/{nameof(FileStoreProcess)}/insert",
-                    $"/{base_path}/{app_id}/{nameof(FileStore)}/delete",
-                    $"/{base_path}/{app_id}/{nameof(CategoriesValues)}/view/{nameof(CategoriesValuesDef.cav_brwStandard)}",
-                    $"/{base_path}/{app_id}/{nameof(FileStore)}/view/{nameof(FileStoreDef.fst_brwFiles)}"],
+                    [$"/{base_path}/{app_id}/auth/{nameof(MicroMEveryoneAllowedRoutes.isloggedin)}",
+                    $"/{base_path}/{app_id}/auth/{nameof(MicroMEveryoneAllowedRoutes.refresh)}",
+                    $"/{base_path}/{app_id}/auth/{nameof(MicroMEveryoneAllowedRoutes.logoff)}",
+                    $"/{base_path}/{app_id}/auth/{nameof(MicroMEveryoneAllowedRoutes.recoverpassword)}",
+                    $"/{base_path}/{app_id}/auth/{nameof(MicroMEveryoneAllowedRoutes.recoveryemail)}",
+                    $"/{base_path}/{app_id}/ent/{nameof(MicromUsers)}/proc/{nameof(MicromUsersDef.usr_GetEnabledMenus)}",
+                    $"/{base_path}/{app_id}/ent/{nameof(SystemProcs)}/proc/{nameof(SystemProcsDef.sys_GetTimeZoneOffset)}",
+                    $"/{base_path}/{app_id}/ent/{nameof(FileStoreProcess)}/insert",
+                    $"/{base_path}/{app_id}/ent/{nameof(FileStore)}/delete",
+                    $"/{base_path}/{app_id}/ent/{nameof(CategoriesValues)}/view/{nameof(CategoriesValuesDef.cav_brwStandard)}",
+                    $"/{base_path}/{app_id}/ent/{nameof(FileStore)}/view/{nameof(FileStoreDef.fst_brwFiles)}"],
                     StringComparer.OrdinalIgnoreCase
                     ))
             {

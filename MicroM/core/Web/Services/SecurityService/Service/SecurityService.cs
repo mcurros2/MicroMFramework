@@ -59,7 +59,7 @@ namespace MicroM.Web.Services.Security
                     {
                         // Get routes
                         var allowedRoutes = group
-                            .Select(r => $"/{options.Value.MicroMAPIBaseRootPath}/{app_id}/{r.vc_route_path}");
+                            .Select(r => $"/{options.Value.MicroMAPIBaseRootPath}/{app_id}/ent/{r.vc_route_path}");
 
 
                         // last update

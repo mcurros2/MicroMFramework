@@ -23,6 +23,12 @@
 		, @assembly3 VarChar(2048)
 		, @assembly4 VarChar(2048)
 		, @assembly5 VarChar(2048)
+		, @identity_provider_role_id char(20)
+		, @oidc_url_wellknown VarChar(2048)
+		, @oidc_url_jwks VarChar(2048)
+		, @oidc_url_authorize VarChar(2048)
+		, @oidc_url_token_backchannel VarChar(2048)
+		, @oidc_url_endsession VarChar(2048)
 		, @lu DateTime
 		, @webusr VarChar(80)
         , @result int output
@@ -41,7 +47,7 @@ create table [#TempAppUrls] (c_application_url_id char(20) null, vc_application_
 IF @appurls IS NOT NULL
 BEGIN
     insert  [#TempAppUrls]
-    select  isnull(b.c_application_url_id, CONVERT(VARCHAR(20), CONVERT(BIGINT, CHECKSUM(b.c_application_url_id)) & 0xFFFFFFFF))
+    select  isnull(b.c_application_url_id, CONVERT(VARCHAR(20), CONVERT(BIGINT, CHECKSUM(a.vc_application_url)) & 0xFFFFFFFF))
             , trim(a.vc_application_url)
     from    openjson(@appurls) WITH (vc_application_url varchar(max) '$') a
             left join applications_urls b
@@ -100,6 +106,20 @@ begin try
             , @login
             )
 
+        insert  [applications_cat]
+        values  
+            (
+            @application_id
+			, 'IdentityProviderRole'
+			, @identity_provider_role_id
+            , @now
+            , @now
+            , @webusr
+            , @webusr
+            , @login
+            , @login
+            )
+
         if @appurls is not null
         begin
             insert  [applications_urls]
@@ -113,6 +133,12 @@ begin try
 				    , @login
 				    , @login
             from    [#TempAppUrls]
+        end
+
+        exec aois_iupdate @application_id, @oidc_url_wellknown, @oidc_url_jwks, @oidc_url_authorize, @oidc_url_token_backchannel, @oidc_url_endsession, null, @webusr, @result out, @msg out
+        if @result not in(0, 15)
+        begin
+            return
         end
 
         exec apa_iupdateAssembly @application_id, null, @assembly1, 1, null, @webusr, @result out, @msg out
@@ -184,6 +210,40 @@ begin try
     where   c_application_id = @application_id
 			and c_category_id = 'AuthenticationTypes'
 
+
+    if not exists
+        (
+            select  1
+            from    [applications_cat] x
+            where   x.c_application_id = @application_id
+                    and x.c_category_id = 'IdentityProviderRole'
+        )
+    begin
+        insert  [applications_cat]
+        values  
+            (
+            @application_id
+			, 'IdentityProviderRole'
+			, @identity_provider_role_id
+            , @now
+            , @now
+            , @webusr
+            , @webusr
+            , @login
+            , @login
+            )
+    end
+    else
+    begin
+        update  [applications_cat]
+        set     c_categoryvalue_id = @identity_provider_role_id
+                , vc_webluuser = @webusr
+                , vc_luuser = @login
+                , dt_lu = @now
+        where   c_application_id = @application_id
+			    and c_category_id = 'IdentityProviderRole'
+    end
+
     delete  [applications_urls]
     WHERE   c_application_id = @application_id
             and c_application_url_id not in (select c_application_url_id from [#TempAppUrls])
@@ -205,6 +265,12 @@ begin try
                 from    [applications_urls] x
                 where   x.c_application_id=@application_id 
             )
+
+    exec aois_iupdate @application_id, @oidc_url_wellknown, @oidc_url_jwks, @oidc_url_authorize, @oidc_url_token_backchannel, @oidc_url_endsession, null, @webusr, @result out, @msg out
+    if @result not in(0, 15)
+    begin
+        return
+    end
 
     exec apa_iupdateAssembly @application_id, null, @assembly1, 1, null, @webusr, @result out, @msg out
     if @result not in(0, 15)

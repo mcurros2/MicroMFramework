@@ -21,5 +21,7 @@ namespace MicroM.Web.Services
 
         public PublicEndpointSecurityRecord? GetPublicAccessAllowedRoutes(string app_id);
 
+        public bool IsCORSOriginAllowed(string? app_id, string origin);
+
     }
 }

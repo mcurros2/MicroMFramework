@@ -6,6 +6,15 @@ begin try
 
     begin tran
     
+    delete  application_oidc_server_sessions
+    where   c_application_id = @application_id
+
+    delete  application_oidc_server
+    where   c_application_id = @application_id
+
+    delete  application_oidc_clients
+    where   c_application_id = @application_id
+
     delete  [applications_assemblies]
     where   c_application_id = @application_id
 
