@@ -8,11 +8,11 @@ The `MicroM.Core` namespace contains the most fundamental and foundational class
 A utility class for calculating CRC-32/ISO-HDLC checksums.
 
 ### `CRC32FromByteArray(byte[] bytes)`
-**Returns:** `UInt32`
+**Returns:** `UInt32`  
 Computes the CRC-32 checksum for a byte array.
 
 ### `CRCFromString(string string_to_hash)`
-**Returns:** `UInt32`
+**Returns:** `UInt32`  
 Computes the CRC-32 checksum for a UTF-8 encoded string.
 
 ---
