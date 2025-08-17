@@ -1,0 +1,26 @@
+{
+  "metadata": [
+    {
+      "src": [
+        {
+          "src": "../core",
+          "files": [ "MicroMCore.csproj" ],
+          "exclude": [ "**/bin/**", "**/obj/**" ]
+        }
+      ],
+      "dest": "api"
+    }
+  ],
+  "build": {
+    "content": [
+      {
+        "files": [ "**/*.md" ],
+        "src": "../Documentation/Backend"
+      },
+      {
+        "files": [ "api/**.yml" ]
+      }
+    ],
+    "dest": "../Documentation/Backend/_site"
+  }
+}
