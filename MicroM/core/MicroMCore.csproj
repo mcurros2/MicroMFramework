@@ -19,7 +19,7 @@
     <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
     <Title>MicroM Framework</Title>
     <Description>MicroM, lightweight framework to create SQL Server Database centric apps.</Description>
-    <GenerateDocumentationFile>False</GenerateDocumentationFile>
+    <GenerateDocumentationFile>True</GenerateDocumentationFile>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     
