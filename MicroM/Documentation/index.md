@@ -31,3 +31,7 @@ MicroM is a lightweight, modular framework designed to simplify the development 
 ---
 
 Continue to the next sections for detailed guides, API references, and advanced usage.
+
+## Documentation Sections
+
+- [Backend](./Backend/index.md) – Namespaces, tutorials, and API reference for the server-side framework.

@@ -1,9 +1,12 @@
-﻿using MicroM.Core;
+using MicroM.Core;
 using MicroM.Data;
 using MicroM.Database;
 
 namespace MicroM.Configuration
 {
+    /// <summary>
+    /// Result values for database migration operations.
+    /// </summary>
     public enum DatabaseMigrationResult
     {
         NoMigrationNeeded,
@@ -11,17 +14,24 @@ namespace MicroM.Configuration
         NotMigrated
     }
 
+    /// <summary>
+    /// Provides methods for creating and migrating the MicroM database schema.
+    /// </summary>
     public interface IDatabaseSchema
     {
-        public Task<CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>>> GetEntitiesTypes(IEntityClient ec, CancellationToken ct);
+        /// <summary>Get the entity types to build the schema for.</summary>
+        Task<CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>>> GetEntitiesTypes(IEntityClient ec, CancellationToken ct);
 
-        public Task CreateDBSchemaAndProcs(IEntityClient ec, CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>> entities, CancellationToken ct, bool create_or_alter = true, bool create_if_not_exists = true);
+        /// <summary>Create or alter schema and stored procedures.</summary>
+        Task CreateDBSchemaAndProcs(IEntityClient ec, CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>> entities, CancellationToken ct, bool create_or_alter = true, bool create_if_not_exists = true);
 
-        public Task GrantPermissions(IEntityClient ec, CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>> entities, string login_or_group, CancellationToken ct);
+        /// <summary>Grant permissions for the generated schema.</summary>
+        Task GrantPermissions(IEntityClient ec, CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>> entities, string login_or_group, CancellationToken ct);
 
-        public Task CreateMenus(IEntityClient ec, CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>> entities, CancellationToken ct);
+        /// <summary>Create menu entries for the generated entities.</summary>
+        Task CreateMenus(IEntityClient ec, CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>> entities, CancellationToken ct);
 
-        public Task<DatabaseMigrationResult> MigrateDatabase(IEntityClient ec, CancellationToken ct);
-
+        /// <summary>Migrate the database to the latest schema version.</summary>
+        Task<DatabaseMigrationResult> MigrateDatabase(IEntityClient ec, CancellationToken ct);
     }
 }
