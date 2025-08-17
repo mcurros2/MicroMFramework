@@ -1,132 +1,135 @@
 ﻿# MicroMFramework Documentation Instructions
 
-This file defines the iterative documentation workflow for documenting the backend of MicroMFramework using DocFX.
+This file defines the iterative documentation workflow for documenting the backend of MicroMFramework using DocFX. **This file contains the instructions to be followed by agents. Sample files are only templates.**
 
 ---
 
-## Iterative Documentation Plan
+## Documentation Files & Locations
 
-### 1. Establish a Baseline (Iteration 0)
+- **Instructions (this file & samples):** `AgentsInstructions/Documentation/`
+  - Instructions for agents live here.
+  - Sample files (templates only, do not edit):
+    - [`docs-state-backend-sample.md`](docs-state-backend-sample.md) → Template for tracking documentation state.
+    - [`iteration-summary-backend-sample.md`](iteration-summary-backend-sample.md) → Template for iteration summaries.
 
-**Inventory current documentation (do not fix yet)**
-- Read existing files under `MicroM/Documentation/` and note incomplete sections.
-- Record findings in `MicroM/Documentation-Progress/Backend/docs-state-backend.md` with headings for each namespace and tutorial.
-- Note missing or incomplete XML comments, but do not fix them yet.
+- **Progress tracking (results created by AI agents):** `MicroM/Documentation-Progress/Backend/`
+  - `docs-state-backend.md` → Maintained record of documentation coverage (namespaces & tutorials).
+  - `iteration-summary.md` → Iteration progress and results log.
+  - `iteration-notes.md` → Additional notes, context overflow, or long details.
 
-**Set up DocFX infrastructure**
-- Create a `MicroM/docfx/docfx.json` file that points to:
-  - `MicroM/core/` assemblies for XML comment extraction.
-  - `MicroM/Documentation/Backend/` as the conceptual docs folder.
-- Run `docfx metadata` to generate API metadata.
-- Run `docfx build` and capture output in `MicroM/docfx-buildlogs/iteration0-backend.log`.
-
-**Create baseline summary**
-- Add `MicroM/Documentation-Progress/Backend/iteration-summary.md` noting:
-  - Generated docs status.
-  - Missing namespaces or pages.
-  - Tasks to address in future iterations.
-- Commit `docfx.json`, `docs-state-backend.md`, `iteration-summary.md`, and build log.
+- **Backend documentation site (source & output):** `MicroM/Documentation/Backend/`
+  - Must contain an `index.md` at root.
+  - Each namespace must have its own folder with its own `index.md`.
+  - Sub-folders may be used if a namespace is too large.
+  - Generated output (`_site`) must remain inside this directory.
 
 ---
 
-### 2. Iterative Process (Iterations 1+)
+## Documentation State & Iteration Summary Guidelines
 
-Each iteration starts with a plan and ends with recorded progress.
+Both `docs-state-backend.md` and `iteration-summary.md` follow the same principles:
 
-#### Plan Phase
-- Read `iteration-summary.md` to identify outstanding tasks.
-- Create a plan block at the top of `iteration-summary.md` for the new iteration:
-  - List intended tasks (e.g., “Complete XML docs for Configuration namespace”, “Document Configuration namespace”, “Complete overview tutorial”).
-  - Reference related files/paths.
+- **docs-state-backend.md**
+  - Organized by namespace and tutorial.
+  - Notes coverage of XML comments, missing pages, and incomplete docs.
+  - Always updated after a baseline verification run.
+  - Use [`docs-state-backend-sample.md`](docs-state-backend-sample.md) as the template.
 
-#### Execution Phase
-For each task:
-- Add or update documentation files under `MicroM/Documentation/Backend/`.
-- Update corresponding `index.md` files to include new pages.
-- If code changes introduce/modify public APIs, ensure XML comments exist.
-- Keep notes in `MicroM/Documentation-Progress/Backend/iteration-notes.md` for any context that might exceed token limits in future iterations.
+- **iteration-summary.md**
+  - For each iteration, the file must contain structured blocks:
+    - **Plan block**: Intended tasks (with file paths & namespaces).
+    - **Execution results**: For each task, record the execution outcome:
+      - `Success`: Completed as expected.
+      - `Warning`: Completed with minor issues (e.g., missing XML comments).
+      - `Error`: Expected but incomplete (e.g., page not linked in `index.md`).
+      - `Failure`: Critical (e.g., docfx build failed, site not generated).
+    - **Verification results**: For each task, confirm if the expected output exists and works.
+      - Indicate `(success)` or `(failure)`.
+      - If verification fails, explicitly state the reason (e.g., *“missing XML comments”*, *“page not linked in index.md”*).
+      - Explicitly classify each failure as Warning / Error / Failure.
+    - **Issues encountered**: List missing namespaces, incomplete docs, broken links.
+    - **Forward tasks**: New or deferred work for future iterations, clearly marked.
+  - Use [`iteration-summary-backend-sample.md`](iteration-summary-backend-sample.md) as the template.
 
-#### Verification Phase
+Both files should cross-reference each other: `docs-state-backend.md` provides the coverage baseline, while `iteration-summary.md` records incremental progress.
+
+**Samples are templates only. Agents must not update them.**
+
+---
+
+## Baseline Phase (Verification Pass)
+
+The **baseline phase** establishes the current state of documentation for a namespace or for the backend overall.
+
+- Run this phase:
+  - At the very start (Iteration 0).
+  - Each time a namespace is completed, to verify and correct current status.
+
+### Steps
+1. **Inventory** existing docs under `MicroM/Documentation/Backend/`.
+2. Record gaps in `docs-state-backend.md`.
+3. Run `docfx metadata` and `docfx build`.
+   - Save logs to `MicroM/docfx-buildlogs/baseline-[namespace].log`.
+4. Summarize findings in `iteration-summary.md`:
+   - For each task, include **execution result** and **verification result**.
+   - Classify issues explicitly:
+     - **Warning**: Non-critical issues (e.g., missing XML comments).
+     - **Error**: Expected but incomplete (e.g., page not linked in `index.md`).
+     - **Failure**: Critical (e.g., docfx build broken).
+5. If failures or critical gaps are found, schedule a new iteration to revisit the namespace.
+
+---
+
+## Iterative Process (Iterations 1+)
+
+After baseline verification, documentation improves in cycles.
+
+### Plan Phase
+- Review `iteration-summary.md` and `docs-state-backend.md`.
+- Add a **plan block** at the top of `iteration-summary.md`:
+  - Define tasks (e.g., “Complete XML docs for Configuration namespace”, “Document Configuration namespace overview”).
+  - Reference related files and folders.
+
+### Execution Phase
+- Add or update documentation under `MicroM/Documentation/Backend/`.
+- Ensure every new page is linked in the nearest `index.md` and higher-level indexes.
+- Ensure public APIs have XML comments.
+- Record notes in `iteration-notes.md` if details exceed summary scope.
+
+### Verification Phase
 - Run `docfx metadata` and `docfx build`.
-- Append command outputs (success/failures) to `MicroM/docfx-buildlogs/iterationN.log`.
-- Review generated site in `MicroM/Documentation/Backend/_site` (read-only check: confirm new pages exist, links work).
+- Save logs to `MicroM/docfx-buildlogs/iterationN.log`.
+- Check generated site in `MicroM/Documentation/Backend/_site` for pages and links.
+- For each task:
+  - Record execution result.
+  - Record verification result with explicit success/failure.
+  - Provide reason if verification fails.
+  - Classify outcomes as Warning, Error, or Failure.
 
-#### Summary & Forward-Looking Tasks
-- Append a results block to `iteration-summary.md`:
-  - Completed items.
+### Summary & Forward Tasks
+- Append results to `iteration-summary.md`:
+  - Task outcomes (execution + verification).
+  - Verification outcomes with reasoning.
   - Issues encountered.
-  - New tasks discovered.
-- Clearly label tasks that must be tackled in upcoming iterations.
+  - Next iteration tasks (must, should, future).
 
-#### Commit Changes
-- Commit updated/created files (`Documentation/...`, `docfx.json`, `docs/*`).
-- Commit message should mention iteration number and high-level accomplishments.
-
----
-
-### 3. Strategies for Handling Context Limits
-
-- Use summary files (`iteration-notes.md`, `iteration-summary.md`) to externalize findings, avoiding reliance on internal context.
-- Chunk large documents: When editing extensive docs, work on one namespace or tutorial at a time.
-- Use `rg "keyword" -n` to quickly locate relevant content without loading large files entirely into context.
-- Keep examples small: Reference code snippets from source files rather than embedding large blocks in-memory.
-
----
-
-### 4. Verification & Maintenance Guidelines
-
-DocFX commands (run every iteration):
-```
-docfx metadata
-docfx build
-```
-
-Index maintenance:
-- Every new doc page must be linked from the nearest `index.md` and higher-level indexes (namespace → Backend → root).
-
-Checklist per iteration:
-- Review previous summary.
-- Plan tasks.
-- Execute and document.
-- Run docfx commands.
-- Update summary with outcomes and new tasks.
-- Commit.
-
----
-
-### 5. Future Iterations – Example Tasks
-
-- Fill documentation gap for `Configuration` namespace.
-- Complete “overview tutorial” section with database initialization example.
-- Add cross‑namespace usage examples.
-- Generate contribution guide (`CONTRIBUTING.md`) with documentation rules.
-- Integrate doc build verification into CI.
+### Commit Changes
+- Commit updated/created files:
+  - `Documentation/Backend/...`
+  - `Documentation-Progress/Backend/...`
+  - `docfx.json`
+  - Build logs
+- Use commit messages that mention iteration number and high-level results.
 
 ---
 
 ## Project Layout Notes
 
-- **Backend**: `/MicroM/core` (.NET 8, C#, SQL)  
-- **Frontend**: `/MicroM/micromlib` (React, TypeScript, Mantine)  
-- **SSL**: `/MicroM/SSL` (certificate config)  
-- **Documentation**: `/MicroM/Documentation` (site root for backend + frontend docs)  
-- **Backend docs**: `/MicroM/Documentation/Backend` (DocFX output + conceptual docs)  
-- **DocFX tool/config**: `/MicroM/docfx` (kept separate from published docs)  
-- **Tests**: `/MicroM/LibraryTest` (backend tests with MSTest)  
-- **Sample API**: `/MicroM/WebAPI` (temporary, will move out later)  
-
----
-
-## Sample files
-- **docs-state-backend-sample.md**: Sample documentation state file for backend namespaces and tutorials. Link: [docs-state-backend-sample.md](docs-state-backend-sample.md)
-- **iteration-summary-backend-sample.md**: Sample iteration summary file for backend documentation progress. Link: [iteration-summary-backend-sample.md](iteration-summary-backend-sample.md)
-
----
-
-## Special Notes
-
-- Backend XML documentation was recently enabled but remains incomplete.  
-- DocFX output should always go into `/MicroM/Documentation/Backend/_site`.  
-- Ensure `/MicroM/Documentation/index.md` links to backend documentation root (`/Backend/index.md`).  
-
----
+- **Backend**: `/MicroM/core` (.NET 8, C#, SQL)
+- **Frontend**: `/MicroM/micromlib` (React, TypeScript, Mantine)
+- **SSL**: `/MicroM/SSL` (certificate config)
+- **Documentation**: `/MicroM/Documentation` (site root for backend + frontend docs)
+- **Backend docs**: `/MicroM/Documentation/Backend` (DocFX input/output + conceptual docs)
+- **DocFX tool/config**: `/MicroM/docfx` (separate from published docs)
+- **Tests**: `/MicroM/LibraryTest` (backend tests with MSTest)
+- **Sample API**: `/MicroM/WebAPI` (temporary, may move later)
