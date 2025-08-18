@@ -76,7 +76,7 @@ The **baseline phase** establishes the current state of documentation for a name
      - Use [`docs-state-backend-sample.md`](docs-state-backend-sample.md) as a template.
    - Every namespace under MicroM should be listed in `docs-state-backend.md`.
      - namespaces should be listed in alphabetical order. 
-   - Visit each namespace and check:
+   - Create a separate task to Visit each namespace to check:
      - If it has an `index.md` in `MicroM/Documentation/Backend/`.
      - If all public APIs have XML comments.
      - If all pages are linked in the nearest `index.md` and higher-level indexes.
@@ -94,7 +94,7 @@ The **baseline phase** establishes the current state of documentation for a name
          - **Not Started**: No documentation started for the namespace.
      - Add new namespaces to `docs-state-backend.md` with initial status of incomplete.
      - Delete any namespaces that are no longer present in `MicroM/core` from `docs-state-backend.md`.
-3. Run `docfx metadata` and `docfx build`.
+3. Create a separate task to run `docfx metadata` and `docfx build`.
    - Save logs to `MicroM/docfx-buildlogs/baseline-[namespace].log`.
    - Ensure the generated site exists in `MicroM/Documentation/Backend/_site`.
    - Ensure `MicroM/Documentation/Backend/_site` and its contents are committed to git.
