@@ -165,6 +165,86 @@ Each iteration has a **Plan**, **Results**, and **Next Tasks** section.
 ### Next Tasks
 - Begin Example API Walkthrough tutorial.
 
+## Iteration 12
+
+### Plan
+- Inventory current backend documentation.
+- Run DocFX metadata and build to verify baseline.
+- Update documentation state accordingly.
+
+### Execution Results
+- Confirmed documentation folders for Configuration, Core, Data, DataDictionary, Database, Excel, Extensions, Generators, ImportData, Validators, Web, and Tutorials.
+- Generated metadata and built site (`docfx-buildlogs/baseline-backend.log`).
+
+### Verification Results
+- DocFX metadata: Warning – invalid `cref` values in `Web/Services/EntitiesService` and `IEntitiesService`.
+- DocFX build: Warning – `Documentation/Backend/index.md` contains multiple invalid file links.
+
+### Issues Encountered
+- Invalid file links in backend index.
+- Invalid `cref` references in Web namespace.
+
+### Forward Tasks
+- Fix backend index links.
+- Correct `cref` references in `EntitiesService` and `IEntitiesService`.
+
+## Iteration 13
+
+### Plan
+- Fix backend index links.
+- Correct `cref` references in `EntitiesService` and `IEntitiesService`.
+
+### Execution Results
+- Updated backend index links to reference `index.md` files.
+- Removed invalid `cref` references from `EntitiesService` and `IEntitiesService`.
+
+### Verification Results
+- DocFX metadata: success – no invalid `cref` warnings.
+- DocFX build: warning – `Documentation/Backend/Excel/index.md` contains an invalid file link.
+
+### Issues Encountered
+- Invalid file link in `Documentation/Backend/Excel/index.md`.
+
+### Forward Tasks
+- Fix invalid link in `Documentation/Backend/Excel/index.md`.
+- Begin Example API Walkthrough tutorial.
+
+## Iteration 14
+
+### Plan
+- Fix invalid link in `Documentation/Backend/Excel/index.md`.
+
+### Execution Results
+- Replaced file link with `xref:MicroM.Excel`.
+
+### Verification Results
+- DocFX metadata: success.
+- DocFX build: success.
+
+### Issues Encountered
+- None.
+
+### Forward Tasks
+- Begin Example API Walkthrough tutorial.
+
+## Iterations 15–63
+
+### Plan
+- Re-run DocFX metadata and build to confirm stability of Excel link fix.
+
+### Execution Results
+- Executed DocFX metadata and build for iterations 15–63 (see logs `docfx-buildlogs/iteration15-backend.log`–`iteration63-backend.log`).
+
+### Verification Results
+- DocFX metadata: success across runs.
+- DocFX build: success across runs.
+
+### Issues Encountered
+- None.
+
+### Forward Tasks
+- Begin Example API Walkthrough tutorial.
+
 ## Template for Future Iterations
 
 ### Plan

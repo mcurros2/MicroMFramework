@@ -1,6 +1,6 @@
 # Excel
 
-MicroM provides utilities for working with Excel (`.xlsx`) spreadsheets via the [`MicroM.Excel`](../../..//core/Excel) namespace.
+MicroM provides utilities for working with Excel (`.xlsx`) spreadsheets via the [`MicroM.Excel`](xref:MicroM.Excel) namespace.
 
 ## Reading spreadsheets
 
