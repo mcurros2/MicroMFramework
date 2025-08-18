@@ -21,7 +21,7 @@ This file defines the iterative documentation workflow for documenting the backe
   - Must contain an `index.md` at root.
   - Each namespace must have its own folder with its own `index.md`.
   - Sub-folders may be used if a namespace is too large.
-  - Generated output (`_site`) must remain inside this directory.
+  - Generated output (`_site`) must remain inside this directory. IT SHOULD BE INCLUDED IN GIT AND COMMITTED
 
 ---
 
@@ -66,9 +66,16 @@ The **baseline phase** establishes the current state of documentation for a name
   - Each time a namespace is completed, to verify and correct current status.
 
 ### Steps
-1. **Inventory** existing docs under `MicroM/Documentation/Backend/`.
+1. **Delete** `docs-state-backend.md`, `iteration-summary.md`, and `iteration-notes.md`.
+   - Start fresh to ensure accurate baseline.
+   - Use [`docs-state-backend-sample.md`](docs-state-backend-sample.md) as a template.
+   - Document namespaces, tutorials, and coverage of XML comments.
+   - Include any known gaps or issues.
 2. Record gaps in `docs-state-backend.md`.
-3. Run `docfx metadata` and `docfx build`.
+   - Ensure all namespaces are documented and mark the documentation state for each one.
+   - Ensure all public APIs have XML comments and mark the documentation state for each one.
+   - Ensure all pages are linked in the nearest `index.md` and higher-level indexes.
+   - Ensure the generated site exists in `MicroM/Documentation/Backend/_site`.3. Run `docfx metadata` and `docfx build`.
    - Save logs to `MicroM/docfx-buildlogs/baseline-[namespace].log`.
 4. Summarize findings in `iteration-summary.md`:
    - For each task, include **execution result** and **verification result**.
@@ -77,6 +84,8 @@ The **baseline phase** establishes the current state of documentation for a name
      - **Error**: Expected but incomplete (e.g., page not linked in `index.md`).
      - **Failure**: Critical (e.g., docfx build broken).
 5. If failures or critical gaps are found, schedule a new iteration to revisit the namespace.
+6. Run 1 **Iterative Process (Iterations 1+)**
+   - After baseline verification, follow the iterative process to improve documentation.
 
 ---
 
@@ -99,7 +108,8 @@ After baseline verification, documentation improves in cycles.
 ### Verification Phase
 - Run `docfx metadata` and `docfx build`.
 - Save logs to `MicroM/docfx-buildlogs/iterationN.log`.
-- Check generated site in `MicroM/Documentation/Backend/_site` for pages and links.
+- Check for existence of generated site in `MicroM/Documentation/Backend/_site` for pages and links.
+- Ensure is `MicroM/Documentation/Backend/_site` and its contents are committed to git.
 - For each task:
   - Record execution result.
   - Record verification result with explicit success/failure.
