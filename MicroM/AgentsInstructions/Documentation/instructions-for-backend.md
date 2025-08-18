@@ -63,7 +63,7 @@ The **baseline phase** establishes the current state of documentation for a name
 
 - Run this phase:
   - At the very start (Iteration 0).
-  - Each time a namespace is completed, to verify and correct current status.
+  - After completing 50 iterations of the iterative process.
   - THIS PHASE IS INTENDED FOR DETERMINING THE DOCUMENTATION STATE AND BASE LINE. 
   - DO NOT ATTEMPT TO DOCUMENT ANY NAMESPACE IN THIS PHASE.
   - DOC-STATE-BACKEND.MD MUST BE UPDATED TO REFLECT THE CURRENT STATE OF DOCUMENTATION AS A REFERENCE FOR NEXT TASKS IN THE ITERATIVE PROCESS.
