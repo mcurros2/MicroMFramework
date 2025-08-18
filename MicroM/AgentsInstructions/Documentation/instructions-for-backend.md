@@ -66,17 +66,40 @@ The **baseline phase** establishes the current state of documentation for a name
   - Each time a namespace is completed, to verify and correct current status.
 
 ### Steps
-1. **Delete** `docs-state-backend.md`, `iteration-summary.md`, and `iteration-notes.md`.
+0. **Delete** `docs-state-backend.md`, `iteration-summary.md`, and `iteration-notes.md`.
    - Start fresh to ensure accurate baseline.
-   - Use [`docs-state-backend-sample.md`](docs-state-backend-sample.md) as a template.
+1. Re-scan all namespaces in `MicroM/core` to sync documentation state.
+   - Create a new `docs-state-backend.md`.
+     - Use [`docs-state-backend-sample.md`](docs-state-backend-sample.md) as a template.
+   - Every namespace under MicroM should be listed in `docs-state-backend.md`.
+     - namespaces should be listed in alphabetical order. 
+   - Visit each namespace and check:
+     - If it has an `index.md` in `MicroM/Documentation/Backend/`.
+     - If all public APIs have XML comments.
+     - If all pages are linked in the nearest `index.md` and higher-level indexes.
+     - If the generated site exists in `MicroM/Documentation/Backend/_site`.
+     - Update existing namespace status in `docs-state-backend.md` to reflect current state.
+       - Count the total number of classes to document in each namespace.
+       - A class is considered documented if it has:
+         - An `index.md` in its folder.
+         - All public APIs have XML comments.
+         - The page is linked in the nearest `index.md` and higher-level indexes.
+       - The state should contain:
+         - **Complete**: All classes documented, XML comments present, pages linked.
+         - **Incomplete**: Some classes not documented, XML comments missing, pages not linked.
+         - **Not Started**: No documentation started for the namespace.
+     - Add new namespaces to `docs-state-backend.md` with initial status of incomplete.
+     - Delete any namespaces that are no longer present in `MicroM/core` from `docs-state-backend.md`.
    - Document namespaces, tutorials, and coverage of XML comments.
    - Include any known gaps or issues.
 2. Record gaps in `docs-state-backend.md`.
    - Ensure all namespaces are documented and mark the documentation state for each one.
    - Ensure all public APIs have XML comments and mark the documentation state for each one.
    - Ensure all pages are linked in the nearest `index.md` and higher-level indexes.
-   - Ensure the generated site exists in `MicroM/Documentation/Backend/_site`.3. Run `docfx metadata` and `docfx build`.
+3. Run `docfx metadata` and `docfx build`.
    - Save logs to `MicroM/docfx-buildlogs/baseline-[namespace].log`.
+   - Ensure the generated site exists in `MicroM/Documentation/Backend/_site`.
+   - Ensure `MicroM/Documentation/Backend/_site` and its contents are committed to git.
 4. Summarize findings in `iteration-summary.md`:
    - For each task, include **execution result** and **verification result**.
    - Classify issues explicitly:
@@ -85,7 +108,7 @@ The **baseline phase** establishes the current state of documentation for a name
      - **Failure**: Critical (e.g., docfx build broken).
 5. If failures or critical gaps are found, schedule a new iteration to revisit the namespace.
 6. Run 1 **Iterative Process (Iterations 1+)**
-   - After baseline verification, follow the iterative process to improve documentation.
+   - After baseline verification, follow the iterative process to continue with the next tasks.
 
 ---
 
@@ -96,7 +119,10 @@ After baseline verification, documentation improves in cycles.
 ### Plan Phase
 - Review `iteration-summary.md` and `docs-state-backend.md`.
 - Add a **plan block** at the top of `iteration-summary.md`:
-  - Define tasks (e.g., “Complete XML docs for Configuration namespace”, “Document Configuration namespace overview”).
+  - Define tasks 
+    - “Complete XML docs for Configuration namespace”
+    - “Document Configuration namespace overview”
+    - Add other documentation tasks as needed.
   - Reference related files and folders.
 
 ### Execution Phase
@@ -128,6 +154,7 @@ After baseline verification, documentation improves in cycles.
   - `Documentation/Backend/...`
   - `Documentation-Progress/Backend/...`
   - `docfx.json`
+  - `MicroM/Documentation/Backend/_site/...`
   - Build logs
 - Use commit messages that mention iteration number and high-level results.
 
