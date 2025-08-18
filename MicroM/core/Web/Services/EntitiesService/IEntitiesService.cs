@@ -8,7 +8,7 @@ namespace MicroM.Web.Services;
 public interface IEntitiesService
 {
     /// <summary>
-    /// Creates an Entity if exists in the configured assembly <see cref="LoadEntityTypes(Assembly)"/>.
+    /// Creates an Entity if it exists in the configured assembly.
     /// </summary>
     /// <param name="entity_name"></param>
     /// <param name="ec"></param>
