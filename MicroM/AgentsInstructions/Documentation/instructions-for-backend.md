@@ -64,11 +64,14 @@ The **baseline phase** establishes the current state of documentation for a name
 - Run this phase:
   - At the very start (Iteration 0).
   - Each time a namespace is completed, to verify and correct current status.
+  - THIS PHASE IS INTENDED FOR DETERMINING THE DOCUMENTATION STATE AND BASE LINE. 
+  - DO NOT ATTEMPT TO DOCUMENT ANY NAMESPACE IN THIS PHASE.
+  - DOC-STATE-BACKEND.MD MUST BE UPDATED TO REFLECT THE CURRENT STATE OF DOCUMENTATION AS A REFERENCE FOR NEXT TASKS IN THE ITERATIVE PROCESS.
 
 ### Steps
-0. **Delete** `docs-state-backend.md`, `iteration-summary.md`, and `iteration-notes.md`.
+1. **Delete** `docs-state-backend.md`, `iteration-summary.md`, and `iteration-notes.md`.
    - Start fresh to ensure accurate baseline.
-1. Re-scan all namespaces in `MicroM/core` to sync documentation state.
+2. Re-scan all namespaces in `MicroM/core` to sync documentation state.
    - Create a new `docs-state-backend.md`.
      - Use [`docs-state-backend-sample.md`](docs-state-backend-sample.md) as a template.
    - Every namespace under MicroM should be listed in `docs-state-backend.md`.
@@ -77,25 +80,20 @@ The **baseline phase** establishes the current state of documentation for a name
      - If it has an `index.md` in `MicroM/Documentation/Backend/`.
      - If all public APIs have XML comments.
      - If all pages are linked in the nearest `index.md` and higher-level indexes.
-     - If the generated site exists in `MicroM/Documentation/Backend/_site`.
      - Update existing namespace status in `docs-state-backend.md` to reflect current state.
-       - Count the total number of classes to document in each namespace.
        - A class is considered documented if it has:
          - An `index.md` in its folder.
          - All public APIs have XML comments.
          - The page is linked in the nearest `index.md` and higher-level indexes.
+         - Stop scanning the namespace if you find 
+            - Any missing XML comments or pages not linked.
+            - Any classes not documented.
        - The state should contain:
          - **Complete**: All classes documented, XML comments present, pages linked.
          - **Incomplete**: Some classes not documented, XML comments missing, pages not linked.
          - **Not Started**: No documentation started for the namespace.
      - Add new namespaces to `docs-state-backend.md` with initial status of incomplete.
      - Delete any namespaces that are no longer present in `MicroM/core` from `docs-state-backend.md`.
-   - Document namespaces, tutorials, and coverage of XML comments.
-   - Include any known gaps or issues.
-2. Record gaps in `docs-state-backend.md`.
-   - Ensure all namespaces are documented and mark the documentation state for each one.
-   - Ensure all public APIs have XML comments and mark the documentation state for each one.
-   - Ensure all pages are linked in the nearest `index.md` and higher-level indexes.
 3. Run `docfx metadata` and `docfx build`.
    - Save logs to `MicroM/docfx-buildlogs/baseline-[namespace].log`.
    - Ensure the generated site exists in `MicroM/Documentation/Backend/_site`.
@@ -108,7 +106,7 @@ The **baseline phase** establishes the current state of documentation for a name
      - **Failure**: Critical (e.g., docfx build broken).
 5. If failures or critical gaps are found, schedule a new iteration to revisit the namespace.
 6. Run 1 **Iterative Process (Iterations 1+)**
-   - After baseline verification, follow the iterative process to continue with the next tasks.
+   - After baseline verification, RUN 1 ITERATION of the iterative process to continue with the next tasks.
 
 ---
 
@@ -119,7 +117,10 @@ After baseline verification, documentation improves in cycles.
 ### Plan Phase
 - Review `iteration-summary.md` and `docs-state-backend.md`.
 - Add a **plan block** at the top of `iteration-summary.md`:
-  - Define tasks 
+  - Process one namespace at a time.
+    - For each namespace do not plan more than 10 tasks.
+    - Add the remaining tasks to be planned in the next iteration.
+  - Define tasks
     - “Complete XML docs for Configuration namespace”
     - “Document Configuration namespace overview”
     - Add other documentation tasks as needed.
