@@ -96,6 +96,7 @@ The **baseline phase** establishes the current state of documentation for a name
      - Delete any namespaces that are no longer present in `MicroM/core` from `docs-state-backend.md`.
 3. Create a separate task to run `docfx metadata` and `docfx build`.
    - Save logs to `MicroM/docfx-buildlogs/baseline-[namespace].log`.
+     - DO NOT COMMIT LOG FILES TO GIT.
    - Ensure the generated site exists in `MicroM/Documentation/Backend/_site`. DO NOT COMMIT THIS DIRECTORY TO GIT.
 
 4. Summarize findings in `iteration-summary.md`:
@@ -120,9 +121,11 @@ After baseline verification, documentation improves in cycles.
   - Process one namespace at a time.
     - For each namespace do not plan more than 10 tasks.
     - Add the remaining tasks to be planned in the next iteration.
+    - Add XML documentation tasks first.
+    - Once XML documentation is complete, add conceptual documentation tasks.
   - Define tasks
     - “Complete XML docs for the selected namespace”
-    - “Document the selected namespace overview”
+    - When all XML docs are complete, “Document the selected namespace overview”
     - Add other documentation tasks as needed.
   - Reference related files and folders.
 
@@ -133,9 +136,10 @@ After baseline verification, documentation improves in cycles.
 - Record notes in `iteration-notes.md` if details exceed summary scope.
 
 ### Verification Phase
-- Run `docfx metadata` and `docfx build`.
-- Save logs to `MicroM/docfx-buildlogs/iterationN.log`.
-- Check for existence of generated site in `MicroM/Documentation/Backend/_site` for pages and links.
+
+- After all tasks in the execution phase finished executing, run `docfx metadata` and `docfx build`.
+  - Save logs to `MicroM/docfx-buildlogs/iterationN.log`. DO NOT COMMIT LOG FILES TO GIT.
+  - Check for existence of generated site in `MicroM/Documentation/Backend/_site` for pages and links.
 - For each task:
   - Record execution result.
   - Record verification result with explicit success/failure.
@@ -155,7 +159,6 @@ After baseline verification, documentation improves in cycles.
   - `Documentation-Progress/Backend/...`
   - `docfx.json`
   - XML documentation changes.
-  - Build logs
 - Use commit messages that mention iteration number and high-level results.
 
 ---
