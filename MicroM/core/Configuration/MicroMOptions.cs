@@ -5,6 +5,9 @@ namespace MicroM.Configuration
     /// </summary>
     public class MicroMOptions
     {
+        /// <summary>
+        /// Configuration section name used in application settings.
+        /// </summary>
         public const string MicroM = nameof(MicroM);
 
         /// <summary>Default SQL connection timeout in seconds.</summary>
