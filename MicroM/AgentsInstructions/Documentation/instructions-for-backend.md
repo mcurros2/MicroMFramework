@@ -65,7 +65,7 @@ The **baseline phase** establishes the current state of documentation for a name
   - At the very start (Iteration 0).
   - After completing 50 iterations of the iterative process.
   - THIS PHASE IS INTENDED FOR DETERMINING THE DOCUMENTATION STATE AND BASE LINE. 
-  - DO NOT ATTEMPT TO DOCUMENT ANY NAMESPACE IN THIS PHASE.
+  - DO NOT MODIFY ANY *.CS* FILES IN THIS PHASE.
   - DOC-STATE-BACKEND.MD MUST BE UPDATED TO REFLECT THE CURRENT STATE OF DOCUMENTATION AS A REFERENCE FOR NEXT TASKS IN THE ITERATIVE PROCESS.
 
 ### Steps
@@ -98,6 +98,9 @@ The **baseline phase** establishes the current state of documentation for a name
    - Save logs to `MicroM/docfx-buildlogs/baseline-[namespace].log`.
    - Ensure the generated site exists in `MicroM/Documentation/Backend/_site`.
    - Ensure `MicroM/Documentation/Backend/_site` and its contents are committed to git.
+      - CAUTION: This step may commit a lot of files.
+      - TO AVOID FAILING THE TASK BECAUSE OF A LONG DIFF, COMMIT LARGE FILES INDEPENDENTLY.
+
 4. Summarize findings in `iteration-summary.md`:
    - For each task, include **execution result** and **verification result**.
    - Classify issues explicitly:
@@ -105,7 +108,7 @@ The **baseline phase** establishes the current state of documentation for a name
      - **Error**: Expected but incomplete (e.g., page not linked in `index.md`).
      - **Failure**: Critical (e.g., docfx build broken).
 5. If failures or critical gaps are found, schedule a new iteration to revisit the namespace.
-6. Run 1 **Iterative Process (Iterations 1+)**
+6. In a separate task, run 1 **Iterative Process (Iterations 1+)**
    - After baseline verification, RUN 1 ITERATION of the iterative process to continue with the next tasks.
 
 ---

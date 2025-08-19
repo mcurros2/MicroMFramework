@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<!--[if IE]><![endif]-->
+<html>
+
+  <head>
+    <meta charset="utf-8">
+      <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+      <title>Import Data </title>
+      <meta name="viewport" content="width=device-width">
+      <meta name="title" content="Import Data ">
+    
+    
+      <link rel="shortcut icon" href="../favicon.ico">
+      <link rel="stylesheet" href="../styles/docfx.vendor.min.css">
+      <link rel="stylesheet" href="../styles/docfx.css">
+      <link rel="stylesheet" href="../styles/main.css">
+      <meta property="docfx:navrel" content="">
+      <meta property="docfx:tocrel" content="">
+    
+    
+    
+  </head>
+  <body data-spy="scroll" data-target="#affix" data-offset="120">
+    <div id="wrapper">
+      <header>
+
+        <nav id="autocollapse" class="navbar navbar-inverse ng-scope" role="navigation">
+          <div class="container">
+            <div class="navbar-header">
+              <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navbar">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+              </button>
+
+              <a class="navbar-brand" href="../index.html">
+                <img id="logo" class="svg" src="../logo.svg" alt="">
+              </a>
+            </div>
+            <div class="collapse navbar-collapse" id="navbar">
+              <form class="navbar-form navbar-right" role="search" id="search">
+                <div class="form-group">
+                  <input type="text" class="form-control" id="search-query" placeholder="Search" autocomplete="off">
+                </div>
+              </form>
+            </div>
+          </div>
+        </nav>
+
+        <div class="subnav navbar navbar-default">
+          <div class="container hide-when-search" id="breadcrumb">
+            <ul class="breadcrumb">
+              <li></li>
+            </ul>
+          </div>
+        </div>
+      </header>
+      <div role="main" class="container body-content hide-when-search">
+        <div class="article row grid">
+          <div class="col-md-10">
+            <article class="content wrap" id="_content" data-uid="">
+<h1 id="import-data">Import Data</h1>
+
+<p>This section describes the backend utilities for importing data into MicroM.</p>
+<h2 id="csvparser">CSVParser</h2>
+<ul>
+<li>A static helper that converts CSV text into <code>List&lt;Dictionary&lt;string,string&gt;&gt;</code>.</li>
+<li><code>Parse</code> splits the first line as headers, unquotes values, and creates a dictionary for each row.</li>
+<li><code>ParseFile</code> asynchronously reads a file and delegates to <code>Parse</code>.</li>
+</ul>
+<h2 id="csvimportresult">CSVImportResult</h2>
+<p>Summarizes bulk import operations:</p>
+<ul>
+<li><code>ProcessedCount</code></li>
+<li><code>SuccessCount</code></li>
+<li><code>ErrorCount</code></li>
+<li><code>Errors</code>: dictionary mapping row number to error message.</li>
+</ul>
+<h2 id="entityimportdata">EntityImportData</h2>
+<p>Extension methods for <code>EntityBase</code> that map data and insert it.</p>
+<h3 id="mapcsvdatatoentity">MapCSVDataToEntity</h3>
+<ul>
+<li>Accepts a dictionary of column names and string values.</li>
+<li>Converts data into SQL column types (strings, booleans, numbers, decimals, dates, GUIDs, binary).</li>
+</ul>
+<h3 id="importdatafromcsv">ImportDataFromCSV</h3>
+<ul>
+<li>Iterates over parsed CSV rows.</li>
+<li>Applies application and parent keys.</li>
+<li>Inserts each row and collects results in <code>CSVImportResult</code>.</li>
+</ul>
+<h3 id="importdatafromexcel">ImportDataFromExcel</h3>
+<ul>
+<li>Reads workbook rows with <code>ExcelReader.ReadExcelAsync</code>.</li>
+<li>Uses the first row as headers, converts subsequent rows to a dictionary, then follows the same import pipeline.</li>
+</ul>
+<h2 id="excel-helpers-integration">Excel Helpers Integration</h2>
+<p><code>EntityImportData.ImportDataFromExcel</code> leverages <code>MicroM.Excel.ExcelReader</code> to stream typed rows from Excel files, enabling the same import logic used for CSV to handle spreadsheets seamlessly.</p>
+
+</article>
+          </div>
+
+          <div class="hidden-sm col-md-2" role="complementary">
+            <div class="sideaffix">
+              <div class="contribution">
+                <ul class="nav">
+                  <li>
+                    <a href="https://github.com/mcurros2/MicroMFramework/blob/Codex/MicroM/Documentation/Backend/ImportData/index.md/#L1" class="contribution-link">Edit this page</a>
+                  </li>
+                </ul>
+              </div>
+              <nav class="bs-docs-sidebar hidden-print hidden-xs hidden-sm affix" id="affix">
+                <h5>In this article</h5>
+                <div></div>
+              </nav>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <footer>
+        <div class="grad-bottom"></div>
+        <div class="footer">
+          <div class="container">
+            <span class="pull-right">
+              <a href="#top">Back to top</a>
+            </span>
+      
+      <span>Generated by <strong>DocFX</strong></span>
+          </div>
+        </div>
+      </footer>
+    </div>
+
+    <script type="text/javascript" src="../styles/docfx.vendor.min.js"></script>
+    <script type="text/javascript" src="../styles/docfx.js"></script>
+    <script type="text/javascript" src="../styles/main.js"></script>
+  </body>
+</html>

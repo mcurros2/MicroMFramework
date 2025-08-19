@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<!--[if IE]><![endif]-->
+<html>
+
+  <head>
+    <meta charset="utf-8">
+      <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+      <title>Core Backend Classes </title>
+      <meta name="viewport" content="width=device-width">
+      <meta name="title" content="Core Backend Classes ">
+    
+    
+      <link rel="shortcut icon" href="../favicon.ico">
+      <link rel="stylesheet" href="../styles/docfx.vendor.min.css">
+      <link rel="stylesheet" href="../styles/docfx.css">
+      <link rel="stylesheet" href="../styles/main.css">
+      <meta property="docfx:navrel" content="">
+      <meta property="docfx:tocrel" content="">
+    
+    
+    
+  </head>
+  <body data-spy="scroll" data-target="#affix" data-offset="120">
+    <div id="wrapper">
+      <header>
+
+        <nav id="autocollapse" class="navbar navbar-inverse ng-scope" role="navigation">
+          <div class="container">
+            <div class="navbar-header">
+              <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navbar">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+              </button>
+
+              <a class="navbar-brand" href="../index.html">
+                <img id="logo" class="svg" src="../logo.svg" alt="">
+              </a>
+            </div>
+            <div class="collapse navbar-collapse" id="navbar">
+              <form class="navbar-form navbar-right" role="search" id="search">
+                <div class="form-group">
+                  <input type="text" class="form-control" id="search-query" placeholder="Search" autocomplete="off">
+                </div>
+              </form>
+            </div>
+          </div>
+        </nav>
+
+        <div class="subnav navbar navbar-default">
+          <div class="container hide-when-search" id="breadcrumb">
+            <ul class="breadcrumb">
+              <li></li>
+            </ul>
+          </div>
+        </div>
+      </header>
+      <div role="main" class="container body-content hide-when-search">
+        <div class="article row grid">
+          <div class="col-md-10">
+            <article class="content wrap" id="_content" data-uid="">
+<h1 id="core-backend-classes">Core Backend Classes</h1>
+
+<p>This section introduces the primary classes that make up the MicroM backend core. These types provide the foundation for entity modelling, initialization and utilities such as encryption and hashing.</p>
+<h2 id="entity">Entity</h2>
+<p><code>Entity&lt;TDefinition&gt;</code> is a generic base for concrete domain models. It instantiates the associated <code>EntityDefinition</code> and optionally receives an <code>IEntityClient</code> and <code>IMicroMEncryption</code> to access data stores. Instances expose the definition through the <code>Def</code> property and rely on <code>EntityBase</code> for data operations.</p>
+<h3 id="helper-classes">Helper Classes</h3>
+<ul>
+<li><strong>EntityData</strong> – internal helper that performs CRUD operations and procedure calls on behalf of an entity.</li>
+<li><strong>EntityActionResult</strong> – base record returned by custom actions.</li>
+</ul>
+<h2 id="entitybase">EntityBase</h2>
+<p><code>EntityBase</code> supplies lazy initialization and database access for entities. It holds the <code>IEntityClient</code>, <code>IMicroMEncryption</code> and exposes methods such as <code>GetData</code>, <code>InsertData</code>, <code>UpdateData</code> and <code>ExecuteProc</code> for interacting with the underlying database.</p>
+<h3 id="helper-classes-1">Helper Classes</h3>
+<ul>
+<li><strong>ClassNotInitilizedException</strong> – thrown when methods are invoked before <code>Init</code> has been called.</li>
+<li><strong>EntityData</strong> – shared data access helper used by <code>EntityBase</code>.</li>
+</ul>
+<h2 id="entityactionbase">EntityActionBase</h2>
+<p><code>EntityActionBase</code> represents an executable action tied to an entity definition. Implementations override <code>Execute</code> to receive the current entity, request parameters and optional services and return an <code>EntityActionResult</code>.</p>
+<h3 id="helper-classes-2">Helper Classes</h3>
+<ul>
+<li><strong>EntityActionResult</strong> – abstract record used as the return type for actions. <code>EmptyActionResult</code> provides a default no-op result.</li>
+</ul>
+<h2 id="entitydefinition">EntityDefinition</h2>
+<p><code>EntityDefinition</code> describes the structure of an entity including its mnemonic (<code>Mneo</code>), table name, columns, views, stored procedures and relationships. It also manages default metadata like audit columns and related categories or status codes.</p>
+<h3 id="helper-classes-3">Helper Classes</h3>
+<ul>
+<li><strong>ColumnBase</strong> and related column types – capture column metadata and flags.</li>
+<li><strong>EntityForeignKeyBase</strong>, <strong>EntityUniqueConstraint</strong> and <strong>EntityIndex</strong> – model relationships, constraints and indexes.</li>
+<li><strong>ViewDefinition</strong> and <strong>ProcedureDefinition</strong> – describe stored procedures used for reads and writes.</li>
+</ul>
+<h2 id="initbase">InitBase</h2>
+<p><code>InitBase</code> provides a simple pattern for lazy initialization. It exposes an <code>IsInitialized</code> property and a <code>CheckInit</code> method used by derived classes to ensure required setup is complete.</p>
+<h3 id="helper-classes-4">Helper Classes</h3>
+<ul>
+<li><strong>ClassNotInitilizedException</strong> – signals usage of an object prior to initialization.</li>
+<li><strong>IInit</strong> – interface variant for classes that implement the same pattern.</li>
+</ul>
+<h2 id="x509encryptor">X509Encryptor</h2>
+<p><code>X509Encryptor</code> implements <code>IMicroMEncryption</code> using an <code>X509Certificate2</code>. It can encrypt and decrypt strings or arbitrary objects and exposes the certificate thumbprint when available.</p>
+<h3 id="helper-classes-5">Helper Classes</h3>
+<ul>
+<li><strong>CryptClass</strong> – static utility with methods for finding certificates and performing lower level cryptographic operations.</li>
+</ul>
+<h2 id="crc32">CRC32</h2>
+<p><code>CRC32</code> is a utility class implementing the CRC-32/ISO-HDLC algorithm. It offers static methods to compute checksums from byte arrays or strings.</p>
+<h3 id="helper-classes-6">Helper Classes</h3>
+<ul>
+<li>None.</li>
+</ul>
+
+</article>
+          </div>
+
+          <div class="hidden-sm col-md-2" role="complementary">
+            <div class="sideaffix">
+              <div class="contribution">
+                <ul class="nav">
+                  <li>
+                    <a href="https://github.com/mcurros2/MicroMFramework/blob/Codex/MicroM/Documentation/Backend/Core/index.md/#L1" class="contribution-link">Edit this page</a>
+                  </li>
+                </ul>
+              </div>
+              <nav class="bs-docs-sidebar hidden-print hidden-xs hidden-sm affix" id="affix">
+                <h5>In this article</h5>
+                <div></div>
+              </nav>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <footer>
+        <div class="grad-bottom"></div>
+        <div class="footer">
+          <div class="container">
+            <span class="pull-right">
+              <a href="#top">Back to top</a>
+            </span>
+      
+      <span>Generated by <strong>DocFX</strong></span>
+          </div>
+        </div>
+      </footer>
+    </div>
+
+    <script type="text/javascript" src="../styles/docfx.vendor.min.js"></script>
+    <script type="text/javascript" src="../styles/docfx.js"></script>
+    <script type="text/javascript" src="../styles/main.js"></script>
+  </body>
+</html>

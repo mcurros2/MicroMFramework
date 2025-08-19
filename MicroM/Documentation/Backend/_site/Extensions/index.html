@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<!--[if IE]><![endif]-->
+<html>
+
+  <head>
+    <meta charset="utf-8">
+      <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+      <title>Backend Extension Helpers </title>
+      <meta name="viewport" content="width=device-width">
+      <meta name="title" content="Backend Extension Helpers ">
+    
+    
+      <link rel="shortcut icon" href="../favicon.ico">
+      <link rel="stylesheet" href="../styles/docfx.vendor.min.css">
+      <link rel="stylesheet" href="../styles/docfx.css">
+      <link rel="stylesheet" href="../styles/main.css">
+      <meta property="docfx:navrel" content="">
+      <meta property="docfx:tocrel" content="">
+    
+    
+    
+  </head>
+  <body data-spy="scroll" data-target="#affix" data-offset="120">
+    <div id="wrapper">
+      <header>
+
+        <nav id="autocollapse" class="navbar navbar-inverse ng-scope" role="navigation">
+          <div class="container">
+            <div class="navbar-header">
+              <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navbar">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+              </button>
+
+              <a class="navbar-brand" href="../index.html">
+                <img id="logo" class="svg" src="../logo.svg" alt="">
+              </a>
+            </div>
+            <div class="collapse navbar-collapse" id="navbar">
+              <form class="navbar-form navbar-right" role="search" id="search">
+                <div class="form-group">
+                  <input type="text" class="form-control" id="search-query" placeholder="Search" autocomplete="off">
+                </div>
+              </form>
+            </div>
+          </div>
+        </nav>
+
+        <div class="subnav navbar navbar-default">
+          <div class="container hide-when-search" id="breadcrumb">
+            <ul class="breadcrumb">
+              <li></li>
+            </ul>
+          </div>
+        </div>
+      </header>
+      <div role="main" class="container body-content hide-when-search">
+        <div class="article row grid">
+          <div class="col-md-10">
+            <article class="content wrap" id="_content" data-uid="">
+<h1 id="backend-extension-helpers">Backend Extension Helpers</h1>
+
+<p>MicroMCore exposes a rich set of extension methods that simplify backend development.  Extensions are organized by domain so you can quickly locate helpers for your task.</p>
+<h2 id="strings">Strings</h2>
+<p>Utility methods to manipulate string values.</p>
+<pre><code class="lang-csharp">using MicroM.Extensions;
+
+var name = &quot;The MicroM Framework&quot;.Truncate(12);      // &quot;The MicroM Fr&quot;
+var clean = &quot;\&quot;quoted\&quot;&quot;.Unquote();                 // &quot;quoted&quot;
+var pieces = new[]{ &quot; one &quot;, &quot; two &quot;}.Trim();       // [&quot;one&quot;, &quot;two&quot;]
+var fallback = maybeNull.IfNullOrEmpty(&quot;default&quot;);
+var required = maybeNull.ThrowIfNullOrEmpty(nameof(maybeNull));
+</code></pre>
+<h2 id="data-dictionary">Data Dictionary</h2>
+<p>Helpers for populating and relating entries in the MicroM data dictionary.</p>
+<pre><code class="lang-csharp">using MicroM.Extensions;
+using MicroM.DataDictionary.Configuration;
+
+// Add a category definition and its values
+var cat = new CategoryDefinition { CategoryID = &quot;ROLE&quot;, Description = &quot;User Role&quot; };
+await cat.AddCategory(ec, ct);
+
+// Register an entity and its relations in the dictionary
+var person = new PersonEntity(ec);
+await person.AddToDataDictionary(ct);
+
+// Menus and user groups
+await menuDefinition.AddMenu(ec, ct);
+await groupDefinition.AddUserGroup(ec, ct);
+</code></pre>
+<h2 id="database-schema">Database Schema</h2>
+<p>Create database objects declared in your assemblies.</p>
+<pre><code class="lang-csharp">using MicroM.Extensions;
+using System.Reflection;
+
+var asm = Assembly.GetExecutingAssembly();
+await asm.CreateAllCategories(ec, ct);
+await asm.CreateAllStatus(ec, ct);
+await asm.CreateAssemblyCustomProcs(ec, ct);
+</code></pre>
+<h2 id="reflection">Reflection</h2>
+<p>Introspect assemblies and types to drive dynamic behaviour.</p>
+<pre><code class="lang-csharp">using MicroM.Extensions;
+using System.Reflection;
+
+var entityTypes = Assembly.GetExecutingAssembly().GetEntitiesTypes();
+var orderedMembers = typeof(PersonEntity).GetMembersInDeclarationOrder();
+var props = person.GetPropertiesOrFields&lt;StatusValuesDefinition, StatusDefinition&gt;();
+</code></pre>
+<p>These extensions provide concise, expressive ways to work with common tasks throughout the MicroM backend.</p>
+
+</article>
+          </div>
+
+          <div class="hidden-sm col-md-2" role="complementary">
+            <div class="sideaffix">
+              <div class="contribution">
+                <ul class="nav">
+                  <li>
+                    <a href="https://github.com/mcurros2/MicroMFramework/blob/Codex/MicroM/Documentation/Backend/Extensions/index.md/#L1" class="contribution-link">Edit this page</a>
+                  </li>
+                </ul>
+              </div>
+              <nav class="bs-docs-sidebar hidden-print hidden-xs hidden-sm affix" id="affix">
+                <h5>In this article</h5>
+                <div></div>
+              </nav>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <footer>
+        <div class="grad-bottom"></div>
+        <div class="footer">
+          <div class="container">
+            <span class="pull-right">
+              <a href="#top">Back to top</a>
+            </span>
+      
+      <span>Generated by <strong>DocFX</strong></span>
+          </div>
+        </div>
+      </footer>
+    </div>
+
+    <script type="text/javascript" src="../styles/docfx.vendor.min.js"></script>
+    <script type="text/javascript" src="../styles/docfx.js"></script>
+    <script type="text/javascript" src="../styles/main.js"></script>
+  </body>
+</html>

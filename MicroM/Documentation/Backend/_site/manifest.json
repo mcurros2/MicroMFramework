@@ -1,0 +1,461 @@
+{
+  "source_base_path": "C:/disco n/Desarrollo/MicroMFramework/MicroM/docfx",
+  "xrefmap": "xrefmap.yml",
+  "files": [
+    {
+      "type": "Conceptual",
+      "source_relative_path": "../Documentation/Backend/Configuration/index.md",
+      "output": {
+        ".html": {
+          "relative_path": "Configuration/index.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "../Documentation/Backend/Core/index.md",
+      "output": {
+        ".html": {
+          "relative_path": "Core/index.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "../Documentation/Backend/Data/index.md",
+      "output": {
+        ".html": {
+          "relative_path": "Data/index.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "../Documentation/Backend/DataDictionary/CategoriesDefinitions/AuthenticationTypes.md",
+      "output": {
+        ".html": {
+          "relative_path": "DataDictionary/CategoriesDefinitions/AuthenticationTypes.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "../Documentation/Backend/DataDictionary/CategoriesDefinitions/IdentityProviderRole.md",
+      "output": {
+        ".html": {
+          "relative_path": "DataDictionary/CategoriesDefinitions/IdentityProviderRole.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "../Documentation/Backend/DataDictionary/CategoriesDefinitions/UserTypes.md",
+      "output": {
+        ".html": {
+          "relative_path": "DataDictionary/CategoriesDefinitions/UserTypes.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "../Documentation/Backend/DataDictionary/CategoriesDefinitions/index.md",
+      "output": {
+        ".html": {
+          "relative_path": "DataDictionary/CategoriesDefinitions/index.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "../Documentation/Backend/DataDictionary/Configuration/index.md",
+      "output": {
+        ".html": {
+          "relative_path": "DataDictionary/Configuration/index.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "../Documentation/Backend/DataDictionary/Entities/Applications/Applications.md",
+      "output": {
+        ".html": {
+          "relative_path": "DataDictionary/Entities/Applications/Applications.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "../Documentation/Backend/DataDictionary/Entities/Applications/ApplicationsCat.md",
+      "output": {
+        ".html": {
+          "relative_path": "DataDictionary/Entities/Applications/ApplicationsCat.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "../Documentation/Backend/DataDictionary/Entities/Applications/index.md",
+      "output": {
+        ".html": {
+          "relative_path": "DataDictionary/Entities/Applications/index.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "../Documentation/Backend/DataDictionary/Entities/EmailService/EmailServiceConfiguration.md",
+      "output": {
+        ".html": {
+          "relative_path": "DataDictionary/Entities/EmailService/EmailServiceConfiguration.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "../Documentation/Backend/DataDictionary/Entities/EmailService/EmailServiceQueue.md",
+      "output": {
+        ".html": {
+          "relative_path": "DataDictionary/Entities/EmailService/EmailServiceQueue.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "../Documentation/Backend/DataDictionary/Entities/EmailService/EmailServiceQueueStatus.md",
+      "output": {
+        ".html": {
+          "relative_path": "DataDictionary/Entities/EmailService/EmailServiceQueueStatus.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "../Documentation/Backend/DataDictionary/Entities/EmailService/EmailServiceTemplates.md",
+      "output": {
+        ".html": {
+          "relative_path": "DataDictionary/Entities/EmailService/EmailServiceTemplates.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "../Documentation/Backend/DataDictionary/Entities/EmailService/index.md",
+      "output": {
+        ".html": {
+          "relative_path": "DataDictionary/Entities/EmailService/index.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "../Documentation/Backend/DataDictionary/Entities/FileStore/FileStore.md",
+      "output": {
+        ".html": {
+          "relative_path": "DataDictionary/Entities/FileStore/FileStore.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "../Documentation/Backend/DataDictionary/Entities/FileStore/FileStoreProcess.md",
+      "output": {
+        ".html": {
+          "relative_path": "DataDictionary/Entities/FileStore/FileStoreProcess.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "../Documentation/Backend/DataDictionary/Entities/FileStore/FileStoreStatus.md",
+      "output": {
+        ".html": {
+          "relative_path": "DataDictionary/Entities/FileStore/FileStoreStatus.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "../Documentation/Backend/DataDictionary/Entities/FileStore/index.md",
+      "output": {
+        ".html": {
+          "relative_path": "DataDictionary/Entities/FileStore/index.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "../Documentation/Backend/DataDictionary/Entities/MicromUsers/MicromUsers.md",
+      "output": {
+        ".html": {
+          "relative_path": "DataDictionary/Entities/MicromUsers/MicromUsers.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "../Documentation/Backend/DataDictionary/Entities/MicromUsers/MicromUsersCat.md",
+      "output": {
+        ".html": {
+          "relative_path": "DataDictionary/Entities/MicromUsers/MicromUsersCat.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "../Documentation/Backend/DataDictionary/Entities/MicromUsers/MicromUsersDevices.md",
+      "output": {
+        ".html": {
+          "relative_path": "DataDictionary/Entities/MicromUsers/MicromUsersDevices.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "../Documentation/Backend/DataDictionary/Entities/MicromUsers/MicromUsersGroups.md",
+      "output": {
+        ".html": {
+          "relative_path": "DataDictionary/Entities/MicromUsers/MicromUsersGroups.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "../Documentation/Backend/DataDictionary/Entities/MicromUsers/MicromUsersGroupsMembers.md",
+      "output": {
+        ".html": {
+          "relative_path": "DataDictionary/Entities/MicromUsers/MicromUsersGroupsMembers.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "../Documentation/Backend/DataDictionary/Entities/MicromUsers/MicromUsersGroupsMenus.md",
+      "output": {
+        ".html": {
+          "relative_path": "DataDictionary/Entities/MicromUsers/MicromUsersGroupsMenus.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "../Documentation/Backend/DataDictionary/Entities/MicromUsers/MicromUsersLoginHistory.md",
+      "output": {
+        ".html": {
+          "relative_path": "DataDictionary/Entities/MicromUsers/MicromUsersLoginHistory.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "../Documentation/Backend/DataDictionary/Entities/MicromUsers/MicromUsersStatusPanelDef.md",
+      "output": {
+        ".html": {
+          "relative_path": "DataDictionary/Entities/MicromUsers/MicromUsersStatusPanelDef.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "../Documentation/Backend/DataDictionary/Entities/MicromUsers/index.md",
+      "output": {
+        ".html": {
+          "relative_path": "DataDictionary/Entities/MicromUsers/index.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "../Documentation/Backend/DataDictionary/Entities/index.md",
+      "output": {
+        ".html": {
+          "relative_path": "DataDictionary/Entities/index.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "../Documentation/Backend/DataDictionary/index.md",
+      "output": {
+        ".html": {
+          "relative_path": "DataDictionary/index.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "../Documentation/Backend/Database/index.md",
+      "output": {
+        ".html": {
+          "relative_path": "Database/index.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "../Documentation/Backend/Excel/index.md",
+      "output": {
+        ".html": {
+          "relative_path": "Excel/index.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "../Documentation/Backend/Extensions/index.md",
+      "output": {
+        ".html": {
+          "relative_path": "Extensions/index.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "../Documentation/Backend/Generators/Extensions/index.md",
+      "output": {
+        ".html": {
+          "relative_path": "Generators/Extensions/index.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "../Documentation/Backend/Generators/ReactGenerator/index.md",
+      "output": {
+        ".html": {
+          "relative_path": "Generators/ReactGenerator/index.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "../Documentation/Backend/Generators/SQLGenerator/index.md",
+      "output": {
+        ".html": {
+          "relative_path": "Generators/SQLGenerator/index.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "../Documentation/Backend/Generators/index.md",
+      "output": {
+        ".html": {
+          "relative_path": "Generators/index.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "../Documentation/Backend/ImportData/index.md",
+      "output": {
+        ".html": {
+          "relative_path": "ImportData/index.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "../Documentation/Backend/Tutorials/database-initialization.md",
+      "output": {
+        ".html": {
+          "relative_path": "Tutorials/database-initialization.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "../Documentation/Backend/Tutorials/index.md",
+      "output": {
+        ".html": {
+          "relative_path": "Tutorials/index.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "../Documentation/Backend/Tutorials/overview.md",
+      "output": {
+        ".html": {
+          "relative_path": "Tutorials/overview.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "../Documentation/Backend/Validators/index.md",
+      "output": {
+        ".html": {
+          "relative_path": "Validators/index.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "../Documentation/Backend/Web/index.md",
+      "output": {
+        ".html": {
+          "relative_path": "Web/index.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "../Documentation/Backend/index.md",
+      "output": {
+        ".html": {
+          "relative_path": "index.html"
+        }
+      },
+      "version": ""
+    }
+  ],
+  "groups": [
+    {
+      "xrefmap": "xrefmap.yml"
+    }
+  ]
+}

@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<!--[if IE]><![endif]-->
+<html>
+
+  <head>
+    <meta charset="utf-8">
+      <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+      <title>MicroM Web Backend Overview </title>
+      <meta name="viewport" content="width=device-width">
+      <meta name="title" content="MicroM Web Backend Overview ">
+    
+    
+      <link rel="shortcut icon" href="../favicon.ico">
+      <link rel="stylesheet" href="../styles/docfx.vendor.min.css">
+      <link rel="stylesheet" href="../styles/docfx.css">
+      <link rel="stylesheet" href="../styles/main.css">
+      <meta property="docfx:navrel" content="">
+      <meta property="docfx:tocrel" content="">
+    
+    
+    
+  </head>
+  <body data-spy="scroll" data-target="#affix" data-offset="120">
+    <div id="wrapper">
+      <header>
+
+        <nav id="autocollapse" class="navbar navbar-inverse ng-scope" role="navigation">
+          <div class="container">
+            <div class="navbar-header">
+              <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navbar">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+              </button>
+
+              <a class="navbar-brand" href="../index.html">
+                <img id="logo" class="svg" src="../logo.svg" alt="">
+              </a>
+            </div>
+            <div class="collapse navbar-collapse" id="navbar">
+              <form class="navbar-form navbar-right" role="search" id="search">
+                <div class="form-group">
+                  <input type="text" class="form-control" id="search-query" placeholder="Search" autocomplete="off">
+                </div>
+              </form>
+            </div>
+          </div>
+        </nav>
+
+        <div class="subnav navbar navbar-default">
+          <div class="container hide-when-search" id="breadcrumb">
+            <ul class="breadcrumb">
+              <li></li>
+            </ul>
+          </div>
+        </div>
+      </header>
+      <div role="main" class="container body-content hide-when-search">
+        <div class="article row grid">
+          <div class="col-md-10">
+            <article class="content wrap" id="_content" data-uid="">
+<h1 id="microm-web-backend-overview">MicroM Web Backend Overview</h1>
+
+<p>This document summarizes the main components that compose the MicroM Web backend.</p>
+<h2 id="controllers">Controllers</h2>
+<h3 id="authenticationcontroller">AuthenticationController</h3>
+<ul>
+<li><strong>Routes:</strong> <code>/auth-api-status</code>, <code>/{app_id}/auth/login</code>, <code>/{app_id}/auth/logoff</code>, <code>/{app_id}/auth/recoverpassword</code>, <code>/{app_id}/auth/recoveryemail</code>, <code>/{app_id}/auth/refresh</code>.</li>
+<li><strong>Responsibilities:</strong> health check, login, logoff, password recovery and token refresh.</li>
+<li><strong>Key methods:</strong> <code>Login</code>, <code>Logoff</code>, <code>RecoverPassword</code>, <code>RecoveryEmail</code>, <code>RefreshToken</code>.</li>
+</ul>
+<h3 id="entitiescontroller">EntitiesController</h3>
+<ul>
+<li><strong>Routes:</strong> <code>/{app_id}/ent/{entityName}/action/{actionName}</code>, <code>/{app_id}/ent/{entityName}/get</code>, <code>/{app_id}/ent/{entityName}/insert</code>, <code>/{app_id}/ent/{entityName}/update</code>, <code>/{app_id}/ent/{entityName}/delete</code>, plus endpoints for lookups, views, imports and procedures.</li>
+<li><strong>Responsibilities:</strong> executes actions, CRUD operations and special procedures for entities.</li>
+<li><strong>Key methods:</strong> <code>Action</code>, <code>Get</code>, <code>Insert</code>, <code>Update</code>, <code>Delete</code>, <code>Lookup</code>, <code>View</code>, <code>Proc</code>, <code>Process</code>.</li>
+</ul>
+<h3 id="filecontroller">FileController</h3>
+<ul>
+<li><strong>Routes:</strong> <code>/{app_id}/serve/{fileguid}</code>, <code>/{app_id}/thumbnail/{fileguid}/{maxSize?}/{quality?}</code>, <code>/{app_id}/tmpupload</code>.</li>
+<li><strong>Responsibilities:</strong> serves stored files or thumbnails and handles temporary uploads.</li>
+<li><strong>Key methods:</strong> <code>Serve</code>, <code>ServeThumbnail</code>, <code>Upload</code>.</li>
+</ul>
+<h3 id="identityprovidercontroller">IdentityProviderController</h3>
+<ul>
+<li><strong>Routes:</strong> OIDC and OAuth2 endpoints such as <code>/{app_id}/oidc/.well-known/openid-configuration</code>, <code>/{app_id}/oidc/jwks</code>, <code>/{app_id}/oauth2/authorize</code>, <code>/{app_id}/oauth2/token</code>, and related endpoints.</li>
+<li><strong>Responsibilities:</strong> placeholder for future identity provider support.</li>
+</ul>
+<h3 id="publiccontroller">PublicController</h3>
+<ul>
+<li><strong>Routes:</strong> <code>/{app_id}/public/{entityName}/...</code> exposing entity actions, CRUD and lookups to anonymous users.</li>
+<li><strong>Responsibilities:</strong> invokes entity logic without authentication using a public username.</li>
+<li><strong>Key methods:</strong> <code>PublicAction</code>, <code>PublicGet</code>, <code>PublicInsert</code>, <code>PublicUpdate</code>, <code>PublicDelete</code>, <code>PublicLookup</code>, <code>PublicView</code>, <code>PublicProc</code>, <code>PublicProcess</code>.</li>
+</ul>
+<h3 id="route-convention">Route Convention</h3>
+<ul>
+<li><strong>Component:</strong> <code>MicroMRouteConvention</code> applies a base path prefix to all MicroM controllers.</li>
+</ul>
+<h2 id="authentication">Authentication</h2>
+<h3 id="webapijsonwebtokenhandler">WebAPIJsonWebTokenHandler</h3>
+<ul>
+<li>Generates encrypted JWT tokens and validates them using per‑application settings.</li>
+</ul>
+<h3 id="micromauthenticationprovider">MicroMAuthenticationProvider</h3>
+<ul>
+<li>Selects the authenticator implementation (built‑in or SQL Server based) and exposes decrypted server claims.</li>
+</ul>
+<h3 id="micromauthenticator--sqlserverauthenticator">MicroMAuthenticator &amp; SQLServerAuthenticator</h3>
+<ul>
+<li>Handle user login, refresh tokens (via cookies), and lockout logic for their respective authentication modes.</li>
+</ul>
+<h3 id="micromcookiemanager">MicroMCookieManager</h3>
+<ul>
+<li>Rewrites cookie paths so that authentication cookies are scoped per application.</li>
+</ul>
+<h2 id="services">Services</h2>
+<h3 id="authenticationservice">AuthenticationService</h3>
+<ul>
+<li>Orchestrates login, logoff, password recovery and token refresh flows.</li>
+</ul>
+<h3 id="entitiesservice">EntitiesService</h3>
+<ul>
+<li>Creates database connections, instantiates entity objects and executes entity operations.</li>
+</ul>
+<h3 id="fileuploadservice">FileUploadService</h3>
+<ul>
+<li>Queues uploads, stores files on disk and generates image thumbnails.</li>
+</ul>
+<h3 id="emailservice">EmailService</h3>
+<ul>
+<li>Queues outgoing emails and processes the delivery queue using SMTP.</li>
+</ul>
+<h3 id="securityservice">SecurityService</h3>
+<ul>
+<li>Caches group/route mappings and checks whether a user is authorized for a given path.</li>
+</ul>
+<h3 id="encryptionservice">EncryptionService</h3>
+<ul>
+<li>Wraps certificate‑based encryption and decryption utilities.</li>
+</ul>
+<h3 id="identityproviderservice">IdentityProviderService</h3>
+<ul>
+<li>Interface reserved for future OIDC/OAuth2 logic such as well‑known metadata, JWKS and token exchange.</li>
+</ul>
+<h2 id="debugging--middleware">Debugging &amp; Middleware</h2>
+<ul>
+<li><strong>DebugRoutesMiddleware:</strong> returns the list of registered routes when a debugging URL is requested.</li>
+<li><strong>DependencyInjectionDebug:</strong> logs events from the .NET dependency injection system for troubleshooting.</li>
+</ul>
+
+</article>
+          </div>
+
+          <div class="hidden-sm col-md-2" role="complementary">
+            <div class="sideaffix">
+              <div class="contribution">
+                <ul class="nav">
+                  <li>
+                    <a href="https://github.com/mcurros2/MicroMFramework/blob/Codex/MicroM/Documentation/Backend/Web/index.md/#L1" class="contribution-link">Edit this page</a>
+                  </li>
+                </ul>
+              </div>
+              <nav class="bs-docs-sidebar hidden-print hidden-xs hidden-sm affix" id="affix">
+                <h5>In this article</h5>
+                <div></div>
+              </nav>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <footer>
+        <div class="grad-bottom"></div>
+        <div class="footer">
+          <div class="container">
+            <span class="pull-right">
+              <a href="#top">Back to top</a>
+            </span>
+      
+      <span>Generated by <strong>DocFX</strong></span>
+          </div>
+        </div>
+      </footer>
+    </div>
+
+    <script type="text/javascript" src="../styles/docfx.vendor.min.js"></script>
+    <script type="text/javascript" src="../styles/docfx.js"></script>
+    <script type="text/javascript" src="../styles/main.js"></script>
+  </body>
+</html>
