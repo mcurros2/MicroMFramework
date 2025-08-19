@@ -21,7 +21,7 @@ This file defines the iterative documentation workflow for documenting the backe
   - Must contain an `index.md` at root.
   - Each namespace must have its own folder with its own `index.md`.
   - Sub-folders may be used if a namespace is too large.
-  - Generated output (`_site`) must remain inside this directory. IT SHOULD BE INCLUDED IN GIT AND COMMITTED
+  - Generated output (`_site`) must remain inside this directory. DO NOT COMMIT THIS DIRECTORY TO GIT.
 
 ---
 
@@ -96,10 +96,7 @@ The **baseline phase** establishes the current state of documentation for a name
      - Delete any namespaces that are no longer present in `MicroM/core` from `docs-state-backend.md`.
 3. Create a separate task to run `docfx metadata` and `docfx build`.
    - Save logs to `MicroM/docfx-buildlogs/baseline-[namespace].log`.
-   - Ensure the generated site exists in `MicroM/Documentation/Backend/_site`.
-   - Ensure `MicroM/Documentation/Backend/_site` and its contents are committed to git.
-      - CAUTION: This step may commit a lot of files.
-      - TO AVOID FAILING THE TASK BECAUSE OF A LONG DIFF, COMMIT LARGE FILES INDEPENDENTLY.
+   - Ensure the generated site exists in `MicroM/Documentation/Backend/_site`. DO NOT COMMIT THIS DIRECTORY TO GIT.
 
 4. Summarize findings in `iteration-summary.md`:
    - For each task, include **execution result** and **verification result**.
@@ -124,8 +121,8 @@ After baseline verification, documentation improves in cycles.
     - For each namespace do not plan more than 10 tasks.
     - Add the remaining tasks to be planned in the next iteration.
   - Define tasks
-    - “Complete XML docs for Configuration namespace”
-    - “Document Configuration namespace overview”
+    - “Complete XML docs for the selected namespace”
+    - “Document the selected namespace overview”
     - Add other documentation tasks as needed.
   - Reference related files and folders.
 
@@ -139,14 +136,13 @@ After baseline verification, documentation improves in cycles.
 - Run `docfx metadata` and `docfx build`.
 - Save logs to `MicroM/docfx-buildlogs/iterationN.log`.
 - Check for existence of generated site in `MicroM/Documentation/Backend/_site` for pages and links.
-- Ensure is `MicroM/Documentation/Backend/_site` and its contents are committed to git.
 - For each task:
   - Record execution result.
   - Record verification result with explicit success/failure.
   - Provide reason if verification fails.
   - Classify outcomes as Warning, Error, or Failure.
 
-### Summary & Forward Tasks
+### Summary & Next Tasks
 - Append results to `iteration-summary.md`:
   - Task outcomes (execution + verification).
   - Verification outcomes with reasoning.
@@ -158,7 +154,7 @@ After baseline verification, documentation improves in cycles.
   - `Documentation/Backend/...`
   - `Documentation-Progress/Backend/...`
   - `docfx.json`
-  - `MicroM/Documentation/Backend/_site/...`
+  - XML documentation changes.
   - Build logs
 - Use commit messages that mention iteration number and high-level results.
 
