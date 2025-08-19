@@ -51,7 +51,7 @@ BEGIN
             , trim(a.vc_application_url)
     from    openjson(@appurls) WITH (vc_application_url varchar(max) '$') a
             left join applications_urls b
-            on(b.c_application_id=@application_id and b.vc_application_url=a.vc_application_url)
+            on(b.c_application_id=@application_id and b.c_application_url_id=a.vc_application_url)
 END
 
 begin try
