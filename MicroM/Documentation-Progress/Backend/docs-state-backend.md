@@ -1,4 +1,4 @@
-# Documentation State – MicroM Backend (Iteration 63)
+# Documentation State – MicroM Backend
 
 This file tracks the current documentation state of the backend (`/MicroM/core`).
 Namespaces and tutorials are listed here with notes about completeness.
@@ -7,72 +7,41 @@ Namespaces and tutorials are listed here with notes about completeness.
 
 ## Namespaces
 
-### MicroM.Configuration
-- XML docs: ✅ Complete for public types and options
-- Conceptual page: ✅ `Documentation/Backend/Configuration/index.md` covers all configuration types
+### Configuration Namespace
+- Status: Complete
 
-### MicroM.Core
-- XML docs: ⚠️ Partial
-- Conceptual page: ✅ `Documentation/Backend/Core/index.md` exists but may not cover all types
+### Core Namespace
+- Status: Not Started
 
-### MicroM.Data
-- XML docs: ⚠️ Partial
-- Conceptual page: ✅ `Documentation/Backend/Data/index.md` provides an overview
+### Data Namespace
+- Status: Not Started
 
-### MicroM.DataDictionary
-- XML docs: ⚠️ Partial
-- Conceptual page: ✅ `Documentation/Backend/DataDictionary/` has initial pages but coverage is incomplete
+### DataDictionary Namespace
+- Status: Not Started
 
-### MicroM.Database
-- XML docs: ⚠️ Partial
-- Conceptual page: ✅ `Documentation/Backend/Database/index.md` exists
+### Database Namespace
+- Status: Not Started
 
-### MicroM.Excel
-- XML docs: ⚠️ Partial
-- Conceptual page: ✅ `Documentation/Backend/Excel/index.md` exists
+### Documentation Namespace
+- Status: Not Started
 
-### MicroM.Extensions
-- XML docs: ⚠️ Partial
-- Conceptual page: ✅ `Documentation/Backend/Extensions/index.md` exists
+### Excel Namespace
+- Status: Not Started
 
-### MicroM.Generators
-- XML docs: ⚠️ Partial
-- Conceptual page: ✅ `Documentation/Backend/Generators/index.md` exists
+### Extensions Namespace
+- Status: Not Started
 
-### MicroM.ImportData
-- XML docs: ⚠️ Partial
-- Conceptual page: ✅ `Documentation/Backend/ImportData/index.md` exists
+### Generators Namespace
+- Status: Not Started
 
-### MicroM.Validators
-- XML docs: ⚠️ Partial
-- Conceptual page: ✅ `Documentation/Backend/Validators/index.md` exists
+### ImportData Namespace
+- Status: Not Started
 
-### MicroM.Web
-- XML docs: ⚠️ Partial
-- Conceptual page: ✅ `Documentation/Backend/Web/index.md` exists
+### Validators Namespace
+- Status: Not Started
 
-*(Add additional namespaces discovered from `/MicroM/core` as needed.)*
-
----
+### Web Namespace
+- Status: Not Started
 
 ## Tutorials
-
-### Overview / Getting Started
-- Status: ⚠️ Draft
-
-### Database Initialization
-- Status: ⚠️ Stub
-
-### Example API Walkthrough
-- Status: ❌ Missing
-
-*(Add more tutorial entries as they are planned or drafted.)*
-
----
-
-## Notes
-
-- XML documentation is enabled in the project but incomplete across most namespaces.
-- Several namespace docs exist but need expansion.
-- Initial tutorials added for overview and database initialization.
-- Excel index link validated.
+- None documented.
