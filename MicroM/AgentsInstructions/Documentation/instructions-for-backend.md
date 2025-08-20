@@ -124,8 +124,8 @@ After baseline verification, documentation improves in cycles.
     - Add XML documentation tasks first.
     - Once XML documentation is complete, update the related templates.
       - Example: If a class is documented:
-        - Add a task to update the `class-doc-template.md` to reflect the current state.
-        - Add a task to update the `namespace-documentation-template.md` to reflect the current state.
+        - Add a task to update the existing docs using `class-doc-template.md` to reflect the current state.
+        - Add a task to update the existing docs using `namespace-documentation-template.md` to reflect the current state.
   - Define tasks
     - “Complete XML docs for the selected namespace”
     - When all XML docs are complete, “Document the selected namespace”
@@ -144,8 +144,8 @@ After baseline verification, documentation improves in cycles.
     - [`Templates/enum-doc-template.md`](Templates/enum-doc-template.md) → Template for documenting enums.
     - [`Templates/interface-doc-template.md`](Templates/interface-doc-template.md) → Template for documenting interfaces.
     - [`Templates/struct-doc-template.md`](Templates/struct-doc-template.md) → Template for documenting structs.
-  - Fill only each section of the template if existing.
-  - For inheritance only add the base class and implemented interfaces.
+  - IMPORTANT: Fill only each section of the template if existing.
+  - IMPORTANT: For inheritance only add the base class and implemented interfaces.
   - Follow any instructions in the template.
 
 ### Execution Phase
