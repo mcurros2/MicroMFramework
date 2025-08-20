@@ -51,3 +51,21 @@ General-purpose extension methods for strings, time spans, and embedded resource
 Tools for generating SQL and TypeScript code from entity definitions.
 
 [Documentation](./MicroM.Generators/index.md)
+
+## MicroM.ImportData
+
+Utilities to parse and import data from CSV or Excel sources.
+
+[Documentation](./MicroM.ImportData/index.md)
+
+## MicroM.Validators
+
+Regular expression helpers for validating user input.
+
+[Documentation](./MicroM.Validators/index.md)
+
+## MicroM.Web
+
+ASP.NET Core components for authentication, controllers, middleware and services.
+
+[Documentation](./MicroM.Web/index.md)

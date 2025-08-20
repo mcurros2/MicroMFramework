@@ -69,44 +69,44 @@ This file tracks the current documentation state of the backend (/MicroM/core).
 - Notes: Namespace index and type docs present.
 
 ### MicroM.ImportData
-- State: Not Started ❌
-- Notes: Documentation missing.
+- State: Complete ✅
+- Notes: Namespace index and type docs present.
 
 ### MicroM.Validators
-- State: Not Started ❌
-- Notes: Documentation missing.
+- State: Complete ✅
+- Notes: Namespace index and type docs present.
 
 ### MicroM.Web
-- State: Not Started ❌
-- Notes: Documentation missing.
+- State: Incomplete ❌
+- Notes: Namespace index present; subnamespace docs pending.
 
 ### MicroM.Web.Authentication
-- State: Not Started ❌
-- Notes: Documentation missing.
+- State: Incomplete ❌
+- Notes: Namespace index present; type docs pending.
 
 ### MicroM.Web.Authentication.SSO
-- State: Not Started ❌
-- Notes: Documentation missing.
+- State: Incomplete ❌
+- Notes: Placeholder namespace; docs to be added.
 
 ### MicroM.Web.Controllers
-- State: Not Started ❌
-- Notes: Documentation missing.
+- State: Incomplete ❌
+- Notes: Namespace index present; controller docs pending.
 
 ### MicroM.Web.Debug
-- State: Not Started ❌
-- Notes: Documentation missing.
+- State: Complete ✅
+- Notes: Namespace index and DependencyInjectionDebug doc present.
 
 ### MicroM.Web.Middleware
-- State: Not Started ❌
-- Notes: Documentation missing.
+- State: Complete ✅
+- Notes: Namespace index and DebugRoutesMiddleware doc present.
 
 ### MicroM.Web.Services
-- State: Not Started ❌
-- Notes: Documentation missing.
+- State: Incomplete ❌
+- Notes: Namespace index present; service docs pending.
 
 ### MicroM.Web.Services.Security
-- State: Not Started ❌
-- Notes: Documentation missing.
+- State: Incomplete ❌
+- Notes: Namespace index present; PublicEndpointsMiddleware documented.
 
 ## Tutorials
 - Overview tutorial: Not Started ❌
