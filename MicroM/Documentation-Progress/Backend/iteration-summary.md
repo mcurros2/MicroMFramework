@@ -105,3 +105,209 @@
 
 ### Forward Tasks
 - Continue auditing remaining namespaces for template compliance.
+## Iteration 8 – MicroM.DataDictionary.CategoriesDefinitions
+### Plan
+- Document MicroM.DataDictionary.CategoriesDefinitions namespace and its types.
+
+### Execution Results
+- Success: added namespace index, type pages, and linked from data dictionary index.
+
+### Verification Results
+- Success: pages link correctly and fields rendered as tables.
+
+### Issues Encountered
+- None.
+
+### Forward Tasks
+- Continue documenting data dictionary subnamespaces.
+
+## Iteration 9 – MicroM.DataDictionary.Configuration
+### Plan
+- Document MicroM.DataDictionary.Configuration namespace and foundational types.
+
+### Execution Results
+- Success: created namespace index and documentation for category, status, and menu definitions.
+
+### Verification Results
+- Success: linked from categories definitions and data dictionary index.
+
+### Issues Encountered
+- None.
+
+### Forward Tasks
+- Document entity namespaces under data dictionary.
+
+## Iteration 10 – MicroM.DataDictionary.Entities
+### Plan
+- Document core entity classes within the data dictionary.
+
+### Execution Results
+- Success: added index and pages for Applications, Categories, and ConfigurationDB entities.
+
+### Verification Results
+- Success: confirmed navigation from data dictionary index.
+
+### Issues Encountered
+- None.
+
+### Forward Tasks
+- Cover user-related entity subnamespace.
+
+## Iteration 11 – MicroM.DataDictionary.Entities.MicromUsers
+### Plan
+- Document user entity types and related records.
+
+### Execution Results
+- Success: added index, entity docs, and login result records.
+
+### Verification Results
+- Success: all pages render and cross-link correctly.
+
+### Issues Encountered
+- None.
+
+### Forward Tasks
+- Document status definition helpers.
+
+## Iteration 12 – MicroM.DataDictionary.StatusDefs
+### Plan
+- Document predefined status definition classes.
+
+### Execution Results
+- Success: created namespace index and docs for file upload, email, process, and import statuses.
+
+### Verification Results
+- Success: data dictionary index links to status definitions.
+
+### Issues Encountered
+- None.
+
+### Forward Tasks
+- Move on to utility namespaces like extensions.
+
+## Iteration 13 – MicroM.Extensions
+### Plan
+- Document MicroM.Extensions namespace and common helpers.
+
+### Execution Results
+- Success: added index and docs for string, time, and embedded resource extensions.
+
+### Verification Results
+- Success: backend index links to new namespace and pages render.
+
+### Issues Encountered
+- None.
+
+### Forward Tasks
+- Document generator namespaces.
+
+## Iteration 14 – MicroM.Generators
+### Plan
+- Document base generator infrastructure.
+
+### Execution Results
+- Success: added namespace index and docs for template base, constants, and regex helpers.
+
+### Verification Results
+- Success: links to subnamespaces verified.
+
+### Issues Encountered
+- None.
+
+### Forward Tasks
+- Document generator extension helpers.
+
+## Iteration 15 – MicroM.Generators.Extensions
+### Plan
+- Document extensions used by generators.
+
+### Execution Results
+- Success: created index and docs for common and template extensions.
+
+### Verification Results
+- Success: pages link correctly from generator index.
+
+### Issues Encountered
+- None.
+
+### Forward Tasks
+- Document React generator components.
+
+## Iteration 16 – MicroM.Generators.ReactGenerator
+### Plan
+- Document React generator templates and entity extensions.
+
+### Execution Results
+- Success: added namespace index and docs for templates and entity extensions.
+
+### Verification Results
+- Success: cross-links from generator index work as expected.
+
+### Issues Encountered
+- None.
+
+### Forward Tasks
+- Document SQL generator components.
+
+## Iteration 17 – MicroM.Generators.SQLGenerator
+### Plan
+- Document SQL generator templates and table extension helpers.
+
+### Execution Results
+- Success: created namespace index and docs for templates and table extensions.
+
+### Verification Results
+- Success: confirmed navigation and formatting.
+
+### Issues Encountered
+- None.
+
+### Forward Tasks
+- Continue documenting remaining backend namespaces.
+## Iteration 18 – SecurityDefaults
+### Plan
+- Document SecurityDefaults class within MicroM.Configuration.
+
+### Execution Results
+- Success: created documentation page and linked from namespace index.
+
+### Verification Results
+- Success: page renders and cross-links correctly.
+
+### Issues Encountered
+- None.
+
+### Forward Tasks
+- Document AllowedRouteFlags enum.
+
+## Iteration 19 – AllowedRouteFlags
+### Plan
+- Document AllowedRouteFlags enum within MicroM.Configuration.
+
+### Execution Results
+- Success: added enum documentation and linked from namespace index.
+
+### Verification Results
+- Success: confirmed navigation from configuration index.
+
+### Issues Encountered
+- None.
+
+### Forward Tasks
+- Reorder iteration log for consistency.
+
+## Iteration 20 – Iteration Log Cleanup
+### Plan
+- Reorder iteration summary and ensure numbering is sequential.
+
+### Execution Results
+- Success: moved misplaced iteration block and verified numbering through iteration 20.
+
+### Verification Results
+- Success: iteration summary now flows sequentially.
+
+### Issues Encountered
+- None.
+
+### Forward Tasks
+- Continue documenting remaining backend namespaces.

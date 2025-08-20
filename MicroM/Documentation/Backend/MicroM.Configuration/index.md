@@ -11,11 +11,13 @@ Provides core configuration abstractions and defaults for MicroM.
 | [DataDefaults](DataDefaults.md) | Default values for data access operations. |
 | [MicroMOptions](MicroMOptions.md) | Options for configuring core MicroM behaviors and defaults. |
 | [SecretsOptions](SecretsOptions.md) | Options for storing sensitive configuration values such as database credentials. |
+| [SecurityDefaults](SecurityDefaults.md) | Temporary encryption keys used during startup. |
 
 ## Enums
 | Enum | Description |
 |:------------|:-------------|
 | [DatabaseMigrationResult](DatabaseMigrationResult.md) | Result values for database migration operations. |
+| [AllowedRouteFlags](AllowedRouteFlags.md) | Flags specifying unauthenticated route permissions. |
 
 ## Interfaces
 | Interface | Description |
