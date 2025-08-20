@@ -9,3 +9,9 @@ For step-by-step learning materials, see the [Tutorials](./Tutorials/index.md) s
 Handles application and database configuration options.
 
 [Documentation](./MicroM.Configuration/index.md)
+
+## MicroM.Core
+
+Provides core abstractions, utilities, and base entity functionality.
+
+[Documentation](./MicroM.Core/index.md)
