@@ -14,11 +14,6 @@ Options for storing sensitive configuration values such as database credentials.
 | ConfigSQLUser | string? | SQL user for the configuration database. |
 | ConfigSQLPassword | string? | Password for the configuration database user. |
 
-## Methods
-| Method | Description |
-|:------------|:-------------|
-| *(none)* | |
-
 ## Remarks
 Use external storage to protect secrets in production environments.
 

@@ -6,7 +6,7 @@ This file tracks the current documentation state of the backend (/MicroM/core).
 
 ### MicroM.Configuration
 - State: Complete ✅
-- Notes: Namespace index and type docs present.
+- Notes: Namespace index and type docs present; class docs aligned with templates.
 
 ### MicroM.Core
 - State: Complete ✅
