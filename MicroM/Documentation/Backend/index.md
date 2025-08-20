@@ -15,3 +15,9 @@ Handles application and database configuration options.
 Provides core abstractions, utilities, and base entity functionality.
 
 [Documentation](./MicroM.Core/index.md)
+
+## MicroM.Data
+
+Provides data access infrastructure, column metadata, and SQL helpers.
+
+[Documentation](./MicroM.Data/index.md)
