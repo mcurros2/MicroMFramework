@@ -3,7 +3,7 @@
 {{class.overview}}
 
 ## Inheritance
-{{inherits from class}}
+{{inherits from class (only include explicit inheritance)}}
 
 ## Implements
 {{implements interfaces}}
