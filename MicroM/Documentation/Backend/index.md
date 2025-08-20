@@ -21,3 +21,9 @@ Provides core abstractions, utilities, and base entity functionality.
 Provides data access infrastructure, column metadata, and SQL helpers.
 
 [Documentation](./MicroM.Data/index.md)
+
+## MicroM.DataDictionary
+
+Defines category, configuration, and status metadata that describe system entities.
+
+[Documentation](./MicroM.DataDictionary/index.md)
