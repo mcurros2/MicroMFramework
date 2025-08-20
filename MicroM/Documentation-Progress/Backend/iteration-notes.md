@@ -16,3 +16,6 @@
 - Documented MicroM.Generators.Extensions namespace.
 - Documented MicroM.Generators.ReactGenerator namespace.
 - Documented MicroM.Generators.SQLGenerator namespace.
+- Added SecurityDefaults documentation to MicroM.Configuration.
+- Added AllowedRouteFlags documentation to MicroM.Configuration.
+- Cleaned iteration summary ordering up to iteration 20.
