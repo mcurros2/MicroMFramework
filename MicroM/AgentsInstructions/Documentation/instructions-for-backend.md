@@ -109,7 +109,7 @@ The **baseline phase** establishes the current state of documentation for a name
      - **Failure**: Critical (e.g., docfx build broken).
 4. If failures or critical gaps are found, schedule a new iteration to revisit the namespace.
 5. In a separate task, run 1 **Iterative Process (Iterations 1+)**
-   - After baseline verification, RUN 1 ITERATION of the iterative process to continue with the next tasks.
+   - After baseline verification, RUN 100 ITERATIONS of the iterative process to continue with the next tasks.
 
 ---
 
