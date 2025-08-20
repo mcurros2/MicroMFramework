@@ -11,9 +11,11 @@ This file defines the iterative documentation workflow for documenting the backe
   - Sample files (templates only, do not edit):
     - [`docs-state-backend-sample.md`](docs-state-backend-sample.md) → Example and Template for tracking documentation state.
     - [`iteration-summary-backend-sample.md`](iteration-summary-backend-sample.md) → Example and Template for iteration summaries.
-  - Documentation templates:
+  - Documentation templates
       - [`Templates/namespace-documentation-template.md`](Templates/namespace-documentation-template.md) → Template for documenting namespaces.
       - [`Templates/class-doc-template.md`](Templates/class-doc-template.md) → Template for documenting classes.
+      - [`Templates/constructor-doc-template.md`](Templates/constructor-doc-template.md) → Template for documenting constructors.
+      - [`Templates/method-doc-template.md`](Templates/method-doc-template.md) → Template for documenting methods.
       - [`Templates/enum-doc-template.md`](Templates/enum-doc-template.md) → Template for documenting enums.
       - [`Templates/interface-doc-template.md`](Templates/interface-doc-template.md) → Template for documenting interfaces.
       - [`Templates/struct-doc-template.md`](Templates/struct-doc-template.md) → Template for documenting structs.
@@ -141,10 +143,12 @@ After baseline verification, documentation improves in cycles.
   - Use these templates for documentation:
     - [`Templates/namespace-documentation-template.md`](Templates/namespace-documentation-template.md) → Template for documenting namespaces.
     - [`Templates/class-doc-template.md`](Templates/class-doc-template.md) → Template for documenting classes.
+    - [`Templates/constructor-doc-template.md`](Templates/constructor-doc-template.md) → Template for documenting constructors.
+    - [`Templates/method-doc-template.md`](Templates/method-doc-template.md) → Template for documenting methods.
     - [`Templates/enum-doc-template.md`](Templates/enum-doc-template.md) → Template for documenting enums.
     - [`Templates/interface-doc-template.md`](Templates/interface-doc-template.md) → Template for documenting interfaces.
     - [`Templates/struct-doc-template.md`](Templates/struct-doc-template.md) → Template for documenting structs.
-  - IMPORTANT: Fill only each section of the template if existing.
+  - IMPORTANT: Fill only each section of the template if existing data is available.
   - IMPORTANT: For inheritance only add the base class and implemented interfaces.
   - Follow any instructions in the template.
 
