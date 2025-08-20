@@ -30,11 +30,6 @@ Configuration settings for a MicroM application including database and authentic
 | IdentityProviderClients | List<string> | Valid identity provider client identifiers. |
 | FrontendURLS | List<string> | Allowed frontend URLs for cross-origin requests. |
 
-## Methods
-| Method | Description |
-|:------------|:-------------|
-| *(none)* | |
-
 ## Remarks
 Use this to map application configuration from appsettings files.
 

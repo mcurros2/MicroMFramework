@@ -17,11 +17,6 @@ Provides core configuration abstractions and defaults for MicroM.
 |:------------|:-------------|
 | [DatabaseMigrationResult](DatabaseMigrationResult.md) | Result values for database migration operations. |
 
-## Structs
-| Struct | Description |
-|:------------|:-------------|
-| *(none)* | |
-
 ## Interfaces
 | Interface | Description |
 |:------------|:-------------|
