@@ -311,3 +311,163 @@
 
 ### Forward Tasks
 - Continue documenting remaining backend namespaces.
+
+## Iteration 21 – MicroM.ImportData
+### Plan
+- Document MicroM.ImportData namespace and its types.
+
+### Execution Results
+- Success: added namespace index and docs for CSVImportResult, CSVParser, and EntityImportData; updated backend index.
+
+### Verification Results
+- Success: pages link correctly from namespace and backend indexes.
+
+### Issues Encountered
+- None.
+
+### Forward Tasks
+- Document MicroM.Validators namespace.
+
+## Iteration 22 – MicroM.Validators
+### Plan
+- Document MicroM.Validators namespace.
+
+### Execution Results
+- Success: added namespace index and doc for Expressions class.
+
+### Verification Results
+- Success: links render from backend index.
+
+### Issues Encountered
+- None.
+
+### Forward Tasks
+- Document remaining web namespaces.
+
+## Iteration 23 – MicroM.Web.Debug
+### Plan
+- Document MicroM.Web.Debug namespace and its types.
+
+### Execution Results
+- Success: created namespace index and doc for DependencyInjectionDebug.
+
+### Verification Results
+- Success: pages linked from MicroM.Web index.
+
+### Issues Encountered
+- None.
+
+### Forward Tasks
+- Document MicroM.Web.Middleware.
+
+## Iteration 24 – MicroM.Web.Middleware
+### Plan
+- Document MicroM.Web.Middleware namespace and DebugRoutesMiddleware class.
+
+### Execution Results
+- Success: added namespace index and doc for DebugRoutesMiddleware.
+
+### Verification Results
+- Success: navigation works from MicroM.Web index.
+
+### Issues Encountered
+- None.
+
+### Forward Tasks
+- Create root MicroM.Web index and remaining subnamespace placeholders.
+
+## Iteration 25 – MicroM.Web
+### Plan
+- Add root MicroM.Web namespace index linking subnamespaces.
+
+### Execution Results
+- Warning: created index listing subnamespaces but no type docs.
+
+### Verification Results
+- Success: index linked from backend index.
+
+### Issues Encountered
+- Missing class documentation for subnamespaces.
+
+### Forward Tasks
+- Populate Authentication namespace.
+
+## Iteration 26 – MicroM.Web.Authentication
+### Plan
+- Start documentation for MicroM.Web.Authentication.
+
+### Execution Results
+- Warning: added namespace index; type docs pending.
+
+### Verification Results
+- Success: index reachable from MicroM.Web index.
+
+### Issues Encountered
+- Significant number of classes without docs.
+
+### Forward Tasks
+- Add placeholder for SSO namespace and controllers index.
+
+## Iteration 27 – MicroM.Web.Controllers
+### Plan
+- Begin documenting MicroM.Web.Controllers.
+
+### Execution Results
+- Warning: created namespace index; controller docs pending.
+
+### Verification Results
+- Success: page linked from MicroM.Web index.
+
+### Issues Encountered
+- Controllers lack individual documentation.
+
+### Forward Tasks
+- Document services namespaces.
+
+## Iteration 28 – MicroM.Web.Services
+### Plan
+- Start documentation for MicroM.Web.Services namespace.
+
+### Execution Results
+- Warning: added namespace index noting subnamespaces.
+
+### Verification Results
+- Success: index accessible from MicroM.Web index.
+
+### Issues Encountered
+- Service types undocumented.
+
+### Forward Tasks
+- Document MicroM.Web.Services.Security.
+
+## Iteration 29 – MicroM.Web.Services.Security
+### Plan
+- Document security middleware within web services.
+
+### Execution Results
+- Warning: added namespace index and doc for PublicEndpointsMiddleware; other types pending.
+
+### Verification Results
+- Success: PublicEndpointsMiddleware page accessible.
+
+### Issues Encountered
+- Additional security handlers lack documentation.
+
+### Forward Tasks
+- Add placeholder for SSO namespace and expand authentication docs.
+
+## Iteration 30 – MicroM.Web.Authentication.SSO
+### Plan
+- Add placeholder for single sign-on namespace.
+
+### Execution Results
+- Warning: created namespace index without type documentation.
+
+### Verification Results
+- Success: index linked from authentication docs.
+
+### Issues Encountered
+- No SSO types documented yet.
+
+### Forward Tasks
+- Flesh out authentication and controller documentation in future iterations.
