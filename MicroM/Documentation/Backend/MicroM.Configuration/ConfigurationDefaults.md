@@ -1,0 +1,33 @@
+# Class: MicroM.Configuration.ConfigurationDefaults
+
+## Overview
+Default configuration values used when no explicit settings are provided.
+
+## Constructors
+| Constructor | Description |
+|:------------|:-------------|
+| *(none)* | Not instantiable.
+
+## Properties
+| Property | Type | Description |
+|:------------|:-------------|:-------------|
+| SQLConfigDatabaseName | string | Name of the configuration database. |
+| SQLConfigUser | string | Default user for the configuration database. |
+| ControlPanelAppID | string | Application identifier for the control panel. |
+| CertificateSubjectName | string | Subject name used for the encryption certificate. |
+| SecretsFilename | string | Default filename for encrypted secrets. |
+| MicroMCommonID | string | Common application identifier for MicroM. |
+| SecretsFilePath | string | Path where the secrets file is stored. |
+| UploadsFolder | string | Folder name for uploaded files. |
+| AllowedFileUploadExtensions | string[] | Allowed file extensions for uploads. |
+
+## Methods
+| Method | Description |
+|:------------|:-------------|
+| *(none)* | |
+
+## Remarks
+Provides defaults used across MicroM when configuration values are absent.
+
+## See Also
+- [DataDefaults](DataDefaults.md)
