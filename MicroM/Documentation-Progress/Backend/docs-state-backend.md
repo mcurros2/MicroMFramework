@@ -21,52 +21,52 @@ This file tracks the current documentation state of the backend (/MicroM/core).
 - Notes: Namespace index present; subnamespace docs pending.
 
 ### MicroM.DataDictionary.CategoriesDefinitions
-- State: Not Started ❌
-- Notes: Documentation missing.
+- State: Complete ✅
+- Notes: Namespace index and type docs present.
 
 ### MicroM.DataDictionary.Configuration
-- State: Not Started ❌
-- Notes: Documentation missing.
+- State: Complete ✅
+- Notes: Namespace index and type docs present.
 
 ### MicroM.DataDictionary.Entities
-- State: Not Started ❌
-- Notes: Documentation missing.
+- State: Complete ✅
+- Notes: Namespace index and type docs present.
 
 ### MicroM.DataDictionary.Entities.MicromUsers
-- State: Not Started ❌
-- Notes: Documentation missing.
+- State: Complete ✅
+- Notes: Namespace index and type docs present.
 
 ### MicroM.DataDictionary.StatusDefs
-- State: Not Started ❌
-- Notes: Documentation missing.
+- State: Complete ✅
+- Notes: Namespace index and type docs present.
 
 ### MicroM.Database
-- State: Not Started ❌
-- Notes: Documentation missing.
+ - State: Complete ✅
+ - Notes: Namespace index and type docs present.
 
 ### MicroM.Excel
-- State: Not Started ❌
-- Notes: Documentation missing.
+ - State: Complete ✅
+ - Notes: Namespace index and type docs present.
 
 ### MicroM.Extensions
-- State: Not Started ❌
-- Notes: Documentation missing.
+- State: Complete ✅
+- Notes: Namespace index and type docs present.
 
 ### MicroM.Generators
-- State: Not Started ❌
-- Notes: Documentation missing.
+- State: Complete ✅
+- Notes: Namespace index and type docs present.
 
 ### MicroM.Generators.Extensions
-- State: Not Started ❌
-- Notes: Documentation missing.
+- State: Complete ✅
+- Notes: Namespace index and type docs present.
 
 ### MicroM.Generators.ReactGenerator
-- State: Not Started ❌
-- Notes: Documentation missing.
+- State: Complete ✅
+- Notes: Namespace index and type docs present.
 
 ### MicroM.Generators.SQLGenerator
-- State: Not Started ❌
-- Notes: Documentation missing.
+- State: Complete ✅
+- Notes: Namespace index and type docs present.
 
 ### MicroM.ImportData
 - State: Not Started ❌
