@@ -5,5 +5,7 @@ The backend of MicroM is organized into several namespaces. Each namespace group
 For step-by-step learning materials, see the [Tutorials](./Tutorials/index.md) section.
 
 ## MicroM.Configuration
+
 Handles application and database configuration options.
-[Documentation](./Configuration/index.md)
+
+[Documentation](./MicroM.Configuration/index.md)
