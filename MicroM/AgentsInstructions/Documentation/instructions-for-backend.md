@@ -9,12 +9,14 @@ This file defines the iterative documentation workflow for documenting the backe
 - **Instructions (this file & samples):** `AgentsInstructions/Documentation/`
   - Instructions for agents live here.
   - Sample files (templates only, do not edit):
-    - [`docs-state-backend-sample.md`](docs-state-backend-sample.md) → Template for tracking documentation state.
-    - [`iteration-summary-backend-sample.md`](iteration-summary-backend-sample.md) → Template for iteration summaries.
-    - [`Templates/class-doc-template.md`](Templates/class-doc-template.md) → Template for documenting classes.
-    - [`Templates/enum-doc-template.md`](Templates/enum-doc-template.md) → Template for documenting enums.
-    - [`Templates/interface-doc-template.md`](Templates/interface-doc-template.md) → Template for documenting interfaces.
-    - [`Templates/struct-doc-template.md`](Templates/struct-doc-template.md) → Template for documenting structs.
+    - [`docs-state-backend-sample.md`](docs-state-backend-sample.md) → Example and Template for tracking documentation state.
+    - [`iteration-summary-backend-sample.md`](iteration-summary-backend-sample.md) → Example and Template for iteration summaries.
+  - Documentation templates:
+      - [`Templates/namespace-documentation-template.md`](Templates/namespace-documentation-template.md) → Template for documenting namespaces.
+      - [`Templates/class-doc-template.md`](Templates/class-doc-template.md) → Template for documenting classes.
+      - [`Templates/enum-doc-template.md`](Templates/enum-doc-template.md) → Template for documenting enums.
+      - [`Templates/interface-doc-template.md`](Templates/interface-doc-template.md) → Template for documenting interfaces.
+      - [`Templates/struct-doc-template.md`](Templates/struct-doc-template.md) → Template for documenting structs.
 
 - **Progress tracking (results created by AI agents):** `MicroM/Documentation-Progress/Backend/`
   - `docs-state-backend.md` → Maintained record of documentation coverage (namespaces & tutorials).
@@ -85,7 +87,6 @@ The **baseline phase** establishes the current state of documentation for a name
      - If all public APIs have XML comments.
      - If all pages are linked in the nearest `index.md` and higher-level indexes.
      - If all classes, structs, enums, and interfaces are documented.
-       - Use `class-doc-template.md`, `enum-doc-template.md`, `interface-doc-template.md`, and `struct-doc-template.md` as templates for documentation.
        - If not documented, add a task to document them.
      - Update existing namespace status in `docs-state-backend.md` to reflect current state.
        - A class is considered documented if it has:
@@ -131,15 +132,37 @@ After baseline verification, documentation improves in cycles.
     - Add other documentation tasks as needed.
   - Reference related files and folders.
 
+## Documentations Tasks
+- **XML Documentation Tasks**:
+- For each public API in the namespace:
+  - Add a task to ensure it has XML comments.
+  - If missing, add a task to document the source code with XML comments.
+- **Markdown Documentation Tasks**:
+  - Use these templates for documentation:
+    - [`Templates/namespace-documentation-template.md`](Templates/namespace-documentation-template.md) → Template for documenting namespaces.
+    - [`Templates/class-doc-template.md`](Templates/class-doc-template.md) → Template for documenting classes.
+    - [`Templates/enum-doc-template.md`](Templates/enum-doc-template.md) → Template for documenting enums.
+    - [`Templates/interface-doc-template.md`](Templates/interface-doc-template.md) → Template for documenting interfaces.
+    - [`Templates/struct-doc-template.md`](Templates/struct-doc-template.md) → Template for documenting structs.
+  - Fill only each section of the template if existing.
+  - For inheritance only add the base class and implemented interfaces.
+  - Follow any instructions in the template.
+
 ### Execution Phase
 - Add or update documentation under `MicroM/Documentation/Backend/`.
 - Ensure every new page is linked to its namespace `index.md` and higher-level indexes.
 - Ensure public APIs have XML comments.
 - Record notes in `iteration-notes.md` if details exceed summary scope.
+- Record execution result.
 
 ### Verification Phase
 - For each task:
-  - Record execution result.
+  - Verify the following:
+  - For each markdown file modified or created:
+    - Ensure it follows the designated template.
+    - Ensure the sections of the template are present if contain data.
+    - Ensure cross references are updated.
+    - Ensure all classes, structs, enums, and interfaces are documented.
   - Record verification result with explicit success/failure.
   - Provide reason if verification fails.
   - Classify outcomes as Warning, Error, or Failure.
@@ -149,7 +172,9 @@ After baseline verification, documentation improves in cycles.
   - Task outcomes (execution + verification).
   - Verification outcomes with reasoning.
   - Issues encountered.
-  - Next iteration tasks (must, should, future).
+  - Next iteration tasks:
+    - Add tasks to document detected missing XML comments.
+    - Add tasks to update referenced namespaces, classes, etc.
 
 ### Commit Changes
 - Commit updated/created files:
