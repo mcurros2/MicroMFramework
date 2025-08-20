@@ -9,12 +9,12 @@ This file tracks the current documentation state of the backend (/MicroM/core).
 - Notes: Namespace index and type docs present.
 
 ### MicroM.Core
-- State: Not Started ❌
-- Notes: Documentation missing.
+- State: Complete ✅
+- Notes: Namespace index and type docs present.
 
 ### MicroM.Data
-- State: Not Started ❌
-- Notes: Documentation missing.
+- State: Complete ✅
+- Notes: Namespace index and type docs present.
 
 ### MicroM.DataDictionary
 - State: Not Started ❌
