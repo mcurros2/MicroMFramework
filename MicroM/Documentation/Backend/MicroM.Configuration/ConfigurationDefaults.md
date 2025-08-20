@@ -3,11 +3,6 @@
 ## Overview
 Default configuration values used when no explicit settings are provided.
 
-## Constructors
-| Constructor | Description |
-|:------------|:-------------|
-| *(none)* | Not instantiable.
-
 ## Properties
 | Property | Type | Description |
 |:------------|:-------------|:-------------|
@@ -20,11 +15,6 @@ Default configuration values used when no explicit settings are provided.
 | SecretsFilePath | string | Path where the secrets file is stored. |
 | UploadsFolder | string | Folder name for uploaded files. |
 | AllowedFileUploadExtensions | string[] | Allowed file extensions for uploads. |
-
-## Methods
-| Method | Description |
-|:------------|:-------------|
-| *(none)* | |
 
 ## Remarks
 Provides defaults used across MicroM when configuration values are absent.

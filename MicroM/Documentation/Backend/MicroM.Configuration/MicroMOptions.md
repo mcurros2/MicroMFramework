@@ -23,11 +23,6 @@ Options for configuring core MicroM behaviors and defaults.
 | MicroMAPICookieRootPath | string? | Cookie root path for the MicroM API. |
 | DefaultSQLDatabaseCollation | string? | Default SQL collation for new databases. |
 
-## Methods
-| Method | Description |
-|:------------|:-------------|
-| *(none)* | |
-
 ## Remarks
 Defines common options that influence runtime behavior of MicroM components.
 
