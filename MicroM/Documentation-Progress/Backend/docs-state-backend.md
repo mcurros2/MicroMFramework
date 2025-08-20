@@ -41,12 +41,12 @@ This file tracks the current documentation state of the backend (/MicroM/core).
 - Notes: Namespace index and type docs present.
 
 ### MicroM.Database
- - State: Complete ✅
- - Notes: Namespace index and type docs present.
+- State: Complete ✅
+- Notes: Namespace index and type docs present.
 
 ### MicroM.Excel
- - State: Complete ✅
- - Notes: Namespace index and type docs present.
+- State: Complete ✅
+- Notes: Namespace index and type docs present.
 
 ### MicroM.Extensions
 - State: Complete ✅
@@ -85,8 +85,8 @@ This file tracks the current documentation state of the backend (/MicroM/core).
 - Notes: Namespace index present; type docs pending.
 
 ### MicroM.Web.Authentication.SSO
-- State: Incomplete ❌
-- Notes: Placeholder namespace; docs to be added.
+- State: Complete ✅
+- Notes: Namespace index and interface doc present.
 
 ### MicroM.Web.Controllers
 - State: Incomplete ❌
