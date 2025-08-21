@@ -5,9 +5,17 @@ using System.Text;
 
 namespace MicroM.Core
 {
+    /// <summary>
+    /// Provides utilities to validate entity definitions.
+    /// </summary>
     public class EntityChecker
     {
 
+        /// <summary>
+        /// Validates a single entity type.
+        /// </summary>
+        /// <param name="entity_type">The entity type to check.</param>
+        /// <returns>A string describing problems, if any.</returns>
         public static string CheckEntity(Type entity_type)
         {
             StringBuilder problems = new();
@@ -81,6 +89,9 @@ namespace MicroM.Core
             return problems.ToString();
         }
 
+        /// <summary>
+        /// Gets the column, view and procedure properties defined on an entity type.
+        /// </summary>
         public static
             (
             Dictionary<string, PropertyInfo> cols,
@@ -105,6 +116,11 @@ namespace MicroM.Core
             return ret;
         }
 
+        /// <summary>
+        /// Validates all entities in the specified assembly.
+        /// </summary>
+        /// <param name="asm">The assembly containing entities. If null, the executing assembly is used.</param>
+        /// <param name="assembly_name">Optional assembly name to load.</param>
         public static void CheckEntities(Assembly? asm = null, string? assembly_name = null)
         {
             if (asm == null && !string.IsNullOrEmpty(assembly_name)) asm = Assembly.Load(assembly_name);
