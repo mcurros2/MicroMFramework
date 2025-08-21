@@ -1,17 +1,16 @@
 # Namespace: MicroM.DataDictionary.CategoriesDefinitions
-
 ## Overview
-Predefined category helpers for describing authentication methods, identity provider roles, and user classifications.
+Category definitions for common MicroM lookup values.
 
 ## Classes
 | Class | Description |
-|:--|:--|
-| [AuthenticationTypes](AuthenticationTypes.md) | Category values for supported authentication strategies. |
-| [IdentityProviderRole](IdentityProviderRole.md) | Category values defining identity provider roles. |
-| [UserTypes](UserTypes.md) | Category values for administrative and standard users. |
+|:------------|:-------------|
+| [AuthenticationTypes](AuthenticationTypes/index.md) | Authentication type definitions. |
+| [IdentityProviderRole](IdentityProviderRole/index.md) | Roles for identity providers. |
+| [UserTypes](UserTypes/index.md) | MicroM user type definitions. |
 
 ## Remarks
-These definitions seed the data dictionary with common categories used across the platform.
+None.
 
 ## See Also
-- [MicroM.DataDictionary](../MicroM.DataDictionary/index.md)
+-
