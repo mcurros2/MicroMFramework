@@ -13,7 +13,7 @@ This section provides documentation for the MicroM backend namespaces.
 | [MicroM.DataDictionary.Configuration](MicroM.DataDictionary.Configuration/index.md) | Configuration helpers and definitions for categories, statuses, menus and groups. |
 | [MicroM.DataDictionary.Entities](MicroM.DataDictionary.Entities/index.md) | Data dictionary entities like configuration parameters. |
 | [MicroM.DataDictionary.Entities.MicromUsers](MicroM.DataDictionary.Entities.MicromUsers/index.md) | Authentication-related entity helpers and results. |
-| MicroM.DataDictionary.StatusDefs | Documentation not started. |
+| [MicroM.DataDictionary.StatusDefs](MicroM.DataDictionary.StatusDefs/index.md) | Status definitions for emails, file uploads, imports, and processes. |
 | MicroM.Database | Documentation not started. |
 | MicroM.Excel | Documentation not started. |
 | MicroM.Extensions | Documentation not started. |
