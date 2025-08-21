@@ -25,3 +25,4 @@ Additional entities exist in this namespace and will be documented in future ite
 
 ## See Also
 - [MicroM.DataDictionary](../MicroM.DataDictionary/index.md)
+- [MicroM.DataDictionary.Entities.MicromUsers](../MicroM.DataDictionary.Entities.MicromUsers/index.md)
