@@ -58,7 +58,7 @@
 
 ---
 
-## Iteration 2
+## Iteration 6
 ### Plan
 - Add XML comments for selected `MicroM.Core` types:
   - `MicroM/core/Core/CRC32.cs`
@@ -207,3 +207,57 @@
 ### Next iteration Tasks
 - Document remaining classes in `MicroM.DataDictionary.Entities`.
 - Begin documenting `MicroM.DataDictionary.Entities.MicromUsers` namespace.
+
+## Iteration 7
+### Plan
+- Document additional `MicroM.DataDictionary` classes:
+  - Add XML comments to `MicroM/core/DataDictionary/Entities/ApplicationAssemblyTypes/ApplicationAssemblyTypes.cs` and create docs under `MicroM/Documentation/Backend/MicroM.DataDictionary/ApplicationAssemblyTypes*`.
+  - Add XML comments to `MicroM/core/DataDictionary/Entities/ApplicationOIDCClients/ApplicationOidcClients.cs` and create docs under `MicroM/Documentation/Backend/MicroM.DataDictionary/ApplicationOidcClients*`.
+  - Add XML comments to `MicroM/core/DataDictionary/Entities/ApplicationOIDCServer/ApplicationOidcServer.cs` and create docs under `MicroM/Documentation/Backend/MicroM.DataDictionary/ApplicationOidcServer*`.
+- Begin documenting `MicroM.DataDictionary.Entities.MicromUsers` namespace:
+  - Add XML comments to `LoginResult`, `LoginAttemptResult`, and `LoginAttemptStatus` classes in `MicroM/core/DataDictionary/Entities/MicromUsers/`.
+  - Create namespace and type docs under `MicroM/Documentation/Backend/MicroM.DataDictionary.Entities.MicromUsers/`.
+- Update root documentation index and `docs-state-backend.md` for new coverage.
+### Execution Results
+- Added XML comments and documentation for ApplicationAssemblyTypes classes → ✅ Success
+- Added XML comments and documentation for ApplicationOidcClients classes → ✅ Success
+- Added XML comments and documentation for ApplicationOidcServer classes → ✅ Success
+- Created MicromUsers namespace docs with LoginResult, LoginAttemptResult, and LoginAttemptStatus → ✅ Success
+- Updated root index and documentation state → ✅ Success
+
+### Verification Results
+- Verified XML comments in updated source files → ✅ Success
+- Confirmed new markdown files follow templates and are linked from indexes → ✅ Success
+- `docs-state-backend.md` entries updated for relevant namespaces → ✅ Success
+
+### Issues Encountered
+- Remaining classes in `MicroM.DataDictionary` and `MicromUsers` namespaces lack documentation.
+
+### Next iteration Tasks
+- Continue documenting remaining `MicroM.DataDictionary` classes.
+- Expand `MicroM.DataDictionary.Entities.MicromUsers` documentation with additional types.
+
+## Iteration 8
+### Plan
+- Add XML comments for additional MicromUsers record types:
+  - `MicroM/core/DataDictionary/Entities/MicromUsers/LoginData.cs`
+  - `MicroM/core/DataDictionary/Entities/MicromUsers/RefreshResult.cs`
+- Create documentation pages for these classes under `MicroM/Documentation/Backend/MicroM.DataDictionary.Entities.MicromUsers/`.
+- Update namespace index and `docs-state-backend.md` for new coverage.
+
+### Execution Results
+- Added XML comments to `LoginData` and `RefreshTokenResult` records → ✅ Success
+- Created documentation pages for `LoginData` and `RefreshTokenResult` → ✅ Success
+- Updated MicromUsers namespace index and progress files → ✅ Success
+
+### Verification Results
+- Verified XML comments in updated source files → ✅ Success
+- Confirmed markdown files follow templates and are linked from indexes → ✅ Success
+- `docs-state-backend.md` shows additional MicromUsers coverage → ✅ Success
+
+### Issues Encountered
+- Other MicromUsers and DataDictionary classes remain undocumented.
+
+### Next iteration Tasks
+- Document remaining MicromUsers classes (e.g., `MicromUsers`, `MicromUsersDevices`).
+- Continue expanding `MicroM.DataDictionary` entities documentation.
