@@ -39,8 +39,8 @@ This file tracks the current documentation state of the backend (`/MicroM/core`)
 - Notes: Namespace index with LoginResult, LoginAttemptResult, LoginAttemptStatus, LoginData, and RefreshTokenResult documented.
 
 ### MicroM.DataDictionary.StatusDefs
-- State: Not Started ❌
-- Notes: No documentation present.
+- State: Incomplete ⚠️
+- Notes: Namespace index documented; class pages and XML comments pending.
 
 ### MicroM.Database
 - State: Not Started ❌
