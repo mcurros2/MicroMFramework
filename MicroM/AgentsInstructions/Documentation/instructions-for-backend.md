@@ -1,6 +1,8 @@
-﻿# MicroMFramework Documentation Instructions
+﻿# MicroMFramework Backend Documentation Instructions
 
-This file defines the iterative documentation workflow for documenting the backend of MicroMFramework using DocFX. **This file contains the instructions to be followed by agents. Sample files are only templates.**
+This file defines the iterative documentation workflow for documenting the backend of MicroMFramework. 
+
+**This file contains the instructions to be followed by agents. Templates and samples are provided to be used to create the documentation files.**
 
 ---
 
@@ -8,10 +10,12 @@ This file defines the iterative documentation workflow for documenting the backe
 
 - **Instructions (this file & samples):** `AgentsInstructions/Documentation/`
   - Instructions for agents live here.
-  - Sample files (templates only, do not edit):
-    - [`docs-state-backend-sample.md`](docs-state-backend-sample.md) → Example and Template for tracking documentation state.
-    - [`iteration-summary-backend-sample.md`](iteration-summary-backend-sample.md) → Example and Template for iteration summaries.
-  - Documentation templates
+  
+  - **Templates in the section are READN ONLY. Agents must not update them.**
+    - Sample files (templates only, do not edit):
+      - [`docs-state-backend-sample.md`](docs-state-backend-sample.md) → Example and Template for tracking documentation state.
+      - [`iteration-summary-backend-sample.md`](iteration-summary-backend-sample.md) → Example and Template for iteration summaries.
+    - Documentation templates
       - [`Templates/namespace-documentation-template.md`](Templates/namespace-documentation-template.md) → Template for documenting namespaces.
       - [`Templates/class-doc-template.md`](Templates/class-doc-template.md) → Template for documenting classes.
       - [`Templates/constructor-doc-template.md`](Templates/constructor-doc-template.md) → Template for documenting constructors.
@@ -28,7 +32,21 @@ This file defines the iterative documentation workflow for documenting the backe
 - **Backend documentation site (source & output):** `MicroM/Documentation/Backend/`
   - Must contain an `index.md` at root.
   - Each namespace must have its own folder with its own `index.md`.
-  - Sub-folders may be used if a namespace is too large.
+  - Sub-folders for each class, struct, enum, and interface
+
+---
+
+## How to document a namespace
+- Each namespace must have its own folder in `MicroM/Documentation/Backend/`.
+- Each namespace folder must have an `index.md` file.
+- Each namespace `index.md` must follow the [`namespace-documentation-template.md`](Templates/namespace-documentation-template.md) template.
+- Each namespace must be listed in `MicroM/Documentation/Backend/index.md`.
+
+# How to document a class, struct, enum, or interface
+- Each class, struct, enum, or interface must have its own folder in `MicroM/Documentation/Backend/{{namespace}}`.
+- Each class, struct, enum, or interface folder must have an `index.md` file.
+- Each class, struct, enum, or interface `index.md` must follow the corresponding template (e.g., [`class-doc-template.md`](Templates/class-doc-template.md)).
+- Each class, struct, enum, or interface must be listed in its namespace `index.md`.
 
 ---
 
@@ -37,7 +55,7 @@ This file defines the iterative documentation workflow for documenting the backe
 Both `docs-state-backend.md` and `iteration-summary.md` follow the same principles:
 
 - **docs-state-backend.md**
-  - Organized by namespace and tutorial.
+  - Organized by namespace.
   - Notes coverage of XML comments, missing pages, and incomplete docs.
   - Always updated after a baseline verification run.
   - Use [`docs-state-backend-sample.md`](docs-state-backend-sample.md) as the template.
@@ -60,7 +78,6 @@ Both `docs-state-backend.md` and `iteration-summary.md` follow the same principl
 
 Both files should cross-reference each other: `docs-state-backend.md` provides the coverage baseline, while `iteration-summary.md` records incremental progress.
 
-**Samples are templates only. Agents must not update them.**
 
 ---
 
@@ -70,7 +87,8 @@ The **baseline phase** establishes the current state of documentation for a name
 
 - Run this phase:
   - At the very start (Iteration 0).
-  - After completing 50 iterations of the iterative process.
+  - When documentation instructions have been updated.
+  - On user demand
   - THIS PHASE IS INTENDED FOR DETERMINING THE DOCUMENTATION STATE AND BASE LINE. 
   - DO NOT MODIFY ANY *.CS* FILES IN THIS PHASE.
   - DOC-STATE-BACKEND.MD MUST BE UPDATED TO REFLECT THE CURRENT STATE OF DOCUMENTATION AS A REFERENCE FOR NEXT TASKS IN THE ITERATIVE PROCESS.
@@ -85,16 +103,19 @@ The **baseline phase** establishes the current state of documentation for a name
      - namespaces should be listed in alphabetical order.
      - Each namespace should use `namespace-documentation-template.md` as a template for its `index.md`.
    - Create a separate task to Visit each namespace to check:
-     - If it has an `index.md` in `MicroM/Documentation/Backend/`.
+     - If it is listed and linked in `index.md` in `MicroM/Documentation/Backend/`.
+     - If it has an `index.md` in its folder, respecting the `namespace-documentation-template.md` template.
      - If all public APIs have XML comments.
      - If all pages are linked in the nearest `index.md` and higher-level indexes.
-     - If all classes, structs, enums, and interfaces are documented.
+     - If all classes, structs, enums, and interfaces are documented, respecting the corresponding templates.
        - If not documented, add a task to document them.
      - Update existing namespace status in `docs-state-backend.md` to reflect current state.
        - A class is considered documented if it has:
+         - A folder with the class name.
          - An `index.md` in its folder.
          - All public APIs have XML comments.
          - The page is linked to its namespace `index.md` and higher-level indexes.
+         - The folder contains all documentation files.
        - The state should contain:
          - **Complete**: All classes documented, XML comments present, pages linked.
          - **Incomplete**: Some classes not documented, XML comments missing, pages not linked.
@@ -159,6 +180,8 @@ After baseline verification, documentation improves in cycles.
 
 ### Execution Phase
 - Add or update documentation under `MicroM/Documentation/Backend/`.
+- Create or update the documentation files using the templates in `Templates/`.
+- Follow "How to document a namespace" and "How to document a class, struct, enum, or interface" sections."
 - Ensure every new page is linked to its namespace `index.md` and higher-level indexes.
 - Ensure public APIs have XML comments.
 - Record notes in `iteration-notes.md` if details exceed summary scope.
