@@ -1,112 +1,114 @@
 # Documentation State – MicroM Backend
 
-This file tracks the current documentation state of the backend (/MicroM/core).
+This file tracks the current documentation state of the backend (`/MicroM/core`).
+
+---
 
 ## Namespaces
 
 ### MicroM.Configuration
 - State: Complete ✅
-- Notes: Namespace index and type docs present; class docs aligned with templates.
+- Notes: Namespace and classes documented.
 
 ### MicroM.Core
-- State: Complete ✅
-- Notes: Namespace index and type docs present.
+- State: Incomplete ⚠️
+- Notes: Namespace index and some types documented; additional types require documentation.
 
 ### MicroM.Data
-- State: Complete ✅
-- Notes: Namespace index and type docs present.
+- State: Incomplete ⚠️
+- Notes: Namespace index and initial types documented; remaining types require documentation.
 
 ### MicroM.DataDictionary
-- State: Complete ✅
-- Notes: Namespace index present; subnamespace docs pending.
+- State: Incomplete ⚠️
+- Notes: Namespace index and initial types documented; remaining types require documentation.
 
 ### MicroM.DataDictionary.CategoriesDefinitions
 - State: Complete ✅
-- Notes: Namespace index and type docs present.
+- Notes: Namespace and classes documented.
 
 ### MicroM.DataDictionary.Configuration
-- State: Complete ✅
-- Notes: Namespace index and type docs present.
+- State: Not Started ❌
+- Notes: No documentation present.
 
 ### MicroM.DataDictionary.Entities
-- State: Complete ✅
-- Notes: Namespace index and type docs present.
+- State: Not Started ❌
+- Notes: No documentation present.
 
 ### MicroM.DataDictionary.Entities.MicromUsers
-- State: Complete ✅
-- Notes: Namespace index and type docs present.
+- State: Not Started ❌
+- Notes: No documentation present.
 
 ### MicroM.DataDictionary.StatusDefs
-- State: Complete ✅
-- Notes: Namespace index and type docs present.
+- State: Not Started ❌
+- Notes: No documentation present.
 
 ### MicroM.Database
-- State: Complete ✅
-- Notes: Namespace index and type docs present.
+- State: Not Started ❌
+- Notes: No documentation present.
 
 ### MicroM.Excel
-- State: Complete ✅
-- Notes: Namespace index and type docs present.
+- State: Not Started ❌
+- Notes: No documentation present.
 
 ### MicroM.Extensions
-- State: Complete ✅
-- Notes: Namespace index and type docs present.
+- State: Not Started ❌
+- Notes: No documentation present.
 
 ### MicroM.Generators
-- State: Complete ✅
-- Notes: Namespace index and type docs present.
+- State: Not Started ❌
+- Notes: No documentation present.
 
 ### MicroM.Generators.Extensions
-- State: Complete ✅
-- Notes: Namespace index and type docs present.
+- State: Not Started ❌
+- Notes: No documentation present.
 
 ### MicroM.Generators.ReactGenerator
-- State: Complete ✅
-- Notes: Namespace index and type docs present.
+- State: Not Started ❌
+- Notes: No documentation present.
 
 ### MicroM.Generators.SQLGenerator
-- State: Complete ✅
-- Notes: Namespace index and type docs present.
+- State: Not Started ❌
+- Notes: No documentation present.
 
 ### MicroM.ImportData
-- State: Complete ✅
-- Notes: Namespace index and type docs present.
+- State: Not Started ❌
+- Notes: No documentation present.
 
 ### MicroM.Validators
-- State: Complete ✅
-- Notes: Namespace index and type docs present.
+- State: Not Started ❌
+- Notes: No documentation present.
 
 ### MicroM.Web
-- State: Incomplete ❌
-- Notes: Namespace index present; subnamespace docs pending.
+- State: Not Started ❌
+- Notes: No documentation present.
 
 ### MicroM.Web.Authentication
-- State: Incomplete ❌
-- Notes: Namespace index present; type docs pending.
+- State: Not Started ❌
+- Notes: No documentation present.
 
 ### MicroM.Web.Authentication.SSO
-- State: Complete ✅
-- Notes: Namespace index and interface doc present.
+- State: Not Started ❌
+- Notes: No documentation present.
 
 ### MicroM.Web.Controllers
-- State: Incomplete ❌
-- Notes: Namespace index present; controller docs pending.
+- State: Not Started ❌
+- Notes: No documentation present.
 
 ### MicroM.Web.Debug
-- State: Complete ✅
-- Notes: Namespace index and DependencyInjectionDebug doc present.
+- State: Not Started ❌
+- Notes: No documentation present.
 
 ### MicroM.Web.Middleware
-- State: Complete ✅
-- Notes: Namespace index and DebugRoutesMiddleware doc present.
+- State: Not Started ❌
+- Notes: No documentation present.
 
 ### MicroM.Web.Services
-- State: Incomplete ❌
-- Notes: Namespace index present; service docs pending.
+- State: Not Started ❌
+- Notes: No documentation present.
 
 ### MicroM.Web.Services.Security
-- State: Incomplete ❌
-- Notes: Namespace index present; PublicEndpointsMiddleware documented.
+- State: Not Started ❌
+- Notes: No documentation present.
 
 ## Tutorials
 - Overview tutorial: Not Started ❌

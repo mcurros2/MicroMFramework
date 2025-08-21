@@ -1,17 +1,35 @@
 # Namespace: MicroM.DataDictionary
-
 ## Overview
-Provides definitions for categories, statuses, configuration tables, and other metadata that describe the system's data dictionary.
+Data dictionary entity definitions and related helpers.
 
-## Subnamespaces
-- [MicroM.DataDictionary.CategoriesDefinitions](../MicroM.DataDictionary.CategoriesDefinitions/index.md) — Predefined category helpers for classifying data.
-- [MicroM.DataDictionary.Configuration](../MicroM.DataDictionary.Configuration/index.md) — Base types for categories, statuses, and menu structures.
-- [MicroM.DataDictionary.Entities](../MicroM.DataDictionary.Entities/index.md) — Entity classes representing configuration and system tables.
-- [MicroM.DataDictionary.Entities.MicromUsers](../MicroM.DataDictionary.Entities.MicromUsers/index.md) — User-related entities and records.
-- [MicroM.DataDictionary.StatusDefs](../MicroM.DataDictionary.StatusDefs/index.md) — Standard status definitions used across the application.
+## Classes
+| Class | Description |
+|:------------|:-------------|
+| [CategoriesDef](CategoriesDef/index.md) | Schema definition for categories. |
+| [Categories](Categories/index.md) | Entity for working with categories. |
+| [CategoriesValuesDef](CategoriesValuesDef/index.md) | Schema definition for category values. |
+| [CategoriesValues](CategoriesValues/index.md) | Entity for working with category values. |
+| [MicromMenusDef](MicromMenusDef/index.md) | Schema definition for MicroM menus. |
+| [MicromMenus](MicromMenus/index.md) | Entity for working with MicroM menus. |
+
+## Enums
+| Enum | Description |
+|:------------|:-------------|
+| - | - |
+
+## Structs
+| Struct | Description |
+|:------------|:-------------|
+| - | - |
+
+## Interfaces
+| Interface | Description |
+|:------------|:-------------|
+| - | - |
 
 ## Remarks
-The data dictionary organizes metadata about entities and lookups that drive dynamic behavior in the MicroM platform.
+Additional types remain undocumented.
 
 ## See Also
-- [Backend Namespaces](../index.md)
+-
+
