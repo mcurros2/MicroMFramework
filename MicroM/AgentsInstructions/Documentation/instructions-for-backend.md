@@ -113,11 +113,16 @@ The **baseline phase** establishes the current state of documentation for a name
 
 ---
 
-## Iterative Process (Iterations 1+)
+## Iterative Process (Iterations 1+, run 100 iterations)
 
 After baseline verification, documentation improves in cycles.
 
 ### Plan Phase
+- Review the documentation templates in `Templates/`.
+  - Check if sections were added or removed.
+  - If templates were updated, ensure they are used in the next iteration.
+    - Add new tasks for creating any new templates.
+    - Add tasks for updating existing templates.
 - Review `iteration-summary.md` and `docs-state-backend.md`.
 - Add a **plan block** at the top of `iteration-summary.md`:
   - Process one namespace at a time.
@@ -179,6 +184,8 @@ After baseline verification, documentation improves in cycles.
   - Next iteration tasks:
     - Add tasks to document detected missing XML comments.
     - Add tasks to update referenced namespaces, classes, etc.
+  - If the documentation is complete and no further tasks are needed, mark the namespace as **Complete** in `docs-state-backend.md`.
+  - If all namespaces are complete, mark the backend documentation as **Complete** in `docs-state-backend.md` and stop the iterative process.
 
 ### Commit Changes
 - Commit updated/created files:
