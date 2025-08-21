@@ -4,17 +4,41 @@ using System.Runtime.CompilerServices;
 
 namespace MicroM.DataDictionary.Configuration
 {
+    /// <summary>
+    /// Base class used to describe a category and its possible values.
+    /// </summary>
     public abstract class CategoryDefinition
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CategoryDefinition"/> class.
+        /// </summary>
         public CategoryDefinition() { }
 
+        /// <summary>
+        /// Gets the unique identifier of the category. Defaults to the class name.
+        /// </summary>
         public string CategoryID { get; protected set; } = "";
+
+        /// <summary>
+        /// Gets a human readable description for the category.
+        /// </summary>
         public string Description { get; init; } = "";
 
+        /// <summary>
+        /// Gets a value indicating whether multiple values can be assigned to the category.
+        /// </summary>
         public bool Multivalue { get; init; } = false;
 
+        /// <summary>
+        /// Gets the collection of possible values for this category keyed by value identifier.
+        /// </summary>
         public Dictionary<string, CategoryValuesDefinition> Values { get; } = new(StringComparer.OrdinalIgnoreCase);
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CategoryDefinition"/> class with a description and multivalue option.
+        /// </summary>
+        /// <param name="description">Text describing the category.</param>
+        /// <param name="multivalue">True if the category accepts multiple values.</param>
         public CategoryDefinition(string description, bool multivalue = false)
         {
             CategoryID = this.GetType().Name;

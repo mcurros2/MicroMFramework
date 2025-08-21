@@ -1,23 +1,33 @@
 # Namespace: MicroM.DataDictionary.Configuration
-
 ## Overview
-Base definitions for categories, statuses, menus, and related configuration metadata.
+Provides configuration helpers and definitions used to describe categories, statuses, menus and user groups within the data dictionary.
 
 ## Classes
 | Class | Description |
-|:--|:--|
-| [CategoryDefinition](CategoryDefinition.md) | Base type for defining category metadata. |
-| [CategoryValuesDefinition](CategoryValuesDefinition.md) | Represents a single value within a category. |
-| [MenuDefinition](MenuDefinition.md) | Describes a navigational menu and its structure. |
-| [MenuItemDefinition](MenuItemDefinition.md) | Defines an individual menu entry and routing information. |
-| [StatusDefinition](StatusDefinition.md) | Base type for defining status metadata. |
-| [StatusValuesDefinition](StatusValuesDefinition.md) | Represents an individual status value. |
-| [UsersGroupDefinition](UsersGroupDefinition.md) | Configures groups and their memberships. |
-| [IDDescriptionDefinition](IDDescriptionDefinition.md) | Associates identifiers with human-readable descriptions. |
-| [TableSuffix](TableSuffix.md) | Helper for building table names with optional suffixes. |
+|:------------|:-------------|
+| [CategoryDefinition](<CategoryDefinition/index.md>) | Base class for defining a category and its values. |
+| [CategoryValuesDefinition](<CategoryValuesDefinition/index.md>) | Represents a single value within a category. |
+| [IDDescriptionDefinition](<IDDescriptionDefinition/index.md>) | Stores an identifier with an associated description. |
+| [MenuDefinition](<MenuDefinition/index.md>) | Defines an application menu and its items. |
+| [MenuItemDefinition](<MenuItemDefinition/index.md>) | Describes a single menu item and hierarchy. |
+| [StatusDefinition](<StatusDefinition/index.md>) | Base class for defining status sets. |
+| [StatusValuesDefinition](<StatusValuesDefinition/index.md>) | Represents a single status value. |
+| [TableSuffix](<TableSuffix/index.md>) | Common table suffix constants. |
+| [UsersGroupDefinition](<UsersGroupDefinition/index.md>) | Defines a user group with allowed menu items. |
+
+## Enums
+| Enum | Description |
+|:------------|:-------------|
+
+## Structs
+| Struct | Description |
+|:------------|:-------------|
+
+## Interfaces
+| Interface | Description |
+|:------------|:-------------|
 
 ## Remarks
-These foundational types are used throughout the data dictionary to describe categories, statuses, and menu structures.
 
 ## See Also
 - [MicroM.DataDictionary](../MicroM.DataDictionary/index.md)
