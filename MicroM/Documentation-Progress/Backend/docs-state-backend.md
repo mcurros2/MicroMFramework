@@ -11,8 +11,8 @@ This file tracks the current documentation state of the backend (`/MicroM/core`)
 - Notes: Namespace and classes documented.
 
 ### MicroM.Core
-- State: Incomplete ⚠️
-- Notes: Namespace index and some types documented; additional types require documentation.
+- State: Complete ✅
+- Notes: Namespace and all public types documented with XML comments and pages.
 
 ### MicroM.Data
 - State: Incomplete ⚠️
