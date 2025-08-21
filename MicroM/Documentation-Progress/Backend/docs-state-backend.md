@@ -27,12 +27,12 @@ This file tracks the current documentation state of the backend (`/MicroM/core`)
 - Notes: Namespace and classes documented.
 
 ### MicroM.DataDictionary.Configuration
-- State: Not Started ❌
-- Notes: No documentation present.
+- State: Complete ✅
+- Notes: Namespace and classes documented.
 
 ### MicroM.DataDictionary.Entities
-- State: Not Started ❌
-- Notes: No documentation present.
+- State: Incomplete ⚠️
+- Notes: ConfigurationParameters documented; remaining entities pending.
 
 ### MicroM.DataDictionary.Entities.MicromUsers
 - State: Not Started ❌
