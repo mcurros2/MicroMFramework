@@ -13,11 +13,25 @@ namespace MicroM.DataDictionary.Configuration
     /// </summary>
     public class MenuDefinition
     {
+        /// <summary>
+        /// Gets the identifier of the menu. Defaults to the class name.
+        /// </summary>
         public readonly string MenuID;
+
+        /// <summary>
+        /// Gets the description displayed for the menu.
+        /// </summary>
         public readonly string MenuDescription;
 
+        /// <summary>
+        /// Gets the ordered collection of menu items contained in the menu.
+        /// </summary>
         public readonly CustomOrderedDictionary<MenuItemDefinition> MenuItems = new();
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="MenuDefinition"/> class with the provided description.
+        /// </summary>
+        /// <param name="menuDescription">Text describing the menu.</param>
         public MenuDefinition(string menuDescription)
         {
             MenuID = this.GetType().Name;

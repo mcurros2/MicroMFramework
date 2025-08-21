@@ -4,13 +4,30 @@ using System.Runtime.CompilerServices;
 
 namespace MicroM.DataDictionary.Configuration
 {
+    /// <summary>
+    /// Base class used to define a set of status values for a particular entity.
+    /// </summary>
     public abstract class StatusDefinition
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="StatusDefinition"/> class.
+        /// </summary>
         public StatusDefinition() { }
 
+        /// <summary>
+        /// Gets the identifier for the status. Defaults to the class name.
+        /// </summary>
         public string StatusID { get; private set; } = "";
+
+        /// <summary>
+        /// Gets the descriptive text for the status set.
+        /// </summary>
         public string Description { get; init; } = "";
 
+        /// <summary>
+        /// Initializes a new instance with the specified description.
+        /// </summary>
+        /// <param name="description">Text describing the status set.</param>
         public StatusDefinition(string description)
         {
             StatusID = this.GetType().Name;
@@ -18,6 +35,9 @@ namespace MicroM.DataDictionary.Configuration
             FillValuesDictionary();
         }
 
+        /// <summary>
+        /// Gets the collection of allowed status values keyed by identifier.
+        /// </summary>
         public Dictionary<string, StatusValuesDefinition> Values { get; } = new(StringComparer.OrdinalIgnoreCase);
 
         private void FillValuesDictionary()

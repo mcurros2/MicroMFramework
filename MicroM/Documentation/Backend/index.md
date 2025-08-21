@@ -10,8 +10,8 @@ This section provides documentation for the MicroM backend namespaces.
 | [MicroM.Data](MicroM.Data/index.md) | Data abstractions and results helpers. |
 | [MicroM.DataDictionary](MicroM.DataDictionary/index.md) | Data dictionary entity definitions. |
 | [MicroM.DataDictionary.CategoriesDefinitions](MicroM.DataDictionary.CategoriesDefinitions/index.md) | Category definitions for common MicroM lookup values. |
-| MicroM.DataDictionary.Configuration | Documentation not started. |
-| MicroM.DataDictionary.Entities | Documentation not started. |
+| [MicroM.DataDictionary.Configuration](MicroM.DataDictionary.Configuration/index.md) | Configuration helpers and definitions for categories, statuses, menus and groups. |
+| [MicroM.DataDictionary.Entities](MicroM.DataDictionary.Entities/index.md) | Data dictionary entities like configuration parameters. |
 | MicroM.DataDictionary.Entities.MicromUsers | Documentation not started. |
 | MicroM.DataDictionary.StatusDefs | Documentation not started. |
 | MicroM.Database | Documentation not started. |
