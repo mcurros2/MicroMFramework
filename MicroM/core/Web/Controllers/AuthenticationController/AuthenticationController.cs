@@ -15,19 +15,20 @@ using System.Security.Claims;
 namespace MicroM.Web.Controllers;
 
 /// <summary>
-/// Represents the AuthenticationController.
+/// Provides user authentication, token issuance, and session management endpoints.
 /// </summary>
 [ApiController]
 /// <summary>
-/// Represents the AuthenticationController.
+/// Provides user authentication, token issuance, and session management endpoints.
 /// </summary>
 public class AuthenticationController(IOptions<MicroMOptions> options) : ControllerBase, IAuthenticationController
 {
     private readonly MicroMOptions _options = options.Value;
 
     /// <summary>
-    /// Performs the GetStatus operation.
+    /// Checks whether the authentication API is responsive.
     /// </summary>
+    /// <returns>Always returns "OK" when the service is running.</returns>
     [AllowAnonymous]
     [HttpGet("auth-api-status")]
     public string GetStatus()
@@ -36,8 +37,10 @@ public class AuthenticationController(IOptions<MicroMOptions> options) : Control
     }
 
     /// <summary>
-    /// Performs the IsLoggedIn operation.
+    /// Determines whether the current user session is authenticated.
     /// </summary>
+    /// <returns><see cref="OkResult"/> when the user is authenticated; otherwise the framework returns <see cref="UnauthorizedResult"/>.</returns>
+    /// <exception cref="UnauthorizedAccessException">Thrown when the caller is not authorized to access the endpoint.</exception>
     [Authorize(policy: nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy))]
     [HttpGet("{app_id}/auth/isloggedin")]
     public ActionResult IsLoggedIn()
@@ -47,8 +50,19 @@ public class AuthenticationController(IOptions<MicroMOptions> options) : Control
 
 
     /// <summary>
-    /// Performs the Login operation.
+    /// Validates credentials and returns a JSON Web Token and refresh token.
     /// </summary>
+    /// <param name="aus">Authentication service used to validate credentials and issue tokens.</param>
+    /// <param name="auth">Provider that accesses user information for validation.</param>
+    /// <param name="jwt_handler">Handler responsible for generating JWTs.</param>
+    /// <param name="app_id">Identifier of the application requesting authentication.</param>
+    /// <param name="userLogin">User credentials payload.</param>
+    /// <param name="ct">Token to observe cancellation requests.</param>
+    /// <returns>
+    /// A dictionary containing access and refresh tokens when authentication succeeds;
+    /// <see cref="UnauthorizedResult"/> when credentials are invalid; or <see cref="EmptyResult"/> if the request is cancelled.
+    /// </returns>
+    /// <exception cref="OperationCanceledException">Thrown when the operation is cancelled.</exception>
     [AllowAnonymous]
     [HttpPost("{app_id}/auth/login")]
     public async Task<ActionResult> Login([FromServices] Services.IAuthenticationService aus, [FromServices] IAuthenticationProvider auth, [FromServices] WebAPIJsonWebTokenHandler jwt_handler, string app_id, [FromBody] UserLogin userLogin, CancellationToken ct)
@@ -90,8 +104,15 @@ public class AuthenticationController(IOptions<MicroMOptions> options) : Control
 
 
     /// <summary>
-    /// Performs the Logoff operation.
+    /// Terminates the current user's session and clears authentication cookies.
     /// </summary>
+    /// <param name="auth">Provider used to revoke the user's session.</param>
+    /// <param name="aus">Authentication service that performs logoff logic.</param>
+    /// <param name="app_id">Identifier of the application owning the session.</param>
+    /// <param name="ct">Token to observe cancellation requests.</param>
+    /// <returns><see cref="OkResult"/> when logoff succeeds or no user is logged in; otherwise <see cref="EmptyResult"/> if the request is cancelled.</returns>
+    /// <exception cref="OperationCanceledException">Thrown when the operation is cancelled.</exception>
+    /// <exception cref="UnauthorizedAccessException">Thrown when the caller is not authorized to access the endpoint.</exception>
     [Authorize(policy: nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy))]
     [HttpPost("{app_id}/auth/logoff")]
     public async Task<ActionResult> Logoff([FromServices] IAuthenticationProvider auth, [FromServices] Services.IAuthenticationService aus, string app_id, CancellationToken ct)
@@ -116,8 +137,15 @@ public class AuthenticationController(IOptions<MicroMOptions> options) : Control
 
 
     /// <summary>
-    /// Performs the RecoverPassword operation.
+    /// Resets a user's password using a recovery code.
     /// </summary>
+    /// <param name="aus">Authentication service that handles password recovery.</param>
+    /// <param name="auth">Provider used to manage user accounts.</param>
+    /// <param name="app_id">Identifier of the target application.</param>
+    /// <param name="parms">Parameters containing the username, new password, and recovery code.</param>
+    /// <param name="ct">Token to observe cancellation requests.</param>
+    /// <returns>A <see cref="DBStatusResult"/> indicating success or failure, or <see cref="EmptyResult"/> if the request is cancelled.</returns>
+    /// <exception cref="OperationCanceledException">Thrown when the operation is cancelled.</exception>
     [AllowAnonymous]
     [HttpPost("{app_id}/auth/recoverpassword")]
     public async Task<ActionResult> RecoverPassword([FromServices] Services.IAuthenticationService aus, [FromServices] IAuthenticationProvider auth, string app_id, [FromBody] UserRecoverPassword parms, CancellationToken ct)
@@ -151,8 +179,15 @@ public class AuthenticationController(IOptions<MicroMOptions> options) : Control
 
 
     /// <summary>
-    /// Performs the RecoveryEmail operation.
+    /// Sends a password recovery email to the specified user.
     /// </summary>
+    /// <param name="aus">Authentication service that sends the recovery email.</param>
+    /// <param name="auth">Provider used to locate the user account.</param>
+    /// <param name="app_id">Identifier of the application.</param>
+    /// <param name="parms">Parameters containing the username to recover.</param>
+    /// <param name="ct">Token to observe cancellation requests.</param>
+    /// <returns>A <see cref="DBStatusResult"/> indicating whether the email was sent, or <see cref="EmptyResult"/> if the request is cancelled.</returns>
+    /// <exception cref="OperationCanceledException">Thrown when the operation is cancelled.</exception>
     [AllowAnonymous]
     [HttpPost("{app_id}/auth/recoveryemail")]
     public async Task<ActionResult> RecoveryEmail([FromServices] Services.IAuthenticationService aus, [FromServices] IAuthenticationProvider auth, string app_id, [FromBody] UserRecoveryEmail parms, CancellationToken ct)
@@ -188,8 +223,19 @@ public class AuthenticationController(IOptions<MicroMOptions> options) : Control
 
 
     /// <summary>
-    /// Performs the RefreshToken operation.
+    /// Issues a new access token pair based on a valid refresh token.
     /// </summary>
+    /// <param name="aus">Authentication service that validates and refreshes tokens.</param>
+    /// <param name="auth">Provider used to verify the refresh token.</param>
+    /// <param name="jwt_handler">Handler responsible for generating new JWTs.</param>
+    /// <param name="app_id">Identifier of the application.</param>
+    /// <param name="user_refresh">Refresh token request payload.</param>
+    /// <param name="ct">Token to observe cancellation requests.</param>
+    /// <returns>
+    /// A dictionary containing the new access and refresh tokens when the refresh is successful;
+    /// <see cref="UnauthorizedResult"/> when the refresh token is invalid; or <see cref="EmptyResult"/> if the request is cancelled.
+    /// </returns>
+    /// <exception cref="OperationCanceledException">Thrown when the operation is cancelled.</exception>
     [AllowAnonymous]
     [HttpPost("{app_id}/auth/refresh")]
     public async Task<ActionResult> RefreshToken([FromServices] Services.IAuthenticationService aus, [FromServices] IAuthenticationProvider auth, [FromServices] WebAPIJsonWebTokenHandler jwt_handler, string app_id, [FromBody] UserRefreshTokenRequest user_refresh, CancellationToken ct)
