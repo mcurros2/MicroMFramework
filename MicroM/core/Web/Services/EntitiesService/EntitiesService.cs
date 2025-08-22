@@ -16,8 +16,12 @@ using System.Text.Json;
 namespace MicroM.Web.Services;
 
 /// <summary>
-/// Represents the EntitiesService.
+/// Central logic for executing entity CRUD operations, lookups, imports and actions.
+/// Maintains application keys and time zone offsets in thread-safe caches.
 /// </summary>
+/// <remarks>
+/// Updates global <see cref="DataDefaults"/> based on configured options.
+/// </remarks>
 public class EntitiesService : IEntitiesService
 {
     private readonly ConcurrentDictionary<string, Dictionary<string, object>> _ApplicationKeys = new(StringComparer.OrdinalIgnoreCase);
@@ -27,8 +31,21 @@ public class EntitiesService : IEntitiesService
     private readonly MicroMOptions _options;
 
     /// <summary>
-    /// Performs the EntitiesService operation.
+    /// Initializes a new instance of the <see cref="EntitiesService"/> class with required services and options.
     /// </summary>
+    /// <param name="options">Application-wide configuration values.</param>
+    /// <param name="logger">Logger used by lower level API services.</param>
+    /// <param name="encryptor">Encryption service for protecting sensitive values.</param>
+    /// <param name="app_config">Application configuration provider.</param>
+    /// <param name="queue">Background task queue for asynchronous jobs.</param>
+    /// <param name="upload">File upload service.</param>
+    /// <param name="emailService">Email service used for notifications.</param>
+    /// <param name="securityService">Security service for permission checks.</param>
+    /// <param name="deviceIdService">Service used to resolve client device information.</param>
+    /// <param name="authenticationService">Authentication service for user context.</param>
+    /// <remarks>
+    /// Updates static values in <see cref="DataDefaults"/> based on the provided options.
+    /// </remarks>
     public EntitiesService(IOptions<MicroMOptions> options,
             ILogger<WebAPIServices> logger,
             IMicroMEncryption encryptor,
@@ -53,8 +70,14 @@ public class EntitiesService : IEntitiesService
     }
 
     /// <summary>
-    /// Performs the CreateDbConnection operation.
+    /// Creates a database connection using application settings and optional server claims.
     /// </summary>
+    /// <param name="app">Application-specific configuration.</param>
+    /// <param name="server_claims">Server claims that may include user and device information.</param>
+    /// <returns>A configured <see cref="IEntityClient"/>.</returns>
+    /// <remarks>
+    /// Retrieves device information to populate connection metadata. Thread-safe.
+    /// </remarks>
     public IEntityClient CreateDbConnection(ApplicationOption app, Dictionary<string, object>? server_claims)
     {
         string user = app.AuthenticationType == nameof(AuthenticationTypes.SQLServerAuthentication) && string.IsNullOrEmpty(app.SQLUser) ? (string?)server_claims?[MicroMServerClaimTypes.MicroMUsername] ?? "" : app.SQLUser;
@@ -85,19 +108,26 @@ public class EntitiesService : IEntitiesService
     }
 
     /// <summary>
-    /// Performs the CreateDbConnection operation.
+    /// Asynchronously creates a database connection with user and device context.
     /// </summary>
+    /// <param name="app">Application-specific configuration.</param>
+    /// <param name="server_claims">Server claims that may include user and device information.</param>
+    /// <param name="ct">Token used to cancel the operation.</param>
+    /// <returns>A task that returns the configured <see cref="IEntityClient"/>.</returns>
+    /// <remarks>Thread-safe.</remarks>
     public Task<IEntityClient> CreateDbConnection(ApplicationOption app, Dictionary<string, object>? server_claims, CancellationToken ct)
     {
         return Task.FromResult(CreateDbConnection(app, server_claims));
     }
 
     /// <summary>
-    /// Creates an Entity if it exists in the configured assembly.
+    /// Instantiates an entity type and binds it to the supplied or newly created connection.
     /// </summary>
-    /// <param name="entity_name"></param>
-    /// <param name="ec"></param>
-    /// <returns></returns>
+    /// <param name="app">Application-specific configuration.</param>
+    /// <param name="entity_name">Name of the entity to instantiate.</param>
+    /// <param name="server_claims">Server claims for user context.</param>
+    /// <param name="ec">Existing client connection to reuse; if <c>null</c>, a new connection is created.</param>
+    /// <returns>The instantiated entity or <c>null</c> if the type is not found.</returns>
     public EntityBase? CreateEntity(ApplicationOption app, string entity_name, Dictionary<string, object>? server_claims, IEntityClient? ec = null)
     {
         EntityBase? entity = null;
@@ -109,8 +139,13 @@ public class EntitiesService : IEntitiesService
     }
 
     /// <summary>
-    /// Performs the CreateEntity operation.
+    /// Asynchronously creates an entity using a newly established connection.
     /// </summary>
+    /// <param name="app">Application-specific configuration.</param>
+    /// <param name="entity_name">Name of the entity to instantiate.</param>
+    /// <param name="server_claims">Server claims for user context.</param>
+    /// <param name="ct">Token used to cancel the operation.</param>
+    /// <returns>The instantiated entity or <c>null</c> if the type is not found.</returns>
     public EntityBase? CreateEntity(ApplicationOption app, string entity_name, Dictionary<string, object>? server_claims, CancellationToken ct)
     {
         EntityBase? entity = null;
@@ -122,8 +157,11 @@ public class EntitiesService : IEntitiesService
     }
 
     /// <summary>
-    /// Performs the EnsureApplicationKeys operation.
+    /// Merges cached application-level keys into the provided dictionary.
     /// </summary>
+    /// <param name="app_id">Application identifier whose keys are applied.</param>
+    /// <param name="values">Dictionary to augment with key values. Modified in place.</param>
+    /// <remarks>Thread-safe.</remarks>
     public void EnsureApplicationKeys(string app_id, Dictionary<string, object> values)
     {
         _ApplicationKeys.TryGetValue(app_id, out Dictionary<string, object>? app_keys);
@@ -137,8 +175,11 @@ public class EntitiesService : IEntitiesService
     }
 
     /// <summary>
-    /// Performs the GetApplicationKeys operation.
+    /// Retrieves cached application-level keys for the specified application.
     /// </summary>
+    /// <param name="app_id">Application identifier.</param>
+    /// <returns>A dictionary containing the application's keys or an empty dictionary.</returns>
+    /// <remarks>Thread-safe.</remarks>
     public Dictionary<string, object> GetApplicationKeys(string app_id)
     {
         _ApplicationKeys.TryGetValue(app_id, out Dictionary<string, object>? app_keys);
@@ -146,8 +187,15 @@ public class EntitiesService : IEntitiesService
     }
 
     /// <summary>
-    /// Performs the HandleDeleteEntity operation.
+    /// Deletes entity records matching the supplied parameters.
     /// </summary>
+    /// <param name="app">Application context.</param>
+    /// <param name="entity_name">Name of the entity to delete.</param>
+    /// <param name="parms">Request values and selection criteria.</param>
+    /// <param name="ec">Database client used for the operation.</param>
+    /// <param name="ct">Token used to cancel the operation.</param>
+    /// <returns>Aggregated status for the delete operation or <c>null</c> if the entity is not found.</returns>
+    /// <remarks>Disconnects the provided client when finished.</remarks>
     public async Task<DBStatusResult?> HandleDeleteEntity(ApplicationOption app, string entity_name, DataWebAPIRequest parms, IEntityClient ec, CancellationToken ct)
     {
         DBStatusResult? result = null;
@@ -218,8 +266,16 @@ public class EntitiesService : IEntitiesService
     }
 
     /// <summary>
-    /// Performs the HandleExecuteAction operation.
+    /// Executes a named action on the entity using the supplied parameters.
     /// </summary>
+    /// <param name="app">Application context.</param>
+    /// <param name="entity_name">Name of the entity.</param>
+    /// <param name="entity_action">Action identifier to execute.</param>
+    /// <param name="parms">Request values passed to the action.</param>
+    /// <param name="ec">Database client used for the operation.</param>
+    /// <param name="ct">Token used to cancel the operation.</param>
+    /// <returns>The action result or <c>null</c> if the entity is not found.</returns>
+    /// <remarks>Disconnects the provided client when finished.</remarks>
     public async Task<EntityActionResult?> HandleExecuteAction(ApplicationOption app, string entity_name, string entity_action, DataWebAPIRequest parms, IEntityClient ec, CancellationToken ct)
     {
         EntityActionResult? result = null;
@@ -260,8 +316,16 @@ public class EntitiesService : IEntitiesService
     }
 
     /// <summary>
-    /// Performs the HandleExecuteProc operation.
+    /// Executes an entity-defined stored procedure and returns its result sets.
     /// </summary>
+    /// <param name="app">Application context.</param>
+    /// <param name="entity_name">Name of the entity that defines the procedure.</param>
+    /// <param name="proc_name">Name of the procedure to execute.</param>
+    /// <param name="parms">Request values applied to the procedure.</param>
+    /// <param name="ec">Database client used for the operation.</param>
+    /// <param name="ct">Token used to cancel the operation.</param>
+    /// <returns>A list of <see cref="DataResult"/> objects or <c>null</c> if the entity is not found.</returns>
+    /// <remarks>Disconnects the provided client when finished.</remarks>
     public async Task<List<DataResult>?> HandleExecuteProc(ApplicationOption app, string entity_name, string proc_name, DataWebAPIRequest parms, IEntityClient ec, CancellationToken ct)
     {
         List<DataResult> result = [];
@@ -332,8 +396,16 @@ public class EntitiesService : IEntitiesService
     }
 
     /// <summary>
-    /// Performs the HandleExecuteProcDBStatus operation.
+    /// Executes an entity-defined stored procedure and returns database status information.
     /// </summary>
+    /// <param name="app">Application context.</param>
+    /// <param name="entity_name">Name of the entity that defines the procedure.</param>
+    /// <param name="proc_name">Name of the procedure to execute.</param>
+    /// <param name="parms">Request values applied to the procedure.</param>
+    /// <param name="ec">Database client used for the operation.</param>
+    /// <param name="ct">Token used to cancel the operation.</param>
+    /// <returns>Status results produced by the procedure or <c>null</c> if the entity is not found.</returns>
+    /// <remarks>Disconnects the provided client when finished.</remarks>
     public async Task<DBStatusResult?> HandleExecuteProcDBStatus(ApplicationOption app, string entity_name, string proc_name, DataWebAPIRequest parms, IEntityClient ec, CancellationToken ct)
     {
         DBStatusResult result = new();
@@ -406,8 +478,16 @@ public class EntitiesService : IEntitiesService
     }
 
     /// <summary>
-    /// Performs the HandleExecuteView operation.
+    /// Executes a view defined on the entity and returns its result sets.
     /// </summary>
+    /// <param name="app">Application context.</param>
+    /// <param name="entity_name">Name of the entity that defines the view.</param>
+    /// <param name="view_name">Name of the view to execute.</param>
+    /// <param name="parms">Request values applied to the view.</param>
+    /// <param name="ec">Database client used for the operation.</param>
+    /// <param name="ct">Token used to cancel the operation.</param>
+    /// <returns>A list of <see cref="DataResult"/> objects or <c>null</c> if the entity is not found.</returns>
+    /// <remarks>Disconnects the provided client when finished.</remarks>
     public async Task<List<DataResult>?> HandleExecuteView(ApplicationOption app, string entity_name, string view_name, DataWebAPIRequest parms, IEntityClient ec, CancellationToken ct)
     {
         List<DataResult>? result = null;
@@ -460,8 +540,15 @@ public class EntitiesService : IEntitiesService
     }
 
     /// <summary>
-    /// Performs the HandleGetEntity operation.
+    /// Retrieves an entity record using the provided key values.
     /// </summary>
+    /// <param name="app">Application context.</param>
+    /// <param name="entity_name">Name of the entity to retrieve.</param>
+    /// <param name="parms">Request containing key values and additional options.</param>
+    /// <param name="ec">Database client used for the operation.</param>
+    /// <param name="ct">Token used to cancel the operation.</param>
+    /// <returns>A dictionary of column values or <c>null</c> if the entity is not found.</returns>
+    /// <remarks>Disconnects the provided client when finished.</remarks>
     public async Task<Dictionary<string, object?>?> HandleGetEntity(ApplicationOption app, string entity_name, DataWebAPIRequest parms, IEntityClient ec, CancellationToken ct)
     {
         Dictionary<string, object?>? result = null;
@@ -497,8 +584,11 @@ public class EntitiesService : IEntitiesService
     }
 
     /// <summary>
-    /// Performs the HandleGetEntityDefinition operation.
+    /// Retrieves metadata definition for the specified entity.
     /// </summary>
+    /// <param name="app">Application context.</param>
+    /// <param name="entity_name">Name of the entity.</param>
+    /// <returns>The entity definition or <c>null</c> if the type is not found.</returns>
     public EntityDefinition? HandleGetEntityDefinition(ApplicationOption app, string entity_name)
     {
         EntityDefinition? result = null;
@@ -524,8 +614,13 @@ public class EntitiesService : IEntitiesService
     }
 
     /// <summary>
-    /// Performs the HandleGetTimeZoneOffset operation.
+    /// Gets the application's time zone offset, caching the result for subsequent calls.
     /// </summary>
+    /// <param name="app">Application context.</param>
+    /// <param name="ec">Database client used to query the offset.</param>
+    /// <param name="ct">Token used to cancel the operation.</param>
+    /// <returns>The time zone offset in minutes.</returns>
+    /// <remarks>Results are cached per application and the client is disconnected when finished.</remarks>
     public async Task<int> HandleGetTimeZoneOffset(ApplicationOption app, IEntityClient ec, CancellationToken ct)
     {
         try
@@ -552,8 +647,16 @@ public class EntitiesService : IEntitiesService
 
 
     /// <summary>
-    /// Performs the HandleImportData operation.
+    /// Imports data for an entity from an uploaded file using an optional import procedure.
     /// </summary>
+    /// <param name="app">Application context.</param>
+    /// <param name="entity_name">Name of the target entity.</param>
+    /// <param name="import_proc">Optional name of the import procedure to execute.</param>
+    /// <param name="parms">Request containing file and parameter information.</param>
+    /// <param name="ec">Database client used for the operation.</param>
+    /// <param name="ct">Token used to cancel the operation.</param>
+    /// <returns>Result of the import process or <c>null</c> on failure.</returns>
+    /// <remarks>Disconnects the provided client when finished.</remarks>
     public async Task<CSVImportResult?> HandleImportData(ApplicationOption app, string entity_name, string? import_proc, DataWebAPIRequest parms, IEntityClient ec, CancellationToken ct)
     {
         try
@@ -692,8 +795,15 @@ public class EntitiesService : IEntitiesService
     }
 
     /// <summary>
-    /// Performs the HandleInsertEntity operation.
+    /// Inserts new entity records using the supplied values.
     /// </summary>
+    /// <param name="app">Application context.</param>
+    /// <param name="entity_name">Name of the entity to insert.</param>
+    /// <param name="parms">Request containing column values and selection data.</param>
+    /// <param name="ec">Database client used for the operation.</param>
+    /// <param name="ct">Token used to cancel the operation.</param>
+    /// <returns>Aggregated status for the insert operation or <c>null</c> if the entity is not found.</returns>
+    /// <remarks>Disconnects the provided client when finished.</remarks>
     public async Task<DBStatusResult?> HandleInsertEntity(ApplicationOption app, string entity_name, DataWebAPIRequest parms, IEntityClient ec, CancellationToken ct)
     {
         DBStatusResult? result = null;
@@ -769,8 +879,16 @@ public class EntitiesService : IEntitiesService
     }
 
     /// <summary>
-    /// Performs the HandleLookupEntity operation.
+    /// Performs a lookup for an entity and returns a descriptive value.
     /// </summary>
+    /// <param name="app">Application context.</param>
+    /// <param name="entity_name">Name of the entity.</param>
+    /// <param name="parms">Request containing key values.</param>
+    /// <param name="ec">Database client used for the operation.</param>
+    /// <param name="ct">Token used to cancel the operation.</param>
+    /// <param name="lookup_name">Optional lookup definition name.</param>
+    /// <returns>A <see cref="LookupResult"/> containing the description.</returns>
+    /// <remarks>Disconnects the provided client when finished.</remarks>
     public async Task<LookupResult> HandleLookupEntity(ApplicationOption app, string entity_name, DataWebAPIRequest parms, IEntityClient ec, CancellationToken ct, string? lookup_name = null)
     {
         string? result = null;
@@ -807,8 +925,15 @@ public class EntitiesService : IEntitiesService
     }
 
     /// <summary>
-    /// Performs the HandleUpdateEntity operation.
+    /// Updates existing entity records with the supplied values.
     /// </summary>
+    /// <param name="app">Application context.</param>
+    /// <param name="entity_name">Name of the entity to update.</param>
+    /// <param name="parms">Request containing column values and selection data.</param>
+    /// <param name="ec">Database client used for the operation.</param>
+    /// <param name="ct">Token used to cancel the operation.</param>
+    /// <returns>Aggregated status for the update operation or <c>null</c> if the entity is not found.</returns>
+    /// <remarks>Disconnects the provided client when finished.</remarks>
     public async Task<DBStatusResult?> HandleUpdateEntity(ApplicationOption app, string entity_name, DataWebAPIRequest parms, IEntityClient ec, CancellationToken ct)
     {
         DBStatusResult? result = null;
@@ -884,8 +1009,12 @@ public class EntitiesService : IEntitiesService
     }
 
     /// <summary>
-    /// Performs the ReplaceApplicationKey operation.
+    /// Stores or replaces an application-level key value in the cache.
     /// </summary>
+    /// <param name="app_id">Application identifier.</param>
+    /// <param name="key">Key name to replace.</param>
+    /// <param name="value">New value for the key.</param>
+    /// <remarks>Thread-safe.</remarks>
     public void ReplaceApplicationKey(string app_id, string key, string value)
     {
         _ApplicationKeys.TryGetValue(app_id, out Dictionary<string, object>? app_keys);
