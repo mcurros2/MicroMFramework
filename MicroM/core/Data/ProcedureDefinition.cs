@@ -3,9 +3,14 @@ using System.Data;
 
 namespace MicroM.Data
 {
+    /// <summary>
+    /// Describes a stored procedure and its parameters for entity operations.
+    /// </summary>
     public class ProcedureDefinition
     {
         private string _Name = null!;
+
+        /// <summary>Gets the name of the stored procedure.</summary>
         public string Name
         {
             get => _Name;
@@ -15,7 +20,11 @@ namespace MicroM.Data
                 else throw new ArgumentException($"The property {nameof(Name)} can only be modified if the value is null.");
             }
         }
+
+        /// <summary>Parameters defined for the procedure.</summary>
         public readonly Dictionary<string, ColumnBase> Parms = new(StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>Indicates whether the procedure acquires read-only locks.</summary>
         public bool ReadonlyLocks;
 
         private readonly List<string> _ColumnNames = [];
