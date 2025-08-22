@@ -3,8 +3,18 @@ using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace MicroM.Excel;
 
+/// <summary>
+/// Provides methods for reading data from Excel spreadsheets.
+/// </summary>
 public static class ExcelReader
 {
+    /// <summary>
+    /// Asynchronously reads rows from an Excel stream, starting after the header row.
+    /// </summary>
+    /// <param name="stream">The Excel file stream to read from.</param>
+    /// <param name="sheetName">The worksheet name to read, or <c>null</c> for the first sheet.</param>
+    /// <param name="initialRow">The 1-based header row index.</param>
+    /// <returns>An asynchronous sequence of row values.</returns>
     public static async IAsyncEnumerable<object?[]> ReadExcelAsync(Stream stream, string? sheetName, int initialRow = 1)
     {
         using var document = SpreadsheetDocument.Open(stream, false);

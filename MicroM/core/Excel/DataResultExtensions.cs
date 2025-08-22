@@ -5,8 +5,17 @@ using MicroM.Data;
 
 namespace MicroM.Excel;
 
+/// <summary>
+/// Provides extension methods for exporting <see cref="DataResult"/> instances to Excel.
+/// </summary>
 public static class DataResultExcelExtensions
 {
+    /// <summary>
+    /// Writes the <see cref="DataResult"/> contents to the specified stream in Excel format.
+    /// </summary>
+    /// <param name="data">The source data to export.</param>
+    /// <param name="outputStream">The target stream where the Excel document will be written.</param>
+    /// <param name="sheetName">The name of the worksheet to create.</param>
     public static async Task SaveAsExcelToStreamAsync(this DataResult data, Stream outputStream, string sheetName)
     {
         using var document = SpreadsheetDocument.Create(outputStream, SpreadsheetDocumentType.Workbook, true);
