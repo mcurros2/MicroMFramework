@@ -51,8 +51,8 @@ This file tracks the current documentation state of the backend (`/MicroM/core`)
 - Notes: No documentation present.
 
 ### MicroM.Extensions
-- State: Not Started ❌
-- Notes: No documentation present.
+- State: Incomplete ⚠️
+- Notes: Namespace and extension classes documented; XML comments missing.
 
 ### MicroM.Generators
 - State: Not Started ❌

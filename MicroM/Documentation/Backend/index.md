@@ -16,7 +16,7 @@ This section provides documentation for the MicroM backend namespaces.
 | [MicroM.DataDictionary.StatusDefs](MicroM.DataDictionary.StatusDefs/index.md) | Status definitions for emails, file uploads, imports, and processes. |
 | [MicroM.Database](MicroM.Database/index.md) | Database utilities and schema management. |
 | MicroM.Excel | Documentation not started. |
-| MicroM.Extensions | Documentation not started. |
+| [MicroM.Extensions](MicroM.Extensions/index.md) | Extension helpers for core types. |
 | MicroM.Generators | Documentation not started. |
 | MicroM.Generators.Extensions | Documentation not started. |
 | MicroM.Generators.ReactGenerator | Documentation not started. |
