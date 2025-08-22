@@ -1,4 +1,4 @@
-﻿using MicroM.Configuration;
+using MicroM.Configuration;
 using MicroM.Core;
 using MicroM.Data;
 using MicroM.Excel;
@@ -10,8 +10,17 @@ using System.Text;
 
 namespace MicroM.ImportData
 {
+    /// <summary>
+    /// Provides extension methods for importing data into entities from CSV or Excel sources.
+    /// </summary>
     public static class EntityImportData
     {
+        /// <summary>
+        /// Maps CSV data into the entity's columns.
+        /// </summary>
+        /// <typeparam name="T">The entity type.</typeparam>
+        /// <param name="entity">Target entity.</param>
+        /// <param name="data">Key-value pairs representing a CSV row.</param>
         public static void MapCSVDataToEntity<T>(this T entity, Dictionary<string, string> data) where T : EntityBase
         {
             foreach (var kvp in data)
@@ -69,13 +78,24 @@ namespace MicroM.ImportData
                         col.ValueObject = null;
                     }
                 }
-
             }
         }
 
+        /// <summary>
+        /// Imports a list of CSV rows into the specified entity.
+        /// </summary>
+        /// <typeparam name="T">The entity type.</typeparam>
+        /// <param name="entity">Target entity instance.</param>
+        /// <param name="data">Parsed CSV rows.</param>
+        /// <param name="options">Application options.</param>
+        /// <param name="claims">Claims to pass to the API.</param>
+        /// <param name="api">Web API services.</param>
+        /// <param name="app_id">Application identifier.</param>
+        /// <param name="parentKeys">Optional parent key values.</param>
+        /// <param name="ct">Token to monitor for cancellation requests.</param>
+        /// <returns>Result of the import operation.</returns>
         public static async Task<CSVImportResult> ImportDataFromCSV<T>(this T entity, List<Dictionary<string, string>> data, MicroMOptions options, Dictionary<string, object>? claims, IWebAPIServices api, string app_id, Dictionary<string, object>? parentKeys, CancellationToken ct) where T : EntityBase
         {
-
             CSVImportResult result = new();
             if (data.Count == 0)
             {
@@ -133,6 +153,21 @@ namespace MicroM.ImportData
             return result;
         }
 
+        /// <summary>
+        /// Imports data from an Excel stream into the specified entity.
+        /// </summary>
+        /// <typeparam name="T">The entity type.</typeparam>
+        /// <param name="entity">Target entity instance.</param>
+        /// <param name="excelStream">Stream containing the Excel data.</param>
+        /// <param name="sheetName">Optional sheet name to read.</param>
+        /// <param name="initialRow">Starting row index (1-based).</param>
+        /// <param name="options">Application options.</param>
+        /// <param name="claims">Claims to pass to the API.</param>
+        /// <param name="api">Web API services.</param>
+        /// <param name="app_id">Application identifier.</param>
+        /// <param name="parentKeys">Optional parent key values.</param>
+        /// <param name="ct">Token to monitor for cancellation requests.</param>
+        /// <returns>Result of the import operation.</returns>
         public static async Task<CSVImportResult> ImportDataFromExcel<T>(
             this T entity,
             Stream excelStream,
@@ -220,6 +255,6 @@ namespace MicroM.ImportData
 
             return result;
         }
-
     }
 }
+
