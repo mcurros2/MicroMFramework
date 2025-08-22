@@ -18,23 +18,51 @@ using MicroM.Web.Services;
 
 namespace MicroM.DataDictionary;
 
+/// <summary>
+/// Definition for generating sequential numbers without relying on SQL Server sequences.
+/// </summary>
 public class NumberingDef : EntityDefinition
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="NumberingDef"/> class.
+    /// </summary>
     public NumberingDef() : base("num", nameof(Numbering)) { }
 
+    /// <summary>
+    /// Identifier of the object being numbered.
+    /// </summary>
     public readonly Column<string> c_object_id = Column<string>.PK();
+
+    /// <summary>
+    /// Last number generated for the object.
+    /// </summary>
     public readonly Column<long> bi_lastnumber = new();
 
+    /// <summary>
+    /// Default browse view keyed by <see cref="c_object_id"/>.
+    /// </summary>
     public readonly ViewDefinition num_brwStandard = new(nameof(c_object_id));
 
+    /// <summary>
+    /// Foreign key reference to <see cref="Objects"/>.
+    /// </summary>
     public readonly EntityForeignKey<Objects, Numbering> FKObjects = new();
-
 }
 
+/// <summary>
+/// Runtime entity for retrieving and updating sequential numbers.
+/// </summary>
 public class Numbering : Entity<NumberingDef>
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Numbering"/> class.
+    /// </summary>
     public Numbering() : base() { }
 
+    /// <summary>
+    /// Initializes a new instance with a database client and optional encryptor.
+    /// </summary>
+    /// <param name="ec">Database client used for persistence.</param>
+    /// <param name="encryptor">Optional encryptor for sensitive data.</param>
     public Numbering(IEntityClient ec, IMicroMEncryption? encryptor = null) : base(ec, encryptor) { }
-
 }

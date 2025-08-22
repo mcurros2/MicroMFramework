@@ -20,7 +20,7 @@ This file tracks the current documentation state of the backend (`/MicroM/core`)
 
 ### MicroM.DataDictionary
 - State: Incomplete ⚠️
-- Notes: Namespace index updated; application assembly and OIDC classes documented; remaining types require documentation.
+- Notes: Added documentation for ApplicationsUrls, FileStore, FileStoreProcess, FileStoreStatus and Numbering; other entities remain pending.
 
 ### MicroM.DataDictionary.CategoriesDefinitions
 - State: Complete ✅
@@ -39,8 +39,8 @@ This file tracks the current documentation state of the backend (`/MicroM/core`)
 - Notes: Namespace index with LoginResult, LoginAttemptResult, LoginAttemptStatus, LoginData, and RefreshTokenResult documented.
 
 ### MicroM.DataDictionary.StatusDefs
-- State: Incomplete ⚠️
-- Notes: Namespace index documented; class pages and XML comments pending.
+- State: Complete ✅
+- Notes: Status definitions documented with XML comments and pages.
 
 ### MicroM.Database
  - State: Complete ✅
