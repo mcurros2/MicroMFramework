@@ -330,3 +330,4 @@
 
 ### Next iteration Tasks
 - Add XML comments to all `MicroM.Extensions` classes and methods.
+- Add XML comments to `DataResultExcelExtensions` and `ExcelReader`.
