@@ -9,13 +9,28 @@ using static MicroM.Generators.Constants;
 
 namespace MicroM.Generators.ReactGenerator
 {
+    /// <summary>
+    /// Extension methods for translating column metadata into TypeScript
+    /// definitions and form controls for the React client.
+    /// </summary>
     public static class ColumnExtensions
     {
+        /// <summary>
+        /// Converts a column name into a human friendly display string.
+        /// </summary>
+        /// <param name="column">Column whose name will be formatted.</param>
+        /// <returns>The formatted display name.</returns>
         public static string AsDisplayName(this ColumnBase column)
         {
             return CultureInfo.InvariantCulture.TextInfo.ToTitleCase(column.Name.StripColumnPrefix().Replace('_', ' '));
         }
 
+        /// <summary>
+        /// Converts <see cref="ColumnFlags"/> into the corresponding
+        /// TypeScript flag representation.
+        /// </summary>
+        /// <param name="flags">Flags to convert.</param>
+        /// <returns>String containing the TypeScript flag expression.</returns>
         internal static string ToTypeScriptFlags(this ColumnFlags flags)
         {
             if (flags == ColumnFlags.None) return "EntityColumnFlags.None";
@@ -105,6 +120,13 @@ namespace MicroM.Generators.ReactGenerator
             return $"//ERROR: can't translate column definition for {col.Name}. Reason: Unsupported type {m.SQLType}";
         }
 
+        /// <summary>
+        /// Builds the TypeScript column definition block for an entity.
+        /// </summary>
+        /// <typeparam name="T">Dictionary type containing column definitions.</typeparam>
+        /// <param name="cols">Columns to translate.</param>
+        /// <param name="separator">Separator used between generated lines.</param>
+        /// <returns>TypeScript code for the column definitions.</returns>
         internal static string AsTypeScriptColumnsDefinition<T>(this T cols, string separator = $",\n{TAB}{TAB}") where T : IReadonlyOrderedDictionary<ColumnBase>
         {
             IEnumerator<ColumnBase> col_enumerator = cols.GetWithFlags(ColumnFlags.All, exclude_flags: ColumnFlags.None, exclude_names: SystemColumnNames.AsStringArray).GetEnumerator();
@@ -124,6 +146,12 @@ namespace MicroM.Generators.ReactGenerator
             return colsBuilder.ToString();
         }
 
+        /// <summary>
+        /// Determines which form field components need to be imported based on the column types.
+        /// </summary>
+        /// <typeparam name="T">Dictionary type containing column definitions.</typeparam>
+        /// <param name="cols">Columns to analyze.</param>
+        /// <returns>A comma separated list of component names.</returns>
         internal static string AsFieldsImport<T>(this T cols) where T : IReadonlyOrderedDictionary<ColumnBase>
         {
             if (cols.Count == 0) return "";
@@ -182,6 +210,13 @@ namespace MicroM.Generators.ReactGenerator
             return fieldsImport.ToString().TrimEnd(',', ' ');
         }
 
+        /// <summary>
+        /// Generates a lookup select or multi-select control for the specified column.
+        /// </summary>
+        /// <typeparam name="T">Type of the column.</typeparam>
+        /// <param name="column">Column definition.</param>
+        /// <param name="separator">Separator used before the generated control.</param>
+        /// <returns>TypeScript JSX for the lookup control.</returns>
         internal static string AsLookupSelect<T>(this T column, string separator = $"\n{TAB}{TAB}{TAB}{TAB}") where T : ColumnBase
         {
             string sep = $"{separator}{TAB}";
@@ -196,6 +231,14 @@ namespace MicroM.Generators.ReactGenerator
             }
         }
 
+        /// <summary>
+        /// Builds the appropriate form field control for a column.
+        /// </summary>
+        /// <typeparam name="T">Type of the column.</typeparam>
+        /// <param name="column">Column definition.</param>
+        /// <param name="autoFocus">Whether the control should autofocus.</param>
+        /// <param name="separator">Separator used before the generated control.</param>
+        /// <returns>TypeScript JSX representing the form control.</returns>
         internal static string AsFormField<T>(this T column, bool autoFocus = false, string separator = "\n                ") where T : ColumnBase
         {
             bool autoNum = column.ColumnMetadata.HasFlag(ColumnFlags.Autonum);
@@ -256,6 +299,13 @@ namespace MicroM.Generators.ReactGenerator
 
         }
 
+        /// <summary>
+        /// Builds the collection of form field controls for all columns.
+        /// </summary>
+        /// <typeparam name="T">Dictionary type containing column definitions.</typeparam>
+        /// <param name="cols">Columns to translate into form controls.</param>
+        /// <param name="separator">Separator used between each field control.</param>
+        /// <returns>Combined TypeScript JSX for the form controls.</returns>
         internal static string AsTypeScriptFieldsControls<T>(this T cols, string separator = $"\n{TAB}{TAB}{TAB}{TAB}") where T : IReadonlyOrderedDictionary<ColumnBase>
         {
             IEnumerator<ColumnBase> col_enumerator = cols.GetWithFlags(ColumnFlags.All, exclude_flags: ColumnFlags.None, exclude_names: SystemColumnNames.AsStringArray).GetEnumerator();
