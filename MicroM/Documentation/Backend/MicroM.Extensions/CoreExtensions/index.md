@@ -30,5 +30,3 @@ var proc = new Dictionary<string, ProcedureDefinition>().AddProc("DoWork", false
 ## Remarks
 None.
 
-## See Also
--

@@ -21,5 +21,3 @@ string formatted = "MyValue".RemoveEmptyLines();
 ## Remarks
 None.
 
-## See Also
--

@@ -20,5 +20,3 @@ var readable = TimeSpan.FromMinutes(5).ToHumanDuration();
 ## Remarks
 None.
 
-## See Also
--

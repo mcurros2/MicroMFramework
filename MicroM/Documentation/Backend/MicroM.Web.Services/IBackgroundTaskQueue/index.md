@@ -5,5 +5,3 @@ Defines the contract for background task queue.
 ## Remarks
 None.
 
-## See Also
--

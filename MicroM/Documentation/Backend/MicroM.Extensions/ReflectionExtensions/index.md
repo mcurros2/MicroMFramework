@@ -33,5 +33,3 @@ var members = typeof(MyEntity).GetPublicPropertiesOrFields();
 ## Remarks
 None.
 
-## See Also
--

@@ -22,5 +22,3 @@ await typeof(MyAssemblyMarker).Assembly.CreateAssemblyCustomProcs(entityClient, 
 ## Remarks
 None.
 
-## See Also
--

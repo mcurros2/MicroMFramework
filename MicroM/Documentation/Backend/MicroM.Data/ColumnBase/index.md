@@ -39,5 +39,3 @@ None.
 |:------------|:-------------|
 | ToString() | Returns the column name. |
 
-## See Also
--

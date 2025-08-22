@@ -62,5 +62,3 @@ class MyDefinition : EntityDefinition {
 ## Remarks
 None.
 
-## See Also
--

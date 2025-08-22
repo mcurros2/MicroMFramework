@@ -31,5 +31,3 @@ List<string> scripts = entity.AsCreateTable();
 ## Remarks
 None.
 
-## See Also
--

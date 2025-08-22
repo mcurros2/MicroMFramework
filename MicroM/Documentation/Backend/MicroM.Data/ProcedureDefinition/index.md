@@ -34,5 +34,3 @@ None.
 | AddParmFromCol(...) | Adds a parameter from a column definition. |
 | AddParmsFromCols(...) | Adds multiple parameters. |
 
-## See Also
--

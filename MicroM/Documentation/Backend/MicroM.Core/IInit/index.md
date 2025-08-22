@@ -16,5 +16,3 @@ Interface to implement lazy initialization in a class.
 ## Remarks
 None.
 
-## See Also
--

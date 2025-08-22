@@ -27,5 +27,3 @@ ASP.NET Core controllers for MicroM.
 ## Remarks
 None.
 
-## See Also
--

@@ -35,5 +35,3 @@ var key = CryptClass.GenerateRandomBase64String();
 ## Remarks
 None.
 
-## See Also
--

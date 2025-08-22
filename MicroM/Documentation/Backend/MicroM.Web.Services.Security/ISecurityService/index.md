@@ -5,5 +5,3 @@ Defines the contract for security service.
 ## Remarks
 None.
 
-## See Also
--

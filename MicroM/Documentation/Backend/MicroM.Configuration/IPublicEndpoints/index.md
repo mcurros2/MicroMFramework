@@ -10,5 +10,3 @@ Defines routes that should be accessible without authentication.
 ## Remarks
 None.
 
-## See Also
--

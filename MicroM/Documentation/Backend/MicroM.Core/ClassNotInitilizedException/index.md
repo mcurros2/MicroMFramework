@@ -21,5 +21,3 @@ throw new MicroM.Core.ClassNotInitilizedException();
 ## Remarks
 None.
 
-## See Also
--

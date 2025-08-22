@@ -37,5 +37,3 @@ var options = new MicroM.Configuration.ApplicationOption();
 ## Remarks
 None.
 
-## See Also
--

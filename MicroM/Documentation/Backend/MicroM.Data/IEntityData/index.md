@@ -37,5 +37,3 @@ None.
 | UpdateData(...) | Updates a record for the entity. |
 | GetData(...) | Retrieves data and maps it. |
 
-## See Also
--

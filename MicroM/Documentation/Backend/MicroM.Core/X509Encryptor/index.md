@@ -36,5 +36,3 @@ var encrypted = enc.Encrypt("secret");
 ## Remarks
 None.
 
-## See Also
--

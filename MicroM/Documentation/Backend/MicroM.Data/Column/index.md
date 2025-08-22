@@ -42,5 +42,3 @@ None.
 | EmbedCategory(...) | Creates a column embedding a category. |
 | EmbedStatus(...) | Creates a column embedding a status. |
 
-## See Also
--

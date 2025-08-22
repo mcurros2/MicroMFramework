@@ -22,5 +22,3 @@ string lookup = entity.Def.AsLookupDefinition();
 ## Remarks
 None.
 
-## See Also
--

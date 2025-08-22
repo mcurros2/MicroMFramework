@@ -36,5 +36,3 @@ None.
 |:------------|:-------------|
 | GetProcStandardType(string? proc_name) | Determines the standard procedure type. |
 
-## See Also
--

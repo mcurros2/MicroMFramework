@@ -5,5 +5,3 @@ Defines the contract for thumbnail service.
 ## Remarks
 None.
 
-## See Also
--

@@ -5,5 +5,3 @@ Defines the contract for micro m encryption.
 ## Remarks
 None.
 
-## See Also
--

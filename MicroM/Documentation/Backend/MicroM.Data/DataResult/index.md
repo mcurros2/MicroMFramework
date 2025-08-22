@@ -33,5 +33,3 @@ var result = new MicroM.Data.DataResult(2);
 ## Remarks
 None.
 
-## See Also
--
