@@ -13,6 +13,9 @@ using static MicroM.Data.IEntityClient;
 namespace MicroM.Data
 {
 
+    /// <summary>
+    /// SQL Server implementation of <see cref="IEntityClient"/>.
+    /// </summary>
     public class DatabaseClient : IDisposable, IAsyncDisposable, IEntityClient
     {
         private bool disposedValue;
@@ -21,104 +24,133 @@ namespace MicroM.Data
         private readonly SqlConnectionStringBuilder connection_builder = [];
         private SqlTransaction? sql_transaction;
 
+        /// <inheritdoc/>
         public string WebUser { get; } = "";
+
+        /// <summary>
+        /// Gets or sets the default query timeout in seconds.
+        /// </summary>
         public int QueryTimeout;
 
         #region "Connection Builder Mapped Properties"
 
+        /// <inheritdoc/>
         public string ConnectionString { get => connection_builder.ConnectionString; }
 
+        /// <inheritdoc/>
         public string MasterDatabase => "master";
 
+        /// <inheritdoc/>
         public string Server
         {
             get => connection_builder.DataSource;
             set => connection_builder.DataSource = value;
         }
 
+        /// <inheritdoc/>
         public string DB
         {
             get => connection_builder.InitialCatalog;
             set => connection_builder.InitialCatalog = value;
         }
 
+        /// <inheritdoc/>
         public string User
         {
             get => connection_builder.UserID;
             set => connection_builder.UserID = value;
         }
 
+        /// <inheritdoc/>
         public string Password
         {
             get => connection_builder.Password;
             set => connection_builder.Password = value;
         }
 
+        /// <inheritdoc/>
         public bool IntegratedSecurity
         {
             get => connection_builder.IntegratedSecurity;
             set => connection_builder.IntegratedSecurity = value;
         }
 
+        /// <inheritdoc/>
         public bool Pooling
         {
             get => connection_builder.Pooling;
             set => connection_builder.Pooling = value;
         }
 
+        /// <inheritdoc/>
         public int MinPoolSize
         {
             get => connection_builder.MinPoolSize;
             set => connection_builder.MinPoolSize = value;
         }
 
+        /// <inheritdoc/>
         public int MaxPoolSize
         {
             get => connection_builder.MaxPoolSize;
             set => connection_builder.MaxPoolSize = value;
         }
 
+        /// <inheritdoc/>
         public string WorkstationID
         {
             get => connection_builder.WorkstationID;
             set => connection_builder.WorkstationID = value.Truncate(128);
         }
 
+        /// <inheritdoc/>
         public string ApplicationName
         {
             get => connection_builder.ApplicationName;
             set => connection_builder.ApplicationName = value.Truncate(128);
         }
 
+        /// <inheritdoc/>
         public string CurrentLanguage
         {
             get => connection_builder.CurrentLanguage;
             set => connection_builder.CurrentLanguage = value;
         }
 
+        /// <summary>
+        /// Gets or sets the connection encryption option.
+        /// </summary>
         public SqlConnectionEncryptOption Encryption
         {
             get => connection_builder.Encrypt;
             set => connection_builder.Encrypt = value;
         }
 
+        /// <summary>
+        /// Gets the underlying <see cref="SqlConnectionStringBuilder"/>.
+        /// </summary>
         public SqlConnectionStringBuilder SQLConnectionSB { get => connection_builder; }
 
         #endregion
 
         #region "SQLConnection Mapped Properties"
+        /// <inheritdoc/>
         public int ConnectionTimeout { get => sql_connection.ConnectionTimeout; }
 
+        /// <inheritdoc/>
         public ConnectionState ConnectionState { get => sql_connection.State; }
 
+        /// <inheritdoc/>
         public string HTTPService { get => ""; set => throw new NotImplementedException(); }
 
         #endregion
 
         #region "Server Claims"
 
+        /// <inheritdoc/>
         public Dictionary<string, object>? ServerClaims { get; } = null;
 
+        /// <inheritdoc/>
         public void OverrideColumnValues(IEnumerable<ColumnBase> parms)
         {
             if (ServerClaims != null)
@@ -158,6 +190,17 @@ namespace MicroM.Data
 
         private readonly ILogger? _logger;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="DatabaseClient"/> class.
+        /// </summary>
+        /// <param name="server">Server name.</param>
+        /// <param name="db">Database name.</param>
+        /// <param name="user">Login user.</param>
+        /// <param name="password">Login password.</param>
+        /// <param name="integrated_security">Use integrated security.</param>
+        /// <param name="connection_timeout_secs">Connection timeout in seconds.</param>
+        /// <param name="logger">Optional logger instance.</param>
+        /// <param name="server_claims">Optional server claims.</param>
         public DatabaseClient(string server, string db, string user = "", string password = "", bool integrated_security = false, int connection_timeout_secs = -1, ILogger? logger = null, Dictionary<string, object>? server_claims = null)
         {
             ServerClaims = server_claims;
@@ -166,6 +209,15 @@ namespace MicroM.Data
             Init(server, db, user, password, integrated_security, connection_timeout_secs);
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="DatabaseClient"/> class using an existing client as a template.
+        /// </summary>
+        /// <param name="dbc">Source client to copy settings from.</param>
+        /// <param name="new_server">Optional server override.</param>
+        /// <param name="new_db">Optional database override.</param>
+        /// <param name="connection_timeout_secs">Connection timeout in seconds.</param>
+        /// <param name="logger">Optional logger instance.</param>
+        /// <param name="server_claims">Optional server claims.</param>
         public DatabaseClient(DatabaseClient dbc, string new_server = "", string new_db = "", int connection_timeout_secs = -1, ILogger? logger = null, Dictionary<string, object>? server_claims = null)
         {
             ServerClaims = server_claims;
@@ -176,6 +228,7 @@ namespace MicroM.Data
             Init(new_server, new_db, dbc.User, dbc.Password, dbc.IntegratedSecurity, connection_timeout_secs);
         }
 
+        /// <inheritdoc/>
         public IEntityClient Clone(string new_server = "", string new_db = "", string new_user = "", string new_password = "", int connection_timeout_secs = -1)
         {
             return new DatabaseClient(
@@ -1013,16 +1066,42 @@ namespace MicroM.Data
         {
             return await ExecuteSingleQuery(CommandType.Text, sql_text, ct, mode, mapper);
         }
+        /// <summary>
+        /// Executes a SQL query that returns a single column.
+        /// </summary>
+        /// <typeparam name="T">Column type.</typeparam>
+        /// <param name="sql_text">Query text.</param>
+        /// <param name="ct">Cancellation token.</param>
+        /// <param name="parms">Optional parameters.</param>
+        /// <returns>The first column of the first row.</returns>
         public async Task<T?> ExecuteSQLSingleColumn<T>(string sql_text, CancellationToken ct, IEnumerable<ColumnBase>? parms = null)
         {
             return await ExecuteSingleColumn<T?>(CommandType.Text, sql_text, ct, parms);
         }
 
+        /// <summary>
+        /// Executes a stored procedure and maps the result of the first set to a record.
+        /// </summary>
+        /// <typeparam name="T">Record type.</typeparam>
+        /// <param name="sp_name">Stored procedure name.</param>
+        /// <param name="ct">Cancellation token.</param>
+        /// <param name="mode">Mapping mode.</param>
+        /// <param name="parms">Optional parameters.</param>
+        /// <param name="mapper">Optional custom mapper.</param>
+        /// <returns>List of mapped records.</returns>
         public async Task<List<T>> ExecuteSP<T>(string sp_name, CancellationToken ct, AutoMapperMode mode = AutoMapperMode.ByName, IEnumerable<ColumnBase>? parms = null, MapResult<T>? mapper = null) where T : class, new()
         {
             return await ExecuteSingleQuery(CommandType.StoredProcedure, sp_name, ct, mode, mapper, parms);
         }
 
+        /// <summary>
+        /// Executes a stored procedure that returns a single column.
+        /// </summary>
+        /// <typeparam name="T">Column type.</typeparam>
+        /// <param name="sp_name">Stored procedure name.</param>
+        /// <param name="ct">Cancellation token.</param>
+        /// <param name="parms">Optional parameters.</param>
+        /// <returns>The first column of the first row.</returns>
         public async Task<T?> ExecuteSPSingleColumn<T>(string sp_name, CancellationToken ct, IEnumerable<ColumnBase>? parms = null)
         {
             return await ExecuteSingleColumn<T?>(CommandType.StoredProcedure, sp_name, ct, parms);
@@ -1065,22 +1144,45 @@ namespace MicroM.Data
         }
 
 
+        /// <summary>
+        /// Executes a stored procedure and returns the results as <see cref="DataResult"/> objects.
+        /// </summary>
+        /// <param name="sp_name">Stored procedure name.</param>
+        /// <param name="parms">Optional parameters.</param>
+        /// <param name="ct">Cancellation token.</param>
+        /// <returns>List of data results.</returns>
         public async Task<List<DataResult>> ExecuteSP(string sp_name, IEnumerable<ColumnBase>? parms, CancellationToken ct)
         {
             return await ExecuteQuery(CommandType.StoredProcedure, sp_name, ct, parms);
         }
 
+        /// <summary>
+        /// Executes a stored procedure that does not return results.
+        /// </summary>
+        /// <param name="sp_name">Stored procedure name.</param>
+        /// <param name="parms">Optional parameters.</param>
+        /// <param name="ct">Cancellation token.</param>
         public Task ExecuteSPNonQuery(string sp_name, IEnumerable<ColumnBase>? parms, CancellationToken ct)
         {
             return ExecuteNonQuery(CommandType.StoredProcedure, sp_name, ct, parms);
         }
 
 
+        /// <summary>
+        /// Executes a SQL non-query command.
+        /// </summary>
+        /// <param name="sql_text">SQL command text.</param>
+        /// <param name="ct">Cancellation token.</param>
         public Task ExecuteSQLNonQuery(string sql_text, CancellationToken ct)
         {
             return ExecuteNonQuery(CommandType.Text, sql_text, ct);
         }
 
+        /// <summary>
+        /// Executes multiple SQL non-query scripts sequentially.
+        /// </summary>
+        /// <param name="sql_scripts">Scripts to execute.</param>
+        /// <param name="ct">Cancellation token.</param>
         public async Task ExecuteSQLNonQuery(List<string> sql_scripts, CancellationToken ct)
         {
             foreach (string script in sql_scripts)
