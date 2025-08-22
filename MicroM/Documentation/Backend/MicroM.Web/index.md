@@ -13,6 +13,11 @@ Root namespace for web functionality.
 | [MicroM.Web.Services](../MicroM.Web.Services/index.md) | Web-related service implementations. |
 | [MicroM.Web.Services.Security](../MicroM.Web.Services.Security/index.md) | Security-related web services. |
 
+## Classes
+| Class | Description |
+|:------------|:-------------|
+| [LookupResult](LookupResult/index.md) | Simple DTO with an optional description field. |
+
 ## Remarks
 None.
 
