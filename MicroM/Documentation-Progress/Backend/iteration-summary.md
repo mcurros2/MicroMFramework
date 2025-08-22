@@ -331,3 +331,30 @@
 ### Next iteration Tasks
 - Add XML comments to all `MicroM.Extensions` classes and methods.
 - Add XML comments to `DataResultExcelExtensions` and `ExcelReader`.
+
+## Iteration 12
+### Plan
+- Add XML comments for `MicroM/core/ImportData` types:
+  - `CSVImportResult`
+  - `CSVParser`
+  - `EntityImportData`
+- Create namespace and type docs under `MicroM/Documentation/Backend/MicroM.ImportData/`.
+- Link namespace from backend root index.
+- Update `docs-state-backend.md` for `MicroM.ImportData`.
+
+### Execution Results
+- Added XML comments to `CSVImportResult`, `CSVParser`, and `EntityImportData` → ✅ Success
+- Created namespace and type docs for `MicroM.ImportData` → ✅ Success
+- Updated root backend index with `MicroM.ImportData` entry → ✅ Success
+- Updated `docs-state-backend.md` marking `MicroM.ImportData` as Complete → ✅ Success
+
+### Verification Results
+- Verified XML comments exist in updated source files → ✅ Success
+- Confirmed new markdown files follow templates and are linked in indexes → ✅ Success
+- `docs-state-backend.md` shows `MicroM.ImportData` as Complete → ✅ Success
+
+### Issues Encountered
+- None.
+
+### Next iteration Tasks
+- Document `MicroM.Validators` namespace.

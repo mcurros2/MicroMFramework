@@ -71,8 +71,8 @@ This file tracks the current documentation state of the backend (`/MicroM/core`)
 - Notes: Namespace and public types documented.
 
 ### MicroM.ImportData
-- State: Not Started ❌
-- Notes: No documentation present.
+- State: Complete ✅
+- Notes: Namespace and types documented.
 
 ### MicroM.Validators
 - State: Complete ✅
