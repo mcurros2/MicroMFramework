@@ -1,6 +1,12 @@
 ﻿namespace MicroM.Configuration
 {
+    /// <summary>
+    /// Represents the AllowedRouteFlags.
+    /// </summary>
     [Flags]
+    /// <summary>
+    /// Represents the AllowedRouteFlags.
+    /// </summary>
     public enum AllowedRouteFlags : ushort
     {
         None = 0,

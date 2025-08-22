@@ -1,5 +1,8 @@
 ﻿namespace MicroM.Web.Authentication
 {
+    /// <summary>
+    /// Represents the IDeviceIdService.
+    /// </summary>
     public interface IDeviceIdService
     {
         /// <summary>

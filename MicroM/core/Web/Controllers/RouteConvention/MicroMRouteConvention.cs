@@ -7,12 +7,18 @@ using Microsoft.Extensions.Options;
 
 namespace MicroM.Web.Controllers
 {
+    /// <summary>
+    /// Represents the MicroMRouteConvention.
+    /// </summary>
     public class MicroMRouteConvention : IApplicationModelConvention
     {
         private readonly MicroMOptions _options;
         private readonly ILogger<MicroMRouteConvention> _log;
         private readonly PathString _basePathString;
 
+        /// <summary>
+        /// Performs the MicroMRouteConvention operation.
+        /// </summary>
         public MicroMRouteConvention(IOptions<MicroMOptions> options, ILogger<MicroMRouteConvention> logger)
         {
             _options = options.Value;
@@ -22,6 +28,9 @@ namespace MicroM.Web.Controllers
             _basePathString = new PathString("/" + basePath);
         }
 
+        /// <summary>
+        /// Performs the Apply operation.
+        /// </summary>
         public void Apply(ApplicationModel application)
         {
             foreach (var controller in application.Controllers)

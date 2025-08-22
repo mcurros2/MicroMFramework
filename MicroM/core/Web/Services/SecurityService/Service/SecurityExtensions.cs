@@ -6,13 +6,22 @@ using System.Security.Claims;
 
 namespace MicroM.Extensions
 {
+    /// <summary>
+    /// Represents the SecurityExtensions.
+    /// </summary>
     public static class SecurityExtensions
     {
+        /// <summary>
+        /// Performs the ToClaims operation.
+        /// </summary>
         public static IEnumerable<Claim> ToClaims(this IDictionary<string, object> dictionary)
         {
             return dictionary.Select(kv => new Claim(kv.Key, kv.Value?.ToString() ?? string.Empty));
         }
 
+        /// <summary>
+        /// Performs the GetRoutePaths operation.
+        /// </summary>
         public static List<string> GetRoutePaths(this Type entity_type, AllowedRouteFlags route_flags, string[]? views = null, string[]? procs = null, string[]? actions = null)
         {
             ArgumentNullException.ThrowIfNull(entity_type);
@@ -42,6 +51,9 @@ namespace MicroM.Extensions
             return entity.GetRoutePaths(entity_type.Name, route_flags, views, procs, actions);
         }
 
+        /// <summary>
+        /// Performs the GetRoutePaths operation.
+        /// </summary>
         public static List<string> GetRoutePaths(this EntityBase entity, string entity_name, AllowedRouteFlags route_flags, string[]? views = null, string[]? procs = null, string[]? actions = null)
         {
             List<string> paths = [];
@@ -122,6 +134,9 @@ namespace MicroM.Extensions
 
         }
 
+        /// <summary>
+        /// Performs the CreateEntityRoutes operation.
+        /// </summary>
         public async static Task CreateEntityRoutes(this EntityBase entity, IEntityClient ec, CancellationToken ct)
         {
             ArgumentNullException.ThrowIfNull(entity);
@@ -148,6 +163,9 @@ namespace MicroM.Extensions
             }
         }
 
+        /// <summary>
+        /// Performs the CreateEntityRoutes operation.
+        /// </summary>
         public async static Task CreateEntityRoutes(this Type entity_type, IEntityClient ec, CancellationToken ct)
         {
             ArgumentNullException.ThrowIfNull(entity_type);

@@ -4,6 +4,9 @@ using Microsoft.Extensions.Logging;
 
 namespace MicroM.Web.Services
 {
+    /// <summary>
+    /// Represents the EmailHostedService.
+    /// </summary>
     public class EmailHostedService : IHostedService, IEmailService, IDisposable
     {
         private static int _instanceCounter = 0;
@@ -17,6 +20,9 @@ namespace MicroM.Web.Services
         private readonly IMicroMEncryption encryptor;
 
 
+        /// <summary>
+        /// Performs the EmailHostedService operation.
+        /// </summary>
         public EmailHostedService(ILogger<EmailHostedService> logger, ILogger<EmailService> emailLogger, IBackgroundTaskQueue btq, IMicroMAppConfiguration app_config, IMicroMEncryption encryptor)
         {
             _instanceCounter++;
@@ -29,6 +35,9 @@ namespace MicroM.Web.Services
             if (_instanceCounter > 1) logger.LogError("EmailHostedService found more that one instance created. Instances: {instance} ", _instanceCounter);
         }
 
+        /// <summary>
+        /// Performs the QueueEmail operation.
+        /// </summary>
         public async Task<List<SubmitToQueueResult>> QueueEmail(string app_id, EmailServiceItem send_item, CancellationToken ct, bool start_processing_queue = false)
         {
             if (_emailService != null && _serviceCTS != null)
@@ -38,6 +47,9 @@ namespace MicroM.Web.Services
             throw new Exception("EmailService not started.");
         }
 
+        /// <summary>
+        /// Performs the StartProcessingQueue operation.
+        /// </summary>
         public async Task StartProcessingQueue(string app_id, CancellationToken ct)
         {
             if (_emailService != null && _serviceCTS != null)
@@ -48,6 +60,9 @@ namespace MicroM.Web.Services
             throw new Exception("EmailService not started.");
         }
 
+        /// <summary>
+        /// Performs the StartAsync operation.
+        /// </summary>
         public async Task StartAsync(CancellationToken cancellationToken)
         {
             logger.LogInformation("EmailServiceHostedService is starting.");
@@ -64,6 +79,9 @@ namespace MicroM.Web.Services
             return;
         }
 
+        /// <summary>
+        /// Performs the StopAsync operation.
+        /// </summary>
         public Task StopAsync(CancellationToken cancellationToken)
         {
             logger.LogInformation("EmailServiceHostedService is stopping.");
@@ -88,6 +106,9 @@ namespace MicroM.Web.Services
         }
 
 
+        /// <summary>
+        /// Performs the Dispose operation.
+        /// </summary>
         public void Dispose()
         {
             // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method

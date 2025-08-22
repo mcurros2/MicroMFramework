@@ -11,6 +11,9 @@ using System.Globalization;
 
 namespace MicroM.Web.Services
 {
+    /// <summary>
+    /// Represents the FileUploadService.
+    /// </summary>
     public class FileUploadService(IOptions<MicroMOptions> options, ILogger<FileUploadService> logger, ILoggerFactory loggerFactory, IThumbnailService thumbnailService) : IFileUploadService, IDisposable
     {
         private readonly MicroMOptions _options = options.Value;
@@ -76,6 +79,9 @@ namespace MicroM.Web.Services
             return (errorMessage: null, file_store: fileStore, fullPath, extension);
         }
 
+        /// <summary>
+        /// Performs the UploadFile operation.
+        /// </summary>
         public async Task<UploadFileResult> UploadFile(string app_id, string fileprocess_id, string fileName, Stream fileData, int? maxSize, int? quality, IEntityClient ec, CancellationToken ct)
         {
             string fullPath = string.Empty;
@@ -178,6 +184,9 @@ namespace MicroM.Web.Services
         }
 
 
+        /// <summary>
+        /// Performs the GetFilePath operation.
+        /// </summary>
         public async Task<string?> GetFilePath(string app_id, string fileguid, IEntityClient ec, CancellationToken ct)
         {
             string cacheKey = $"FileStore_{fileguid}";
@@ -238,6 +247,9 @@ namespace MicroM.Web.Services
             return filePath;
         }
 
+        /// <summary>
+        /// Performs the ServeFile operation.
+        /// </summary>
         public async Task<ServeFileResult?> ServeFile(string app_id, string fileguid, IEntityClient ec, CancellationToken ct)
         {
             ServeFileResult? result = null;
@@ -260,6 +272,9 @@ namespace MicroM.Web.Services
             return result;
         }
 
+        /// <summary>
+        /// Performs the ServeThumbnail operation.
+        /// </summary>
         public async Task<ServeFileResult?> ServeThumbnail(string app_id, string fileguid, int? maxSize, int? quality, IEntityClient ec, CancellationToken ct)
         {
             ServeFileResult? result = null;
@@ -308,6 +323,9 @@ namespace MicroM.Web.Services
             }
         }
 
+        /// <summary>
+        /// Performs the Dispose operation.
+        /// </summary>
         public void Dispose()
         {
             // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method

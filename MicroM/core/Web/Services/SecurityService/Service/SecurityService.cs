@@ -10,22 +10,32 @@ using System.Collections.Concurrent;
 
 namespace MicroM.Web.Services.Security
 {
+    /// <summary>
+    /// Represents the GetAllGroupsAllowedRoutesResult.
+    /// </summary>
     public record GetAllGroupsAllowedRoutesResult
     {
+        /// <summary>
+        /// ""; field.
+        /// </summary>
         public string c_user_group_id = "";
+        /// <summary>
+        /// ""; field.
+        /// </summary>
         public string vc_route_path = "";
+        /// <summary>
+        /// ""; field.
+        /// </summary>
         public string c_route_id = "";
+        /// <summary>
+        /// dt_last_route_updated; field.
+        /// </summary>
         public DateTime? dt_last_route_updated;
     }
 
     /// <summary>
-    /// The security service is responsible for checking if a user is authorized to access a route.
-    /// It will cache groups defined in <see cref="MicromUsersGroups"/> and their allowed menu items in <see cref="MicromMenus"/> and <see cref="MicromMenusItems"/>"
-    /// Allowed routes are defined by <see cref="MicroM.DataDictionary.Configuration.MenuDefinition"/>
+    /// Represents the SecurityService.
     /// </summary>
-    /// <param name="app_config"></param>
-    /// <param name="logger"></param>
-    /// <param name="options"></param>
     public class SecurityService(IMicroMAppConfiguration app_config, ILogger<SecurityService> logger, IOptions<MicroMOptions> options) : ISecurityService, IHostedService
     {
 
@@ -86,6 +96,9 @@ namespace MicroM.Web.Services.Security
             return groupsSecurityRecords;
         }
 
+        /// <summary>
+        /// Performs the RefreshGroupsSecurityRecords operation.
+        /// </summary>
         public async Task RefreshGroupsSecurityRecords(string? app_id, CancellationToken ct)
         {
             if (string.IsNullOrEmpty(app_id))
@@ -122,6 +135,9 @@ namespace MicroM.Web.Services.Security
             Interlocked.Exchange(ref _groupsSecurityRecords, updated_dict);
         }
 
+        /// <summary>
+        /// Performs the IsAuthorized operation.
+        /// </summary>
         public bool IsAuthorized(string app_id, string route_path, Dictionary<string, object?> server_claims)
         {
             var user_type = server_claims.TryGetValue(MicroMServerClaimTypes.MicroMUserType_id, out var userTypeObj) && userTypeObj is string userType ? userType : "";
@@ -152,6 +168,9 @@ namespace MicroM.Web.Services.Security
             return false;
         }
 
+        /// <summary>
+        /// Performs the StartAsync operation.
+        /// </summary>
         public async Task StartAsync(CancellationToken cancellationToken)
         {
             foreach (var app_id in app_config.GetAppIDs())
@@ -160,6 +179,9 @@ namespace MicroM.Web.Services.Security
             }
         }
 
+        /// <summary>
+        /// Performs the StopAsync operation.
+        /// </summary>
         public Task StopAsync(CancellationToken cancellationToken)
         {
             return Task.CompletedTask;

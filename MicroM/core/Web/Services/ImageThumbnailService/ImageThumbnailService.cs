@@ -2,8 +2,14 @@
 
 namespace MicroM.Web.Services
 {
+    /// <summary>
+    /// Represents the ImageThumbnailService.
+    /// </summary>
     public class ImageThumbnailService : IThumbnailService
     {
+        /// <summary>
+        /// Performs the static operation.
+        /// </summary>
         public static (int width, int height) CalculateThumbnailSize(int originalWidth, int originalHeight, int maxSize)
         {
             double ratioX = (double)maxSize / originalWidth;
@@ -16,6 +22,9 @@ namespace MicroM.Web.Services
             return (newWidth, newHeight);
         }
 
+        /// <summary>
+        /// Performs the IsImageSupported operation.
+        /// </summary>
         public bool IsImageSupported(string extension)
         {
             return GetImageFormat(extension) != null;
@@ -34,6 +43,9 @@ namespace MicroM.Web.Services
             };
         }
 
+        /// <summary>
+        /// Performs the public operation.
+        /// </summary>
         public (string directory, string thumbnailFileName, string thumbnailFilePath, string extension)
             GetThumbnailFilename(string sourceFilePath, int maxSize = 150, int quality = 75)
         {
@@ -54,6 +66,9 @@ namespace MicroM.Web.Services
             return (directory, thumbnailFileName, thumbnailFilePath, extension);
         }
 
+        /// <summary>
+        /// Performs the CreateThumbnail operation.
+        /// </summary>
         public string CreateThumbnail(string sourceFilePath, int maxSize = 150, int quality = 75)
         {
             if (string.IsNullOrWhiteSpace(sourceFilePath))

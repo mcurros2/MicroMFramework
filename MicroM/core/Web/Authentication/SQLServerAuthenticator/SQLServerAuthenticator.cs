@@ -13,6 +13,9 @@ using System.Collections.Concurrent;
 namespace MicroM.Web.Authentication
 {
 
+    /// <summary>
+    /// Represents the SQLServerAuthenticator.
+    /// </summary>
     public class SQLServerAuthenticator : IAuthenticator
     {
         private readonly ILogger<SQLServerAuthenticator> _log;
@@ -20,6 +23,9 @@ namespace MicroM.Web.Authentication
         private readonly IHttpContextAccessor _contextAccessor;
         private readonly IOptions<MicroMOptions> _microm_config;
 
+        /// <summary>
+        /// Performs the SQLServerAuthenticator operation.
+        /// </summary>
         public SQLServerAuthenticator(ILogger<SQLServerAuthenticator> logger, IMicroMEncryption encryptor, IHttpContextAccessor contextAccessor, IOptions<MicroMOptions> microm_config)
         {
             _log = logger;
@@ -63,6 +69,9 @@ namespace MicroM.Web.Authentication
             httpc?.Response.Cookies.Delete(GetRefreshCookieName(app_config));
         }
 
+        /// <summary>
+        /// Performs the AuthenticateLogin operation.
+        /// </summary>
         public async Task<AuthenticatorResult> AuthenticateLogin(ApplicationOption app_config, UserLogin user_login, CancellationToken ct)
         {
             AuthenticatorResult result = new();
@@ -135,6 +144,9 @@ namespace MicroM.Web.Authentication
             return result;
         }
 
+        /// <summary>
+        /// Performs the AuthenticateRefresh operation.
+        /// </summary>
         public Task<RefreshTokenResult> AuthenticateRefresh(ApplicationOption app_config, string user_id, string refresh_token, string local_device_id, CancellationToken ct)
         {
             RefreshTokenResult result = new();
@@ -171,6 +183,9 @@ namespace MicroM.Web.Authentication
             return Task.FromResult(result);
         }
 
+        /// <summary>
+        /// Performs the Logoff operation.
+        /// </summary>
         public Task Logoff(ApplicationOption app_config, string user_name, CancellationToken ct)
         {
             if (string.IsNullOrEmpty(user_name)) throw new ArgumentException("Username is null or empty");
@@ -179,6 +194,9 @@ namespace MicroM.Web.Authentication
             return Task.CompletedTask;
         }
 
+        /// <summary>
+        /// Performs the UnencryptClaims operation.
+        /// </summary>
         public void UnencryptClaims(Dictionary<string, object>? server_claims)
         {
             if (server_claims != null && server_claims.TryGetValue(MicroMServerClaimTypes.MicroMPassword, out var admin_password))
@@ -187,11 +205,17 @@ namespace MicroM.Web.Authentication
             }
         }
 
+        /// <summary>
+        /// Performs the SendPasswordRecoveryEmail operation.
+        /// </summary>
         public Task<bool> SendPasswordRecoveryEmail(ApplicationOption app_config, string user_name, CancellationToken ct)
         {
             throw new NotImplementedException();
         }
 
+        /// <summary>
+        /// Performs the RecoverPassword operation.
+        /// </summary>
         public Task<bool> RecoverPassword(ApplicationOption app_config, string user_name, string new_password, string recovery_code, CancellationToken ct)
         {
             throw new NotImplementedException();

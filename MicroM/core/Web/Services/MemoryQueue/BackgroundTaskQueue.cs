@@ -5,6 +5,9 @@ using static MicroM.Extensions.TimeExtensions;
 namespace MicroM.Web.Services
 {
 
+    /// <summary>
+    /// Represents the QueueTaskStatus.
+    /// </summary>
     public enum QueueTaskStatus
     {
         NotFound,
@@ -15,43 +18,121 @@ namespace MicroM.Web.Services
         Cancelled
     }
 
+    /// <summary>
+    /// Represents the TaskStatusInfo.
+    /// </summary>
     public class TaskStatusInfo
     {
+        /// <summary>
+        /// Gets or sets the }.
+        /// </summary>
         public QueueTaskStatus Status { get; set; }
+        /// <summary>
+        /// Gets or sets the }.
+        /// </summary>
         public string? StatusMessage { get; set; }
+        /// <summary>
+        /// Gets or sets the }.
+        /// </summary>
         public DateTime Queued { get; set; }
+        /// <summary>
+        /// Gets or sets the }.
+        /// </summary>
         public DateTime? Started { get; set; }
+        /// <summary>
+        /// Gets or sets the }.
+        /// </summary>
         public DateTime? Finished { get; set; }
     }
 
+    /// <summary>
+    /// Represents the QueueStatusInfo.
+    /// </summary>
     public class QueueStatusInfo
     {
+        /// <summary>
+        /// Gets or sets the }.
+        /// </summary>
         public int QueuedCount { get; set; }
+        /// <summary>
+        /// Gets or sets the }.
+        /// </summary>
         public int RunningCount { get; set; }
     }
 
+    /// <summary>
+    /// Represents the IBackgroundTaskQueue.
+    /// </summary>
     public interface IBackgroundTaskQueue
     {
+        /// <summary>
+        /// Performs the Enqueue operation.
+        /// </summary>
         public Guid Enqueue(string TaskName, Func<CancellationToken, Task<string>> workItem, bool singleInstance, TimeSpan? recurrence = null);
+        /// <summary>
+        /// Performs the GetQueueStatus operation.
+        /// </summary>
         public QueueStatusInfo GetQueueStatus();
+        /// <summary>
+        /// Performs the GetTasksStatus operation.
+        /// </summary>
         public IDictionary<Guid, TaskStatusInfo> GetTasksStatus();
+        /// <summary>
+        /// Performs the GetTaskStatus operation.
+        /// </summary>
         public TaskStatusInfo GetTaskStatus(Guid taskId);
+        /// <summary>
+        /// Performs the CancelTask operation.
+        /// </summary>
         public void CancelTask(Guid taskId);
+        /// <summary>
+        /// Gets or sets the }.
+        /// </summary>
         public CancellationToken QueueCT { get; }
+        /// <summary>
+        /// Performs the CancelAllTasks operation.
+        /// </summary>
         public void CancelAllTasks();
     }
 
+    /// <summary>
+    /// Represents the QueueItem.
+    /// </summary>
     public class QueueItem
     {
+        /// <summary>
+        /// Gets or sets the }.
+        /// </summary>
         public Guid TaskID { get; init; }
+        /// <summary>
+        /// Gets or sets the null!;.
+        /// </summary>
         public string Name { get; init; } = null!;
+        /// <summary>
+        /// Gets or sets the null!;.
+        /// </summary>
         public Func<CancellationToken, Task<string>> WorkItem { get; init; } = null!;
+        /// <summary>
+        /// Gets or sets the }.
+        /// </summary>
         public CancellationTokenSource? CTS { get; set; }
+        /// <summary>
+        /// Gets or sets the null!;.
+        /// </summary>
         public TaskStatusInfo TaskStatus { get; set; } = null!;
+        /// <summary>
+        /// Gets or sets the }.
+        /// </summary>
         public TimeSpan? RecurrenceInterval { get; set; }
+        /// <summary>
+        /// Gets or sets the false;.
+        /// </summary>
         public bool SingleInstance { get; set; } = false;
     }
 
+    /// <summary>
+    /// Represents the BackgroundTaskQueue.
+    /// </summary>
     public class BackgroundTaskQueue(
         int maxConcurrency, int maxRetainedStatuses, ILogger<BackgroundTaskQueue> logger, CancellationToken queueCT
         ) : IBackgroundTaskQueue, IDisposable
@@ -70,6 +151,9 @@ namespace MicroM.Web.Services
         private bool disposedValue;
 
 
+        /// <summary>
+        /// queueCT; field.
+        /// </summary>
         public CancellationToken QueueCT => queueCT;
 
         /// <summary>
@@ -248,6 +332,9 @@ namespace MicroM.Web.Services
             }
         }
 
+        /// <summary>
+        /// Performs the CancelTask operation.
+        /// </summary>
         public void CancelTask(Guid taskId)
         {
             if (_statuses.TryGetValue(taskId, out var item))
@@ -273,6 +360,9 @@ namespace MicroM.Web.Services
             }
         }
 
+        /// <summary>
+        /// Performs the CancelAllTasks operation.
+        /// </summary>
         public void CancelAllTasks()
         {
             foreach (var item in _statuses.Values)
@@ -281,6 +371,9 @@ namespace MicroM.Web.Services
             }
         }
 
+        /// <summary>
+        /// Performs the GetQueueStatus operation.
+        /// </summary>
         public QueueStatusInfo GetQueueStatus()
         {
             return new QueueStatusInfo
@@ -290,6 +383,9 @@ namespace MicroM.Web.Services
             };
         }
 
+        /// <summary>
+        /// Performs the GetTasksStatus operation.
+        /// </summary>
         public IDictionary<Guid, TaskStatusInfo> GetTasksStatus()
         {
             var dict = new Dictionary<Guid, TaskStatusInfo>();
@@ -300,6 +396,9 @@ namespace MicroM.Web.Services
             return dict;
         }
 
+        /// <summary>
+        /// Performs the GetTaskStatus operation.
+        /// </summary>
         public TaskStatusInfo GetTaskStatus(Guid taskId)
         {
             if (_statuses.TryGetValue(taskId, out var item))
@@ -340,6 +439,9 @@ namespace MicroM.Web.Services
             }
         }
 
+        /// <summary>
+        /// Performs the Dispose operation.
+        /// </summary>
         public void Dispose()
         {
             // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method

@@ -17,6 +17,9 @@ using static System.ArgumentNullException;
 
 namespace MicroM.Web.Services;
 
+/// <summary>
+/// Represents the MicroMAppConfigurationProvider.
+/// </summary>
 public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfiguration
 {
     private static readonly Dictionary<string, ApplicationOption> _ApplicationsCache = new(StringComparer.OrdinalIgnoreCase);
@@ -40,6 +43,9 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
         return url;
     }
 
+    /// <summary>
+    /// Performs the MicroMAppConfigurationProvider operation.
+    /// </summary>
     public MicroMAppConfigurationProvider(IOptions<MicroMOptions> options, ILogger<MicroMAppConfigurationProvider> logger, IMicroMEncryption encryptor, IBackgroundTaskQueue queue, IConfiguration config)
     {
         ThrowIfNull(options);
@@ -55,12 +61,18 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
         _log.LogTrace("initialized");
     }
 
+    /// <summary>
+    /// Performs the StartAsync operation.
+    /// </summary>
     public Task StartAsync(CancellationToken cancellationToken)
     {
         _log.LogTrace("StartAsync Called");
         return ReloadConfiguration(cancellationToken);
     }
 
+    /// <summary>
+    /// Performs the StopAsync operation.
+    /// </summary>
     public Task StopAsync(CancellationToken cancellationToken)
     {
         _log.LogTrace("StopAsync Called");
@@ -68,6 +80,9 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
         return Task.CompletedTask;
     }
 
+    /// <summary>
+    /// Performs the GetAppConfiguration operation.
+    /// </summary>
     public ApplicationOption? GetAppConfiguration(string app_id)
     {
         _ApplicationsCache.TryGetValue(app_id, out var app);
@@ -137,6 +152,9 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
     }
 
 
+    /// <summary>
+    /// _EntityTypesCache; field.
+    /// </summary>
     public static IReadOnlyDictionary<string, Type> EntityTypesCache => _EntityTypesCache;
 
     private static string GetCoreAssemblyPath()
@@ -305,12 +323,18 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
         }
     }
 
+    /// <summary>
+    /// Performs the GetEntityType operation.
+    /// </summary>
     public Type? GetEntityType(string app_id, string entity_name)
     {
         _EntityTypesCache.TryGetValue($"{app_id}.{entity_name}", out var type);
         return type;
     }
 
+    /// <summary>
+    /// Performs the GetAllAPPAssemblies operation.
+    /// </summary>
     public List<Assembly> GetAllAPPAssemblies(string app_id)
     {
         return _EntityTypesCache
@@ -406,6 +430,9 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
 
 
     private static readonly SemaphoreSlim _refreshSemaphore = new(1, 1);
+    /// <summary>
+    /// Performs the RefreshConfiguration operation.
+    /// </summary>
     public async Task<bool> RefreshConfiguration(string? app_id, CancellationToken ct)
     {
         bool result = false;
@@ -453,6 +480,9 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
         }
     }
 
+    /// <summary>
+    /// Performs the GetDatabaseClient operation.
+    /// </summary>
     public DatabaseClient? GetDatabaseClient(string app_id, int? connection_timeour_secs = 15)
     {
         _ApplicationsCache.TryGetValue(app_id, out var app_config);
@@ -473,16 +503,25 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
 
     }
 
+    /// <summary>
+    /// Performs the GetAppIDs operation.
+    /// </summary>
     public List<string> GetAppIDs()
     {
         return [.. _ApplicationsCache.Keys];
     }
 
+    /// <summary>
+    /// Performs the GetPublicAccessAllowedRoutes operation.
+    /// </summary>
     public PublicEndpointSecurityRecord? GetPublicAccessAllowedRoutes(string app_id)
     {
         return _PublicAccessCache.TryGetValue(app_id, out var record) ? record : null;
     }
 
+    /// <summary>
+    /// Performs the IsCORSOriginAllowed operation.
+    /// </summary>
     public bool IsCORSOriginAllowed(string? app_id, string origin)
     {
         var n_origin = NormalizeURL(origin);

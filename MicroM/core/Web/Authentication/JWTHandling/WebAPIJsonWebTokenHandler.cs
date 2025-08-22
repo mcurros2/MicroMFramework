@@ -10,8 +10,14 @@ using System.Security.Claims;
 
 namespace MicroM.Web.Authentication;
 
+/// <summary>
+/// Represents the TokenResult.
+/// </summary>
 public record TokenResult { public string? Token { get; init; } public SecurityTokenDescriptor? SD { get; init; } }
 
+/// <summary>
+/// Represents the WebAPIJsonWebTokenHandler.
+/// </summary>
 public class WebAPIJsonWebTokenHandler(
     IMicroMAppConfiguration app_config, IHttpContextAccessor http_context, ILogger<WebAPIJsonWebTokenHandler> logger
     ) : JsonWebTokenHandler
@@ -68,6 +74,9 @@ public class WebAPIJsonWebTokenHandler(
         return new() { Token = token, SD = sd };
     }
 
+    /// <summary>
+    /// Performs the ValidateExpiredToken operation.
+    /// </summary>
     public async Task<ClaimsPrincipal?> ValidateExpiredToken(ApplicationOption app, string token)
     {
         var parms = GetValidationParameters(app);
@@ -145,6 +154,9 @@ public class WebAPIJsonWebTokenHandler(
 
     }
 
+    /// <summary>
+    /// Performs the ValidateTokenAsync operation.
+    /// </summary>
     public override Task<TokenValidationResult> ValidateTokenAsync(string token, TokenValidationParameters validationParameters)
     {
 
@@ -153,6 +165,9 @@ public class WebAPIJsonWebTokenHandler(
         return base.ValidateTokenAsync(token, validationParameters);
     }
 
+    /// <summary>
+    /// Performs the ValidateTokenAsync operation.
+    /// </summary>
     public override Task<TokenValidationResult> ValidateTokenAsync(SecurityToken token, TokenValidationParameters validationParameters)
     {
         SetContextTokenValidationParameters(validationParameters);

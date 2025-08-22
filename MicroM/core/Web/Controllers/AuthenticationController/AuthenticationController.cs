@@ -14,11 +14,20 @@ using System.Security.Claims;
 
 namespace MicroM.Web.Controllers;
 
+/// <summary>
+/// Represents the AuthenticationController.
+/// </summary>
 [ApiController]
+/// <summary>
+/// Represents the AuthenticationController.
+/// </summary>
 public class AuthenticationController(IOptions<MicroMOptions> options) : ControllerBase, IAuthenticationController
 {
     private readonly MicroMOptions _options = options.Value;
 
+    /// <summary>
+    /// Performs the GetStatus operation.
+    /// </summary>
     [AllowAnonymous]
     [HttpGet("auth-api-status")]
     public string GetStatus()
@@ -26,6 +35,9 @@ public class AuthenticationController(IOptions<MicroMOptions> options) : Control
         return "OK";
     }
 
+    /// <summary>
+    /// Performs the IsLoggedIn operation.
+    /// </summary>
     [Authorize(policy: nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy))]
     [HttpGet("{app_id}/auth/isloggedin")]
     public ActionResult IsLoggedIn()
@@ -34,6 +46,9 @@ public class AuthenticationController(IOptions<MicroMOptions> options) : Control
     }
 
 
+    /// <summary>
+    /// Performs the Login operation.
+    /// </summary>
     [AllowAnonymous]
     [HttpPost("{app_id}/auth/login")]
     public async Task<ActionResult> Login([FromServices] Services.IAuthenticationService aus, [FromServices] IAuthenticationProvider auth, [FromServices] WebAPIJsonWebTokenHandler jwt_handler, string app_id, [FromBody] UserLogin userLogin, CancellationToken ct)
@@ -74,6 +89,9 @@ public class AuthenticationController(IOptions<MicroMOptions> options) : Control
     }
 
 
+    /// <summary>
+    /// Performs the Logoff operation.
+    /// </summary>
     [Authorize(policy: nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy))]
     [HttpPost("{app_id}/auth/logoff")]
     public async Task<ActionResult> Logoff([FromServices] IAuthenticationProvider auth, [FromServices] Services.IAuthenticationService aus, string app_id, CancellationToken ct)
@@ -97,6 +115,9 @@ public class AuthenticationController(IOptions<MicroMOptions> options) : Control
 
 
 
+    /// <summary>
+    /// Performs the RecoverPassword operation.
+    /// </summary>
     [AllowAnonymous]
     [HttpPost("{app_id}/auth/recoverpassword")]
     public async Task<ActionResult> RecoverPassword([FromServices] Services.IAuthenticationService aus, [FromServices] IAuthenticationProvider auth, string app_id, [FromBody] UserRecoverPassword parms, CancellationToken ct)
@@ -129,6 +150,9 @@ public class AuthenticationController(IOptions<MicroMOptions> options) : Control
     }
 
 
+    /// <summary>
+    /// Performs the RecoveryEmail operation.
+    /// </summary>
     [AllowAnonymous]
     [HttpPost("{app_id}/auth/recoveryemail")]
     public async Task<ActionResult> RecoveryEmail([FromServices] Services.IAuthenticationService aus, [FromServices] IAuthenticationProvider auth, string app_id, [FromBody] UserRecoveryEmail parms, CancellationToken ct)
@@ -163,6 +187,9 @@ public class AuthenticationController(IOptions<MicroMOptions> options) : Control
     }
 
 
+    /// <summary>
+    /// Performs the RefreshToken operation.
+    /// </summary>
     [AllowAnonymous]
     [HttpPost("{app_id}/auth/refresh")]
     public async Task<ActionResult> RefreshToken([FromServices] Services.IAuthenticationService aus, [FromServices] IAuthenticationProvider auth, [FromServices] WebAPIJsonWebTokenHandler jwt_handler, string app_id, [FromBody] UserRefreshTokenRequest user_refresh, CancellationToken ct)

@@ -3,7 +3,7 @@
 namespace MicroM.Web.Authentication.SSO;
 
 /// <summary>
-/// Defines SSO interactions with external identity providers.
+/// Represents the IIdentityProviderService.
 /// </summary>
 public interface IIdentityProviderService
 {

@@ -8,11 +8,17 @@ using System.Security.Claims;
 
 namespace MicroM.Web.Services;
 
+/// <summary>
+/// Represents the AuthenticationService.
+/// </summary>
 public class AuthenticationService(
             ILogger<AuthenticationService> log,
             IMicroMAppConfiguration app_config
     ) : IAuthenticationService
 {
+    /// <summary>
+    /// Performs the Task< operation.
+    /// </summary>
     public async Task<(LoginResult? user_data, TokenResult? token_result)> HandleLogin(IAuthenticationProvider auth, WebAPIJsonWebTokenHandler jwt_handler, string app_id, UserLogin user_login, Dictionary<string, object> server_claims, CancellationToken ct)
     {
         if (string.IsNullOrEmpty(user_login.Username)) return (null, null);
@@ -75,6 +81,9 @@ public class AuthenticationService(
         return (result, token_result);
     }
 
+    /// <summary>
+    /// Performs the HandleLogoff operation.
+    /// </summary>
     public async Task HandleLogoff(IAuthenticationProvider auth, string app_id, string user_name, CancellationToken ct)
     {
         ApplicationOption app = app_config.GetAppConfiguration(app_id)!;
@@ -90,6 +99,9 @@ public class AuthenticationService(
         }
     }
 
+    /// <summary>
+    /// Performs the Task< operation.
+    /// </summary>
     public async Task<(bool failed, string? error_message)> HandleRecoverPassword(IAuthenticationProvider auth, string app_id, string user_name, string new_password, string recovery_code, CancellationToken ct)
     {
         ApplicationOption? app = app_config.GetAppConfiguration(app_id);
@@ -112,6 +124,9 @@ public class AuthenticationService(
         }
     }
 
+    /// <summary>
+    /// Performs the Task< operation.
+    /// </summary>
     public async Task<(RefreshTokenResult? result, TokenResult? token_result)> HandleRefreshToken(IAuthenticationProvider auth, WebAPIJsonWebTokenHandler jwt_handler, string app_id, UserRefreshTokenRequest refreshRequest, CancellationToken ct)
     {
         ApplicationOption? app = app_config.GetAppConfiguration(app_id);
@@ -170,6 +185,9 @@ public class AuthenticationService(
         return (null, null);
     }
 
+    /// <summary>
+    /// Performs the Task< operation.
+    /// </summary>
     public async Task<(bool failed, string? error_message)> HandleSendRecoveryEmail(IAuthenticationProvider auth, string app_id, string user_name, CancellationToken ct)
     {
         ApplicationOption? app = app_config.GetAppConfiguration(app_id);

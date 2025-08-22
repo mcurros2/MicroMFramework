@@ -6,11 +6,17 @@ using Microsoft.Extensions.Logging;
 
 namespace MicroM.Web.Authentication;
 
+/// <summary>
+/// Represents the MicroMAuthenticationProvider.
+/// </summary>
 public class MicroMAuthenticationProvider(ILogger<MicroMAuthenticationProvider> log, IEnumerable<IAuthenticator> services) : IAuthenticationProvider
 {
     private IEnumerable<IAuthenticator> _services = services;
     private readonly ILogger<MicroMAuthenticationProvider> _log = log;
 
+    /// <summary>
+    /// Performs the GetAuthenticator operation.
+    /// </summary>
     public IAuthenticator? GetAuthenticator(ApplicationOption app_config)
     {
 
@@ -32,6 +38,9 @@ public class MicroMAuthenticationProvider(ILogger<MicroMAuthenticationProvider> 
         return _services.FirstOrDefault(x => x.GetType() == typeof(T));
     }
 
+    /// <summary>
+    /// Performs the GetAppAndUnencryptClaims operation.
+    /// </summary>
     public ApplicationOption? GetAppAndUnencryptClaims(IMicroMAppConfiguration app_config, string app_id, DataWebAPIRequest parms, Dictionary<string, object>? claims)
     {
         ApplicationOption? app = app_config.GetAppConfiguration(app_id);

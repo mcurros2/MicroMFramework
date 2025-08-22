@@ -6,6 +6,9 @@ using Microsoft.Extensions.Options;
 
 namespace MicroM.Web.Services
 {
+    /// <summary>
+    /// Represents the MicroMCookieManager.
+    /// </summary>
     public class MicroMCookieManager : ICookieManager
     {
         private readonly ChunkingCookieManager _inner = new();
@@ -13,6 +16,9 @@ namespace MicroM.Web.Services
         private readonly ILogger<MicroMCookieManager> _log;
         private readonly PathString _basePathString;
 
+        /// <summary>
+        /// Performs the MicroMCookieManager operation.
+        /// </summary>
         public MicroMCookieManager(IOptions<MicroMOptions> microm_config, ILogger<MicroMCookieManager> logger)
         {
             _config = microm_config;
@@ -83,11 +89,17 @@ namespace MicroM.Web.Services
 
         }
 
+        /// <summary>
+        /// Performs the GetRequestCookie operation.
+        /// </summary>
         public string? GetRequestCookie(HttpContext context, string key)
         {
             return _inner.GetRequestCookie(context, key);
         }
 
+        /// <summary>
+        /// Performs the AppendResponseCookie operation.
+        /// </summary>
         public void AppendResponseCookie(HttpContext context, string key, string? value, CookieOptions options)
         {
             var tenantPath = GetTenantPath(context);
@@ -102,6 +114,9 @@ namespace MicroM.Web.Services
             _inner.AppendResponseCookie(context, key, value, tenantOptions);
         }
 
+        /// <summary>
+        /// Performs the DeleteCookie operation.
+        /// </summary>
         public void DeleteCookie(HttpContext context, string key, CookieOptions options)
         {
             var tenantPath = GetTenantPath(context);

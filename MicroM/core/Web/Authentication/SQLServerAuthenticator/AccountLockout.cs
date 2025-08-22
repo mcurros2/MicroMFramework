@@ -2,6 +2,9 @@
 
 namespace MicroM.Web.Authentication
 {
+    /// <summary>
+    /// Represents the AccountLockout.
+    /// </summary>
     public class AccountLockout
     {
         int _badlogon_attempts = 0;
@@ -11,6 +14,9 @@ namespace MicroM.Web.Authentication
         DateTime? _RefreshTokenExpiration = null;
         int _RefreshTokenValidationCount = 0;
 
+        /// <summary>
+        /// Performs the isAccountLocked operation.
+        /// </summary>
         public bool isAccountLocked()
         {
             if (_locked_until == null) return false;
@@ -18,12 +24,18 @@ namespace MicroM.Web.Authentication
             return false;
         }
 
+        /// <summary>
+        /// Performs the unlockAccount operation.
+        /// </summary>
         public void unlockAccount()
         {
             _locked_until = null;
             _badlogon_attempts = 0;
         }
 
+        /// <summary>
+        /// Performs the incrementBadLogonAndLock operation.
+        /// </summary>
         public void incrementBadLogonAndLock()
         {
             _badlogon_attempts++;
@@ -33,6 +45,9 @@ namespace MicroM.Web.Authentication
             }
         }
 
+        /// <summary>
+        /// Performs the validateRefreshToken operation.
+        /// </summary>
         public LoginAttemptStatus validateRefreshToken(string refreshToken, int max_refresh_count)
         {
             var result = LoginAttemptStatus.Unknown;
@@ -57,11 +72,17 @@ namespace MicroM.Web.Authentication
             return result;
         }
 
+        /// <summary>
+        /// Performs the incrementRefreshTokenValidationCount operation.
+        /// </summary>
         public void incrementRefreshTokenValidationCount()
         {
             _RefreshTokenValidationCount++;
         }
 
+        /// <summary>
+        /// Performs the clearRefreshToken operation.
+        /// </summary>
         public void clearRefreshToken()
         {
             _RefreshToken = null;
@@ -69,6 +90,9 @@ namespace MicroM.Web.Authentication
             _RefreshTokenValidationCount = 0;
         }
 
+        /// <summary>
+        /// Performs the setRefreshToken operation.
+        /// </summary>
         public void setRefreshToken(string refreshToken)
         {
             _RefreshToken = refreshToken;
@@ -76,6 +100,9 @@ namespace MicroM.Web.Authentication
             _RefreshTokenValidationCount = 0;
         }
 
+        /// <summary>
+        /// Performs the getRefreshExpiration operation.
+        /// </summary>
         public DateTime? getRefreshExpiration() => _RefreshTokenExpiration;
 
     }

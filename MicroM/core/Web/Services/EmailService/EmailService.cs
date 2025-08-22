@@ -12,9 +12,15 @@ using System.Text.Json;
 
 namespace MicroM.Web.Services
 {
+    /// <summary>
+    /// Represents the EmailService.
+    /// </summary>
     public class EmailService(ILogger<EmailService> logger, IBackgroundTaskQueue btq, IMicroMAppConfiguration app_config, IMicroMEncryption encryptor, CancellationToken serviceCT) : IEmailService
     {
 
+        /// <summary>
+        /// Performs the QueueEmail operation.
+        /// </summary>
         public async Task<List<SubmitToQueueResult>> QueueEmail(string app_id, EmailServiceItem send_item, CancellationToken ct, bool start_processing_queue = false)
         {
             ArgumentNullException.ThrowIfNullOrEmpty(send_item.EmailServiceConfigurationId, nameof(send_item.EmailServiceConfigurationId));
@@ -93,9 +99,21 @@ namespace MicroM.Web.Services
 
         internal class SendMailResult
         {
+            /// <summary>
+            /// failed; field.
+            /// </summary>
             public bool failed;
+            /// <summary>
+            /// should_retry; field.
+            /// </summary>
             public bool should_retry;
+            /// <summary>
+            /// last_error; field.
+            /// </summary>
             public string? last_error;
+            /// <summary>
+            /// send_result; field.
+            /// </summary>
             public string? send_result;
         };
 
@@ -177,6 +195,9 @@ namespace MicroM.Web.Services
             return new_config;
         }
 
+        /// <summary>
+        /// Performs the StartProcessingQueue operation.
+        /// </summary>
         public Task StartProcessingQueue(string app_id, CancellationToken ct)
         {
 

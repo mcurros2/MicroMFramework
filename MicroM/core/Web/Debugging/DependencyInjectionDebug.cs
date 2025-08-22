@@ -3,6 +3,9 @@ using System.Diagnostics.Tracing;
 
 namespace MicroM.Web.Debug;
 
+/// <summary>
+/// Represents the DependencyInjectionDebug.
+/// </summary>
 public sealed class DependencyInjectionDebug() : EventListener
 {
     protected override void OnEventSourceCreated(EventSource src)

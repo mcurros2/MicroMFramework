@@ -5,18 +5,27 @@ using System.Text.Json;
 
 namespace MicroM.Web.Middleware
 {
+    /// <summary>
+    /// Represents the DebugRoutesMiddleware.
+    /// </summary>
     public class DebugRoutesMiddleware
     {
         private readonly RequestDelegate _next;
         private string _debugRoutesURL;
         private static readonly JsonSerializerOptions _jsonSerializerOptions = new JsonSerializerOptions() { WriteIndented = true };
 
+        /// <summary>
+        /// Performs the DebugRoutesMiddleware operation.
+        /// </summary>
         public DebugRoutesMiddleware(RequestDelegate next, string debugRoutesURL)
         {
             _next = next;
             _debugRoutesURL = debugRoutesURL;
         }
 
+        /// <summary>
+        /// Performs the Invoke operation.
+        /// </summary>
         public async Task Invoke(HttpContext context, IActionDescriptorCollectionProvider? provider)
         {
             if (context.Request.Path == _debugRoutesURL)

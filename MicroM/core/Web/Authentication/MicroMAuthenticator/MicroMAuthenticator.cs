@@ -12,6 +12,9 @@ using Microsoft.Extensions.Options;
 
 namespace MicroM.Web.Authentication;
 
+/// <summary>
+/// Represents the MicroMAuthenticator.
+/// </summary>
 public class MicroMAuthenticator : IAuthenticator
 {
     private readonly ILogger<MicroMAuthenticator> _log;
@@ -20,6 +23,9 @@ public class MicroMAuthenticator : IAuthenticator
     private readonly IOptions<MicroMOptions> _microm_config;
     private readonly IEmailService _emailService;
 
+    /// <summary>
+    /// Performs the MicroMAuthenticator operation.
+    /// </summary>
     public MicroMAuthenticator(ILogger<MicroMAuthenticator> logger, IDeviceIdService deviceIdService, IHttpContextAccessor httpContextAccessor, IOptions<MicroMOptions> microm_config, IEmailService emailService)
     {
         _log = logger;
@@ -61,6 +67,9 @@ public class MicroMAuthenticator : IAuthenticator
         httpc?.Response.Cookies.Delete(GetRefreshCookieName(app_config));
     }
 
+    /// <summary>
+    /// Performs the AuthenticateLogin operation.
+    /// </summary>
     public async Task<AuthenticatorResult> AuthenticateLogin(ApplicationOption app_config, UserLogin user_login, CancellationToken ct)
     {
         AuthenticatorResult result = new();
@@ -146,6 +155,9 @@ public class MicroMAuthenticator : IAuthenticator
         return result;
     }
 
+    /// <summary>
+    /// Performs the AuthenticateRefresh operation.
+    /// </summary>
     public async Task<RefreshTokenResult> AuthenticateRefresh(ApplicationOption app_config, string user_id, string refresh_token, string local_device_id, CancellationToken ct)
     {
         RefreshTokenResult result = new();
@@ -220,6 +232,9 @@ public class MicroMAuthenticator : IAuthenticator
         return result;
     }
 
+    /// <summary>
+    /// Performs the Logoff operation.
+    /// </summary>
     public async Task Logoff(ApplicationOption app_config, string user_name, CancellationToken ct)
     {
         if (string.IsNullOrEmpty(user_name)) throw new ArgumentException("Username is null or empty");
@@ -228,8 +243,14 @@ public class MicroMAuthenticator : IAuthenticator
         DeleteRefreshCookie(app_config);
     }
 
+    /// <summary>
+    /// Performs the UnencryptClaims operation.
+    /// </summary>
     public void UnencryptClaims(Dictionary<string, object>? server_claims) { }
 
+    /// <summary>
+    /// Performs the Task< operation.
+    /// </summary>
     public async Task<(bool failed, string? error_message)> SendPasswordRecoveryEmail(ApplicationOption app_config, string user_name, CancellationToken ct)
     {
         if (string.IsNullOrEmpty(user_name)) throw new ArgumentException("Username is null or empty");
@@ -294,6 +315,9 @@ public class MicroMAuthenticator : IAuthenticator
         }
     }
 
+    /// <summary>
+    /// Performs the Task< operation.
+    /// </summary>
     public async Task<(bool failed, string? error_message)> RecoverPassword(ApplicationOption app_config, string user_name, string new_password, string recovery_code, CancellationToken ct)
     {
         if (string.IsNullOrEmpty(user_name) || string.IsNullOrEmpty(new_password) || string.IsNullOrEmpty(recovery_code)) throw new ArgumentException("Username, new password or recovery code is null or empty");

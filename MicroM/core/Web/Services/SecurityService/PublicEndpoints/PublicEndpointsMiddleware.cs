@@ -2,11 +2,17 @@
 
 namespace MicroM.Web.Services.Security
 {
+    /// <summary>
+    /// Represents the PublicEndpointsMiddleware.
+    /// </summary>
     public class PublicEndpointsMiddleware(RequestDelegate next, IMicroMAppConfiguration config)
     {
         private readonly RequestDelegate _next = next;
         private readonly IMicroMAppConfiguration _config = config;
 
+        /// <summary>
+        /// Performs the InvokeAsync operation.
+        /// </summary>
         public async Task InvokeAsync(HttpContext context)
         {
             var endpoint = context.GetEndpoint();

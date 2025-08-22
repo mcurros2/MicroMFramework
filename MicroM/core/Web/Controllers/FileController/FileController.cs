@@ -8,9 +8,18 @@ using static MicroM.Web.Controllers.MicroMControllersMessages;
 
 namespace MicroM.Web.Controllers;
 
+/// <summary>
+/// Represents the FileController.
+/// </summary>
 [ApiController]
+/// <summary>
+/// Represents the FileController.
+/// </summary>
 public class FileController : ControllerBase, IFileController
 {
+    /// <summary>
+    /// Performs the GetStatus operation.
+    /// </summary>
     [AllowAnonymous]
     [HttpGet("file-api-status")]
     public string GetStatus()
@@ -18,6 +27,9 @@ public class FileController : ControllerBase, IFileController
         return "OK";
     }
 
+    /// <summary>
+    /// Performs the Serve operation.
+    /// </summary>
     [Authorize(policy: nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy))]
     [HttpGet("{app_id}/serve/{fileguid}")]
     public async Task<IActionResult> Serve([FromServices] IAuthenticationProvider auth, [FromServices] IMicroMAppConfiguration app_config, [FromServices] IEntitiesService ents, [FromServices] IFileUploadService ups, string app_id, string fileguid, CancellationToken ct)
@@ -42,6 +54,9 @@ public class FileController : ControllerBase, IFileController
         }
     }
 
+    /// <summary>
+    /// Performs the ServeThumbnail operation.
+    /// </summary>
     [Authorize(policy: nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy))]
     [HttpGet("{app_id}/thumbnail/{fileguid}/{maxSize?}/{quality?}")]
     public async Task<IActionResult> ServeThumbnail([FromServices] IAuthenticationProvider auth, [FromServices] IMicroMAppConfiguration app_config, [FromServices] IEntitiesService ents, [FromServices] IFileUploadService ups, string app_id, string fileguid, int? maxSize, int? quality, CancellationToken ct)
@@ -66,6 +81,9 @@ public class FileController : ControllerBase, IFileController
         }
     }
 
+    /// <summary>
+    /// Performs the Upload operation.
+    /// </summary>
     [Authorize(policy: nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy))]
     [HttpPost("{app_id}/tmpupload")]
     public async Task<ObjectResult> Upload([FromServices] IAuthenticationProvider auth, [FromServices] IMicroMAppConfiguration app_config, [FromServices] IEntitiesService ents, [FromServices] IFileUploadService ups, string app_id, [FromQuery] string fileprocess_id, [FromQuery] string file_name, [FromQuery] int? maxSize, [FromQuery] int? quality, CancellationToken ct)

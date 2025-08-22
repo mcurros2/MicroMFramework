@@ -23,7 +23,7 @@ This section provides documentation for the MicroM backend namespaces.
 | [MicroM.Generators.SQLGenerator](MicroM.Generators.SQLGenerator/index.md) | Generates SQL DDL and related scripts. |
 | MicroM.ImportData | Documentation not started. |
 | [MicroM.Validators](MicroM.Validators/index.md) | Regular expression validators for common MicroM inputs. |
-| [MicroM.Web](MicroM.Web/index.md) | Root web namespace. |
+| [MicroM.Web](MicroM.Web/index.md) | Root web namespace for authentication, controllers, debugging, middleware, and services. |
 | [MicroM.Web.Authentication](MicroM.Web.Authentication/index.md) | Authentication utilities for web apps. |
 | [MicroM.Web.Authentication.SSO](MicroM.Web.Authentication.SSO/index.md) | Single sign-on authentication helpers. |
 | [MicroM.Web.Controllers](MicroM.Web.Controllers/index.md) | ASP.NET Core controllers. |

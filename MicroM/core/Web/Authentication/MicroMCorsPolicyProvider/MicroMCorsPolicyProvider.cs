@@ -7,6 +7,9 @@ using Microsoft.Extensions.Options;
 
 namespace MicroM.Web.Authentication;
 
+/// <summary>
+/// Represents the MicroMCorsPolicyProvider.
+/// </summary>
 public class MicroMCorsPolicyProvider : ICorsPolicyProvider
 {
 
@@ -16,6 +19,9 @@ public class MicroMCorsPolicyProvider : ICorsPolicyProvider
 
     private string _rootPath;
 
+    /// <summary>
+    /// Performs the MicroMCorsPolicyProvider operation.
+    /// </summary>
     public MicroMCorsPolicyProvider(IMicroMAppConfiguration app_config, ILogger<MicroMCorsPolicyProvider> log, IOptions<MicroMOptions> config)
     {
         this.app_config = app_config;
@@ -24,6 +30,9 @@ public class MicroMCorsPolicyProvider : ICorsPolicyProvider
         _rootPath = config.Value.MicroMAPIBaseRootPath?.Trim('/') ?? string.Empty;
     }
 
+    /// <summary>
+    /// Performs the GetPolicyAsync operation.
+    /// </summary>
     public Task<CorsPolicy?> GetPolicyAsync(HttpContext context, string? policyName)
     {
         var originHeader = context.Request.Headers.Origin.ToString();

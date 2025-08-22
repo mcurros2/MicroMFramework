@@ -1,5 +1,8 @@
 ﻿namespace MicroM.Configuration
 {
+    /// <summary>
+    /// Represents the SecurityDefaults.
+    /// </summary>
     public sealed class SecurityDefaults
     {
         /// <summary>

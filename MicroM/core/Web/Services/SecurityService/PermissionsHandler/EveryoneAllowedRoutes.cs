@@ -3,6 +3,9 @@ using MicroM.Extensions;
 
 namespace MicroM.Web.Services.Security
 {
+    /// <summary>
+    /// Represents the MicroMEveryoneAllowedRoutes.
+    /// </summary>
     public enum MicroMEveryoneAllowedRoutes
     {
         logoff,
@@ -15,8 +18,14 @@ namespace MicroM.Web.Services.Security
         thumbnail
     }
 
+    /// <summary>
+    /// Represents the EveryoneAllowedRoutes.
+    /// </summary>
     public static class EveryoneAllowedRoutes
     {
+        /// <summary>
+        /// Performs the IsEveryoneAllowedRoute operation.
+        /// </summary>
         public static bool IsEveryoneAllowedRoute(string base_path, string app_id, string route_path)
         {
             if (route_path.IsIn(

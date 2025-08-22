@@ -2,11 +2,17 @@
 
 namespace MicroM.Web.Authentication
 {
+    /// <summary>
+    /// Represents the BrowserDeviceIDService.
+    /// </summary>
     public class BrowserDeviceIDService : IDeviceIdService
     {
 
         private IHttpContextAccessor _contextAccessor;
 
+        /// <summary>
+        /// Performs the BrowserDeviceIDService operation.
+        /// </summary>
         public BrowserDeviceIDService(IHttpContextAccessor httpContextAccessor)
         {
             _contextAccessor = httpContextAccessor;

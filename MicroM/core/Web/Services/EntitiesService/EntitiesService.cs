@@ -15,6 +15,9 @@ using System.Text.Json;
 
 namespace MicroM.Web.Services;
 
+/// <summary>
+/// Represents the EntitiesService.
+/// </summary>
 public class EntitiesService : IEntitiesService
 {
     private readonly ConcurrentDictionary<string, Dictionary<string, object>> _ApplicationKeys = new(StringComparer.OrdinalIgnoreCase);
@@ -23,6 +26,9 @@ public class EntitiesService : IEntitiesService
     private readonly WebAPIServices _api;
     private readonly MicroMOptions _options;
 
+    /// <summary>
+    /// Performs the EntitiesService operation.
+    /// </summary>
     public EntitiesService(IOptions<MicroMOptions> options,
             ILogger<WebAPIServices> logger,
             IMicroMEncryption encryptor,
@@ -46,6 +52,9 @@ public class EntitiesService : IEntitiesService
         if (_options.DefaultCommandTimeOutInMins != -1) DataDefaults.DefaultCommandTimeOutInMins = _options.DefaultCommandTimeOutInMins;
     }
 
+    /// <summary>
+    /// Performs the CreateDbConnection operation.
+    /// </summary>
     public IEntityClient CreateDbConnection(ApplicationOption app, Dictionary<string, object>? server_claims)
     {
         string user = app.AuthenticationType == nameof(AuthenticationTypes.SQLServerAuthentication) && string.IsNullOrEmpty(app.SQLUser) ? (string?)server_claims?[MicroMServerClaimTypes.MicroMUsername] ?? "" : app.SQLUser;
@@ -75,6 +84,9 @@ public class EntitiesService : IEntitiesService
         return dbc;
     }
 
+    /// <summary>
+    /// Performs the CreateDbConnection operation.
+    /// </summary>
     public Task<IEntityClient> CreateDbConnection(ApplicationOption app, Dictionary<string, object>? server_claims, CancellationToken ct)
     {
         return Task.FromResult(CreateDbConnection(app, server_claims));
@@ -96,6 +108,9 @@ public class EntitiesService : IEntitiesService
         return entity;
     }
 
+    /// <summary>
+    /// Performs the CreateEntity operation.
+    /// </summary>
     public EntityBase? CreateEntity(ApplicationOption app, string entity_name, Dictionary<string, object>? server_claims, CancellationToken ct)
     {
         EntityBase? entity = null;
@@ -106,6 +121,9 @@ public class EntitiesService : IEntitiesService
         return entity;
     }
 
+    /// <summary>
+    /// Performs the EnsureApplicationKeys operation.
+    /// </summary>
     public void EnsureApplicationKeys(string app_id, Dictionary<string, object> values)
     {
         _ApplicationKeys.TryGetValue(app_id, out Dictionary<string, object>? app_keys);
@@ -118,12 +136,18 @@ public class EntitiesService : IEntitiesService
         }
     }
 
+    /// <summary>
+    /// Performs the GetApplicationKeys operation.
+    /// </summary>
     public Dictionary<string, object> GetApplicationKeys(string app_id)
     {
         _ApplicationKeys.TryGetValue(app_id, out Dictionary<string, object>? app_keys);
         return app_keys ?? new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
     }
 
+    /// <summary>
+    /// Performs the HandleDeleteEntity operation.
+    /// </summary>
     public async Task<DBStatusResult?> HandleDeleteEntity(ApplicationOption app, string entity_name, DataWebAPIRequest parms, IEntityClient ec, CancellationToken ct)
     {
         DBStatusResult? result = null;
@@ -193,6 +217,9 @@ public class EntitiesService : IEntitiesService
 
     }
 
+    /// <summary>
+    /// Performs the HandleExecuteAction operation.
+    /// </summary>
     public async Task<EntityActionResult?> HandleExecuteAction(ApplicationOption app, string entity_name, string entity_action, DataWebAPIRequest parms, IEntityClient ec, CancellationToken ct)
     {
         EntityActionResult? result = null;
@@ -232,6 +259,9 @@ public class EntitiesService : IEntitiesService
 
     }
 
+    /// <summary>
+    /// Performs the HandleExecuteProc operation.
+    /// </summary>
     public async Task<List<DataResult>?> HandleExecuteProc(ApplicationOption app, string entity_name, string proc_name, DataWebAPIRequest parms, IEntityClient ec, CancellationToken ct)
     {
         List<DataResult> result = [];
@@ -301,6 +331,9 @@ public class EntitiesService : IEntitiesService
 
     }
 
+    /// <summary>
+    /// Performs the HandleExecuteProcDBStatus operation.
+    /// </summary>
     public async Task<DBStatusResult?> HandleExecuteProcDBStatus(ApplicationOption app, string entity_name, string proc_name, DataWebAPIRequest parms, IEntityClient ec, CancellationToken ct)
     {
         DBStatusResult result = new();
@@ -372,6 +405,9 @@ public class EntitiesService : IEntitiesService
 
     }
 
+    /// <summary>
+    /// Performs the HandleExecuteView operation.
+    /// </summary>
     public async Task<List<DataResult>?> HandleExecuteView(ApplicationOption app, string entity_name, string view_name, DataWebAPIRequest parms, IEntityClient ec, CancellationToken ct)
     {
         List<DataResult>? result = null;
@@ -423,6 +459,9 @@ public class EntitiesService : IEntitiesService
 
     }
 
+    /// <summary>
+    /// Performs the HandleGetEntity operation.
+    /// </summary>
     public async Task<Dictionary<string, object?>?> HandleGetEntity(ApplicationOption app, string entity_name, DataWebAPIRequest parms, IEntityClient ec, CancellationToken ct)
     {
         Dictionary<string, object?>? result = null;
@@ -457,6 +496,9 @@ public class EntitiesService : IEntitiesService
         return result;
     }
 
+    /// <summary>
+    /// Performs the HandleGetEntityDefinition operation.
+    /// </summary>
     public EntityDefinition? HandleGetEntityDefinition(ApplicationOption app, string entity_name)
     {
         EntityDefinition? result = null;
@@ -481,6 +523,9 @@ public class EntitiesService : IEntitiesService
         return result;
     }
 
+    /// <summary>
+    /// Performs the HandleGetTimeZoneOffset operation.
+    /// </summary>
     public async Task<int> HandleGetTimeZoneOffset(ApplicationOption app, IEntityClient ec, CancellationToken ct)
     {
         try
@@ -506,6 +551,9 @@ public class EntitiesService : IEntitiesService
     }
 
 
+    /// <summary>
+    /// Performs the HandleImportData operation.
+    /// </summary>
     public async Task<CSVImportResult?> HandleImportData(ApplicationOption app, string entity_name, string? import_proc, DataWebAPIRequest parms, IEntityClient ec, CancellationToken ct)
     {
         try
@@ -643,6 +691,9 @@ public class EntitiesService : IEntitiesService
 
     }
 
+    /// <summary>
+    /// Performs the HandleInsertEntity operation.
+    /// </summary>
     public async Task<DBStatusResult?> HandleInsertEntity(ApplicationOption app, string entity_name, DataWebAPIRequest parms, IEntityClient ec, CancellationToken ct)
     {
         DBStatusResult? result = null;
@@ -717,6 +768,9 @@ public class EntitiesService : IEntitiesService
         return result;
     }
 
+    /// <summary>
+    /// Performs the HandleLookupEntity operation.
+    /// </summary>
     public async Task<LookupResult> HandleLookupEntity(ApplicationOption app, string entity_name, DataWebAPIRequest parms, IEntityClient ec, CancellationToken ct, string? lookup_name = null)
     {
         string? result = null;
@@ -752,6 +806,9 @@ public class EntitiesService : IEntitiesService
 
     }
 
+    /// <summary>
+    /// Performs the HandleUpdateEntity operation.
+    /// </summary>
     public async Task<DBStatusResult?> HandleUpdateEntity(ApplicationOption app, string entity_name, DataWebAPIRequest parms, IEntityClient ec, CancellationToken ct)
     {
         DBStatusResult? result = null;
@@ -826,6 +883,9 @@ public class EntitiesService : IEntitiesService
 
     }
 
+    /// <summary>
+    /// Performs the ReplaceApplicationKey operation.
+    /// </summary>
     public void ReplaceApplicationKey(string app_id, string key, string value)
     {
         _ApplicationKeys.TryGetValue(app_id, out Dictionary<string, object>? app_keys);
