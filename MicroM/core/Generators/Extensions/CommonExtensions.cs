@@ -1,5 +1,8 @@
 ﻿namespace MicroM.Generators.Extensions
 {
+    /// <summary>
+    /// Provides helper methods for common text manipulations used by the generator components.
+    /// </summary>
     public static class CommonExtensions
     {
         private static readonly string MULTIPLE_LINE_REPLACEMENT = Environment.NewLine + Environment.NewLine;
@@ -8,8 +11,8 @@
         /// Removes redundant empty lines from the text. See <see cref="GeneratorsRegex.MultipleEmptyLines"/>.
         /// It will replace multiple empty lines with Environment.NewLine.
         /// </summary>
-        /// <param name="text"></param>
-        /// <returns></returns>
+        /// <param name="text">The text to remove redundant empty lines from.</param>
+        /// <returns>The input text with consecutive empty lines collapsed into a single blank line.</returns>
         public static string RemoveEmptyLines(this string text)
         {
             return GeneratorsRegex.MultipleEmptyLines().Replace(text, MULTIPLE_LINE_REPLACEMENT);
@@ -18,8 +21,8 @@
         /// <summary>
         /// Split a camel case word into separate words to create a description.
         /// </summary>
-        /// <param name="text"></param>
-        /// <returns></returns>
+        /// <param name="text">The camel-case text to split. Null or whitespace returns an empty string.</param>
+        /// <returns>The transformed text with spaces inserted and short words lowercased.</returns>
         public static string AddSpacesAndLowercaseShortWords(this string? text)
         {
             if (string.IsNullOrWhiteSpace(text))
