@@ -45,8 +45,13 @@ namespace MicroM.Data
     }
 
     /// <summary>
-    /// Wraps a <see cref="SqlDataReader"/> and exposes value retrieval helpers.
+    /// Provides an implementation of <see cref="IGetFieldValue"/> that wraps a
+    /// <see cref="SqlDataReader"/> to retrieve typed column values.
     /// </summary>
+    /// <remarks>
+    /// Methods on this class delegate to the underlying <see cref="DbDataReader"/>
+    /// while fulfilling the <see cref="IGetFieldValue"/> contract.
+    /// </remarks>
     public class ValueReader(SqlDataReader reader) : IGetFieldValue
     {
         internal DbDataReader _reader = reader;
