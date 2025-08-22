@@ -1,4 +1,4 @@
-| [MicroM.Excel](MicroM.Excel/index.md) | Excel input and output helpers. |# MicroM Backend Documentation
+# MicroM Backend Documentation
 
 This section provides documentation for the MicroM backend namespaces.
 
@@ -22,7 +22,7 @@ This section provides documentation for the MicroM backend namespaces.
 | [MicroM.Generators.ReactGenerator](MicroM.Generators.ReactGenerator/index.md) | Generates React TypeScript code for entities. |
 | [MicroM.Generators.SQLGenerator](MicroM.Generators.SQLGenerator/index.md) | Generates SQL DDL and related scripts. |
 | MicroM.ImportData | Documentation not started. |
-| MicroM.Validators | Documentation not started. |
+| [MicroM.Validators](MicroM.Validators/index.md) | Regular expression validators for common MicroM inputs. |
 | MicroM.Web | Documentation not started. |
 | MicroM.Web.Authentication | Documentation not started. |
 | MicroM.Web.Authentication.SSO | Documentation not started. |

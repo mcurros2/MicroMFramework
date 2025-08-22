@@ -75,8 +75,8 @@ This file tracks the current documentation state of the backend (`/MicroM/core`)
 - Notes: No documentation present.
 
 ### MicroM.Validators
-- State: Not Started ❌
-- Notes: No documentation present.
+- State: Complete ✅
+- Notes: Namespace and validators documented with XML comments and pages.
 
 ### MicroM.Web
 - State: Not Started ❌
