@@ -5,49 +5,49 @@ using Microsoft.AspNetCore.Mvc;
 namespace MicroM.Web.Controllers;
 
 /// <summary>
-/// Represents the IPublicController.
+/// Defines the contract for anonymous entity access endpoints.
 /// </summary>
 public interface IPublicController
 {
     /// <summary>
-    /// Performs the GetStatus operation.
+    /// Returns a simple response indicating that the public API is available.
     /// </summary>
     string GetStatus();
 
     /// <summary>
-    /// Performs the PublicAction operation.
+    /// Executes a public action on an entity.
     /// </summary>
     Task<ObjectResult> PublicAction(IMicroMAppConfiguration app_config, IEntitiesService api, string app_id, string entityName, string actionName, DataWebAPIRequest parms, CancellationToken ct);
     /// <summary>
-    /// Performs the PublicDelete operation.
+    /// Deletes an entity using public access.
     /// </summary>
     Task<ObjectResult> PublicDelete(IMicroMAppConfiguration app_config, IEntitiesService api, string app_id, string entityName, DataWebAPIRequest parms, CancellationToken ct);
     /// <summary>
-    /// Performs the PublicGet operation.
+    /// Retrieves an entity using public access.
     /// </summary>
     Task<ObjectResult> PublicGet(IMicroMAppConfiguration app_config, IEntitiesService api, string app_id, string entityName, DataWebAPIRequest parms, CancellationToken ct);
     /// <summary>
-    /// Performs the PublicInsert operation.
+    /// Creates an entity using public access.
     /// </summary>
     Task<ObjectResult> PublicInsert(IMicroMAppConfiguration app_config, IEntitiesService api, DataWebAPIRequest parms, string app_id, string entityName, CancellationToken ct);
     /// <summary>
-    /// Performs the PublicLookup operation.
+    /// Runs a lookup query on an entity using public access.
     /// </summary>
     Task<ObjectResult> PublicLookup(IMicroMAppConfiguration app_config, IEntitiesService api, string app_id, string entityName, string? lookupName, DataWebAPIRequest parms, CancellationToken ct);
     /// <summary>
-    /// Performs the PublicProc operation.
+    /// Executes a stored procedure on an entity using public access.
     /// </summary>
     Task<ObjectResult> PublicProc(IMicroMAppConfiguration app_config, IEntitiesService api, string app_id, string entityName, string procName, DataWebAPIRequest parms, CancellationToken ct);
     /// <summary>
-    /// Performs the PublicProcess operation.
+    /// Executes a stored procedure that returns status information using public access.
     /// </summary>
     Task<ObjectResult> PublicProcess(IMicroMAppConfiguration app_config, IEntitiesService api, string app_id, string entityName, string procName, DataWebAPIRequest parms, CancellationToken ct);
     /// <summary>
-    /// Performs the PublicUpdate operation.
+    /// Updates an entity using public access.
     /// </summary>
     Task<ObjectResult> PublicUpdate(IMicroMAppConfiguration app_config, IEntitiesService api, string app_id, string entityName, DataWebAPIRequest parms, CancellationToken ct);
     /// <summary>
-    /// Performs the PublicView operation.
+    /// Executes a view on an entity using public access.
     /// </summary>
     Task<ObjectResult> PublicView(IMicroMAppConfiguration app_config, IEntitiesService api, string app_id, string entityName, string viewName, DataWebAPIRequest parms, CancellationToken ct);
 

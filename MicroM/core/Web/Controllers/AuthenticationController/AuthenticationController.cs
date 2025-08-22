@@ -15,18 +15,15 @@ using System.Security.Claims;
 namespace MicroM.Web.Controllers;
 
 /// <summary>
-/// Represents the AuthenticationController.
+/// Provides authentication endpoints for the MicroM API.
 /// </summary>
 [ApiController]
-/// <summary>
-/// Represents the AuthenticationController.
-/// </summary>
 public class AuthenticationController(IOptions<MicroMOptions> options) : ControllerBase, IAuthenticationController
 {
     private readonly MicroMOptions _options = options.Value;
 
     /// <summary>
-    /// Performs the GetStatus operation.
+    /// Returns a simple response indicating that the authentication API is available.
     /// </summary>
     [AllowAnonymous]
     [HttpGet("auth-api-status")]
@@ -36,7 +33,7 @@ public class AuthenticationController(IOptions<MicroMOptions> options) : Control
     }
 
     /// <summary>
-    /// Performs the IsLoggedIn operation.
+    /// Checks whether the current user session is authenticated.
     /// </summary>
     [Authorize(policy: nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy))]
     [HttpGet("{app_id}/auth/isloggedin")]
@@ -47,7 +44,7 @@ public class AuthenticationController(IOptions<MicroMOptions> options) : Control
 
 
     /// <summary>
-    /// Performs the Login operation.
+    /// Authenticates a user and issues authentication tokens.
     /// </summary>
     [AllowAnonymous]
     [HttpPost("{app_id}/auth/login")]
@@ -90,7 +87,7 @@ public class AuthenticationController(IOptions<MicroMOptions> options) : Control
 
 
     /// <summary>
-    /// Performs the Logoff operation.
+    /// Signs the current user out and clears authentication cookies.
     /// </summary>
     [Authorize(policy: nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy))]
     [HttpPost("{app_id}/auth/logoff")]
@@ -116,7 +113,7 @@ public class AuthenticationController(IOptions<MicroMOptions> options) : Control
 
 
     /// <summary>
-    /// Performs the RecoverPassword operation.
+    /// Resets a user's password using a recovery code.
     /// </summary>
     [AllowAnonymous]
     [HttpPost("{app_id}/auth/recoverpassword")]
@@ -151,7 +148,7 @@ public class AuthenticationController(IOptions<MicroMOptions> options) : Control
 
 
     /// <summary>
-    /// Performs the RecoveryEmail operation.
+    /// Sends a password recovery email.
     /// </summary>
     [AllowAnonymous]
     [HttpPost("{app_id}/auth/recoveryemail")]
@@ -188,7 +185,7 @@ public class AuthenticationController(IOptions<MicroMOptions> options) : Control
 
 
     /// <summary>
-    /// Performs the RefreshToken operation.
+    /// Exchanges a refresh token for a new access token.
     /// </summary>
     [AllowAnonymous]
     [HttpPost("{app_id}/auth/refresh")]

@@ -9,18 +9,15 @@ using static MicroM.Web.Controllers.MicroMControllersMessages;
 namespace MicroM.Web.Controllers;
 
 /// <summary>
-/// Represents the PublicController.
+/// Provides anonymous endpoints for executing public entity operations.
 /// </summary>
 [ApiController]
-/// <summary>
-/// Represents the PublicController.
-/// </summary>
 public class PublicController : ControllerBase, IPublicController
 {
     const string PUBLIC_USERNAME = "public";
 
     /// <summary>
-    /// Performs the GetStatus operation.
+    /// Returns a simple response indicating that the public API is available.
     /// </summary>
     [AllowAnonymous]
     [HttpGet("public-api-status")]
@@ -30,7 +27,7 @@ public class PublicController : ControllerBase, IPublicController
     }
 
     /// <summary>
-    /// Performs the PublicAction operation.
+    /// Executes a public action on an entity.
     /// </summary>
     [AllowAnonymous]
     [PublicEndpoint]
@@ -64,7 +61,7 @@ public class PublicController : ControllerBase, IPublicController
 
 
     /// <summary>
-    /// Performs the PublicDelete operation.
+    /// Deletes an entity using public access.
     /// </summary>
     [AllowAnonymous]
     [PublicEndpoint]
@@ -93,7 +90,7 @@ public class PublicController : ControllerBase, IPublicController
     }
 
     /// <summary>
-    /// Performs the PublicGet operation.
+    /// Retrieves an entity using public access.
     /// </summary>
     [AllowAnonymous]
     [PublicEndpoint]
@@ -125,7 +122,7 @@ public class PublicController : ControllerBase, IPublicController
     }
 
     /// <summary>
-    /// Performs the PublicInsert operation.
+    /// Creates an entity using public access.
     /// </summary>
     [AllowAnonymous]
     [PublicEndpoint]
@@ -156,7 +153,7 @@ public class PublicController : ControllerBase, IPublicController
     }
 
     /// <summary>
-    /// Performs the PublicLookup operation.
+    /// Runs a lookup query on an entity using public access.
     /// </summary>
     [AllowAnonymous]
     [PublicEndpoint]
@@ -182,7 +179,7 @@ public class PublicController : ControllerBase, IPublicController
     }
 
     /// <summary>
-    /// Performs the PublicProc operation.
+    /// Executes a stored procedure on an entity using public access.
     /// </summary>
     [AllowAnonymous]
     [PublicEndpoint]
@@ -211,7 +208,7 @@ public class PublicController : ControllerBase, IPublicController
     }
 
     /// <summary>
-    /// Performs the PublicProcess operation.
+    /// Executes a stored procedure that returns status information using public access.
     /// </summary>
     [AllowAnonymous]
     [PublicEndpoint]
@@ -240,7 +237,7 @@ public class PublicController : ControllerBase, IPublicController
     }
 
     /// <summary>
-    /// Performs the PublicUpdate operation.
+    /// Updates an entity using public access.
     /// </summary>
     [AllowAnonymous]
     [PublicEndpoint]
@@ -271,7 +268,7 @@ public class PublicController : ControllerBase, IPublicController
     }
 
     /// <summary>
-    /// Performs the PublicView operation.
+    /// Executes a view on an entity using public access.
     /// </summary>
     [AllowAnonymous]
     [PublicEndpoint]
