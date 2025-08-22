@@ -11,6 +11,7 @@ Data abstractions and results helpers.
 | [DatabaseClient](DatabaseClient/index.md) | SQL Server database client. |
 | [DBStatus](DBStatus/index.md) | Represents the status returned from a database operation. |
 | [DBStatusResult](DBStatusResult/index.md) | Aggregates multiple database statuses. |
+| [DatabaseClient](DatabaseClient/index.md) | SQL Server connectivity and query helpers. |
 | [DataResult](DataResult/index.md) | Represents tabular data results. |
 | [DataWebAPIRequest](DataWebAPIRequest/index.md) | Container for Web API data requests. |
 | [EntityFilter](EntityFilter/index.md) | Typed entity filter definition. |

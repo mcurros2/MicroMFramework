@@ -16,7 +16,7 @@ This file tracks the current documentation state of the backend (`/MicroM/core`)
 
 ### MicroM.Data
 - State: Incomplete ⚠️
-- Notes: Added docs for DatabaseClient, Column classes, EntityFilter, IEntityClient, IGetFieldValue, and ValueReader; remaining types require documentation.
+- Notes: Namespace index and types documented including DatabaseClient; remaining types require documentation.
 
 ### MicroM.DataDictionary
 - State: Incomplete ⚠️
