@@ -9,18 +9,34 @@ namespace MicroM.Extensions;
 public static class ReflectionExtensions
 {
 
+    /// <summary>
+    /// Adds the type <typeparamref name="T"/> to the dictionary keyed by its name.
+    /// </summary>
+    /// <typeparam name="T">Type to register.</typeparam>
+    /// <param name="dict">Dictionary to update.</param>
     public static void TryAddType<T>(this Dictionary<string, Type> dict)
     {
         var entity_type = typeof(T);
         dict.TryAdd(entity_type.Name, entity_type);
     }
 
+    /// <summary>
+    /// Adds the type <typeparamref name="T"/> to the ordered dictionary keyed by its name.
+    /// </summary>
+    /// <typeparam name="T">Type to register.</typeparam>
+    /// <param name="dict">Ordered dictionary to update.</param>
     public static void TryAddType<T>(this CustomOrderedDictionary<Type> dict)
     {
         var entity_type = typeof(T);
         dict.TryAdd(entity_type.Name, entity_type);
     }
 
+    /// <summary>
+    /// Gets the value of a member (field or property) for the specified instance.
+    /// </summary>
+    /// <param name="member">Member to read.</param>
+    /// <param name="instance">Object instance.</param>
+    /// <returns>Member value.</returns>
     public static object? GetMemberValue(this MemberInfo member, object instance)
     {
         if (member.MemberType == MemberTypes.Field)
@@ -36,6 +52,11 @@ public static class ReflectionExtensions
 
     }
 
+    /// <summary>
+    /// Gets the type of a member (field or property).
+    /// </summary>
+    /// <param name="member">Member information.</param>
+    /// <returns>Type of the member.</returns>
     public static Type GetMemberType(this MemberInfo member)
     {
         if (member.MemberType == MemberTypes.Field)
@@ -50,6 +71,11 @@ public static class ReflectionExtensions
 
     }
 
+    /// <summary>
+    /// Retrieves all entity types defined in the assembly.
+    /// </summary>
+    /// <param name="asm">Assembly to scan.</param>
+    /// <returns>Dictionary of entity type names and types.</returns>
     public static Dictionary<string, Type> GetEntitiesTypes(this Assembly asm)
     {
         Dictionary<string, Type> entitiesTypes = new(StringComparer.OrdinalIgnoreCase);
@@ -63,6 +89,11 @@ public static class ReflectionExtensions
         return entitiesTypes;
     }
 
+    /// <summary>
+    /// Retrieves all category definition types defined in the assembly.
+    /// </summary>
+    /// <param name="asm">Assembly to scan.</param>
+    /// <returns>Dictionary of category type names and types.</returns>
     public static Dictionary<string, Type> GetCategoriesTypes(this Assembly asm)
     {
         Dictionary<string, Type> categoriesTypes = new(StringComparer.OrdinalIgnoreCase);
@@ -76,6 +107,11 @@ public static class ReflectionExtensions
         return categoriesTypes;
     }
 
+    /// <summary>
+    /// Retrieves all category definition types from the provided assemblies.
+    /// </summary>
+    /// <param name="assemblies">List of assemblies to scan.</param>
+    /// <returns>Dictionary of category type names and types.</returns>
     public static Dictionary<string, Type> GetAllCategoriesTypes(this List<Assembly> assemblies)
     {
         return assemblies
@@ -84,6 +120,11 @@ public static class ReflectionExtensions
             .ToDictionary(type => type.Name, type => type);
     }
 
+    /// <summary>
+    /// Retrieves all status definition types defined in the assembly.
+    /// </summary>
+    /// <param name="asm">Assembly to scan.</param>
+    /// <returns>Dictionary of status type names and types.</returns>
     public static Dictionary<string, Type> GetStatusTypes(this Assembly asm)
     {
         Dictionary<string, Type> statusTypes = new(StringComparer.OrdinalIgnoreCase);
@@ -97,6 +138,12 @@ public static class ReflectionExtensions
         return statusTypes;
     }
 
+    /// <summary>
+    /// Retrieves all class types implementing the specified interface.
+    /// </summary>
+    /// <typeparam name="T">Interface type.</typeparam>
+    /// <param name="asm">Assembly to scan.</param>
+    /// <returns>List of implementing types.</returns>
     public static List<Type> GetInterfaceTypes<T>(this Assembly asm)
     {
         var types = asm.GetTypes();
@@ -104,6 +151,11 @@ public static class ReflectionExtensions
         return types.Where(t => t.GetInterfaces().Contains(typeof(T)) && t.IsClass).ToList();
     }
 
+    /// <summary>
+    /// Gets all public properties or fields of the specified type.
+    /// </summary>
+    /// <param name="obj_type">Type to inspect.</param>
+    /// <returns>List of public properties or fields.</returns>
     public static List<PropertyInfo> GetPublicPropertiesOrFields(this Type obj_type)
     {
         List<PropertyInfo> members = [];
@@ -165,6 +217,11 @@ public static class ReflectionExtensions
         return prop;
     }
 
+    /// <summary>
+    /// Retrieves members of a type in declaration order, accounting for inheritance.
+    /// </summary>
+    /// <param name="instanceType">Type to inspect.</param>
+    /// <returns>Ordered enumeration of members.</returns>
     public static IOrderedEnumerable<MemberInfo> GetMembersInDeclarationOrder(this Type instanceType)
     {
         ArgumentNullException.ThrowIfNull(instanceType);
@@ -193,6 +250,11 @@ public static class ReflectionExtensions
 
     private static readonly ConcurrentDictionary<string, IOrderedEnumerable<MemberInfo>> _classMembers = new();
 
+    /// <summary>
+    /// Retrieves instance members, caching results for reuse.
+    /// </summary>
+    /// <param name="instance_type">Type to inspect.</param>
+    /// <returns>Ordered enumeration of members.</returns>
     public static IOrderedEnumerable<MemberInfo> GetAndCacheInstanceMembers(this Type instance_type)
     {
         string instance_typename = instance_type.ToString();
