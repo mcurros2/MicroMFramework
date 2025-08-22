@@ -259,6 +259,12 @@ namespace MicroM.Generators.SQLGenerator
             return result;
         }
 
+        /// <summary>
+        /// Builds a script that drops all indexes defined on the entity table.
+        /// </summary>
+        /// <typeparam name="T">Entity type.</typeparam>
+        /// <param name="entity">Entity whose indexes will be dropped.</param>
+        /// <returns>DDL script or <c>null</c> if the entity is fake.</returns>
         public static string? AsDropIndexes<T>(this T entity) where T : EntityBase
         {
             if (entity.Def.Fake) return null;
@@ -276,6 +282,13 @@ namespace MicroM.Generators.SQLGenerator
             return sb_indexes.ToString();
         }
 
+        /// <summary>
+        /// Generates a script to create indexes defined on the entity table if
+        /// they do not already exist.
+        /// </summary>
+        /// <typeparam name="T">Entity type.</typeparam>
+        /// <param name="entity">Entity containing index definitions.</param>
+        /// <returns>DDL script or <c>null</c> if the entity is fake.</returns>
         public static string? AsCreateIndexes<T>(this T entity) where T : EntityBase
         {
             if (entity.Def.Fake) return null;
@@ -295,6 +308,12 @@ namespace MicroM.Generators.SQLGenerator
             return sb_indexes.ToString();
         }
 
+        /// <summary>
+        /// Creates a script to remove unique constraints from the entity table.
+        /// </summary>
+        /// <typeparam name="T">Entity type.</typeparam>
+        /// <param name="entity">Entity providing constraint metadata.</param>
+        /// <returns>DDL script or <c>null</c> if the entity is fake.</returns>
         public static string? AsDropUniqueConstraints<T>(this T entity) where T : EntityBase
         {
             if (entity.Def.Fake) return null;
@@ -312,6 +331,13 @@ namespace MicroM.Generators.SQLGenerator
             return sb_uniqueConstraints.ToString();
         }
 
+        /// <summary>
+        /// Builds a script to add unique constraints that are defined in the
+        /// entity metadata but not yet present in the database.
+        /// </summary>
+        /// <typeparam name="T">Entity type.</typeparam>
+        /// <param name="entity">Entity providing constraint definitions.</param>
+        /// <returns>DDL script or <c>null</c> if the entity is fake.</returns>
         public static string? AsAlterUniqueConstraints<T>(this T entity) where T : EntityBase
         {
             if (entity.Def.Fake) return null;
@@ -331,6 +357,13 @@ namespace MicroM.Generators.SQLGenerator
             return sb_uniqueConstraints.ToString();
         }
 
+        /// <summary>
+        /// Creates a script that drops the primary key constraint for the entity
+        /// table if it exists.
+        /// </summary>
+        /// <typeparam name="T">Entity type.</typeparam>
+        /// <param name="entity">Entity definition.</param>
+        /// <returns>DDL script or <c>null</c> if the entity is fake.</returns>
         public static string? AsDropPrimaryKey<T>(this T entity) where T : EntityBase
         {
             if (entity.Def.Fake) return null;
@@ -338,6 +371,13 @@ namespace MicroM.Generators.SQLGenerator
             return $"if object_id('{entity.Def.TableName}') is not null ALTER TABLE [{entity.Def.TableName}] DROP CONSTRAINT IF EXISTS PK{entity.Def.Mneo}\n";
         }
 
+        /// <summary>
+        /// Builds a script that creates the primary key constraint if it is
+        /// missing from the entity table.
+        /// </summary>
+        /// <typeparam name="T">Entity type.</typeparam>
+        /// <param name="entity">Entity metadata.</param>
+        /// <returns>DDL script or <c>null</c> if the entity is fake.</returns>
         public static string? AsAlterPrimaryKey<T>(this T entity) where T : EntityBase
         {
             if (entity.Def.Fake) return null;
@@ -353,6 +393,13 @@ namespace MicroM.Generators.SQLGenerator
             return result;
         }
 
+        /// <summary>
+        /// Produces a script that drops all foreign key constraints for the
+        /// entity table.
+        /// </summary>
+        /// <typeparam name="T">Entity type.</typeparam>
+        /// <param name="entity">Entity definition.</param>
+        /// <returns>DDL script or <c>null</c> if the entity is fake.</returns>
         public static string? AsDropForeignKeys<T>(this T entity) where T : EntityBase
         {
             if (entity.Def.Fake) return null;
@@ -371,6 +418,13 @@ namespace MicroM.Generators.SQLGenerator
             return sb_foreign_keys.Append(sb_foreign_keys).ToString();
         }
 
+        /// <summary>
+        /// Generates index creation scripts for each foreign key defined on the
+        /// entity.
+        /// </summary>
+        /// <typeparam name="T">Entity type.</typeparam>
+        /// <param name="entity">Entity whose foreign keys require indexes.</param>
+        /// <returns>DDL script or <c>null</c> if the entity is fake.</returns>
         public static string? AsCreateForeignKeysIndexes<T>(this T entity) where T : EntityBase
         {
             if (entity.Def.Fake) return null;
@@ -459,6 +513,14 @@ namespace MicroM.Generators.SQLGenerator
             return sb_indexes.ToString();
         }
 
+        /// <summary>
+        /// Builds scripts to create foreign key constraints that are not present
+        /// in the database. Existing constraints can optionally be dropped first.
+        /// </summary>
+        /// <typeparam name="T">Entity type.</typeparam>
+        /// <param name="entity">Entity definition.</param>
+        /// <param name="with_drop">True to drop existing constraints before creating new ones.</param>
+        /// <returns>DDL script or <c>null</c> if the entity is fake.</returns>
         public static string? AsAlterForeignKeys<T>(this T entity, bool with_drop = false) where T : EntityBase
         {
             if (entity.Def.Fake) return null;
@@ -554,6 +616,14 @@ namespace MicroM.Generators.SQLGenerator
             return sb_foreign_keys.ToString();
         }
 
+        /// <summary>
+        /// Creates a script granting execute permissions on all procedures and
+        /// views generated for the entity.
+        /// </summary>
+        /// <typeparam name="T">Entity type.</typeparam>
+        /// <param name="entity">Entity definition.</param>
+        /// <param name="login_or_group_name">Login or database role to receive permissions.</param>
+        /// <returns>SQL grant script.</returns>
         public static string AsGrantExecutionToEntityProcsScript<T>(this T entity, string login_or_group_name) where T : EntityBase
         {
 

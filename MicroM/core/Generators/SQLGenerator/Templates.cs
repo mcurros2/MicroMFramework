@@ -1,7 +1,12 @@
 ﻿namespace MicroM.Generators.SQLGenerator
 {
+    /// <summary>
+    /// Collection of SQL template strings used to generate stored procedures
+    /// and related scripts.
+    /// </summary>
     internal class Templates
     {
+        /// <summary>Template for a LIKE filter using the sys_tfLike table.</summary>
         internal const string LIKE_TEMPLATE =
 @"
         not exists (
@@ -13,6 +18,7 @@
             )
         )
 ";
+        /// <summary>Template for the standard browse view stored procedure.</summary>
         internal const string VIEW_TEMPLATE =
 @"
 {CREATE} proc {MNEO}_brwStandard
@@ -24,6 +30,7 @@ from    {TABLE_NAME}{CATEGORIES_JOIN}
 where   {WHERE_CLAUSE}
 ";
 
+        /// <summary>Template for the non-transactional drop procedure.</summary>
         internal const string DROP_TEMPLATE =
 @"
 {CREATE} proc {MNEO}_drop
@@ -55,6 +62,7 @@ begin catch
 end catch
 ";
 
+        /// <summary>Template for the transactional <c>_idrop</c> procedure.</summary>
         internal const string IDROP_TEMPLATE =
 @"
 {CREATE} proc {MNEO}_idrop
@@ -82,6 +90,7 @@ begin catch
 end catch
 ";
 
+        /// <summary>Template for a wrapper drop procedure that calls <c>_idrop</c>.</summary>
         internal const string DROP_CALLS_IDROP_TEMPLATE =
 @"
 {CREATE} proc {MNEO}_drop
@@ -121,6 +130,7 @@ begin catch
 end catch
 ";
 
+        /// <summary>Template for the <c>_lookup</c> stored procedure.</summary>
         internal const string LOOKUP_TEMPLATE =
 @"
 {CREATE} proc {MNEO}_lookup
@@ -132,6 +142,7 @@ from    {TABLE_NAME}
 where   {WHERE_CLAUSE}
 ";
 
+        /// <summary>Template for fetching category values as a JSON array.</summary>
         internal const string JSON_CATEGORY_GET_TEMPLATE =
 @"
 select  {CATEGORY_PARM} = '[' + STRING_AGG('""'+replace(RTRIM(c_categoryvalue_id), '""','\""')+'""', ',') + ']'
@@ -140,6 +151,7 @@ where   {WHERE_CLAUSE}
 ";
 
 
+        /// <summary>Template for the <c>_get</c> stored procedure.</summary>
         internal const string GET_TEMPLATE =
 @"
 {CREATE} proc {MNEO}_get
@@ -153,6 +165,7 @@ from    {TABLE_NAME}{CATEGORIES_JOIN}
 where   {WHERE_CLAUSE}
 ";
 
+        /// <summary>Optimistic locking check used in update procedures.</summary>
         internal const string UPDATE_LU_CONTROL_TEMPLATE =
 @"
     if @cu<>@lu or @lu is null 
@@ -164,6 +177,7 @@ where   {WHERE_CLAUSE}
 
 ";
 
+        /// <summary>Lock check for transactional <c>_iupdate</c> procedures.</summary>
         internal const string IUPDATE_LU_CONTROL_TEMPLATE =
 @"
     if @cu<>@lu or @lu is null 
@@ -174,6 +188,7 @@ where   {WHERE_CLAUSE}
 
 ";
 
+        /// <summary>Template for the main UPDATE statement in procedures.</summary>
         internal const string UPDATE_CLAUSE_TEMPLATE =
 @"
     update  {TABLE_NAME}
@@ -184,6 +199,7 @@ where   {WHERE_CLAUSE}
     where   {WHERE_CLAUSE}
 ";
 
+        /// <summary>Template to parse JSON category arrays into a temp table.</summary>
         internal const string JSON_CATEGORIES_PARSE_TEMPLATE =
         @"
     create table {CATEGORY_TEMP_TABLE} (jsoncategory_id char(20), category_desc varchar(max))
@@ -219,6 +235,7 @@ where   {WHERE_CLAUSE}
 ";
 
 
+        /// <summary>Template for inserting parsed JSON categories.</summary>
         internal const string INSERT_JSON_CAT_TEMPLATE =
         @"
         if ({CATEGORY_PARM} is not null)
@@ -237,6 +254,7 @@ where   {WHERE_CLAUSE}
         end
 ";
 
+        /// <summary>Template for updating category table based on JSON input.</summary>
         internal const string UPDATE_JSON_CAT_TEMPLATE =
         @"
     delete  {CATEGORIES_TABLE}
@@ -261,6 +279,7 @@ where   {WHERE_CLAUSE}
 ";
 
 
+        /// <summary>Template for the standard <c>_update</c> procedure.</summary>
         internal const string UPDATE_TEMPLATE =
 @"
 {CREATE} proc {MNEO}_update
@@ -322,6 +341,7 @@ begin catch
 end catch
 ";
 
+        /// <summary>Template for the transactional <c>_iupdate</c> procedure.</summary>
         internal const string IUPDATE_TEMPLATE =
 @"
 {CREATE} proc {MNEO}_iupdate
@@ -375,6 +395,7 @@ begin catch
 end catch
 ";
 
+        /// <summary>Template for wrapper <c>_update</c> calling <c>_iupdate</c>.</summary>
         internal const string UPDATE_CALLS_IUPDATE_TEMPLATE =
 @"
 {CREATE} proc {MNEO}_update
@@ -418,6 +439,7 @@ begin catch
 end catch
 ";
 
+        /// <summary>Template for inserting a category when the parameter may be null.</summary>
         internal const string INSERT_CATEGORY_TEMPLATE_NULL =
 @"
         if ({CATEGORY_PARM} is not null)
@@ -438,6 +460,7 @@ end catch
         end
 ";
 
+        /// <summary>Template for inserting a category value.</summary>
         internal const string INSERT_CATEGORY_TEMPLATE =
 @"
         insert  {CATEGORIES_TABLE}
@@ -453,6 +476,7 @@ end catch
             )
 ";
 
+        /// <summary>Template for deleting category rows when parameter is null.</summary>
         internal const string DELETE_CATEGORY_NULL_TEMPLATE =
 @"
     if ({CATEGORY_PARM} is null)
@@ -465,6 +489,7 @@ end catch
 
 ";
 
+        /// <summary>Template for updating an existing category value.</summary>
         internal const string UPDATE_CATEGORY_TEMPLATE =
 @"
     {CATEGORY_DELETE_NULL}
@@ -504,12 +529,14 @@ end catch
     end
 ";
 
+        /// <summary>Template for deleting category rows.</summary>
         internal const string DELETE_CATEGORY_TEMPLATE =
 @"
     delete  {CATEGORIES_TABLE}
     where   {WHERE_CLAUSE}
 ";
 
+        /// <summary>Template for inserting default status rows.</summary>
         internal const string INSERT_STATUS_TEMPLATE =
 @"
         insert  {STATUS_TABLE}
@@ -529,12 +556,14 @@ end catch
                 a.bt_initial_value = 1
 ";
 
+        /// <summary>Template for deleting status rows.</summary>
         internal const string DELETE_STATUS_TEMPLATE =
 @"
     delete  {STATUS_TABLE}
     where   {WHERE_CLAUSE}
 ";
 
+        /// <summary>Template for updating a status value.</summary>
         internal const string UPDATE_STATUS_TEMPLATE =
 @"
     update  {STATUS_TABLE}

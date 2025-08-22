@@ -10,9 +10,20 @@ using static MicroM.Generators.Constants;
 
 namespace MicroM.Generators.SQLGenerator
 {
+    /// <summary>
+    /// Helper extensions for building SQL fragments that relate an entity to
+    /// its category or status tables.
+    /// </summary>
     internal static class CategoriesAndStatusExtensions
     {
         // MMC: this is too hard coded, it will be better to always define the entity for a _cat or _status table
+        /// <summary>
+        /// Generates the DDL to create the category/status table for an entity
+        /// together with the index used to reference it.
+        /// </summary>
+        /// <param name="entity">Entity whose supporting table will be created.</param>
+        /// <param name="is_status">True to create a status table, false for a category table.</param>
+        /// <returns>Two SQL scripts: the table DDL and the index creation.</returns>
         internal static List<string> CreateCategoryOrStatusTable(this EntityBase entity, bool is_status)
         {
             List<string> result = [];
@@ -71,6 +82,16 @@ namespace MicroM.Generators.SQLGenerator
             return result;
         }
 
+        /// <summary>
+        /// Builds the JOIN clause used to link an entity with its category or
+        /// status tables when querying.
+        /// </summary>
+        /// <typeparam name="T">Type of the entity.</typeparam>
+        /// <param name="entity">Entity whose joins are required.</param>
+        /// <param name="separator">Separator placed before each JOIN block.</param>
+        /// <param name="parent_alias">Alias of the parent table.</param>
+        /// <param name="alias">Starting alias for joined tables.</param>
+        /// <returns>Formatted SQL JOIN statements or an empty string.</returns>
         internal static string AsCategoriesAndStatusJoin<T>(this T entity, string separator = $"\n{TAB}{TAB}", string parent_alias = "a", string alias = "b") where T : EntityBase
         {
             if (entity.Def.RelatedCategories.Count == 0 && entity.Def.RelatedStatus.Count == 0) return "";

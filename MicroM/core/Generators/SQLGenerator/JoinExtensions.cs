@@ -7,6 +7,9 @@ using static MicroM.Generators.Constants;
 
 namespace MicroM.Generators.SQLGenerator
 {
+    /// <summary>
+    /// Extension methods for generating SQL JOIN clauses between entities.
+    /// </summary>
     internal static class JoinExtensions
     {
 
@@ -51,6 +54,18 @@ namespace MicroM.Generators.SQLGenerator
             return sb.ToString();
         }
 
+        /// <summary>
+        /// Builds a JOIN clause between a parent and child entity based on the
+        /// defined foreign key.
+        /// </summary>
+        /// <typeparam name="T">Entity type.</typeparam>
+        /// <param name="parent_entity">Parent entity.</param>
+        /// <param name="child_entity">Child entity.</param>
+        /// <param name="join_type">Type of join (e.g., join, left join).</param>
+        /// <param name="separator">Separator placed before the join.</param>
+        /// <param name="parent_alias">Alias of the parent table.</param>
+        /// <param name="child_alias">Alias of the child table.</param>
+        /// <returns>Formatted JOIN clause or empty string.</returns>
         internal static string AsSQLJoin<T>(this T parent_entity, T child_entity, string join_type = "join", string separator = $"\n{TAB}{TAB}{TAB}", string parent_alias = "a", string child_alias = "b") where T : EntityBase
         {
             StringBuilder sb = new();
@@ -63,6 +78,14 @@ namespace MicroM.Generators.SQLGenerator
             return sb.ToString();
         }
 
+        /// <summary>
+        /// Generates join conditions by matching column names between two aliases.
+        /// </summary>
+        /// <param name="columns">Columns to compare.</param>
+        /// <param name="union_string">String used to join comparisons.</param>
+        /// <param name="parent_alias">Alias of the parent table.</param>
+        /// <param name="child_alias">Alias of the child table.</param>
+        /// <returns>Join condition string or empty string.</returns>
         internal static string AsSQLJoinColumnsByName(this CustomOrderedDictionary<ColumnBase>? columns, string union_string = " and ", string parent_alias = "a", string child_alias = "b")
         {
             if (columns == null) return "";

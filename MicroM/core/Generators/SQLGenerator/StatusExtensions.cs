@@ -9,6 +9,9 @@ using static MicroM.Generators.Constants;
 
 namespace MicroM.Generators.SQLGenerator
 {
+    /// <summary>
+    /// Extension methods for generating SQL related to entity status values.
+    /// </summary>
     internal static class StatusExtensions
     {
         /// <summary>
@@ -16,14 +19,22 @@ namespace MicroM.Generators.SQLGenerator
         /// The status table name for the specified <seealso cref="Entity{TDefinition}"/> will be <![CDATA[<entity table name>_status]]>.
         /// The columns will contain the <see cref="Entity{TDefinition}"/> primary keys + <seealso cref="Status"/> primary keys + <see cref="DefaultColumns"/>
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="entity"></param>
-        /// <returns></returns>
+        /// <typeparam name="T">Entity type.</typeparam>
+        /// <param name="entity">Entity definition.</param>
+        /// <returns>DDL script for table and index.</returns>
         internal static List<string> CreateStatusTable<T>(this T entity) where T : EntityBase
         {
             return entity.CreateCategoryOrStatusTable(true);
         }
 
+        /// <summary>
+        /// Builds the VALUES clause to insert initial status rows for an entity.
+        /// </summary>
+        /// <typeparam name="T">Entity type.</typeparam>
+        /// <param name="entity">Entity definition.</param>
+        /// <param name="separator">Separator between values.</param>
+        /// <param name="status_alias">Alias used for status table references.</param>
+        /// <returns>SQL fragment or empty string when status is not related.</returns>
         internal static string AsStatusInsertValues<T>(this T entity, string separator = $"\n{TAB}{TAB}{TAB}{TAB}, ", string status_alias = "a") where T : EntityBase
         {
             if (entity.Def.RelatedStatus.Count == 0) return "";
@@ -44,6 +55,13 @@ namespace MicroM.Generators.SQLGenerator
             return sb.ToString();
         }
 
+        /// <summary>
+        /// Generates a DELETE statement to remove status rows for an entity.
+        /// </summary>
+        /// <typeparam name="T">Entity type.</typeparam>
+        /// <param name="entity">Entity definition.</param>
+        /// <param name="separator">Separator used in the WHERE clause.</param>
+        /// <returns>SQL fragment or empty string when not applicable.</returns>
         internal static string AsStatusDelete<T>(this T entity, string separator = $"\n{TAB}{TAB}{TAB}and ") where T : EntityBase
         {
             if (entity.Def.RelatedStatus.Count == 0) return "";
@@ -61,6 +79,15 @@ namespace MicroM.Generators.SQLGenerator
             return sb.ToString();
         }
 
+        /// <summary>
+        /// Creates UPDATE statements for status tables using values supplied via
+        /// stored procedure parameters.
+        /// </summary>
+        /// <typeparam name="T">Entity type.</typeparam>
+        /// <param name="entity">Entity definition.</param>
+        /// <param name="union_string">Separator used in WHERE clauses.</param>
+        /// <param name="separator">Separator between values.</param>
+        /// <returns>SQL fragment or empty string when not applicable.</returns>
         internal static string AsStatusUpdateTemplateValues<T>(this T entity, string union_string = $"\n{TAB}{TAB}{TAB}and ", string separator = $"\n{TAB}{TAB}{TAB}, ") where T : EntityBase
         {
             if (entity.Def.RelatedStatus.Count == 0) return "";
