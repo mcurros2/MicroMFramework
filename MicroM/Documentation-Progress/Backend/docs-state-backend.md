@@ -79,36 +79,36 @@ This file tracks the current documentation state of the backend (`/MicroM/core`)
 - Notes: Namespace and validators documented with XML comments and pages.
 
 ### MicroM.Web
-- State: Not Started ❌
-- Notes: No documentation present.
+- State: Incomplete ⚠️
+- Notes: Namespace index created; sub-namespaces documented.
 
 ### MicroM.Web.Authentication
-- State: Not Started ❌
-- Notes: No documentation present.
+- State: Incomplete ⚠️
+- Notes: Namespace and types documented; XML comments pending.
 
 ### MicroM.Web.Authentication.SSO
-- State: Not Started ❌
-- Notes: No documentation present.
+- State: Incomplete ⚠️
+- Notes: Namespace index and interface documentation added.
 
 ### MicroM.Web.Controllers
-- State: Not Started ❌
-- Notes: No documentation present.
+- State: Incomplete ⚠️
+- Notes: Controllers and interfaces documented; method details pending.
 
 ### MicroM.Web.Debug
-- State: Not Started ❌
-- Notes: No documentation present.
+- State: Incomplete ⚠️
+- Notes: Debug utilities documented; additional details needed.
 
 ### MicroM.Web.Middleware
-- State: Not Started ❌
-- Notes: No documentation present.
+- State: Incomplete ⚠️
+- Notes: Middleware documented; review XML comments.
 
 ### MicroM.Web.Services
-- State: Not Started ❌
-- Notes: No documentation present.
+- State: Incomplete ⚠️
+- Notes: Service classes documented; XML comments and examples missing.
 
 ### MicroM.Web.Services.Security
-- State: Not Started ❌
-- Notes: No documentation present.
+- State: Incomplete ⚠️
+- Notes: Security components documented; further refinement required.
 
 ## Tutorials
 - Overview tutorial: Not Started ❌
