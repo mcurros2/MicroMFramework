@@ -12,11 +12,17 @@ None
 ```csharp
 var checksum = MicroM.Core.CRC32.CRCFromString("data");
 ```
+## Constructors
+None.
+
+## Properties
+None.
+
 ## Methods
 | Method | Description |
 |:------------|:-------------|
-| CRC32FromByteArray(byte[] bytes) | Calculates a CRC-32 checksum from the provided byte array. |
-| CRCFromString(string string_to_hash) | Calculates a CRC-32 checksum from the provided string. |
+| [CRC32FromByteArray](CRC32FromByteArray/index.md) | Calculates a CRC-32 checksum from the provided byte array. |
+| [CRCFromString](CRCFromString/index.md) | Calculates a CRC-32 checksum from the provided string. |
 
 ## Remarks
 None.
