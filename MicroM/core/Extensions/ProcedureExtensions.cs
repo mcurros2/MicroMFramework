@@ -5,6 +5,11 @@ namespace MicroM.Extensions
 {
     public static class ProcedureExtensions
     {
+        /// <summary>
+        /// Sets procedure parameter values from the provided dictionary.
+        /// </summary>
+        /// <param name="proc">Procedure definition.</param>
+        /// <param name="values">Parameter values keyed by name.</param>
         public static void SetParmsValues(this ProcedureDefinition proc, Dictionary<string, object> values)
         {
             foreach (var key in values.Keys)
@@ -15,6 +20,11 @@ namespace MicroM.Extensions
                 }
             }
         }
+        /// <summary>
+        /// Sets procedure parameter values from a column collection.
+        /// </summary>
+        /// <param name="proc">Procedure definition.</param>
+        /// <param name="cols">Source column values.</param>
         public static void SetParmsValues(this ProcedureDefinition proc, IReadonlyOrderedDictionary<ColumnBase> cols)
         {
             foreach (var key in cols.Keys)
