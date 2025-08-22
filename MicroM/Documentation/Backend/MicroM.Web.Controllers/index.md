@@ -5,14 +5,14 @@ ASP.NET Core controllers for MicroM.
 ## Classes
 | Class | Description |
 |:------------|:-------------|
-| [MicroMControllersMessages](MicroMControllersMessages/index.md) | Micro M Controllers Messages class. |
-| [EntitiesController](EntitiesController/index.md) | Entities Controller class. |
-| [MicroMRouteConvention](MicroMRouteConvention/index.md) | Micro M Route Convention class. |
-| [MicroMRouteConventionSetup](MicroMRouteConventionSetup/index.md) | Micro M Route Convention Setup class. |
-| [AuthenticationController](AuthenticationController/index.md) | Authentication Controller class. |
-| [IdentityProviderController](IdentityProviderController/index.md) | Identity Provider Controller class. |
-| [PublicController](PublicController/index.md) | Public Controller class. |
-| [FileController](FileController/index.md) | File Controller class. |
+| [MicroMControllersMessages](MicroMControllersMessages/index.md) | Common response message constants for controllers. |
+| [EntitiesController](EntitiesController/index.md) | Exposes CRUD and action endpoints for entities. |
+| [MicroMRouteConvention](MicroMRouteConvention/index.md) | Applies a common base path to MicroM controllers. |
+| [MicroMRouteConventionSetup](MicroMRouteConventionSetup/index.md) | Adds the route convention to MVC options. |
+| [AuthenticationController](AuthenticationController/index.md) | Handles login, logoff, and password recovery endpoints. |
+| [IdentityProviderController](IdentityProviderController/index.md) | Placeholder for OIDC and OAuth2 identity provider endpoints. |
+| [PublicController](PublicController/index.md) | Provides anonymous access to selected entity endpoints. |
+| [FileController](FileController/index.md) | Serves and uploads files through authenticated endpoints. |
 
 ## Interfaces
 | Interface | Description |
