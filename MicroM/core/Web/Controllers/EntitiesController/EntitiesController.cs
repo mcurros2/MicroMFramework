@@ -10,16 +10,13 @@ using static MicroM.Web.Controllers.MicroMControllersMessages;
 namespace MicroM.Web.Controllers;
 
 /// <summary>
-/// Represents the EntitiesController.
+/// Provides endpoints for executing operations on application entities.
 /// </summary>
 [ApiController]
-/// <summary>
-/// Represents the EntitiesController.
-/// </summary>
 public class EntitiesController : ControllerBase, IEntitiesController
 {
     /// <summary>
-    /// Performs the GetStatus operation.
+    /// Returns a simple response indicating that the entities API is available.
     /// </summary>
     [AllowAnonymous]
     [HttpGet("entities-api-status")]
@@ -29,7 +26,7 @@ public class EntitiesController : ControllerBase, IEntitiesController
     }
 
     /// <summary>
-    /// Performs the Action operation.
+    /// Executes a custom action on the specified entity.
     /// </summary>
     [Authorize(policy: nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy))]
     [HttpPost("{app_id}/ent/{entityName}/action/{actionName}")]
@@ -57,7 +54,7 @@ public class EntitiesController : ControllerBase, IEntitiesController
     }
 
     /// <summary>
-    /// Performs the Delete operation.
+    /// Deletes an entity instance.
     /// </summary>
     [Authorize(policy: nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy))]
     [HttpPost("{app_id}/ent/{entityName}/delete")]
@@ -84,7 +81,7 @@ public class EntitiesController : ControllerBase, IEntitiesController
 
 
     /// <summary>
-    /// Performs the Get operation.
+    /// Retrieves a single entity by name.
     /// </summary>
     [Authorize(policy: nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy))]
     [HttpPost("{app_id}/ent/{entityName}/get")]
@@ -114,7 +111,7 @@ public class EntitiesController : ControllerBase, IEntitiesController
 
 
     /// <summary>
-    /// Performs the GetDefinition operation.
+    /// Retrieves the metadata definition of an entity.
     /// </summary>
     [Authorize(policy: nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy))]
     [HttpGet("{app_id}/ent/{entityName}/definition")]
@@ -141,7 +138,7 @@ public class EntitiesController : ControllerBase, IEntitiesController
 
 
     /// <summary>
-    /// Performs the GetTimeZoneOffset operation.
+    /// Gets the time-zone offset in minutes for the server.
     /// </summary>
     [Authorize(policy: nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy))]
     [HttpPost("{app_id}/ent/timezoneoffset")]
@@ -166,7 +163,7 @@ public class EntitiesController : ControllerBase, IEntitiesController
     }
 
     /// <summary>
-    /// Performs the Import operation.
+    /// Imports data into the specified entity using an optional procedure.
     /// </summary>
     [Authorize(policy: nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy))]
     [HttpPost("{app_id}/ent/{entityName}/import/{import_proc?}")]
@@ -194,7 +191,7 @@ public class EntitiesController : ControllerBase, IEntitiesController
     }
 
     /// <summary>
-    /// Performs the Insert operation.
+    /// Creates a new entity instance.
     /// </summary>
     [Authorize(policy: nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy))]
     [HttpPost("{app_id}/ent/{entityName}/insert")]
@@ -229,7 +226,7 @@ public class EntitiesController : ControllerBase, IEntitiesController
 
 
     /// <summary>
-    /// Performs the Lookup operation.
+    /// Runs a lookup query for an entity.
     /// </summary>
     [Authorize(policy: nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy))]
     [HttpPost("{app_id}/ent/{entityName}/lookup/{lookupName?}")]
@@ -252,7 +249,7 @@ public class EntitiesController : ControllerBase, IEntitiesController
     }
 
     /// <summary>
-    /// Performs the Proc operation.
+    /// Executes a stored procedure for an entity.
     /// </summary>
     [Authorize(policy: nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy))]
     [HttpPost("{app_id}/ent/{entityName}/proc/{procName}")]
@@ -278,7 +275,7 @@ public class EntitiesController : ControllerBase, IEntitiesController
     }
 
     /// <summary>
-    /// Performs the Process operation.
+    /// Executes a stored procedure that returns status information.
     /// </summary>
     [Authorize(policy: nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy))]
     [HttpPost("{app_id}/ent/{entityName}/process/{procName}")]
@@ -304,7 +301,7 @@ public class EntitiesController : ControllerBase, IEntitiesController
     }
 
     /// <summary>
-    /// Performs the Update operation.
+    /// Updates an existing entity instance.
     /// </summary>
     [Authorize(policy: nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy))]
     [HttpPost("{app_id}/ent/{entityName}/update")]
@@ -332,7 +329,7 @@ public class EntitiesController : ControllerBase, IEntitiesController
     }
 
     /// <summary>
-    /// Performs the View operation.
+    /// Executes a view for an entity and returns its results.
     /// </summary>
     [Authorize(policy: nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy))]
     [HttpPost("{app_id}/ent/{entityName}/view/{viewName}")]

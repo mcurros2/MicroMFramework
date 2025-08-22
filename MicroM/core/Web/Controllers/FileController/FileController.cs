@@ -9,16 +9,13 @@ using static MicroM.Web.Controllers.MicroMControllersMessages;
 namespace MicroM.Web.Controllers;
 
 /// <summary>
-/// Represents the FileController.
+/// Provides endpoints for uploading and serving files.
 /// </summary>
 [ApiController]
-/// <summary>
-/// Represents the FileController.
-/// </summary>
 public class FileController : ControllerBase, IFileController
 {
     /// <summary>
-    /// Performs the GetStatus operation.
+    /// Returns a simple response indicating that the file API is available.
     /// </summary>
     [AllowAnonymous]
     [HttpGet("file-api-status")]
@@ -28,7 +25,7 @@ public class FileController : ControllerBase, IFileController
     }
 
     /// <summary>
-    /// Performs the Serve operation.
+    /// Serves a previously uploaded file.
     /// </summary>
     [Authorize(policy: nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy))]
     [HttpGet("{app_id}/serve/{fileguid}")]
@@ -55,7 +52,7 @@ public class FileController : ControllerBase, IFileController
     }
 
     /// <summary>
-    /// Performs the ServeThumbnail operation.
+    /// Serves a thumbnail for a file.
     /// </summary>
     [Authorize(policy: nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy))]
     [HttpGet("{app_id}/thumbnail/{fileguid}/{maxSize?}/{quality?}")]
@@ -82,7 +79,7 @@ public class FileController : ControllerBase, IFileController
     }
 
     /// <summary>
-    /// Performs the Upload operation.
+    /// Uploads a temporary file.
     /// </summary>
     [Authorize(policy: nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy))]
     [HttpPost("{app_id}/tmpupload")]

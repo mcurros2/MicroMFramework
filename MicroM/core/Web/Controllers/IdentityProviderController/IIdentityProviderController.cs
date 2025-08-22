@@ -4,42 +4,42 @@ using MicroM.Web.Services;
 namespace MicroM.Web.Controllers;
 
 /// <summary>
-/// Represents the IIdentityProviderController.
+/// Defines the contract for OpenID Connect and OAuth2 endpoints.
 /// </summary>
 public interface IIdentityProviderController
 {
     /// <summary>
-    /// Performs the WellKnown operation.
+    /// Returns the OpenID Connect discovery document.
     /// </summary>
     Task<Dictionary<string, string>> WellKnown(IAuthenticationProvider auth, IMicroMAppConfiguration app_config, string app_id, CancellationToken ct);
     /// <summary>
-    /// Performs the Jwks operation.
+    /// Returns the JSON Web Key Set used to validate tokens.
     /// </summary>
     Task<string> Jwks(IAuthenticationProvider auth, IMicroMAppConfiguration app_config, string app_id, CancellationToken ct);
 
     /// <summary>
-    /// Performs the UserInfo operation.
+    /// Returns claims about the authenticated user.
     /// </summary>
     Task<Dictionary<string, object?>> UserInfo(IAuthenticationProvider auth, IMicroMAppConfiguration app_config, string app_id, string userId, CancellationToken ct);
     //Task<bool> Revoke(IAuthenticationProvider auth, IMicroMAppConfiguration app_config, string app_id, string token, CancellationToken ct);
     //Task<Dictionary<string, object?>> Introspect(IAuthenticationProvider auth, IMicroMAppConfiguration app_config, string app_id, string token, CancellationToken ct);
 
     /// <summary>
-    /// Performs the Authorize operation.
+    /// Handles an authorization request.
     /// </summary>
     Task<string> Authorize(IAuthenticationProvider auth, IMicroMAppConfiguration app_config, string app_id, string userId, CancellationToken ct);
     /// <summary>
-    /// Performs the Token operation.
+    /// Issues tokens for an authorization request.
     /// </summary>
     Task<string> Token(IAuthenticationProvider auth, IMicroMAppConfiguration app_config, string app_id, string userId, CancellationToken ct);
 
     /// <summary>
-    /// Performs the PAR operation.
+    /// Processes a pushed authorization request.
     /// </summary>
     Task<Dictionary<string, object?>> PAR(IAuthenticationProvider auth, IMicroMAppConfiguration app_config, string app_id, string token, CancellationToken ct);
 
     /// <summary>
-    /// Performs the EndSession operation.
+    /// Terminates a user's session and revokes tokens.
     /// </summary>
     Task<bool> EndSession(IAuthenticationProvider auth, IMicroMAppConfiguration app_config, string app_id, string userId, CancellationToken ct);
 }

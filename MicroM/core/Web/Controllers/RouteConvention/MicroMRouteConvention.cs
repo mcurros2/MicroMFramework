@@ -8,7 +8,7 @@ using Microsoft.Extensions.Options;
 namespace MicroM.Web.Controllers
 {
     /// <summary>
-    /// Represents the MicroMRouteConvention.
+    /// Applies a common route prefix to MicroM controllers.
     /// </summary>
     public class MicroMRouteConvention : IApplicationModelConvention
     {
@@ -17,7 +17,7 @@ namespace MicroM.Web.Controllers
         private readonly PathString _basePathString;
 
         /// <summary>
-        /// Performs the MicroMRouteConvention operation.
+        /// Initializes a new instance of the <see cref="MicroMRouteConvention"/> class.
         /// </summary>
         public MicroMRouteConvention(IOptions<MicroMOptions> options, ILogger<MicroMRouteConvention> logger)
         {
@@ -29,7 +29,7 @@ namespace MicroM.Web.Controllers
         }
 
         /// <summary>
-        /// Performs the Apply operation.
+        /// Adds the configured route prefix to supported controllers.
         /// </summary>
         public void Apply(ApplicationModel application)
         {

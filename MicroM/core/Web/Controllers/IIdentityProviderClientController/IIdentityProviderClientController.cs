@@ -1,16 +1,16 @@
 ﻿namespace MicroM.Web.Controllers;
 
 /// <summary>
-/// Represents the IIdentityProviderClientController.
+/// Defines the contract for client-side identity provider interactions.
 /// </summary>
 public interface IIdentityProviderClientController
 {
     /// <summary>
-    /// Performs the SignInOidc operation.
+    /// Initiates the OpenID Connect sign-in flow.
     /// </summary>
     Task SignInOidc(string app_id, string? returnUrl, CancellationToken ct);
     /// <summary>
-    /// Performs the SignOutOidc operation.
+    /// Initiates the OpenID Connect sign-out flow.
     /// </summary>
     Task SignOutOidc(string app_id, string? returnUrl, CancellationToken ct);
 }

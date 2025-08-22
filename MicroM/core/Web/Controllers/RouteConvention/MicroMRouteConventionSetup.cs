@@ -4,14 +4,14 @@ using Microsoft.Extensions.Options;
 namespace MicroM.Web.Controllers
 {
     /// <summary>
-    /// Represents the MicroMRouteConventionSetup.
+    /// Registers the <see cref="MicroMRouteConvention"/> with MVC.
     /// </summary>
     public class MicroMRouteConventionSetup(MicroMRouteConvention routeConvention) : IConfigureOptions<MvcOptions>
     {
         private readonly MicroMRouteConvention _routeConvention = routeConvention;
 
         /// <summary>
-        /// Performs the Configure operation.
+        /// Adds the convention to MVC options.
         /// </summary>
         public void Configure(MvcOptions options)
         {

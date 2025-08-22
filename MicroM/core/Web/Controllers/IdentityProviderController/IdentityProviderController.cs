@@ -7,16 +7,13 @@ using Microsoft.AspNetCore.Mvc;
 namespace MicroM.Web.Controllers;
 
 /// <summary>
-/// Represents the IdentityProviderController.
+/// Provides endpoints for OpenID Connect and OAuth2 operations.
 /// </summary>
 [ApiController]
-/// <summary>
-/// Represents the IdentityProviderController.
-/// </summary>
 public class IdentityProviderController : ControllerBase, IIdentityProviderController
 {
     /// <summary>
-    /// Performs the WellKnown operation.
+    /// Returns the OpenID Connect discovery document.
     /// </summary>
     [AllowAnonymous]
     [HttpPost("{app_id}/oidc/.well-known/openid-configuration")]
@@ -26,7 +23,7 @@ public class IdentityProviderController : ControllerBase, IIdentityProviderContr
     }
 
     /// <summary>
-    /// Performs the Jwks operation.
+    /// Returns the JSON Web Key Set used to validate tokens.
     /// </summary>
     [AllowAnonymous]
     [HttpGet("{app_id}/oidc/jwks")]
@@ -36,7 +33,7 @@ public class IdentityProviderController : ControllerBase, IIdentityProviderContr
     }
 
     /// <summary>
-    /// Performs the Authorize operation.
+    /// Handles an authorization request.
     /// </summary>
     [Authorize(policy: nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy))]
     [HttpGet("{app_id}/oauth2/authorize")]
@@ -46,7 +43,7 @@ public class IdentityProviderController : ControllerBase, IIdentityProviderContr
     }
 
     /// <summary>
-    /// Performs the Token operation.
+    /// Issues tokens for an authorization request.
     /// </summary>
     [Authorize(policy: nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy))]
     [HttpPost("{app_id}/oauth2/token")]
@@ -56,7 +53,7 @@ public class IdentityProviderController : ControllerBase, IIdentityProviderContr
     }
 
     /// <summary>
-    /// Performs the UserInfo operation.
+    /// Returns claims about the authenticated user.
     /// </summary>
     [Authorize(policy: nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy))]
     [HttpPost("{app_id}/oauth2/userinfo")]
@@ -66,7 +63,7 @@ public class IdentityProviderController : ControllerBase, IIdentityProviderContr
     }
 
     /// <summary>
-    /// Performs the PAR operation.
+    /// Processes a pushed authorization request.
     /// </summary>
     [Authorize(policy: nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy))]
     [HttpPost("{app_id}/oauth2/par")]
@@ -76,7 +73,7 @@ public class IdentityProviderController : ControllerBase, IIdentityProviderContr
     }
 
     /// <summary>
-    /// Performs the EndSession operation.
+    /// Terminates a user's session and revokes tokens.
     /// </summary>
     [Authorize(policy: nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy))]
     [HttpPost("{app_id}/oauth2/endsession")]
