@@ -7,6 +7,10 @@ using static MicroM.Generators.Constants;
 
 namespace MicroM.Generators.ReactGenerator
 {
+    /// <summary>
+    /// Extension methods for generating lookup related TypeScript code for
+    /// the React client.
+    /// </summary>
     public static class LookupExtensions
     {
         private static void AppendDefaultLookupDefinition(this StringBuilder sb, EntityForeignKeyBase fk, string indent)
@@ -17,6 +21,12 @@ namespace MicroM.Generators.ReactGenerator
             sb.Append(CultureInfo.InvariantCulture, $"\n{indent}{TAB}}}");
         }
 
+        /// <summary>
+        /// Generates lookup definitions for default foreign key relationships.
+        /// </summary>
+        /// <param name="foreign_keys">Foreign keys to inspect.</param>
+        /// <param name="indent">Indentation used in the generated template.</param>
+        /// <returns>TypeScript code describing the default lookup definitions.</returns>
         public static string AsDefaultLookupDefinitionContent(this IReadOnlyDictionary<string, EntityForeignKeyBase> foreign_keys, string indent = $"{TAB}")
         {
             var lookups_enumerator = foreign_keys.Values.GetEnumerator();
@@ -47,6 +57,12 @@ namespace MicroM.Generators.ReactGenerator
             sb.Append(CultureInfo.InvariantCulture, $"\n{indent}{TAB}}}");
         }
 
+        /// <summary>
+        /// Generates lookup definitions for the entity's explicit lookup configurations.
+        /// </summary>
+        /// <param name="foreign_keys">Foreign keys containing lookup settings.</param>
+        /// <param name="indent">Indentation used in the generated template.</param>
+        /// <returns>TypeScript code with lookup definition entries.</returns>
         public static string AsLookupDefinitionContent(this IReadOnlyDictionary<string, EntityForeignKeyBase> foreign_keys, string indent = $"{TAB}")
         {
             var lookups_enumerator = foreign_keys.Values.SelectMany(
@@ -70,6 +86,12 @@ namespace MicroM.Generators.ReactGenerator
             return sb.ToString();
         }
 
+        /// <summary>
+        /// Builds the complete lookup definition block for an entity definition.
+        /// </summary>
+        /// <param name="def">Entity definition whose lookups will be described.</param>
+        /// <param name="indent">Indentation used in the generated template.</param>
+        /// <returns>TypeScript code containing the lookup definitions or an empty string.</returns>
         public static string AsLookupDefinition(this EntityDefinition def, string indent = $"{TAB}")
         {
             string? fk_default_lookups = def.ForeignKeys.Count > 0 ? def.ForeignKeys.AsDefaultLookupDefinitionContent() : null;

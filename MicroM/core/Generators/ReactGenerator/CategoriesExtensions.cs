@@ -8,6 +8,10 @@ using static MicroM.Generators.Constants;
 
 namespace MicroM.Generators.ReactGenerator
 {
+    /// <summary>
+    /// Provides helpers for generating TypeScript code related to entity
+    /// categories when building the React client.
+    /// </summary>
     public static class CategoriesExtensions
     {
         private static void AppendLookupDefinitionContentCategories(this StringBuilder sb, ColumnBase col, string indent = $"{TAB}")
@@ -20,6 +24,12 @@ namespace MicroM.Generators.ReactGenerator
             sb.Append(CultureInfo.InvariantCulture, $"\n{indent}{TAB}}}");
         }
 
+        /// <summary>
+        /// Builds the lookup definition block for category columns.
+        /// </summary>
+        /// <param name="cols">Collection of columns to inspect for category relationships.</param>
+        /// <param name="indent">Indentation used in the generated template.</param>
+        /// <returns>TypeScript code containing lookup definitions for categories.</returns>
         public static string AsLookupDefinitionContentCategories(this IReadonlyOrderedDictionary<ColumnBase> cols, string indent = $"{TAB}")
         {
             var cols_enumerator = cols.Values.Where(column => string.IsNullOrEmpty(column.RelatedCategoryID) == false).GetEnumerator();
@@ -40,6 +50,11 @@ namespace MicroM.Generators.ReactGenerator
             return sb.ToString();
         }
 
+        /// <summary>
+        /// Generates the list of category entities that need to be imported.
+        /// </summary>
+        /// <param name="cols">Collection of columns to inspect for category relationships.</param>
+        /// <returns>A comma separated list of category entity imports.</returns>
         public static string AsEmbeddedCategoriesImport(this IReadonlyOrderedDictionary<ColumnBase> cols)
         {
             var relatedCategories = string.Join(", ",
@@ -72,6 +87,12 @@ namespace MicroM.Generators.ReactGenerator
             return Templates.CATEGORY_ENTITY_TEMPLATE.ReplaceTemplate(parms);
         }
 
+        /// <summary>
+        /// Creates TypeScript entity classes for the categories referenced by the columns.
+        /// </summary>
+        /// <param name="cols">Collection of columns that may reference categories.</param>
+        /// <param name="categories_types">Dictionary mapping category identifiers to their definition types.</param>
+        /// <returns>TypeScript code defining the category entities.</returns>
         public static string AsCategoriesEntities(this IReadonlyOrderedDictionary<ColumnBase> cols, Dictionary<string, Type> categories_types)
         {
             var cols_enumerator = cols.Values.Where(column => string.IsNullOrEmpty(column.RelatedCategoryID) == false).GetEnumerator();

@@ -1,7 +1,13 @@
 ﻿namespace MicroM.Generators.ReactGenerator
 {
+    /// <summary>
+    /// Holds TypeScript template strings used to generate React client files.
+    /// </summary>
     internal class Templates
     {
+        /// <summary>
+        /// Template for a category entity class.
+        /// </summary>
         internal const string CATEGORY_ENTITY_TEMPLATE =
 @"
 import { CategoriesValues, MicroMClient } from ""{MICROM_LIB_PACKAGE}"";
@@ -24,6 +30,9 @@ export class cat{CATEGORY_ID} extends CategoriesValues {
 
 ";
 
+        /// <summary>
+        /// Template for the lookup definition function of an entity.
+        /// </summary>
         internal const string ENTITY_LOOKUPS_TEMPLATE =
 @"
 const lookups = () =>
@@ -32,6 +41,9 @@ const lookups = () =>
 )
 ";
 
+        /// <summary>
+        /// Template for the stored procedure definition function of an entity.
+        /// </summary>
         internal const string ENTITY_PROCS_TEMPLATE =
 @"
 const procs = () =>
@@ -40,6 +52,9 @@ const procs = () =>
 )
 ";
 
+        /// <summary>
+        /// Template for the TypeScript entity definition class.
+        /// </summary>
         internal const string ENTITY_DEFINITION_TEMPLATE =
 @"
 import { DefaultColumns, EntityColumn, EntityDefinition{ENTITY_LOOKUP_IMPORT}, EntityColumnFlags, CommonFlags as c } from ""{MICROM_LIB_PACKAGE}"";
@@ -73,6 +88,9 @@ export class {ENTITY_CLASSNAME}Def extends EntityDefinition {
 }
 ";
 
+        /// <summary>
+        /// Template for the TypeScript entity class.
+        /// </summary>
         internal const string ENTITY_TEMPLATE =
 @"
 import { Entity, MicroMClient } from ""{MICROM_LIB_PACKAGE}"";
@@ -93,6 +111,9 @@ export class {ENTITY_CLASSNAME} extends Entity<{ENTITY_CLASSNAME}Def> {
 }
 ";
 
+        /// <summary>
+        /// Template for the React form component associated with an entity.
+        /// </summary>
         internal const string ENTITY_FORM_TEMPLATE =
 @"
 import { Stack, useComponentDefaultProps, useMantineTheme } from ""@mantine/core"";
