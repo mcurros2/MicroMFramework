@@ -21,7 +21,7 @@ This section provides documentation for the MicroM backend namespaces.
 | [MicroM.Generators.Extensions](MicroM.Generators.Extensions/index.md) | Extension helpers for generators. |
 | [MicroM.Generators.ReactGenerator](MicroM.Generators.ReactGenerator/index.md) | Generates React TypeScript code for entities. |
 | [MicroM.Generators.SQLGenerator](MicroM.Generators.SQLGenerator/index.md) | Generates SQL DDL and related scripts. |
-| MicroM.ImportData | Documentation not started. |
+| [MicroM.ImportData](MicroM.ImportData/index.md) | Helpers for importing CSV/Excel data. |
 | [MicroM.Validators](MicroM.Validators/index.md) | Regular expression validators for common MicroM inputs. |
 | [MicroM.Web](MicroM.Web/index.md) | Root web namespace for authentication, controllers, debugging, middleware, and services. |
 | [MicroM.Web.Authentication](MicroM.Web.Authentication/index.md) | Authentication utilities for web apps. |
