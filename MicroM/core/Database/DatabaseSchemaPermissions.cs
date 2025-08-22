@@ -6,8 +6,18 @@ using System.Text;
 
 namespace MicroM.Database;
 
+/// <summary>
+/// Grants permissions and routes for database entities.
+/// </summary>
 public class DatabaseSchemaPermissions
 {
+    /// <summary>
+    /// Creates routing entries for the specified entities.
+    /// </summary>
+    /// <param name="ec">Entity client.</param>
+    /// <param name="entities">Entities to process.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
     public async static Task CreateEntitiesRoutes(IEntityClient ec, CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>> entities, CancellationToken ct)
     {
         bool should_close = !(ec.ConnectionState == System.Data.ConnectionState.Open);
@@ -26,6 +36,14 @@ public class DatabaseSchemaPermissions
         }
     }
 
+    /// <summary>
+    /// Grants execution rights on all entity procedures to the specified login or group.
+    /// </summary>
+    /// <param name="ec">Entity client.</param>
+    /// <param name="entities">Entities whose procedures will be granted.</param>
+    /// <param name="login_or_group">Login or group receiving permissions.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
     public async static Task GrantExecutionToAllProcs(IEntityClient ec, CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>> entities, string login_or_group, CancellationToken ct)
     {
         bool should_close = !(ec.ConnectionState == System.Data.ConnectionState.Open);

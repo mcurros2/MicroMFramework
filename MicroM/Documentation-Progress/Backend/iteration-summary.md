@@ -434,3 +434,28 @@
 - Continue documenting remaining `MicroM.Data` types.
 - Add XML comments for web services and controllers.
 - Expand documentation with method details and examples.
+
+---
+
+## Iteration 16
+### Plan
+- Add XML comments for all public members under `MicroM/core/Database`.
+- Document enums `SQLScriptType` and `SQLProcStandardType`.
+- Link enums in `MicroM/Documentation/Backend/MicroM.Database/index.md`.
+- Update documentation state for `MicroM.Database`.
+
+### Execution Results
+- Added XML comments to database classes and methods → ✅ Success
+- Created enum docs under `MicroM.Database` and linked from namespace index → ✅ Success
+- Updated `docs-state-backend.md` marking `MicroM.Database` as complete → ✅ Success
+
+### Verification Results
+- Verified XML comments in updated source files → ✅ Success
+- Confirmed enum pages follow template and are linked → ✅ Success
+- `docs-state-backend.md` shows completed status → ✅ Success
+
+### Issues Encountered
+- None
+
+### Next iteration Tasks
+- Review remaining namespaces for XML comments and documentation gaps.
