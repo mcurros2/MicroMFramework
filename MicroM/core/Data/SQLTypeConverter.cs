@@ -3,6 +3,9 @@ using System.Data;
 
 namespace MicroM.Data
 {
+    /// <summary>
+    /// Provides mapping helpers between <see cref="SqlDbType"/> and .NET types.
+    /// </summary>
     public static class SqlDbTypeMapper
     {
 
