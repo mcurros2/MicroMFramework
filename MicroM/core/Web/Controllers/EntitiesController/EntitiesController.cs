@@ -10,17 +10,15 @@ using static MicroM.Web.Controllers.MicroMControllersMessages;
 namespace MicroM.Web.Controllers;
 
 /// <summary>
-/// Represents the EntitiesController.
+/// HTTP API for CRUD and action endpoints on application entities.
 /// </summary>
 [ApiController]
-/// <summary>
-/// Represents the EntitiesController.
-/// </summary>
 public class EntitiesController : ControllerBase, IEntitiesController
 {
     /// <summary>
-    /// Performs the GetStatus operation.
+    /// Reports the availability of the entities API.
     /// </summary>
+    /// <returns>200 OK with the value "OK" when the API is responsive.</returns>
     [AllowAnonymous]
     [HttpGet("entities-api-status")]
     public string GetStatus()
@@ -29,8 +27,19 @@ public class EntitiesController : ControllerBase, IEntitiesController
     }
 
     /// <summary>
-    /// Performs the Action operation.
+    /// Executes a named action on the specified entity.
     /// </summary>
+    /// <param name="auth">Authentication provider used to validate the request and resolve the application.</param>
+    /// <param name="app_config">Configuration provider supplying application settings.</param>
+    /// <param name="ents">Service used to perform entity operations.</param>
+    /// <param name="app_id">Identifier of the application containing the entity.</param>
+    /// <param name="entityName">Name of the entity on which to invoke the action.</param>
+    /// <param name="actionName">Name of the action to execute.</param>
+    /// <param name="parms">Request parameters and payload.</param>
+    /// <param name="ct">Token used to cancel the request.</param>
+    /// <returns>200 OK with the action result, 400 if the application or result is invalid, 409 if the operation is cancelled.</returns>
+    /// <exception cref="OperationCanceledException">The request was cancelled.</exception>
+    /// <exception cref="TaskCanceledException">The request was cancelled.</exception>
     [Authorize(policy: nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy))]
     [HttpPost("{app_id}/ent/{entityName}/action/{actionName}")]
     public async Task<ObjectResult> Action([FromServices] IAuthenticationProvider auth, [FromServices] IMicroMAppConfiguration app_config, [FromServices] IEntitiesService ents, string app_id, string entityName, string actionName, [FromBody] DataWebAPIRequest parms, CancellationToken ct)
@@ -57,8 +66,18 @@ public class EntitiesController : ControllerBase, IEntitiesController
     }
 
     /// <summary>
-    /// Performs the Delete operation.
+    /// Deletes a record from the specified entity.
     /// </summary>
+    /// <param name="auth">Authentication provider used to validate the request and resolve the application.</param>
+    /// <param name="app_config">Configuration provider supplying application settings.</param>
+    /// <param name="ents">Service used to perform entity operations.</param>
+    /// <param name="app_id">Identifier of the application containing the entity.</param>
+    /// <param name="entityName">Name of the entity that contains the record to delete.</param>
+    /// <param name="parms">Request parameters and payload.</param>
+    /// <param name="ct">Token used to cancel the request.</param>
+    /// <returns>200 OK with the delete result, 400 if the application or result is invalid, 409 if the operation is cancelled.</returns>
+    /// <exception cref="OperationCanceledException">The request was cancelled.</exception>
+    /// <exception cref="TaskCanceledException">The request was cancelled.</exception>
     [Authorize(policy: nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy))]
     [HttpPost("{app_id}/ent/{entityName}/delete")]
     public async Task<ObjectResult> Delete([FromServices] IAuthenticationProvider auth, [FromServices] IMicroMAppConfiguration app_config, [FromServices] IEntitiesService ents, string app_id, string entityName, [FromBody] DataWebAPIRequest parms, CancellationToken ct)
@@ -84,8 +103,18 @@ public class EntitiesController : ControllerBase, IEntitiesController
 
 
     /// <summary>
-    /// Performs the Get operation.
+    /// Retrieves records for the specified entity.
     /// </summary>
+    /// <param name="auth">Authentication provider used to validate the request and resolve the application.</param>
+    /// <param name="app_config">Configuration provider supplying application settings.</param>
+    /// <param name="ents">Service used to perform entity operations.</param>
+    /// <param name="app_id">Identifier of the application containing the entity.</param>
+    /// <param name="entityName">Name of the entity to query.</param>
+    /// <param name="parms">Request parameters and payload.</param>
+    /// <param name="ct">Token used to cancel the request.</param>
+    /// <returns>200 OK with the entity data, 400 if the application or result is invalid, 409 if the operation is cancelled.</returns>
+    /// <exception cref="OperationCanceledException">The request was cancelled.</exception>
+    /// <exception cref="TaskCanceledException">The request was cancelled.</exception>
     [Authorize(policy: nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy))]
     [HttpPost("{app_id}/ent/{entityName}/get")]
     public async Task<ObjectResult> Get([FromServices] IAuthenticationProvider auth, [FromServices] IMicroMAppConfiguration app_config, [FromServices] IEntitiesService ents, string app_id, string entityName, [FromBody] DataWebAPIRequest parms, CancellationToken ct)
@@ -114,8 +143,15 @@ public class EntitiesController : ControllerBase, IEntitiesController
 
 
     /// <summary>
-    /// Performs the GetDefinition operation.
+    /// Retrieves the schema definition for the specified entity.
     /// </summary>
+    /// <param name="ents">Service used to perform entity operations.</param>
+    /// <param name="app_config">Configuration provider supplying application settings.</param>
+    /// <param name="app_id">Identifier of the application containing the entity.</param>
+    /// <param name="entityName">Name of the entity whose definition is requested.</param>
+    /// <returns>200 OK with the entity definition, 400 if the application or result is invalid, 409 if the operation is cancelled.</returns>
+    /// <exception cref="OperationCanceledException">The request was cancelled.</exception>
+    /// <exception cref="TaskCanceledException">The request was cancelled.</exception>
     [Authorize(policy: nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy))]
     [HttpGet("{app_id}/ent/{entityName}/definition")]
     public ObjectResult GetDefinition([FromServices] IEntitiesService ents, [FromServices] IMicroMAppConfiguration app_config, string app_id, string entityName)
@@ -141,8 +177,16 @@ public class EntitiesController : ControllerBase, IEntitiesController
 
 
     /// <summary>
-    /// Performs the GetTimeZoneOffset operation.
+    /// Retrieves the time zone offset for the current application.
     /// </summary>
+    /// <param name="auth">Authentication provider used to validate the request and resolve the application.</param>
+    /// <param name="app_config">Configuration provider supplying application settings.</param>
+    /// <param name="ents">Service used to perform entity operations.</param>
+    /// <param name="app_id">Identifier of the application containing the entity.</param>
+    /// <param name="ct">Token used to cancel the request.</param>
+    /// <returns>200 OK with the offset in minutes; 0 if the application is not found or the operation is cancelled.</returns>
+    /// <exception cref="OperationCanceledException">The request was cancelled.</exception>
+    /// <exception cref="TaskCanceledException">The request was cancelled.</exception>
     [Authorize(policy: nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy))]
     [HttpPost("{app_id}/ent/timezoneoffset")]
     public async Task<int> GetTimeZoneOffset([FromServices] IAuthenticationProvider auth, [FromServices] IMicroMAppConfiguration app_config, [FromServices] IEntitiesService ents, string app_id, CancellationToken ct)
@@ -166,8 +210,19 @@ public class EntitiesController : ControllerBase, IEntitiesController
     }
 
     /// <summary>
-    /// Performs the Import operation.
+    /// Imports data into the specified entity using an optional import procedure.
     /// </summary>
+    /// <param name="auth">Authentication provider used to validate the request and resolve the application.</param>
+    /// <param name="app_config">Configuration provider supplying application settings.</param>
+    /// <param name="ents">Service used to perform entity operations.</param>
+    /// <param name="app_id">Identifier of the application containing the entity.</param>
+    /// <param name="entityName">Name of the entity receiving the data.</param>
+    /// <param name="import_proc">Optional name of the import procedure to execute.</param>
+    /// <param name="parms">Request parameters and payload.</param>
+    /// <param name="ct">Token used to cancel the request.</param>
+    /// <returns>200 OK with the import result, 400 if the application or result is invalid, 409 if the operation is cancelled.</returns>
+    /// <exception cref="OperationCanceledException">The request was cancelled.</exception>
+    /// <exception cref="TaskCanceledException">The request was cancelled.</exception>
     [Authorize(policy: nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy))]
     [HttpPost("{app_id}/ent/{entityName}/import/{import_proc?}")]
     public async Task<ObjectResult> Import([FromServices] IAuthenticationProvider auth, [FromServices] IMicroMAppConfiguration app_config, [FromServices] IEntitiesService ents, string app_id, string entityName, string? import_proc, [FromBody] DataWebAPIRequest parms, CancellationToken ct)
@@ -194,8 +249,18 @@ public class EntitiesController : ControllerBase, IEntitiesController
     }
 
     /// <summary>
-    /// Performs the Insert operation.
+    /// Inserts a new record into the specified entity.
     /// </summary>
+    /// <param name="auth">Authentication provider used to validate the request and resolve the application.</param>
+    /// <param name="app_config">Configuration provider supplying application settings.</param>
+    /// <param name="ents">Service used to perform entity operations.</param>
+    /// <param name="parms">Request parameters and payload.</param>
+    /// <param name="app_id">Identifier of the application containing the entity.</param>
+    /// <param name="entityName">Name of the entity in which to insert the record.</param>
+    /// <param name="ct">Token used to cancel the request.</param>
+    /// <returns>200 OK with the insert result, 400 if the application or result is invalid, 409 if the operation is cancelled.</returns>
+    /// <exception cref="OperationCanceledException">The request was cancelled.</exception>
+    /// <exception cref="TaskCanceledException">The request was cancelled.</exception>
     [Authorize(policy: nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy))]
     [HttpPost("{app_id}/ent/{entityName}/insert")]
     public async Task<ObjectResult> Insert(
@@ -229,8 +294,19 @@ public class EntitiesController : ControllerBase, IEntitiesController
 
 
     /// <summary>
-    /// Performs the Lookup operation.
+    /// Performs a lookup query on the specified entity.
     /// </summary>
+    /// <param name="auth">Authentication provider used to validate the request and resolve the application.</param>
+    /// <param name="app_config">Configuration provider supplying application settings.</param>
+    /// <param name="ents">Service used to perform entity operations.</param>
+    /// <param name="app_id">Identifier of the application containing the entity.</param>
+    /// <param name="entityName">Name of the entity to query.</param>
+    /// <param name="lookupName">Optional name of the lookup to execute.</param>
+    /// <param name="parms">Request parameters and payload.</param>
+    /// <param name="ct">Token used to cancel the request.</param>
+    /// <returns>200 OK with the lookup result, 400 if the application is not found, 200 OK with null if the operation is cancelled.</returns>
+    /// <exception cref="OperationCanceledException">The request was cancelled.</exception>
+    /// <exception cref="TaskCanceledException">The request was cancelled.</exception>
     [Authorize(policy: nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy))]
     [HttpPost("{app_id}/ent/{entityName}/lookup/{lookupName?}")]
     public async Task<ObjectResult> Lookup([FromServices] IAuthenticationProvider auth, [FromServices] IMicroMAppConfiguration app_config, [FromServices] IEntitiesService ents, string app_id, string entityName, string? lookupName, [FromBody] DataWebAPIRequest parms, CancellationToken ct)
@@ -252,8 +328,19 @@ public class EntitiesController : ControllerBase, IEntitiesController
     }
 
     /// <summary>
-    /// Performs the Proc operation.
+    /// Executes a stored procedure for the specified entity.
     /// </summary>
+    /// <param name="auth">Authentication provider used to validate the request and resolve the application.</param>
+    /// <param name="app_config">Configuration provider supplying application settings.</param>
+    /// <param name="ents">Service used to perform entity operations.</param>
+    /// <param name="app_id">Identifier of the application containing the entity.</param>
+    /// <param name="entityName">Name of the entity associated with the procedure.</param>
+    /// <param name="procName">Name of the stored procedure to execute.</param>
+    /// <param name="parms">Request parameters and payload.</param>
+    /// <param name="ct">Token used to cancel the request.</param>
+    /// <returns>200 OK with the procedure result, 400 if the application or result is invalid, 409 if the operation is cancelled.</returns>
+    /// <exception cref="OperationCanceledException">The request was cancelled.</exception>
+    /// <exception cref="TaskCanceledException">The request was cancelled.</exception>
     [Authorize(policy: nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy))]
     [HttpPost("{app_id}/ent/{entityName}/proc/{procName}")]
     public async Task<ObjectResult> Proc([FromServices] IAuthenticationProvider auth, [FromServices] IMicroMAppConfiguration app_config, [FromServices] IEntitiesService ents, string app_id, string entityName, string procName, [FromBody] DataWebAPIRequest parms, CancellationToken ct)
@@ -278,8 +365,19 @@ public class EntitiesController : ControllerBase, IEntitiesController
     }
 
     /// <summary>
-    /// Performs the Process operation.
+    /// Executes a database process for the specified entity and returns status information.
     /// </summary>
+    /// <param name="auth">Authentication provider used to validate the request and resolve the application.</param>
+    /// <param name="app_config">Configuration provider supplying application settings.</param>
+    /// <param name="ents">Service used to perform entity operations.</param>
+    /// <param name="app_id">Identifier of the application containing the entity.</param>
+    /// <param name="entityName">Name of the entity associated with the process.</param>
+    /// <param name="procName">Name of the process to execute.</param>
+    /// <param name="parms">Request parameters and payload.</param>
+    /// <param name="ct">Token used to cancel the request.</param>
+    /// <returns>200 OK with the process result, 400 if the application or result is invalid, 409 if the operation is cancelled.</returns>
+    /// <exception cref="OperationCanceledException">The request was cancelled.</exception>
+    /// <exception cref="TaskCanceledException">The request was cancelled.</exception>
     [Authorize(policy: nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy))]
     [HttpPost("{app_id}/ent/{entityName}/process/{procName}")]
     public async Task<ObjectResult> Process([FromServices] IAuthenticationProvider auth, [FromServices] IMicroMAppConfiguration app_config, [FromServices] IEntitiesService ents, string app_id, string entityName, string procName, [FromBody] DataWebAPIRequest parms, CancellationToken ct)
@@ -304,8 +402,18 @@ public class EntitiesController : ControllerBase, IEntitiesController
     }
 
     /// <summary>
-    /// Performs the Update operation.
+    /// Updates an existing record in the specified entity.
     /// </summary>
+    /// <param name="auth">Authentication provider used to validate the request and resolve the application.</param>
+    /// <param name="app_config">Configuration provider supplying application settings.</param>
+    /// <param name="ents">Service used to perform entity operations.</param>
+    /// <param name="app_id">Identifier of the application containing the entity.</param>
+    /// <param name="entityName">Name of the entity to update.</param>
+    /// <param name="parms">Request parameters and payload.</param>
+    /// <param name="ct">Token used to cancel the request.</param>
+    /// <returns>200 OK with the update result, 400 if the application or result is invalid, 409 if the operation is cancelled.</returns>
+    /// <exception cref="OperationCanceledException">The request was cancelled.</exception>
+    /// <exception cref="TaskCanceledException">The request was cancelled.</exception>
     [Authorize(policy: nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy))]
     [HttpPost("{app_id}/ent/{entityName}/update")]
     public async Task<ObjectResult> Update([FromServices] IAuthenticationProvider auth, [FromServices] IMicroMAppConfiguration app_config, [FromServices] IEntitiesService ents, string app_id, string entityName, [FromBody] DataWebAPIRequest parms, CancellationToken ct)
@@ -332,8 +440,19 @@ public class EntitiesController : ControllerBase, IEntitiesController
     }
 
     /// <summary>
-    /// Performs the View operation.
+    /// Executes a predefined view for the specified entity.
     /// </summary>
+    /// <param name="auth">Authentication provider used to validate the request and resolve the application.</param>
+    /// <param name="app_config">Configuration provider supplying application settings.</param>
+    /// <param name="ents">Service used to perform entity operations.</param>
+    /// <param name="app_id">Identifier of the application containing the entity.</param>
+    /// <param name="entityName">Name of the entity associated with the view.</param>
+    /// <param name="viewName">Name of the view to execute.</param>
+    /// <param name="parms">Request parameters and payload.</param>
+    /// <param name="ct">Token used to cancel the request.</param>
+    /// <returns>200 OK with the view result, 400 if the application or result is invalid, 409 if the operation is cancelled.</returns>
+    /// <exception cref="OperationCanceledException">The request was cancelled.</exception>
+    /// <exception cref="TaskCanceledException">The request was cancelled.</exception>
     [Authorize(policy: nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy))]
     [HttpPost("{app_id}/ent/{entityName}/view/{viewName}")]
     public async Task<ObjectResult> View([FromServices] IAuthenticationProvider auth, [FromServices] IMicroMAppConfiguration app_config, [FromServices] IEntitiesService ents, string app_id, string entityName, string viewName, [FromBody] DataWebAPIRequest parms, CancellationToken ct)
