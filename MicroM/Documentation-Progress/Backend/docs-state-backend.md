@@ -55,20 +55,20 @@ This file tracks the current documentation state of the backend (`/MicroM/core`)
 - Notes: No documentation present.
 
 ### MicroM.Generators
-- State: Not Started ❌
-- Notes: No documentation present.
+- State: Complete ✅
+- Notes: Namespace and public types documented.
 
 ### MicroM.Generators.Extensions
-- State: Not Started ❌
-- Notes: No documentation present.
+- State: Complete ✅
+- Notes: Namespace and public types documented.
 
 ### MicroM.Generators.ReactGenerator
-- State: Not Started ❌
-- Notes: No documentation present.
+- State: Complete ✅
+- Notes: Namespace and public types documented.
 
 ### MicroM.Generators.SQLGenerator
-- State: Not Started ❌
-- Notes: No documentation present.
+- State: Complete ✅
+- Notes: Namespace and public types documented.
 
 ### MicroM.ImportData
 - State: Not Started ❌
