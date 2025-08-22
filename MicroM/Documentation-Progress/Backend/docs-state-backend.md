@@ -47,8 +47,8 @@ This file tracks the current documentation state of the backend (`/MicroM/core`)
 - Notes: Namespace and classes documented; XML comments pending.
 
 ### MicroM.Excel
-- State: Not Started ❌
-- Notes: No documentation present.
+- State: Incomplete ⚠️
+- Notes: Namespace and classes documented; XML comments pending.
 
 ### MicroM.Extensions
 - State: Not Started ❌
