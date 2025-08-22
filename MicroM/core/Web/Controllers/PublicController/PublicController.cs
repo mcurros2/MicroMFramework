@@ -9,11 +9,11 @@ using static MicroM.Web.Controllers.MicroMControllersMessages;
 namespace MicroM.Web.Controllers;
 
 /// <summary>
-/// Represents the PublicController.
+/// Exposes unauthenticated entity operations for public clients.
 /// </summary>
 [ApiController]
 /// <summary>
-/// Represents the PublicController.
+/// Exposes unauthenticated entity operations for public clients.
 /// </summary>
 public class PublicController : ControllerBase, IPublicController
 {
@@ -30,8 +30,17 @@ public class PublicController : ControllerBase, IPublicController
     }
 
     /// <summary>
-    /// Performs the PublicAction operation.
+    /// Executes an unauthenticated action on the specified entity.
+    /// The <see cref="PublicEndpointAttribute"/> allows public access without authentication.
     /// </summary>
+    /// <param name="app_config">Application configuration provider.</param>
+    /// <param name="ents">Service used to execute entity operations.</param>
+    /// <param name="app_id">Identifier of the application containing the entity.</param>
+    /// <param name="entityName">Name of the entity on which to execute the action.</param>
+    /// <param name="actionName">Name of the action to execute.</param>
+    /// <param name="parms">Request body containing action parameters.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>An <see cref="ObjectResult"/> containing the action execution result.</returns>
     [AllowAnonymous]
     [PublicEndpoint]
     [HttpPost("{app_id}/public/{entityName}/action/{actionName}")]
@@ -64,8 +73,16 @@ public class PublicController : ControllerBase, IPublicController
 
 
     /// <summary>
-    /// Performs the PublicDelete operation.
+    /// Executes an unauthenticated delete on the specified entity.
+    /// The <see cref="PublicEndpointAttribute"/> allows public access without authentication.
     /// </summary>
+    /// <param name="app_config">Application configuration provider.</param>
+    /// <param name="ents">Service used to execute entity operations.</param>
+    /// <param name="app_id">Identifier of the application containing the entity.</param>
+    /// <param name="entityName">Name of the entity to delete.</param>
+    /// <param name="parms">Request body containing delete parameters.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>An <see cref="ObjectResult"/> containing the delete result.</returns>
     [AllowAnonymous]
     [PublicEndpoint]
     [HttpPost("{app_id}/public/{entityName}/delete")]
@@ -93,8 +110,16 @@ public class PublicController : ControllerBase, IPublicController
     }
 
     /// <summary>
-    /// Performs the PublicGet operation.
+    /// Executes an unauthenticated retrieval of the specified entity.
+    /// The <see cref="PublicEndpointAttribute"/> allows public access without authentication.
     /// </summary>
+    /// <param name="app_config">Application configuration provider.</param>
+    /// <param name="ents">Service used to execute entity operations.</param>
+    /// <param name="app_id">Identifier of the application containing the entity.</param>
+    /// <param name="entityName">Name of the entity to retrieve.</param>
+    /// <param name="parms">Request body containing retrieval parameters.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>An <see cref="ObjectResult"/> containing the retrieved entity.</returns>
     [AllowAnonymous]
     [PublicEndpoint]
     [HttpPost("{app_id}/public/{entityName}/get")]
@@ -125,8 +150,16 @@ public class PublicController : ControllerBase, IPublicController
     }
 
     /// <summary>
-    /// Performs the PublicInsert operation.
+    /// Executes an unauthenticated insert on the specified entity.
+    /// The <see cref="PublicEndpointAttribute"/> allows public access without authentication.
     /// </summary>
+    /// <param name="app_config">Application configuration provider.</param>
+    /// <param name="ents">Service used to execute entity operations.</param>
+    /// <param name="parms">Request body containing insert parameters.</param>
+    /// <param name="app_id">Identifier of the application containing the entity.</param>
+    /// <param name="entityName">Name of the entity to insert.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>An <see cref="ObjectResult"/> containing the insert result.</returns>
     [AllowAnonymous]
     [PublicEndpoint]
     [HttpPost("{app_id}/public/{entityName}/insert")]
@@ -156,8 +189,17 @@ public class PublicController : ControllerBase, IPublicController
     }
 
     /// <summary>
-    /// Performs the PublicLookup operation.
+    /// Executes an unauthenticated lookup on the specified entity.
+    /// The <see cref="PublicEndpointAttribute"/> allows public access without authentication.
     /// </summary>
+    /// <param name="app_config">Application configuration provider.</param>
+    /// <param name="ents">Service used to execute entity operations.</param>
+    /// <param name="app_id">Identifier of the application containing the entity.</param>
+    /// <param name="entityName">Name of the entity to look up.</param>
+    /// <param name="lookupName">Optional name of the lookup to execute.</param>
+    /// <param name="parms">Request body containing lookup parameters.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>An <see cref="ObjectResult"/> containing the lookup results.</returns>
     [AllowAnonymous]
     [PublicEndpoint]
     [HttpPost("{app_id}/public/{entityName}/lookup/{lookupName?}")]
@@ -182,8 +224,17 @@ public class PublicController : ControllerBase, IPublicController
     }
 
     /// <summary>
-    /// Performs the PublicProc operation.
+    /// Executes an unauthenticated stored procedure on the specified entity.
+    /// The <see cref="PublicEndpointAttribute"/> allows public access without authentication.
     /// </summary>
+    /// <param name="app_config">Application configuration provider.</param>
+    /// <param name="ents">Service used to execute entity operations.</param>
+    /// <param name="app_id">Identifier of the application containing the entity.</param>
+    /// <param name="entityName">Name of the entity that owns the procedure.</param>
+    /// <param name="procName">Name of the stored procedure to execute.</param>
+    /// <param name="parms">Request body containing procedure parameters.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>An <see cref="ObjectResult"/> containing the procedure results.</returns>
     [AllowAnonymous]
     [PublicEndpoint]
     [HttpPost("{app_id}/public/{entityName}/proc/{procName}")]
@@ -211,8 +262,17 @@ public class PublicController : ControllerBase, IPublicController
     }
 
     /// <summary>
-    /// Performs the PublicProcess operation.
+    /// Executes an unauthenticated process on the specified entity.
+    /// The <see cref="PublicEndpointAttribute"/> allows public access without authentication.
     /// </summary>
+    /// <param name="app_config">Application configuration provider.</param>
+    /// <param name="ents">Service used to execute entity operations.</param>
+    /// <param name="app_id">Identifier of the application containing the entity.</param>
+    /// <param name="entityName">Name of the entity that owns the process.</param>
+    /// <param name="procName">Name of the process to execute.</param>
+    /// <param name="parms">Request body containing process parameters.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>An <see cref="ObjectResult"/> containing the process results.</returns>
     [AllowAnonymous]
     [PublicEndpoint]
     [HttpPost("{app_id}/public/{entityName}/process/{procName}")]
@@ -240,8 +300,16 @@ public class PublicController : ControllerBase, IPublicController
     }
 
     /// <summary>
-    /// Performs the PublicUpdate operation.
+    /// Executes an unauthenticated update on the specified entity.
+    /// The <see cref="PublicEndpointAttribute"/> allows public access without authentication.
     /// </summary>
+    /// <param name="app_config">Application configuration provider.</param>
+    /// <param name="ents">Service used to execute entity operations.</param>
+    /// <param name="app_id">Identifier of the application containing the entity.</param>
+    /// <param name="entityName">Name of the entity to update.</param>
+    /// <param name="parms">Request body containing update parameters.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>An <see cref="ObjectResult"/> containing the update result.</returns>
     [AllowAnonymous]
     [PublicEndpoint]
     [HttpPost("{app_id}/public/{entityName}/update")]
@@ -271,8 +339,17 @@ public class PublicController : ControllerBase, IPublicController
     }
 
     /// <summary>
-    /// Performs the PublicView operation.
+    /// Executes an unauthenticated view on the specified entity.
+    /// The <see cref="PublicEndpointAttribute"/> allows public access without authentication.
     /// </summary>
+    /// <param name="app_config">Application configuration provider.</param>
+    /// <param name="ents">Service used to execute entity operations.</param>
+    /// <param name="app_id">Identifier of the application containing the entity.</param>
+    /// <param name="entityName">Name of the entity that owns the view.</param>
+    /// <param name="viewName">Name of the view to execute.</param>
+    /// <param name="parms">Request body containing view parameters.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>An <see cref="ObjectResult"/> containing the view results.</returns>
     [AllowAnonymous]
     [PublicEndpoint]
     [HttpPost("{app_id}/public/{entityName}/view/{viewName}")]
