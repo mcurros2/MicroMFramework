@@ -408,3 +408,5 @@
 
 ### Next iteration Tasks
 - Continue documenting remaining `MicroM.Data` types.
+- Add XML comments for web services and controllers.
+- Expand documentation with method details and examples.
