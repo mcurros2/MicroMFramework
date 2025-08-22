@@ -11,6 +11,9 @@ using static MicroM.Validators.Expressions;
 
 namespace MicroM.Database
 {
+    /// <summary>
+    /// Provides helpers to create and manage application databases.
+    /// </summary>
     public class ApplicationDatabase
     {
         private static async Task InitializeDatabase(IEntityClient admin_dbc, Applications app, string grant_user, CancellationToken ct)
@@ -76,6 +79,14 @@ namespace MicroM.Database
         }
 
 
+        /// <summary>
+        /// Retrieves and updates the status of the application's database.
+        /// </summary>
+        /// <param name="app">The application instance.</param>
+        /// <param name="ct">Cancellation token.</param>
+        /// <param name="options">Optional MicroM options.</param>
+        /// <param name="server_claims">Server credentials.</param>
+        /// <param name="api">Optional API services.</param>
         public static async Task GetAppDatabaseStatus(Applications app, CancellationToken ct, MicroMOptions? options = null, Dictionary<string, object>? server_claims = null, IWebAPIServices? api = null)
         {
             ArgumentNullException.ThrowIfNull(server_claims);
@@ -106,6 +117,14 @@ namespace MicroM.Database
             }
         }
 
+        /// <summary>
+        /// Drops the application's database and associated login.
+        /// </summary>
+        /// <param name="app">The application definition.</param>
+        /// <param name="ct">Cancellation token.</param>
+        /// <param name="options">Optional MicroM options.</param>
+        /// <param name="server_claims">Server credentials.</param>
+        /// <param name="api">Optional API services.</param>
         public static async Task DropAppDatabase(Applications app, CancellationToken ct, MicroMOptions? options = null, Dictionary<string, object>? server_claims = null, IWebAPIServices? api = null)
         {
             ArgumentNullException.ThrowIfNull(server_claims);
@@ -124,12 +143,15 @@ namespace MicroM.Database
         }
 
         /// <summary>
-        /// Creates a new database for the application. It will use the app existing connection
+        /// Creates a new database for the application using its configuration.
         /// </summary>
-        /// <param name="app"></param>
-        /// <param name="drop_and_recreate"></param>
-        /// <param name="ct"></param>
-        /// <returns></returns>
+        /// <param name="app">Application definition.</param>
+        /// <param name="drop_and_recreate">If true, an existing database is dropped and recreated.</param>
+        /// <param name="ct">Cancellation token.</param>
+        /// <param name="options">Optional MicroM options.</param>
+        /// <param name="server_claims">Server credentials.</param>
+        /// <param name="api">Optional API services.</param>
+        /// <returns>Status of the database creation.</returns>
         public static async Task<DBStatusResult> CreateAppDatabase(Applications app, bool drop_and_recreate, CancellationToken ct, MicroMOptions? options = null, Dictionary<string, object>? server_claims = null, IWebAPIServices? api = null)
         {
 
@@ -237,6 +259,15 @@ namespace MicroM.Database
             return new() { Results = [new() { Status = DBStatusCodes.OK }] };
         }
 
+        /// <summary>
+        /// Updates the application's database schema and data.
+        /// </summary>
+        /// <param name="app">The application instance.</param>
+        /// <param name="ct">Cancellation token.</param>
+        /// <param name="server_claims">Server credentials.</param>
+        /// <param name="options">Optional MicroM options.</param>
+        /// <param name="api">Optional API services.</param>
+        /// <returns>Status of the update operation.</returns>
         public static async Task<DBStatusResult> UpdateAppDatabase(Applications app, CancellationToken ct, Dictionary<string, object>? server_claims = null, MicroMOptions? options = null, IWebAPIServices? api = null)
         {
             ArgumentNullException.ThrowIfNull(server_claims);

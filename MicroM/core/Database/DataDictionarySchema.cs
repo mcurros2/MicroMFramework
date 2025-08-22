@@ -12,10 +12,19 @@ using static MicroM.Database.DatabaseSchemaTables;
 
 namespace MicroM.Database;
 
+/// <summary>
+/// Utilities for maintaining the MicroM data dictionary schema and permissions.
+/// </summary>
 public static class DataDictionarySchema
 {
 
 
+    /// <summary>
+    /// Adds the specified entity type to the data dictionary tables.
+    /// </summary>
+    /// <typeparam name="T">Entity type.</typeparam>
+    /// <param name="ec">Entity client.</param>
+    /// <param name="ct">Cancellation token.</param>
     public static async Task AddToDataDictionary<T>(IEntityClient ec, CancellationToken ct) where T : EntityBase, new()
     {
         bool should_close = !(ec.ConnectionState == System.Data.ConnectionState.Open);
@@ -31,6 +40,12 @@ public static class DataDictionarySchema
         }
     }
 
+    /// <summary>
+    /// Adds multiple entities to the data dictionary tables.
+    /// </summary>
+    /// <param name="ec">Entity client.</param>
+    /// <param name="options">Entity creation options.</param>
+    /// <param name="ct">Cancellation token.</param>
     public static async Task AddEntitiesToDataDictionary(IEntityClient ec, CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>> options, CancellationToken ct)
     {
         bool should_close = !(ec.ConnectionState == System.Data.ConnectionState.Open);
@@ -48,6 +63,11 @@ public static class DataDictionarySchema
         }
     }
 
+    /// <summary>
+    /// Retrieves entity types that compose the core data dictionary.
+    /// </summary>
+    /// <param name="ec">Entity client.</param>
+    /// <returns>Dictionary of data dictionary entities.</returns>
     public static CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>> GetDataDictionaryEntitiesTypes(IEntityClient ec)
     {
         CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>> result = new();
@@ -89,6 +109,12 @@ public static class DataDictionarySchema
         return result;
     }
 
+    /// <summary>
+    /// Creates data dictionary tables, procedures and required categories.
+    /// </summary>
+    /// <param name="ec">Entity client.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <param name="create_or_alter">Indicates if existing objects should be altered.</param>
     public async static Task CreateDatadictionarySchemaAndProcs(IEntityClient ec, CancellationToken ct, bool create_or_alter = false)
     {
         bool should_close = !(ec.ConnectionState == System.Data.ConnectionState.Open);
@@ -142,6 +168,10 @@ public static class DataDictionarySchema
         }
     }
 
+    /// <summary>
+    /// Gets the core entity types used by the framework.
+    /// </summary>
+    /// <returns>Dictionary of entity names and types.</returns>
     public static Dictionary<string, Type> GetCoreEntitiesTypes()
     {
         Dictionary<string, Type> result = [];
@@ -183,6 +213,12 @@ public static class DataDictionarySchema
         return result;
     }
 
+    /// <summary>
+    /// Grants execution permissions to system procedures for the specified login or group.
+    /// </summary>
+    /// <param name="ec">Entity client.</param>
+    /// <param name="login_or_group">Login or group receiving permissions.</param>
+    /// <param name="ct">Cancellation token.</param>
     public async static Task GrantPermissionsToSystemProcs(IEntityClient ec, string login_or_group, CancellationToken ct)
     {
         CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>> entities = GetDataDictionaryEntitiesTypes(ec);
@@ -217,6 +253,18 @@ public static class DataDictionarySchema
         return await sst.AddStatus(ec, ct);
     }
 
+    /// <summary>
+    /// Creates schema, procedures and data dictionary entries for the specified entity.
+    /// </summary>
+    /// <typeparam name="T">Entity type.</typeparam>
+    /// <param name="ec">Entity client.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <param name="create_or_alter">Create or alter existing objects.</param>
+    /// <param name="create_if_not_exists">Only create if not present.</param>
+    /// <param name="create_custom_procs">Whether to include custom procedures.</param>
+    /// <param name="drop_and_recreate_indexes">Drop and recreate indexes.</param>
+    /// <param name="create_procs">Whether to create generated procedures.</param>
+    /// <returns>The entity after creation.</returns>
     public static async Task<T> CreateSchemaAndDictionary<T>(
         IEntityClient ec, CancellationToken ct, bool create_or_alter = false, bool create_if_not_exists = true,
         bool create_custom_procs = false, bool drop_and_recreate_indexes = false, bool create_procs = true

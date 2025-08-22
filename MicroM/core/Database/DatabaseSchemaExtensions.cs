@@ -5,9 +5,19 @@ using System.Reflection;
 
 namespace MicroM.Database
 {
+    /// <summary>
+    /// Extension methods for building database schemas from entities and assemblies.
+    /// </summary>
     public static class DatabaseSchemaExtensions
     {
 
+        /// <summary>
+        /// Adds the specified entity type to the dictionary if it does not exist.
+        /// </summary>
+        /// <typeparam name="T">Entity type.</typeparam>
+        /// <param name="dict">Dictionary of creation options.</param>
+        /// <param name="ec">Entity client.</param>
+        /// <param name="create_or_alter">Indicates if objects should be created or altered.</param>
         public static void TryAddEntityType<T>(this CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>> dict, IEntityClient ec, bool create_or_alter = true) where T : EntityBase, new()
         {
             var ent = new T();
@@ -22,6 +32,12 @@ namespace MicroM.Database
             );
         }
 
+        /// <summary>
+        /// Adds the provided entity instances to the dictionary if they do not exist.
+        /// </summary>
+        /// <param name="dict">Dictionary of creation options.</param>
+        /// <param name="create_or_alter">Indicates if objects should be created or altered.</param>
+        /// <param name="entities">Entities to add.</param>
         public static void TryAddEntities(this CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>> dict, bool create_or_alter = true, params EntityBase[] entities)
         {
             foreach (var entity in entities)
@@ -36,6 +52,12 @@ namespace MicroM.Database
             }
         }
 
+        /// <summary>
+        /// Retrieves and classifies all embedded SQL scripts in the assembly.
+        /// </summary>
+        /// <param name="assembly">Assembly to scan.</param>
+        /// <param name="ct">Cancellation token.</param>
+        /// <returns>Dictionary of classified custom scripts.</returns>
         public async static Task<CustomOrderedDictionary<CustomScript>> GetAllClassifiedCustomProcs(this Assembly assembly, CancellationToken ct)
         {
             CustomOrderedDictionary<CustomScript> ret = new();
@@ -62,6 +84,14 @@ namespace MicroM.Database
             return ret;
         }
 
+        /// <summary>
+        /// Creates a dictionary of all entity types contained in the assembly.
+        /// </summary>
+        /// <param name="assembly">Assembly to scan.</param>
+        /// <param name="ec">Entity client.</param>
+        /// <param name="ct">Cancellation token.</param>
+        /// <param name="create_or_alter">Indicates if objects should be created or altered.</param>
+        /// <returns>Dictionary of entity creation options.</returns>
         public static CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>> GetAllEntities(this Assembly assembly, IEntityClient ec, CancellationToken ct, bool create_or_alter = true)
         {
             CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>> ret = new();

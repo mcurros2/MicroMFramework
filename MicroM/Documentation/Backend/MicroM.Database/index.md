@@ -21,8 +21,8 @@ Database utilities and schema management.
 ## Enums
 | Enum | Description |
 |:------------|:-------------|
-| SQLScriptType | Type of SQL scripts. |
-| SQLProcStandardType | Standard procedure categories. |
+| [SQLScriptType](SQLScriptType/index.md) | Type of SQL scripts. |
+| [SQLProcStandardType](SQLProcStandardType/index.md) | Standard procedure categories. |
 
 ## Remarks
 None.

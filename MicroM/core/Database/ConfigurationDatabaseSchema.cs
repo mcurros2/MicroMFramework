@@ -6,9 +6,17 @@ using static MicroM.Database.DataDictionarySchema;
 
 namespace MicroM.Database;
 
+/// <summary>
+/// Helpers to build schema and procedures for the configuration database.
+/// </summary>
 public static class ConfigurationDatabaseSchema
 {
 
+    /// <summary>
+    /// Retrieves all entities required for the configuration database.
+    /// </summary>
+    /// <param name="ec">Entity client.</param>
+    /// <returns>Collection of entities with creation options.</returns>
     public static CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>> GetConfigurationEntitiesTypes(IEntityClient ec)
     {
         CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>> result = GetDataDictionaryEntitiesTypes(ec);
@@ -30,6 +38,14 @@ public static class ConfigurationDatabaseSchema
     }
 
 
+    /// <summary>
+    /// Creates configuration database schema and related stored procedures.
+    /// </summary>
+    /// <param name="ec">Entity client.</param>
+    /// <param name="entities">Entities to include in the configuration database.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <param name="create_or_alter">If true, existing objects are altered instead of created.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
     public async static Task CreateConfigurationDBSchemaAndProcs(IEntityClient ec, CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>> entities, CancellationToken ct, bool create_or_alter = false)
     {
         bool should_close = !(ec.ConnectionState == System.Data.ConnectionState.Open);

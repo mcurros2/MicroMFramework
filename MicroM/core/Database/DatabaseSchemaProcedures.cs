@@ -8,8 +8,18 @@ using static MicroM.Database.DatabaseSchemaCustomScripts;
 
 namespace MicroM.Database;
 
+/// <summary>
+/// Helpers for generating and executing database stored procedures.
+/// </summary>
 public static class DatabaseSchemaProcedures
 {
+    /// <summary>
+    /// Creates custom procedures defined for an entity.
+    /// </summary>
+    /// <typeparam name="T">Entity type.</typeparam>
+    /// <param name="ent">Optional initialized entity instance.</param>
+    /// <param name="ec">Entity client.</param>
+    /// <param name="ct">Cancellation token.</param>
     public static async Task CreateCustomProcs<T>(T? ent, IEntityClient ec, CancellationToken ct) where T : EntityBase, new()
     {
         bool should_close = !(ec.ConnectionState == System.Data.ConnectionState.Open);
@@ -38,6 +48,15 @@ public static class DatabaseSchemaProcedures
         }
     }
 
+    /// <summary>
+    /// Generates and executes standard procedures for an entity.
+    /// </summary>
+    /// <typeparam name="T">Entity type.</typeparam>
+    /// <param name="ent">Entity instance.</param>
+    /// <param name="ec">Entity client.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <param name="classified_custom_procs">Custom scripts that may replace generated procedures.</param>
+    /// <param name="create_or_alter">Indicates if procedures should be created or altered.</param>
     public static async Task CreateGeneratedProcs<T>(
         T ent,
         IEntityClient ec,
@@ -117,6 +136,15 @@ public static class DatabaseSchemaProcedures
 
     }
 
+    /// <summary>
+    /// Creates both generated and custom procedures for an entity.
+    /// </summary>
+    /// <typeparam name="T">Entity type.</typeparam>
+    /// <param name="ent">Entity instance.</param>
+    /// <param name="ec">Entity client.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <param name="create_or_alter">Indicates if procedures should be created or altered.</param>
+    /// <param name="create_custom_procs">Whether to include custom procedures.</param>
     public static async Task CreateProcs<T>(
         T ent,
         IEntityClient ec,
@@ -286,6 +314,16 @@ public static class DatabaseSchemaProcedures
 
     }
 
+    /// <summary>
+    /// Creates the schema and procedures for an entity and returns the initialized instance.
+    /// </summary>
+    /// <typeparam name="T">Entity type.</typeparam>
+    /// <param name="ent">Optional existing entity instance.</param>
+    /// <param name="ec">Entity client.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <param name="create_or_alter">Indicates if objects should be created or altered.</param>
+    /// <param name="create_custom_procs">Whether to include custom procedures.</param>
+    /// <returns>The entity after creation.</returns>
     public static async Task<T> CreateEntityAndProcs<T>(
     T? ent,
     IEntityClient ec,

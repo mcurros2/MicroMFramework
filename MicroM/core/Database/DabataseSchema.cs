@@ -9,9 +9,24 @@ using static MicroM.Database.DatabaseSchemaTables;
 
 namespace MicroM.Database;
 
+/// <summary>
+/// Utilities to create schemas, tables, and procedures for entity models.
+/// </summary>
 public static class DatabaseSchema
 {
 
+    /// <summary>
+    /// Creates the schema, tables and procedures for an entity.
+    /// </summary>
+    /// <typeparam name="T">Entity type.</typeparam>
+    /// <param name="ec">Entity client.</param>
+    /// <param name="create_or_alter">Whether to create or alter existing objects.</param>
+    /// <param name="create_if_not_exists">Only create if the table does not exist.</param>
+    /// <param name="create_custom_procs">Create custom procedures.</param>
+    /// <param name="drop_and_recreate_indexes">Drop and recreate indexes.</param>
+    /// <param name="create_procs">Create generated procedures.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>The initialized entity instance.</returns>
     public static async Task<T> CreateSchema<T>(
         IEntityClient ec,
         bool create_or_alter, bool create_if_not_exists, bool create_custom_procs, bool drop_and_recreate_indexes,
@@ -80,6 +95,15 @@ public static class DatabaseSchema
         return ent;
     }
 
+    /// <summary>
+    /// Creates stored procedures for all provided entities and custom scripts.
+    /// </summary>
+    /// <param name="ec">Entity client.</param>
+    /// <param name="entities">Entities for which to create procedures.</param>
+    /// <param name="classified_custom_scripts">Classified custom SQL scripts.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <param name="create_or_alter">Create or alter existing procedures.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
     public async static Task CreateAllEntitiesProcs(IEntityClient ec, CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>> entities, CustomOrderedDictionary<CustomScript>? classified_custom_scripts, CancellationToken ct, bool create_or_alter = true)
     {
         bool should_close = !(ec.ConnectionState == System.Data.ConnectionState.Open);
@@ -176,6 +200,14 @@ public static class DatabaseSchema
         }
     }
 
+    /// <summary>
+    /// Creates tables, constraints and procedures for entities and updates the data dictionary.
+    /// </summary>
+    /// <param name="ec">Entity client.</param>
+    /// <param name="entities">Entities to process.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <param name="create_or_alter">Create or alter existing objects.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
     public async static Task CreateEntitiesDatabaseSchemaAndDictionary(IEntityClient ec, CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>> entities, CancellationToken ct, bool create_or_alter = false)
     {
         bool should_close = !(ec.ConnectionState == System.Data.ConnectionState.Open);
