@@ -24,5 +24,3 @@ class MyAction : EntityActionBase {
 ## Remarks
 None.
 
-## See Also
--

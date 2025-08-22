@@ -21,5 +21,3 @@ var regex = MicroM.Generators.GeneratorsRegex.MultipleEmptyLines();
 ## Remarks
 None.
 
-## See Also
--

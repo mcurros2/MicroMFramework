@@ -5,5 +5,3 @@ Defines the contract for memory queue hosted service.
 ## Remarks
 None.
 
-## See Also
--

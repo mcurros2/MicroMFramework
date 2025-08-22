@@ -22,5 +22,3 @@ bool isValid = Expressions.ValidSQLServerLogin().IsMatch("domain\\user");
 ## Remarks
 None.
 
-## See Also
--

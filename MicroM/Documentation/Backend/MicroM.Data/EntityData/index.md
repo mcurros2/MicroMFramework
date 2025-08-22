@@ -33,5 +33,3 @@ None.
 | InsertData(...) | Inserts a record for the entity. |
 | DeleteData(...) | Deletes a record for the entity. |
 
-## See Also
--

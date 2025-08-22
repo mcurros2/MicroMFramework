@@ -5,5 +5,3 @@ Defines the contract for entities service.
 ## Remarks
 None.
 
-## See Also
--

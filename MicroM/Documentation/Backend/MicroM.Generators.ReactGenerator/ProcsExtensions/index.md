@@ -20,5 +20,3 @@ string procs = def.AsProcsDefinition();
 ## Remarks
 None.
 
-## See Also
--

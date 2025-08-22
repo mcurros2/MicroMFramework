@@ -22,5 +22,3 @@ EntityChecker.CheckEntities();
 ## Remarks
 None.
 
-## See Also
--

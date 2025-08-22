@@ -22,5 +22,3 @@ string lookup = columns.AsLookupDefinitionContentCategories();
 ## Remarks
 None.
 
-## See Also
--

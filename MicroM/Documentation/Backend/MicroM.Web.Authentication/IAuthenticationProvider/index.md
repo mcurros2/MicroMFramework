@@ -5,5 +5,3 @@ Defines the contract for authentication provider.
 ## Remarks
 None.
 
-## See Also
--

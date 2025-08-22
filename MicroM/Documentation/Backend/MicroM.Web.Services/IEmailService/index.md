@@ -5,5 +5,3 @@ Defines the contract for email service.
 ## Remarks
 None.
 
-## See Also
--

@@ -10,5 +10,3 @@ Single sign-on authentication helpers.
 ## Remarks
 None.
 
-## See Also
--

@@ -17,5 +17,3 @@ Types of SQL scripts supported by MicroM.
 ## Remarks
 None.
 
-## See Also
--

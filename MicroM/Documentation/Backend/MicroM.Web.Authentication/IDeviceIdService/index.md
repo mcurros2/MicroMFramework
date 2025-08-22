@@ -5,5 +5,3 @@ Defines the contract for device id service.
 ## Remarks
 None.
 
-## See Also
--

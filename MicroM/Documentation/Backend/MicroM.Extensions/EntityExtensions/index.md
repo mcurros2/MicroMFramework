@@ -20,5 +20,3 @@ var columns = typeof(MyEntity).GetColumnNames();
 ## Remarks
 None.
 
-## See Also
--

@@ -25,5 +25,3 @@ Configuration options and defaults for MicroM.
 ## Remarks
 None.
 
-## See Also
-- 

@@ -35,5 +35,3 @@ None.
 |:------------|:-------------|
 | CreateFilters<T>(string name = "") | Creates a filter entity for the view. |
 
-## See Also
--

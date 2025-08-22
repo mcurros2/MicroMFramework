@@ -33,5 +33,3 @@ Authentication utilities for web apps.
 ## Remarks
 None.
 
-## See Also
--

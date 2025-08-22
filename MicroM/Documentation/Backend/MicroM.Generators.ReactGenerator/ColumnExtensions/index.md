@@ -20,5 +20,3 @@ string display = column.AsDisplayName();
 ## Remarks
 None.
 
-## See Also
--

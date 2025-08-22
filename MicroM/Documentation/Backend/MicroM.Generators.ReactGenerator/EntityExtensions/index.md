@@ -22,5 +22,3 @@ string def = entity.AsTypeScriptEntityDefinition();
 ## Remarks
 None.
 
-## See Also
--

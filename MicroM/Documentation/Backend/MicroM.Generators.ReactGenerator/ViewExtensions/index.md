@@ -20,5 +20,3 @@ string views = entity.Def.Views.AsViewsDefinition();
 ## Remarks
 None.
 
-## See Also
--

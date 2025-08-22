@@ -5,5 +5,3 @@ Defines the contract for entities controller.
 ## Remarks
 None.
 
-## See Also
--

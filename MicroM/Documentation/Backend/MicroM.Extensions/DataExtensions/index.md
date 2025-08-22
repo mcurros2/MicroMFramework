@@ -29,5 +29,3 @@ if (results.HasData()) {
 ## Remarks
 None.
 
-## See Also
--

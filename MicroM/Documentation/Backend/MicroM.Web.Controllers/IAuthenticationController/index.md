@@ -5,5 +5,3 @@ Defines the contract for authentication controller.
 ## Remarks
 None.
 
-## See Also
--

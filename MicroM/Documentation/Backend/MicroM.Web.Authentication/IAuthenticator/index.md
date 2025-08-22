@@ -5,5 +5,3 @@ Defines the contract for authenticator.
 ## Remarks
 None.
 
-## See Also
--

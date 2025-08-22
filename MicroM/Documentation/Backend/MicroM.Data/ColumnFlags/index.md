@@ -19,5 +19,3 @@ Flags describing column behavior and usage.
 ## Remarks
 None.
 
-## See Also
--
