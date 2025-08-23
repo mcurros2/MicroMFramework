@@ -1,16 +1,16 @@
 ﻿namespace MicroM.Web.Services
 {
     /// <summary>
-    /// Represents the ServeFileResult.
+    /// Represents a file served to the client.
     /// </summary>
     public class ServeFileResult
     {
         /// <summary>
-        /// Gets or sets the null!;.
+        /// Stream containing the file contents.
         /// </summary>
         public FileStream FileStream { get; set; } = null!;
         /// <summary>
-        /// Gets or sets the null!;.
+        /// MIME type of the file being served.
         /// </summary>
         public string ContentType { get; set; } = null!;
     }

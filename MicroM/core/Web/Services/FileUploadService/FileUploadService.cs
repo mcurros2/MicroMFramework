@@ -80,8 +80,18 @@ namespace MicroM.Web.Services
         }
 
         /// <summary>
-        /// Performs the UploadFile operation.
+        /// Uploads a file to the configured storage and records it in the database.
         /// </summary>
+        /// <param name="app_id">Application identifier.</param>
+        /// <param name="fileprocess_id">Process identifier associated with the file.</param>
+        /// <param name="fileName">Original file name.</param>
+        /// <param name="fileData">Stream containing the file data.</param>
+        /// <param name="maxSize">Optional maximum thumbnail size.</param>
+        /// <param name="quality">Optional thumbnail quality.</param>
+        /// <param name="ec">Entity client used for database access.</param>
+        /// <param name="ct">Token to observe for cancellation.</param>
+        /// <returns>Information about the stored file or an error message.</returns>
+        /// <remarks>Throws <see cref="OperationCanceledException"/> when cancelled and may propagate I/O or database exceptions.</remarks>
         public async Task<UploadFileResult> UploadFile(string app_id, string fileprocess_id, string fileName, Stream fileData, int? maxSize, int? quality, IEntityClient ec, CancellationToken ct)
         {
             string fullPath = string.Empty;
@@ -185,8 +195,14 @@ namespace MicroM.Web.Services
 
 
         /// <summary>
-        /// Performs the GetFilePath operation.
+        /// Retrieves the full path of a stored file.
         /// </summary>
+        /// <param name="app_id">Application identifier.</param>
+        /// <param name="fileguid">Generated file name used for storage.</param>
+        /// <param name="ec">Entity client used for database access.</param>
+        /// <param name="ct">Token to observe for cancellation.</param>
+        /// <returns>The full path to the file if found; otherwise <see langword="null"/>.</returns>
+        /// <remarks>Throws <see cref="OperationCanceledException"/> when cancelled.</remarks>
         public async Task<string?> GetFilePath(string app_id, string fileguid, IEntityClient ec, CancellationToken ct)
         {
             string cacheKey = $"FileStore_{fileguid}";
@@ -248,8 +264,14 @@ namespace MicroM.Web.Services
         }
 
         /// <summary>
-        /// Performs the ServeFile operation.
+        /// Serves the requested file to the client.
         /// </summary>
+        /// <param name="app_id">Application identifier.</param>
+        /// <param name="fileguid">Generated file name used for storage.</param>
+        /// <param name="ec">Entity client used for database access.</param>
+        /// <param name="ct">Token to observe for cancellation.</param>
+        /// <returns>A result containing the file stream and content type, if available.</returns>
+        /// <remarks>Throws <see cref="OperationCanceledException"/> when cancelled.</remarks>
         public async Task<ServeFileResult?> ServeFile(string app_id, string fileguid, IEntityClient ec, CancellationToken ct)
         {
             ServeFileResult? result = null;
@@ -273,8 +295,16 @@ namespace MicroM.Web.Services
         }
 
         /// <summary>
-        /// Performs the ServeThumbnail operation.
+        /// Serves a thumbnail for the requested file, generating one if necessary.
         /// </summary>
+        /// <param name="app_id">Application identifier.</param>
+        /// <param name="fileguid">Generated file name used for storage.</param>
+        /// <param name="maxSize">Optional maximum size for generated thumbnail.</param>
+        /// <param name="quality">Optional quality setting for generated thumbnail.</param>
+        /// <param name="ec">Entity client used for database access.</param>
+        /// <param name="ct">Token to observe for cancellation.</param>
+        /// <returns>A result containing the thumbnail stream and content type, if available.</returns>
+        /// <remarks>Throws <see cref="OperationCanceledException"/> when cancelled.</remarks>
         public async Task<ServeFileResult?> ServeThumbnail(string app_id, string fileguid, int? maxSize, int? quality, IEntityClient ec, CancellationToken ct)
         {
             ServeFileResult? result = null;
@@ -324,7 +354,7 @@ namespace MicroM.Web.Services
         }
 
         /// <summary>
-        /// Performs the Dispose operation.
+        /// Releases allocated resources.
         /// </summary>
         public void Dispose()
         {

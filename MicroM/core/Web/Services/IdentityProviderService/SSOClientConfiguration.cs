@@ -1,20 +1,20 @@
 ﻿namespace MicroM.Web.Services;
 
 /// <summary>
-/// Represents the SSOClientConfiguration.
+/// Configuration options for an SSO client application.
 /// </summary>
 public class SSOClientConfiguration
 {
     /// <summary>
-    /// Gets or sets the }.
+    /// Identifier of the client application.
     /// </summary>
     public string ClientAppId { get; set; }
     /// <summary>
-    /// Gets or sets the }.
+    /// Allowed redirect URIs after successful authentication.
     /// </summary>
     public List<string> RedirectUris { get; set; }
     /// <summary>
-    /// Gets or sets the }.
+    /// URIs to redirect to after the user logs out.
     /// </summary>
     public List<string> PostLogoutRedirectUris { get; set; }
 }

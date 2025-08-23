@@ -1,24 +1,24 @@
 ﻿namespace MicroM.Web.Services
 {
     /// <summary>
-    /// Represents the UploadFileResult.
+    /// Result returned from a file upload operation.
     /// </summary>
     public record UploadFileResult
     {
         /// <summary>
-        /// Gets or sets the null;.
+        /// Error message when the upload fails; otherwise <see langword="null"/>.
         /// </summary>
         public string? ErrorMessage { get; init; } = null;
         /// <summary>
-        /// Gets or sets the string.Empty;.
+        /// Identifier of the stored file.
         /// </summary>
         public string FileId { get; init; } = string.Empty;
         /// <summary>
-        /// Gets or sets the string.Empty;.
+        /// Identifier of the process that handled the file.
         /// </summary>
         public string FileProcessId { get; init; } = string.Empty;
         /// <summary>
-        /// Gets or sets the string.Empty;.
+        /// Generated unique file name used for storage.
         /// </summary>
         public string FileGuid { get; init; } = string.Empty;
 

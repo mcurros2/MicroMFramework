@@ -10,43 +10,43 @@ namespace MicroM.Web.Services;
 public interface IWebAPIServices
 {
     /// <summary>
-    /// Gets or sets the }.
+    /// Application-wide logger.
     /// </summary>
     public ILogger log { get; }
     /// <summary>
-    /// Gets or sets the }.
+    /// Provides encryption utilities for the API.
     /// </summary>
     public IMicroMEncryption encryptor { get; }
     /// <summary>
-    /// Gets or sets the }.
+    /// Supplies application configuration data.
     /// </summary>
     public IMicroMAppConfiguration app_config { get; }
     /// <summary>
-    /// Gets or sets the }.
+    /// Queue for processing background tasks.
     /// </summary>
     public IBackgroundTaskQueue backgroundTaskQueue { get; }
     /// <summary>
-    /// Gets or sets the }.
+    /// Handles file uploads.
     /// </summary>
     public IFileUploadService upload { get; }
     /// <summary>
-    /// Gets or sets the }.
+    /// Sends application emails.
     /// </summary>
     public IEmailService emailService { get; }
     /// <summary>
-    /// Gets or sets the }.
+    /// Provides authorization checks.
     /// </summary>
     public ISecurityService securityService { get; }
     /// <summary>
-    /// Gets or sets the }.
+    /// Resolves and tracks device identifiers.
     /// </summary>
     public IDeviceIdService deviceIdService { get; }
     /// <summary>
-    /// Gets or sets the }.
+    /// Performs entity-related operations.
     /// </summary>
     public IEntitiesService entitiesService { get; }
     /// <summary>
-    /// Gets or sets the }.
+    /// Manages authentication operations.
     /// </summary>
     public IAuthenticationService authenticationService { get; }
 }
