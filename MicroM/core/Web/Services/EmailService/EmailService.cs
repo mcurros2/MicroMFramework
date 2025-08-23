@@ -19,8 +19,13 @@ namespace MicroM.Web.Services
     {
 
         /// <summary>
-        /// Performs the QueueEmail operation.
+        /// Queues an email for later processing and optional immediate dispatch.
         /// </summary>
+        /// <param name="app_id">Application identifier.</param>
+        /// <param name="send_item">Information about the email to queue.</param>
+        /// <param name="ct">Token to observe for cancellation.</param>
+        /// <param name="start_processing_queue">If <see langword="true"/>, begins processing the queue after enqueuing.</param>
+        /// <returns>A list describing the outcome of the queuing operation.</returns>
         public async Task<List<SubmitToQueueResult>> QueueEmail(string app_id, EmailServiceItem send_item, CancellationToken ct, bool start_processing_queue = false)
         {
             ArgumentNullException.ThrowIfNullOrEmpty(send_item.EmailServiceConfigurationId, nameof(send_item.EmailServiceConfigurationId));
@@ -65,6 +70,15 @@ namespace MicroM.Web.Services
             }
         }
 
+        /// <summary>
+        /// Updates the status of a queued email in the database.
+        /// </summary>
+        /// <param name="emq">Entity used to persist queue information.</param>
+        /// <param name="item">Queued email item to update.</param>
+        /// <param name="new_status">Status value to apply.</param>
+        /// <param name="last_error">Optional error message to store with the item.</param>
+        /// <param name="ct">Token to observe for cancellation.</param>
+        /// <returns>A task representing the asynchronous operation.</returns>
         private async Task UpdateQueueStatus(EmailServiceQueue emq, EmailQueuedItem item, string new_status, string? last_error, CancellationToken ct)
         {
             emq.Def.c_email_queue_id.Value = item.c_email_queue_id;
@@ -100,23 +114,30 @@ namespace MicroM.Web.Services
         internal class SendMailResult
         {
             /// <summary>
-            /// failed; field.
+            /// Indicates whether sending the email failed.
             /// </summary>
             public bool failed;
             /// <summary>
-            /// should_retry; field.
+            /// Indicates whether the email should be retried.
             /// </summary>
             public bool should_retry;
             /// <summary>
-            /// last_error; field.
+            /// Details about the last error encountered.
             /// </summary>
             public string? last_error;
             /// <summary>
-            /// send_result; field.
+            /// SMTP provider result returned after sending.
             /// </summary>
             public string? send_result;
         };
 
+        /// <summary>
+        /// Sends a queued email using the specified configuration.
+        /// </summary>
+        /// <param name="item">Queued email item to send.</param>
+        /// <param name="config">SMTP configuration to use.</param>
+        /// <param name="ct">Token to observe for cancellation.</param>
+        /// <returns>Information about the send result and retry state.</returns>
         internal static async Task<SendMailResult> SendEmail(EmailQueuedItem item, EmailServiceConfigurationData config, CancellationToken ct)
         {
             var mailMessage = new MimeMessage();
@@ -198,6 +219,9 @@ namespace MicroM.Web.Services
         /// <summary>
         /// Performs the StartProcessingQueue operation.
         /// </summary>
+        /// <param name="app_id">Application identifier.</param>
+        /// <param name="ct">Token to observe for cancellation.</param>
+        /// <returns>A task representing the asynchronous operation.</returns>
         public Task StartProcessingQueue(string app_id, CancellationToken ct)
         {
 
