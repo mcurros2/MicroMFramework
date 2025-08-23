@@ -1,7 +1,7 @@
-namespace MicroM.DataDictionary.Configuration
+﻿namespace MicroM.DataDictionary.Configuration
 {
     /// <summary>
-    /// Defines a simple pair of identifier and description.
+    /// Represents a definition that pairs an identifier with a description.
     /// </summary>
     public class IDDescriptionDefinition
     {
@@ -11,7 +11,7 @@ namespace MicroM.DataDictionary.Configuration
         public string ID { get; init; } = null!;
 
         /// <summary>
-        /// Gets the associated description text.
+        /// Gets the descriptive text associated with the identifier.
         /// </summary>
         public string Description { get; init; } = null!;
 
@@ -21,7 +21,7 @@ namespace MicroM.DataDictionary.Configuration
         public IDDescriptionDefinition() { }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="IDDescriptionDefinition"/> class with identifier and description.
+        /// Initializes a new instance of the <see cref="IDDescriptionDefinition"/> class with the specified identifier and description.
         /// </summary>
         /// <param name="id">Identifier value.</param>
         /// <param name="description">Description text.</param>
