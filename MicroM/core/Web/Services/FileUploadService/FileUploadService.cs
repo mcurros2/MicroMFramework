@@ -23,6 +23,18 @@ namespace MicroM.Web.Services
         private readonly IThumbnailService _thumbnailService = thumbnailService;
         private bool disposedValue;
 
+        /// <summary>
+        /// Queues metadata for an incoming file and prepares its destination path.
+        /// </summary>
+        /// <param name="app_id">Application identifier.</param>
+        /// <param name="fileprocess_id">Process identifier associated with the file.</param>
+        /// <param name="file_name">Original name of the uploaded file.</param>
+        /// <param name="ec">Entity client used for database access.</param>
+        /// <param name="ct">Token to observe for cancellation.</param>
+        /// <returns>
+        /// A tuple containing an error message, the <see cref="FileStore"/> record,
+        /// the full file path, and the file extension.
+        /// </returns>
         private async Task<(string? errorMessage, FileStore? file_store, string? fullPath, string? extension)>
             QueueFile(string app_id, string fileprocess_id, string file_name, IEntityClient ec, CancellationToken ct)
         {
