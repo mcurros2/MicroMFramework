@@ -13,15 +13,15 @@ namespace MicroM.Web.Services.Security
     public class GroupSecurityRecord(string groupId, DateTime? last_updated, IEnumerable<string>? allowed_routes = null)
     {
         /// <summary>
-        /// groupId; field.
+        /// Unique identifier for the group whose permissions are represented by this record.
         /// </summary>
         public readonly string GroupId = groupId;
         /// <summary>
-        /// last_updated; field.
+        /// Timestamp indicating when the group's permissions were last refreshed.
         /// </summary>
         public readonly DateTime? LastUpdated = last_updated;
         /// <summary>
-        /// Collection of routes that the group is authorized to call.
+        /// Set of route paths the group can access, stored case-insensitively for fast lookups.
         /// </summary>
         public ImmutableHashSet<string>? AllowedRoutes { get; internal set; } = allowed_routes?.ToImmutableHashSet(StringComparer.OrdinalIgnoreCase);
 
