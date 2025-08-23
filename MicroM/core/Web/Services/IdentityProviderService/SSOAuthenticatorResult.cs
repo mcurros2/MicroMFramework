@@ -1,20 +1,20 @@
 ﻿namespace MicroM.Web.Services;
 
 /// <summary>
-/// Represents the SSOAuthenticatorResult.
+/// Result of an SSO authentication attempt.
 /// </summary>
 public class SSOAuthenticatorResult
 {
     /// <summary>
-    /// Gets or sets the }.
+    /// Indicates whether authentication succeeded.
     /// </summary>
     public bool Succeeded { get; set; }
     /// <summary>
-    /// Gets or sets the }.
+    /// Error message when authentication fails.
     /// </summary>
     public string? ErrorMessage { get; set; }
     /// <summary>
-    /// Gets or sets the }.
+    /// Claims returned by the identity provider when authentication succeeds.
     /// </summary>
     public Dictionary<string, object>? Claims { get; set; }
 }

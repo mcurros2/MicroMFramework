@@ -1,36 +1,36 @@
 ﻿namespace MicroM.Web.Services
 {
     /// <summary>
-    /// Represents the FileDetails.
+    /// Metadata describing a stored file.
     /// </summary>
     public class FileDetails
     {
         /// <summary>
-        /// Gets or sets the "";.
+        /// Unique identifier of the file record.
         /// </summary>
         public string c_file_id { get; set; } = "";
         /// <summary>
-        /// Gets or sets the "";.
+        /// Identifier of the file process that produced the file.
         /// </summary>
         public string c_fileprocess_id { get; set; } = "";
         /// <summary>
-        /// Gets or sets the "";.
+        /// Original file name provided by the uploader.
         /// </summary>
         public string vc_filename { get; set; } = "";
         /// <summary>
-        /// Gets or sets the "";.
+        /// Relative folder where the file is stored.
         /// </summary>
         public string vc_filefolder { get; init; } = "";
         /// <summary>
-        /// Gets or sets the "";.
+        /// Generated unique file name used for storage.
         /// </summary>
         public string vc_fileguid { get; set; } = "";
         /// <summary>
-        /// Gets or sets the }.
+        /// Size of the file in bytes.
         /// </summary>
         public long bi_filesize { get; set; }
         /// <summary>
-        /// Gets or sets the "";.
+        /// Current upload status identifier.
         /// </summary>
         public string c_fileuploadstatus_id { get; set; } = "";
     }

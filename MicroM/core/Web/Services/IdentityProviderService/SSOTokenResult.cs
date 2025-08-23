@@ -1,28 +1,28 @@
 ﻿namespace MicroM.Web.Services;
 
 /// <summary>
-/// Represents the SSOTokenResult.
+/// Tokens and expiration information returned from an SSO authorization flow.
 /// </summary>
 public class SSOTokenResult
 {
     /// <summary>
-    /// Gets or sets the }.
+    /// Access token issued to the client.
     /// </summary>
     public string AccessToken { get; set; }
     /// <summary>
-    /// Gets or sets the }.
+    /// ID token containing user identity claims.
     /// </summary>
     public string IdToken { get; set; }
     /// <summary>
-    /// Gets or sets the }.
+    /// Refresh token used to obtain new access tokens.
     /// </summary>
     public string RefreshToken { get; set; }
     /// <summary>
-    /// Gets or sets the }.
+    /// Number of seconds until the access token expires.
     /// </summary>
     public int ExpiresIn { get; set; }
     /// <summary>
-    /// Gets or sets the "Bearer";.
+    /// Type of token issued, typically "Bearer".
     /// </summary>
     public string TokenType { get; set; } = "Bearer";
 }

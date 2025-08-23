@@ -10,21 +10,21 @@ namespace MicroM.Web.Services
         //public Task<UploadFileResult> QueueFile(string app_id, string fileprocess_id, string file_name, Stream fileData, IEntityClient ec, CancellationToken ct);
 
         /// <summary>
-        /// Performs the UploadFile operation.
+        /// Uploads a file and records it in the database.
         /// </summary>
-        public Task<UploadFileResult> UploadFile(string app_id, string fileprocess_id, string file_name, Stream fileData, int? maxSize, int? quality, IEntityClient ec, CancellationToken ct);
+        Task<UploadFileResult> UploadFile(string app_id, string fileprocess_id, string file_name, Stream fileData, int? maxSize, int? quality, IEntityClient ec, CancellationToken ct);
         /// <summary>
-        /// Performs the ServeFile operation.
+        /// Serves a stored file to the client.
         /// </summary>
-        public Task<ServeFileResult?> ServeFile(string app_id, string fileguid, IEntityClient ec, CancellationToken ct);
+        Task<ServeFileResult?> ServeFile(string app_id, string fileguid, IEntityClient ec, CancellationToken ct);
         /// <summary>
-        /// Performs the GetFilePath operation.
+        /// Retrieves the full path of a stored file.
         /// </summary>
-        public Task<string?> GetFilePath(string app_id, string fileguid, IEntityClient ec, CancellationToken ct);
+        Task<string?> GetFilePath(string app_id, string fileguid, IEntityClient ec, CancellationToken ct);
         /// <summary>
-        /// Performs the ServeThumbnail operation.
+        /// Serves a thumbnail for the specified file.
         /// </summary>
-        public Task<ServeFileResult?> ServeThumbnail(string app_id, string fileguid, int? maxSize, int? quality, IEntityClient ec, CancellationToken ct);
+        Task<ServeFileResult?> ServeThumbnail(string app_id, string fileguid, int? maxSize, int? quality, IEntityClient ec, CancellationToken ct);
 
     }
 }
