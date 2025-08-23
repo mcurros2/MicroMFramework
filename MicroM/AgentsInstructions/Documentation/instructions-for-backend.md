@@ -35,14 +35,26 @@ This file defines the iterative documentation workflow for documenting the backe
   - Sub-folders for each class, struct, enum, and interface
 
 ---
-
+## Mandatory rules for documentation
+- All documentation must be written in **English**.
+- Never modify any C# source code files in the documentation process.
+  - Do not add, remove or change any executable code.
+  - Do not ad dependencies to the code.
+  - Only add or update XML comments in the source code.
+- Respect file encoding:
+  - Use **UTF-8** encoding for all markdown files.
+  - Ensure BOM (Byte Order Mark) is present in the files.
+- Respect end of line (EOL) conventions:
+  - Use **CRLF** (Line Feed) for line endings in all markdown files.
+  - Use **CRLF** for C# source code files.
+  
 ## How to document a namespace
 - Each namespace must have its own folder in `MicroM/Documentation/Backend/`.
 - Each namespace folder must have an `index.md` file.
 - Each namespace `index.md` must follow the [`namespace-documentation-template.md`](Templates/namespace-documentation-template.md) template.
 - Each namespace must be listed in `MicroM/Documentation/Backend/index.md`.
 
-# How to document a class, struct, enum, or interface
+## How to document a class, struct, enum, or interface
 - Each class, struct, enum, or interface must have its own folder in `MicroM/Documentation/Backend/{{namespace}}`.
 - Each class, struct, enum, or interface folder must have an `index.md` file.
 - Each class, struct, enum, or interface `index.md` must follow the corresponding template (e.g., [`class-doc-template.md`](Templates/class-doc-template.md)).
