@@ -14,7 +14,10 @@ namespace MicroM.Web.Authentication
 {
 
     /// <summary>
-    /// Represents the SQLServerAuthenticator.
+    /// Provides SQL Server based authentication for MicroM applications.
+    /// Responsible for validating user credentials against SQL Server,
+    /// issuing and managing refresh tokens using HTTP cookies, and
+    /// enforcing account lockout policies during login flows.
     /// </summary>
     public class SQLServerAuthenticator : IAuthenticator
     {
@@ -36,11 +39,21 @@ namespace MicroM.Web.Authentication
 
         private static ConcurrentDictionary<string, AccountLockout> _lockout_cache = new(StringComparer.OrdinalIgnoreCase);
 
+        /// <summary>
+        /// Builds the name of the refresh token cookie for the given application.
+        /// </summary>
+        /// <param name="app_config">Application configuration providing the application identifier.</param>
+        /// <returns>The refresh token cookie name.</returns>
         private string GetRefreshCookieName(ApplicationOption app_config)
         {
             return $"m-{nameof(SQLServerAuthenticator)}-{app_config.ApplicationID}-r";
         }
 
+        /// <summary>
+        /// Reads the refresh token value from the current HTTP request cookie.
+        /// </summary>
+        /// <param name="app_config">Application configuration used to resolve the cookie name.</param>
+        /// <returns>The refresh token if the cookie exists; otherwise, <c>null</c>.</returns>
         private string? ReadRefreshTokenFromCookie(ApplicationOption app_config)
         {
             string? refresh_token = null;
@@ -49,6 +62,11 @@ namespace MicroM.Web.Authentication
             return refresh_token;
         }
 
+        /// <summary>
+        /// Writes a refresh token to the response cookie for subsequent requests.
+        /// </summary>
+        /// <param name="app_config">Application configuration providing expiration and path details.</param>
+        /// <param name="new_refresh_token">The refresh token to persist.</param>
         private void WriteRefreshTokenToCookie(ApplicationOption app_config, string new_refresh_token)
         {
             var httpc = _contextAccessor.HttpContext;
@@ -63,6 +81,10 @@ namespace MicroM.Web.Authentication
             });
         }
 
+        /// <summary>
+        /// Removes the refresh token cookie from the client.
+        /// </summary>
+        /// <param name="app_config">Application configuration used to determine the cookie name.</param>
         private void DeleteRefreshCookie(ApplicationOption app_config)
         {
             var httpc = _contextAccessor.HttpContext;
