@@ -11,13 +11,21 @@ namespace MicroM.Web.Services.Security
     /// </summary>
     public enum MicroMEveryoneAllowedRoutes
     {
+        /// <summary>Route used to log the current user out.</summary>
         logoff,
+        /// <summary>Endpoint that refreshes the authentication token.</summary>
         refresh,
+        /// <summary>Checks whether the caller is currently authenticated.</summary>
         isloggedin,
+        /// <summary>Serves static or stored files without authentication.</summary>
         serve,
+        /// <summary>Uploads temporary files that do not require authentication.</summary>
         tmpupload,
+        /// <summary>Starts the password recovery process.</summary>
         recoverpassword,
+        /// <summary>Sends recovery e-mails to users.</summary>
         recoveryemail,
+        /// <summary>Retrieves a thumbnail image for a stored file.</summary>
         thumbnail
     }
 

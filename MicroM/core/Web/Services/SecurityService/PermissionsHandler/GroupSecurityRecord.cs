@@ -29,6 +29,9 @@ namespace MicroM.Web.Services.Security
         /// Replaces the current allowed routes with the provided set.
         /// </summary>
         /// <param name="routes">Route paths that should be allowed for the group.</param>
+        /// <returns>
+        /// <see langword="void"/>. The internal <see cref="AllowedRoutes"/> collection is updated in place.
+        /// </returns>
         public void AddAllowedRoutes(IEnumerable<string> routes)
         {
             AllowedRoutes = routes.ToImmutableHashSet(StringComparer.OrdinalIgnoreCase);

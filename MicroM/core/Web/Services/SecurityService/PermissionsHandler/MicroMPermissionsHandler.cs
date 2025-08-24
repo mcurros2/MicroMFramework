@@ -4,10 +4,12 @@ using Microsoft.AspNetCore.Http;
 namespace MicroM.Web.Services.Security
 {
     /// <summary>
-    /// Authorization handler that validates a request against the
+    /// ASP.NET Core authorization handler that validates a request against the
     /// <see cref="ISecurityService"/>. The handler inspects the current
     /// <see cref="HttpContext"/> to extract route information and delegates
     /// the authorization decision to <see cref="ISecurityService.IsAuthorized"/>.
+    /// It is registered with the authorization middleware and participates in
+    /// the pipeline for every request guarded by <see cref="MicroMPermissionsRequirement"/>.
     /// </summary>
     /// <param name="securityService">Service used to evaluate route permissions.</param>
     /// <param name="http_context_accesor">Accessor for obtaining the current <see cref="HttpContext"/>.</param>
