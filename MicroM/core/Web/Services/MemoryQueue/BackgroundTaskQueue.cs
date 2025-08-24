@@ -24,23 +24,23 @@ namespace MicroM.Web.Services
     public class TaskStatusInfo
     {
         /// <summary>
-        /// Gets or sets the }.
+        /// Gets or sets the current status of the task within the queue.
         /// </summary>
         public QueueTaskStatus Status { get; set; }
         /// <summary>
-        /// Gets or sets the }.
+        /// Gets or sets an optional human-readable message describing the task status.
         /// </summary>
         public string? StatusMessage { get; set; }
         /// <summary>
-        /// Gets or sets the }.
+        /// Gets or sets the time at which the task was queued.
         /// </summary>
         public DateTime Queued { get; set; }
         /// <summary>
-        /// Gets or sets the }.
+        /// Gets or sets the time the task began execution, if it has started.
         /// </summary>
         public DateTime? Started { get; set; }
         /// <summary>
-        /// Gets or sets the }.
+        /// Gets or sets the time the task finished processing, if it has completed.
         /// </summary>
         public DateTime? Finished { get; set; }
     }
@@ -51,11 +51,11 @@ namespace MicroM.Web.Services
     public class QueueStatusInfo
     {
         /// <summary>
-        /// Gets or sets the }.
+        /// Gets or sets the number of tasks currently waiting in the queue.
         /// </summary>
         public int QueuedCount { get; set; }
         /// <summary>
-        /// Gets or sets the }.
+        /// Gets or sets the number of tasks that are presently executing.
         /// </summary>
         public int RunningCount { get; set; }
     }
@@ -66,31 +66,41 @@ namespace MicroM.Web.Services
     public interface IBackgroundTaskQueue
     {
         /// <summary>
-        /// Performs the Enqueue operation.
+        /// Adds a new work item to the background queue.
         /// </summary>
+        /// <param name="TaskName">Friendly name used to identify the task.</param>
+        /// <param name="workItem">The asynchronous operation to execute.</param>
+        /// <param name="singleInstance">When <c>true</c>, prevents queuing another task with the same name while one is running or queued.</param>
+        /// <param name="recurrence">Optional interval to automatically requeue the task after completion.</param>
+        /// <returns>The unique identifier assigned to the enqueued task, or <see cref="Guid.Empty"/> if rejected.</returns>
         public Guid Enqueue(string TaskName, Func<CancellationToken, Task<string>> workItem, bool singleInstance, TimeSpan? recurrence = null);
         /// <summary>
-        /// Performs the GetQueueStatus operation.
+        /// Retrieves the current counts of queued and running tasks.
         /// </summary>
+        /// <returns>A <see cref="QueueStatusInfo"/> describing the queue.</returns>
         public QueueStatusInfo GetQueueStatus();
         /// <summary>
-        /// Performs the GetTasksStatus operation.
+        /// Retrieves status information for all tasks.
         /// </summary>
+        /// <returns>A dictionary mapping task identifiers to their status information.</returns>
         public IDictionary<Guid, TaskStatusInfo> GetTasksStatus();
         /// <summary>
-        /// Performs the GetTaskStatus operation.
+        /// Retrieves status information for a specific task.
         /// </summary>
+        /// <param name="taskId">The identifier of the task whose status is requested.</param>
+        /// <returns>A <see cref="TaskStatusInfo"/> representing the task status.</returns>
         public TaskStatusInfo GetTaskStatus(Guid taskId);
         /// <summary>
-        /// Performs the CancelTask operation.
+        /// Cancels a queued or running task by its identifier.
         /// </summary>
+        /// <param name="taskId">The identifier of the task to cancel.</param>
         public void CancelTask(Guid taskId);
         /// <summary>
-        /// Gets or sets the }.
+        /// Gets the token used to signal cancellation of queue processing.
         /// </summary>
         public CancellationToken QueueCT { get; }
         /// <summary>
-        /// Performs the CancelAllTasks operation.
+        /// Cancels all queued and running tasks.
         /// </summary>
         public void CancelAllTasks();
     }
@@ -101,31 +111,31 @@ namespace MicroM.Web.Services
     public class QueueItem
     {
         /// <summary>
-        /// Gets or sets the }.
+        /// Gets the unique identifier of the task.
         /// </summary>
         public Guid TaskID { get; init; }
         /// <summary>
-        /// Gets or sets the null!;.
+        /// Gets the descriptive name of the task.
         /// </summary>
         public string Name { get; init; } = null!;
         /// <summary>
-        /// Gets or sets the null!;.
+        /// Gets the work item delegate to execute for this task.
         /// </summary>
         public Func<CancellationToken, Task<string>> WorkItem { get; init; } = null!;
         /// <summary>
-        /// Gets or sets the }.
+        /// Gets or sets the cancellation token source linked to this task.
         /// </summary>
         public CancellationTokenSource? CTS { get; set; }
         /// <summary>
-        /// Gets or sets the null!;.
+        /// Gets or sets the current status information for the task.
         /// </summary>
         public TaskStatusInfo TaskStatus { get; set; } = null!;
         /// <summary>
-        /// Gets or sets the }.
+        /// Gets or sets the interval used to requeue the task after completion, if any.
         /// </summary>
         public TimeSpan? RecurrenceInterval { get; set; }
         /// <summary>
-        /// Gets or sets the false;.
+        /// Gets or sets a value indicating whether only one instance of the task may run at a time.
         /// </summary>
         public bool SingleInstance { get; set; } = false;
     }
@@ -152,17 +162,18 @@ namespace MicroM.Web.Services
 
 
         /// <summary>
-        /// queueCT; field.
+        /// Gets the <see cref="CancellationToken"/> that signals when the queue should stop processing.
         /// </summary>
         public CancellationToken QueueCT => queueCT;
 
         /// <summary>
-        /// Queues a task. TaskName string is used to identify if there are two instances of the same function running when singleInstance is true
+        /// Enqueues a new task for background processing.
         /// </summary>
-        /// <param name="FunctionID"></param>
-        /// <param name="workItem"></param>
-        /// <param name="singleInstance"></param>
-        /// <returns></returns>
+        /// <param name="TaskName">Friendly name used to identify the task.</param>
+        /// <param name="workItem">The asynchronous operation to execute.</param>
+        /// <param name="singleInstance">When <c>true</c>, prevents the task from running concurrently with another task of the same name.</param>
+        /// <param name="recurrenceInterval">Optional interval to automatically requeue the task after it completes.</param>
+        /// <returns>The unique identifier assigned to the enqueued task, or <see cref="Guid.Empty"/> if rejected.</returns>
         public Guid Enqueue(string TaskName, Func<CancellationToken, Task<string>> workItem, bool singleInstance, TimeSpan? recurrenceInterval = null)
         {
             if (singleInstance)
@@ -333,8 +344,9 @@ namespace MicroM.Web.Services
         }
 
         /// <summary>
-        /// Performs the CancelTask operation.
+        /// Cancels a queued or running task.
         /// </summary>
+        /// <param name="taskId">Identifier of the task to cancel.</param>
         public void CancelTask(Guid taskId)
         {
             if (_statuses.TryGetValue(taskId, out var item))
@@ -361,7 +373,7 @@ namespace MicroM.Web.Services
         }
 
         /// <summary>
-        /// Performs the CancelAllTasks operation.
+        /// Cancels all tasks currently queued or running.
         /// </summary>
         public void CancelAllTasks()
         {
@@ -372,8 +384,9 @@ namespace MicroM.Web.Services
         }
 
         /// <summary>
-        /// Performs the GetQueueStatus operation.
+        /// Retrieves the counts of queued and running tasks.
         /// </summary>
+        /// <returns>A <see cref="QueueStatusInfo"/> representing queue statistics.</returns>
         public QueueStatusInfo GetQueueStatus()
         {
             return new QueueStatusInfo
@@ -384,8 +397,9 @@ namespace MicroM.Web.Services
         }
 
         /// <summary>
-        /// Performs the GetTasksStatus operation.
+        /// Retrieves status information for all tasks in the queue.
         /// </summary>
+        /// <returns>A dictionary mapping each task identifier to its <see cref="TaskStatusInfo"/>.</returns>
         public IDictionary<Guid, TaskStatusInfo> GetTasksStatus()
         {
             var dict = new Dictionary<Guid, TaskStatusInfo>();
@@ -397,8 +411,10 @@ namespace MicroM.Web.Services
         }
 
         /// <summary>
-        /// Performs the GetTaskStatus operation.
+        /// Retrieves status information for a specific task.
         /// </summary>
+        /// <param name="taskId">The identifier of the task to query.</param>
+        /// <returns>The <see cref="TaskStatusInfo"/> for the requested task.</returns>
         public TaskStatusInfo GetTaskStatus(Guid taskId)
         {
             if (_statuses.TryGetValue(taskId, out var item))
@@ -440,7 +456,7 @@ namespace MicroM.Web.Services
         }
 
         /// <summary>
-        /// Performs the Dispose operation.
+        /// Releases all resources used by the <see cref="BackgroundTaskQueue"/>.
         /// </summary>
         public void Dispose()
         {
