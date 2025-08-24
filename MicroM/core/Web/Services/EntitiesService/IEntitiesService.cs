@@ -20,6 +20,10 @@ public interface IEntitiesService
     /// <summary>
     /// Creates an entity instance using the provided cancellation token.
     /// </summary>
+    /// <param name="entity_name">Name of the entity type to instantiate.</param>
+    /// <param name="server_claims">Claims used to resolve SQL credentials when required.</param>
+    /// <param name="ct">Token to observe for cancellation.</param>
+    /// <returns>The created entity instance, or <see langword="null"/> if the entity type is not found.</returns>
     EntityBase? CreateEntity(ApplicationOption app, string entity_name, Dictionary<string, object>? server_claims, CancellationToken ct);
 
     /// <summary>
