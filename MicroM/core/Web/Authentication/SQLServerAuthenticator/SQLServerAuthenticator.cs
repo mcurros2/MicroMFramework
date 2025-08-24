@@ -27,8 +27,12 @@ namespace MicroM.Web.Authentication
         private readonly IOptions<MicroMOptions> _microm_config;
 
         /// <summary>
-        /// Performs the SQLServerAuthenticator operation.
+        /// Initializes a new instance of the <see cref="SQLServerAuthenticator"/> class.
         /// </summary>
+        /// <param name="logger">Logger used for diagnostic messages.</param>
+        /// <param name="encryptor">Service used to encrypt sensitive data.</param>
+        /// <param name="contextAccessor">Accessor to the current HTTP context.</param>
+        /// <param name="microm_config">Configuration options for the application.</param>
         public SQLServerAuthenticator(ILogger<SQLServerAuthenticator> logger, IMicroMEncryption encryptor, IHttpContextAccessor contextAccessor, IOptions<MicroMOptions> microm_config)
         {
             _log = logger;
@@ -92,8 +96,12 @@ namespace MicroM.Web.Authentication
         }
 
         /// <summary>
-        /// Performs the AuthenticateLogin operation.
+        /// Authenticates a user by validating credentials against SQL Server.
         /// </summary>
+        /// <param name="app_config">Application configuration providing database connection details.</param>
+        /// <param name="user_login">Credentials supplied by the user.</param>
+        /// <param name="ct">Token used to cancel the operation.</param>
+        /// <returns>Result detailing login success or failure.</returns>
         public async Task<AuthenticatorResult> AuthenticateLogin(ApplicationOption app_config, UserLogin user_login, CancellationToken ct)
         {
             AuthenticatorResult result = new();
@@ -167,8 +175,14 @@ namespace MicroM.Web.Authentication
         }
 
         /// <summary>
-        /// Performs the AuthenticateRefresh operation.
+        /// Validates a refresh token for the specified user.
         /// </summary>
+        /// <param name="app_config">Application configuration for token policies.</param>
+        /// <param name="user_id">Identifier of the user.</param>
+        /// <param name="refresh_token">Refresh token presented by the client.</param>
+        /// <param name="local_device_id">Unused device identifier parameter.</param>
+        /// <param name="ct">Token used to cancel the operation.</param>
+        /// <returns>A result containing refresh token validation status.</returns>
         public Task<RefreshTokenResult> AuthenticateRefresh(ApplicationOption app_config, string user_id, string refresh_token, string local_device_id, CancellationToken ct)
         {
             RefreshTokenResult result = new();
@@ -206,8 +220,12 @@ namespace MicroM.Web.Authentication
         }
 
         /// <summary>
-        /// Performs the Logoff operation.
+        /// Clears cached refresh token information and removes the cookie.
         /// </summary>
+        /// <param name="app_config">Application configuration used to determine cookie name.</param>
+        /// <param name="user_name">User logging off.</param>
+        /// <param name="ct">Token used to cancel the operation.</param>
+        /// <returns>A completed task.</returns>
         public Task Logoff(ApplicationOption app_config, string user_name, CancellationToken ct)
         {
             if (string.IsNullOrEmpty(user_name)) throw new ArgumentException("Username is null or empty");
@@ -217,8 +235,9 @@ namespace MicroM.Web.Authentication
         }
 
         /// <summary>
-        /// Performs the UnencryptClaims operation.
+        /// Decrypts sensitive claims that were encrypted before being sent to the client.
         /// </summary>
+        /// <param name="server_claims">Collection of server claims to update.</param>
         public void UnencryptClaims(Dictionary<string, object>? server_claims)
         {
             if (server_claims != null && server_claims.TryGetValue(MicroMServerClaimTypes.MicroMPassword, out var admin_password))
@@ -228,26 +247,38 @@ namespace MicroM.Web.Authentication
         }
 
         /// <summary>
-        /// Performs the SendPasswordRecoveryEmail operation.
+        /// Sends a password recovery email to the specified user.
         /// </summary>
+        /// <param name="app_config">Application configuration.</param>
+        /// <param name="user_name">User requesting password recovery.</param>
+        /// <param name="ct">Token used to cancel the operation.</param>
+        /// <returns>A task representing the asynchronous operation.</returns>
         public Task<bool> SendPasswordRecoveryEmail(ApplicationOption app_config, string user_name, CancellationToken ct)
         {
             throw new NotImplementedException();
         }
 
         /// <summary>
-        /// Performs the RecoverPassword operation.
+        /// Changes a user's password using a recovery code.
         /// </summary>
+        /// <param name="app_config">Application configuration.</param>
+        /// <param name="user_name">User whose password will be updated.</param>
+        /// <param name="new_password">New password value.</param>
+        /// <param name="recovery_code">Code proving the user's identity.</param>
+        /// <param name="ct">Token used to cancel the operation.</param>
+        /// <returns>A task representing the asynchronous operation.</returns>
         public Task<bool> RecoverPassword(ApplicationOption app_config, string user_name, string new_password, string recovery_code, CancellationToken ct)
         {
             throw new NotImplementedException();
         }
 
+        /// <inheritdoc/>
         Task<(bool failed, string? error_message)> IAuthenticator.SendPasswordRecoveryEmail(ApplicationOption app_config, string user_name, CancellationToken ct)
         {
             throw new NotImplementedException();
         }
 
+        /// <inheritdoc/>
         Task<(bool failed, string? error_message)> IAuthenticator.RecoverPassword(ApplicationOption app_config, string user_name, string new_password, string recovery_code, CancellationToken ct)
         {
             throw new NotImplementedException();

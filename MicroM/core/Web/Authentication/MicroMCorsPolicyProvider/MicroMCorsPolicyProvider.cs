@@ -8,7 +8,8 @@ using Microsoft.Extensions.Options;
 namespace MicroM.Web.Authentication;
 
 /// <summary>
-/// Represents the MicroMCorsPolicyProvider.
+/// Provides CORS policies for MicroM authentication endpoints, limiting access
+/// to origins configured for each application.
 /// </summary>
 public class MicroMCorsPolicyProvider : ICorsPolicyProvider
 {
@@ -20,8 +21,11 @@ public class MicroMCorsPolicyProvider : ICorsPolicyProvider
     private string _rootPath;
 
     /// <summary>
-    /// Performs the MicroMCorsPolicyProvider operation.
+    /// Initializes a new instance of the <see cref="MicroMCorsPolicyProvider"/> class.
     /// </summary>
+    /// <param name="app_config">Service used to retrieve application configuration.</param>
+    /// <param name="log">Logger for diagnostic messages.</param>
+    /// <param name="config">Options providing API root path information.</param>
     public MicroMCorsPolicyProvider(IMicroMAppConfiguration app_config, ILogger<MicroMCorsPolicyProvider> log, IOptions<MicroMOptions> config)
     {
         this.app_config = app_config;
@@ -31,8 +35,11 @@ public class MicroMCorsPolicyProvider : ICorsPolicyProvider
     }
 
     /// <summary>
-    /// Performs the GetPolicyAsync operation.
+    /// Retrieves a CORS policy for the given request context.
     /// </summary>
+    /// <param name="context">Current HTTP context.</param>
+    /// <param name="policyName">Ignored policy name.</param>
+    /// <returns>The resolved <see cref="CorsPolicy"/>.</returns>
     public Task<CorsPolicy?> GetPolicyAsync(HttpContext context, string? policyName)
     {
         var originHeader = context.Request.Headers.Origin.ToString();
