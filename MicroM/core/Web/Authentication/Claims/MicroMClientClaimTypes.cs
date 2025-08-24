@@ -1,16 +1,17 @@
 ﻿namespace MicroM.Web.Authentication
 {
     /// <summary>
-    /// Represents the MicroMClientClaimTypes.
+    /// Defines claim type names issued to clients.
     /// </summary>
     public class MicroMClientClaimTypes
     {
         /// <summary>
-        /// Performs the nameof operation.
+        /// Claim type for the user's name.
         /// </summary>
         public const string username = nameof(username);
+
         /// <summary>
-        /// Performs the nameof operation.
+        /// Claim type for the user's email address.
         /// </summary>
         public const string useremail = nameof(useremail);
     }
