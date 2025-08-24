@@ -1,4 +1,4 @@
-﻿using MicroM.Configuration;
+﻿﻿using MicroM.Configuration;
 using MicroM.DataDictionary;
 using MicroM.DataDictionary.CategoriesDefinitions;
 using MicroM.Extensions;
@@ -26,11 +26,13 @@ namespace MicroM.Web.Services.Security
     }
 
     /// <summary>
-    /// Provides authorization checks and caches group route permissions.
+    /// Implements <see cref="ISecurityService"/> using an in-memory cache of group
+    /// route permissions. Requests are authorized by combining globally allowed
+    /// routes with group-specific paths refreshed from the configuration database.
     /// </summary>
-    /// <param name="app_config">Application configuration provider.</param>
-    /// <param name="logger">Logger used to record diagnostic information.</param>
-    /// <param name="options">Runtime options that influence security behavior.</param>
+    /// <param name="app_config">Provides application configuration and database clients.</param>
+    /// <param name="logger">Outputs diagnostic and error information.</param>
+    /// <param name="options">Supplies runtime options such as API base paths.</param>
     public class SecurityService(IMicroMAppConfiguration app_config, ILogger<SecurityService> logger, IOptions<MicroMOptions> options) : ISecurityService, IHostedService
     {
 
@@ -99,10 +101,12 @@ namespace MicroM.Web.Services.Security
         }
 
         /// <summary>
-        /// Refreshes the cached security information for the specified application.
+        /// Rebuilds the cached security records for the given application by removing
+        /// any existing entries and loading the latest group routes from the
+        /// configuration store.
         /// </summary>
-        /// <param name="app_id">Application identifier whose group records should be refreshed.</param>
-        /// <param name="ct">Cancellation token.</param>
+        /// <param name="app_id">Identifier of the application whose group records are refreshed.</param>
+        /// <param name="ct">Token that cancels the refresh operation.</param>
         /// <returns>A task representing the asynchronous refresh operation.</returns>
         public async Task RefreshGroupsSecurityRecords(string? app_id, CancellationToken ct)
         {
@@ -142,18 +146,14 @@ namespace MicroM.Web.Services.Security
 
         /// <summary>
         /// Determines whether the supplied claims authorize access to the
-        /// specified route within the given application. The method first
-        /// checks if the route is globally allowed via
-        /// <see cref="EveryoneAllowedRoutes"/> configuration and then verifies
-        /// membership-based permissions loaded by <see cref="RefreshGroupsSecurityRecords"/>.
+        /// specified route within the given application. Authorization succeeds
+        /// when the route is globally allowed or when any of the user's groups has
+        /// the route listed in its cached permissions.
         /// </summary>
-        /// <param name="app_id">Application identifier.</param>
-        /// <param name="route_path">Route path being accessed.</param>
-        /// <param name="server_claims">Claims describing the current user.</param>
-        /// <returns>
-        /// <see langword="true"/> when the route is authorized; otherwise
-        /// <see langword="false"/>.
-        /// </returns>
+        /// <param name="app_id">Unique identifier of the target application.</param>
+        /// <param name="route_path">Absolute route path being requested.</param>
+        /// <param name="server_claims">Claims describing the current user, including group memberships.</param>
+        /// <returns><see langword="true"/> when the route is authorized; otherwise <see langword="false"/>.</returns>
         public bool IsAuthorized(string app_id, string route_path, Dictionary<string, object?> server_claims)
         {
             var user_type = server_claims.TryGetValue(MicroMServerClaimTypes.MicroMUserType_id, out var userTypeObj) && userTypeObj is string userType ? userType : "";
@@ -185,8 +185,8 @@ namespace MicroM.Web.Services.Security
         }
 
         /// <summary>
-        /// Loads the security records for all configured applications when the
-        /// service starts.
+        /// Preloads the security records for all configured applications when the
+        /// host starts.
         /// </summary>
         /// <param name="cancellationToken">Token used to cancel the startup operation.</param>
         /// <returns>A task that completes when initialization is finished.</returns>
