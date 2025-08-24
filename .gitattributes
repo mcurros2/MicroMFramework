@@ -1,28 +1,11 @@
 # Set default behavior
-* text=auto
-
-# C# files
-*.cs text eol=crlf
-*.csproj text eol=crlf
-*.sln text eol=crlf
-
-# React and TypeScript files
-*.js text eol=crlf
-*.jsx text eol=crlf
-*.ts text eol=crlf
-*.tsx text eol=crlf
-
-# Common web files
-*.json text eol=crlf
-*.css text eol=crlf
-*.scss text eol=crlf
-*.html text eol=crlf
-*.xml text eol=crlf
-*.yml text eol=crlf
-*.md text eol=crlf
-
-# markdown files
-*.md text eol=crlf
+* text=lf
 
 # Enforce LF for shell scripts (best practice)
 *.sh text eol=lf
+
+# Force batch scripts to always use CRLF line endings so that if a repo is accessed
+# in Windows via a file share from Linux, the scripts will work.
+*.{cmd,[cC][mM][dD]} text eol=crlf
+*.{bat,[bB][aA][tT]} text eol=crlf
+*.{ics,[iI][cC][sS]} text eol=crlf
