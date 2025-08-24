@@ -1,4 +1,4 @@
-﻿using MicroM.Configuration;
+﻿﻿using MicroM.Configuration;
 using MicroM.Core;
 using MicroM.Data;
 using MicroM.DataDictionary;
@@ -7,14 +7,16 @@ using System.Security.Claims;
 namespace MicroM.Extensions
 {
     /// <summary>
-    /// Helper methods for converting claims and generating route paths used by
-    /// the security subsystem.
+    /// Provides extension helpers used by the security subsystem. Includes
+    /// methods for translating claim dictionaries into <see cref="Claim"/> objects,
+    /// generating entity route paths, and persisting those paths to the database.
     /// </summary>
     public static class SecurityExtensions
     {
         /// <summary>
         /// Converts a dictionary of claim types and values into a sequence of
-        /// <see cref="Claim"/> objects.
+        /// <see cref="Claim"/> objects. Useful when building a
+        /// <see cref="ClaimsPrincipal"/> from raw server data.
         /// </summary>
         /// <param name="dictionary">Dictionary containing claim types and their values.</param>
         /// <returns>An enumerable of claims created from the dictionary.</returns>
@@ -24,9 +26,9 @@ namespace MicroM.Extensions
         }
 
         /// <summary>
-        /// Builds the list of route paths for the specified entity type based
-        /// on the provided <paramref name="route_flags"/>. Optional arrays can
-        /// further restrict views, procedures or actions to include.
+        /// Builds the list of route paths for the specified entity type based on
+        /// the provided <paramref name="route_flags"/>. Optional arrays can
+        /// further restrict the views, procedures, or actions to include.
         /// </summary>
         /// <param name="entity_type">Type of the entity.</param>
         /// <param name="route_flags">Flags that describe which routes to generate.</param>
@@ -64,7 +66,8 @@ namespace MicroM.Extensions
         }
 
         /// <summary>
-        /// Builds the list of route paths for the given entity instance.
+        /// Builds the list of route paths for the given entity instance using its
+        /// definition metadata.
         /// </summary>
         /// <param name="entity">Entity instance providing metadata.</param>
         /// <param name="entity_name">Name of the entity.</param>
@@ -155,7 +158,8 @@ namespace MicroM.Extensions
 
         /// <summary>
         /// Persists the routes generated for the specified entity into the
-        /// database using the provided client.
+        /// database using the provided client. Useful for seeding security
+        /// metadata with default routes.
         /// </summary>
         /// <param name="entity">Entity whose routes will be created.</param>
         /// <param name="ec">Client used to interact with the database.</param>
