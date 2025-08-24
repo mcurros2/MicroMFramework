@@ -44,9 +44,6 @@ This file defines the iterative documentation workflow for documenting the backe
 - Respect file encoding:
   - Use **UTF-8** encoding for all markdown files.
   - Ensure BOM (Byte Order Mark) is present in the files.
-- Respect end of line (EOL) conventions:
-  - Use **CRLF** (Line Feed) for line endings in all markdown files.
-  - Use **CRLF** for C# source code files.
   
 ## How to document a namespace
 - Each namespace must have its own folder in `MicroM/Documentation/Backend/`.
