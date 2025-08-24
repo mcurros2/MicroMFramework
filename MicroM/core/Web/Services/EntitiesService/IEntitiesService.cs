@@ -13,8 +13,8 @@ public interface IEntitiesService
     /// <summary>
     /// Creates an Entity if it exists in the configured assembly.
     /// </summary>
-    /// <param name="entity_name"></param>
-    /// <param name="ec"></param>
+    /// <param name="entity_name">Target entity identifier.</param>
+    /// <param name="ec">Optional entity client.</param>
     /// <returns></returns>
     public EntityBase? CreateEntity(ApplicationOption app, string entity_name, Dictionary<string, object>? server_claims, IEntityClient? ec = null);
     /// <summary>
