@@ -26,7 +26,7 @@
         public T? DecryptObject<T>(string encryptedString);
 
         /// <summary>
-        /// Gets or sets the }.
+        /// Gets the thumbprint of the certificate used for encryption.
         /// </summary>
         public string? CertificateThumbprint { get; }
     }
