@@ -3,7 +3,7 @@
 namespace MicroM.Web.Services.Security
 {
     /// <summary>
-    /// Constants used by the MicroM authorization system.
+    /// Holds constants for configuring the MicroM permission system.
     /// </summary>
     public class MicroMPermissionsConstants
     {

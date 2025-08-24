@@ -3,7 +3,9 @@
     /// <summary>
     /// Stores transient cryptographic values used by the framework. These
     /// defaults are generated at runtime and remain valid only for the
-    /// lifetime of the application instance.
+    /// lifetime of the application instance. They provide ephemeral
+    /// encryption material for operations that need temporary protection
+    /// such as token generation during the startup process.
     /// </summary>
     public sealed class SecurityDefaults
     {
