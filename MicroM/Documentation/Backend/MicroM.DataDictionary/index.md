@@ -28,10 +28,21 @@ Data dictionary entity definitions and related helpers.
 | [FileStoreStatus](FileStoreStatus/index.md) | Entity for file status records. |
 | [MicromMenusDef](MicromMenusDef/index.md) | Schema definition for MicroM menus. |
 | [MicromMenus](MicromMenus/index.md) | Entity for working with MicroM menus. |
+| [MicromUsersCatDef](MicromUsersCatDef/index.md) | Schema definition for user categories. |
+| [MicromUsersCat](MicromUsersCat/index.md) | User category assignments. |
 | [MicromUsersDef](MicromUsersDef/index.md) | Schema definition for MicroM user records. |
 | [MicromUsers](MicromUsers/index.md) | Entity for interacting with MicroM user records. |
 | [MicromUsersDevicesDef](MicromUsersDevicesDef/index.md) | Schema definition for user device records. |
 | [MicromUsersDevices](MicromUsersDevices/index.md) | Entity for managing device records linked to users. |
+| [MicromUsersGroupsDef](MicromUsersGroupsDef/index.md) | Schema definition for user groups. |
+| [MicromUsersGroups](MicromUsersGroups/index.md) | User group records. |
+| [MicromUsersGroupsMembersDef](MicromUsersGroupsMembersDef/index.md) | Schema definition for group membership. |
+| [MicromUsersGroupsMembers](MicromUsersGroupsMembers/index.md) | User-to-group mappings. |
+| [MicromUsersGroupsMenusDef](MicromUsersGroupsMenusDef/index.md) | Schema definition for group menus. |
+| [MicromUsersGroupsMenus](MicromUsersGroupsMenus/index.md) | Group-to-menu assignments. |
+| [MicromUsersLoginHistoryDef](MicromUsersLoginHistoryDef/index.md) | Schema definition for login history. |
+| [MicromUsersLoginHistory](MicromUsersLoginHistory/index.md) | Login history records. |
+| [MicromUsersStatusPanelDef](MicromUsersStatusPanelDef/index.md) | Definition extending entities with user status fields. |
 | [NumberingDef](NumberingDef/index.md) | Schema definition for sequential numbers. |
 | [Numbering](Numbering/index.md) | Entity for sequential number operations. |
 | [ViewParmsDef](ViewParmsDef/index.md) | Schema definition for view parameters. |
