@@ -5,8 +5,17 @@ using static MicroM.Generators.Constants;
 
 namespace MicroM.Generators.ReactGenerator
 {
+    /// <summary>
+    /// Extension methods that convert <see cref="ViewDefinition"/> instances into
+    /// TypeScript-friendly structures used by the React generator.
+    /// </summary>
     public static class ViewExtensions
     {
+        /// <summary>
+        /// Builds a comma-separated list of parameter to column index mappings for a view.
+        /// </summary>
+        /// <param name="view">The view definition whose parameter mappings are being generated.</param>
+        /// <returns>A string representing the mappings in <c>columnName: index</c> format.</returns>
         internal static string AsKeyMappings(this ViewDefinition view)
         {
             var parms_enumerator = view.Parms.Values.GetEnumerator();
@@ -26,6 +35,12 @@ namespace MicroM.Generators.ReactGenerator
             return sb.ToString();
         }
 
+        /// <summary>
+        /// Produces a formatted views definition block for the provided views collection.
+        /// </summary>
+        /// <param name="views">The set of views to include in the definition.</param>
+        /// <param name="indent">The indentation string to use for generated lines.</param>
+        /// <returns>A string containing the views definition formatted for TypeScript output.</returns>
         public static string AsViewsDefinition(this IReadOnlyDictionary<string, ViewDefinition> views, string indent = $"{TAB}")
         {
             IEnumerator<ViewDefinition> views_enumerator = views.Values.GetEnumerator();
