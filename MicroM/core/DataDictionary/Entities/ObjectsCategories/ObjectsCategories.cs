@@ -51,6 +51,8 @@ public class ObjectsCategories : Entity<ObjectsCategoriesDef>
     /// <summary>
     /// Initializes a new instance using the specified entity client and optional encryptor.
     /// </summary>
+    /// <param name="ec">Entity client used for data access.</param>
+    /// <param name="encryptor">Optional encryptor for sensitive fields.</param>
     public ObjectsCategories(IEntityClient ec, IMicroMEncryption? encryptor = null) : base(ec, encryptor) { }
 
 }
