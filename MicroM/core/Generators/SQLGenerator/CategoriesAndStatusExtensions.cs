@@ -10,9 +10,23 @@ using static MicroM.Generators.Constants;
 
 namespace MicroM.Generators.SQLGenerator
 {
+    /// <summary>
+    /// Provides SQL generation helpers for handling <c>_cat</c> and <c>_status</c> auxiliary tables.
+    /// These extensions create the lookup tables and the necessary join clauses for entities
+    /// that expose category or status relationships.
+    /// </summary>
     internal static class CategoriesAndStatusExtensions
     {
         // MMC: this is too hard coded, it will be better to always define the entity for a _cat or _status table
+        /// <summary>
+        /// Builds the SQL statements required to create either a category or a status table
+        /// associated with the supplied entity. The generated script includes primary key columns,
+        /// foreign key constraints to the global lookup table and the creation of an index for
+        /// faster joins.
+        /// </summary>
+        /// <param name="entity">Entity whose auxiliary table is being generated.</param>
+        /// <param name="is_status">When <see langword="true"/> a status table is produced; otherwise a category table.</param>
+        /// <returns>A list containing the table creation script and its related index statement.</returns>
         internal static List<string> CreateCategoryOrStatusTable(this EntityBase entity, bool is_status)
         {
             List<string> result = [];
@@ -71,6 +85,17 @@ namespace MicroM.Generators.SQLGenerator
             return result;
         }
 
+        /// <summary>
+        /// Generates the SQL <c>JOIN</c> clauses required to link the entity table with its
+        /// related category or status tables. Only the fake columns that reference a configured
+        /// category or status are considered.
+        /// </summary>
+        /// <typeparam name="T">Type of the entity.</typeparam>
+        /// <param name="entity">Entity for which the join statements are produced.</param>
+        /// <param name="separator">Separator inserted between join fragments, usually new lines and tabs.</param>
+        /// <param name="parent_alias">Alias used for the entity table in the join.</param>
+        /// <param name="alias">Starting alias for the joined lookup tables; each join increments it.</param>
+        /// <returns>SQL fragment representing the joins or an empty string when no joins are needed.</returns>
         internal static string AsCategoriesAndStatusJoin<T>(this T entity, string separator = $"\n{TAB}{TAB}", string parent_alias = "a", string alias = "b") where T : EntityBase
         {
             if (entity.Def.RelatedCategories.Count == 0 && entity.Def.RelatedStatus.Count == 0) return "";
