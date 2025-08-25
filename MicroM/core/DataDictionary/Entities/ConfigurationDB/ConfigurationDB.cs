@@ -19,7 +19,7 @@ public class ConfigurationDBDef : EntityDefinition
     public ConfigurationDBDef() : base("dfg", nameof(ConfigurationDB)) { Fake = true; }
 
     /// <summary>
-    /// Primary identifier for the configuration record.
+    /// Fixed identifier for configuration database records.
     /// </summary>
     public readonly Column<string> c_confgidb_id = Column<string>.PK(value: "1");
 
@@ -37,14 +37,13 @@ public class ConfigurationDBDef : EntityDefinition
     /// Password for the configuration SQL login.
     /// </summary>
     public readonly Column<string?> vc_configsqlpassword = new(sql_type: SqlDbType.VarChar, size: 2048, nullable: true);
-
     /// <summary>
-    /// Name of the configuration database.
+    /// Configuration database name.
     /// </summary>
     public readonly Column<string> vc_configdatabase = new(sql_type: SqlDbType.VarChar, size: 255);
 
     /// <summary>
-    /// Thumbprint of the certificate used for encryption.
+    /// Certificate thumbprint used for encryption.
     /// </summary>
     public readonly Column<string> vc_certificatethumbprint = new(sql_type: SqlDbType.VarChar, size: 255);
 
@@ -62,34 +61,28 @@ public class ConfigurationDBDef : EntityDefinition
     /// Indicates whether the administrator has required rights.
     /// </summary>
     public readonly Column<bool> b_adminuserhasrights = new(sql_type: SqlDbType.Bit);
-
     /// <summary>
-    /// Flag indicating if the configuration database exists.
+    /// Indicates whether the configuration database exists.
     /// </summary>
     public readonly Column<bool> b_configdbexists = new(sql_type: SqlDbType.Bit);
-
     /// <summary>
-    /// Flag indicating if the configuration user exists.
+    /// Indicates whether the configuration user exists.
     /// </summary>
     public readonly Column<bool> b_configuserexists = new(sql_type: SqlDbType.Bit);
-
     /// <summary>
-    /// Flag indicating if secrets have been configured.
+    /// Indicates whether secrets have been configured.
     /// </summary>
     public readonly Column<bool> b_secretsconfigured = new(sql_type: SqlDbType.Bit);
-
     /// <summary>
-    /// Flag indicating if the default certificate was used.
+    /// Indicates whether a default certificate is being used.
     /// </summary>
     public readonly Column<bool> b_defaultcertificate = new(sql_type: SqlDbType.Bit);
-
     /// <summary>
-    /// Flag indicating if a certificate thumbprint is configured.
+    /// Indicates whether a thumbprint is configured.
     /// </summary>
     public readonly Column<bool> b_thumbprintconfigured = new(sql_type: SqlDbType.Bit);
-
     /// <summary>
-    /// Flag indicating if the configured thumbprint was found.
+    /// Indicates whether the configured thumbprint is found.
     /// </summary>
     public readonly Column<bool> b_thumbprintfound = new(sql_type: SqlDbType.Bit);
 
@@ -97,9 +90,8 @@ public class ConfigurationDBDef : EntityDefinition
     /// Flag indicating if a certificate was found.
     /// </summary>
     public readonly Column<bool> b_certificatefound = new(sql_type: SqlDbType.Bit);
-
     /// <summary>
-    /// Flag indicating if the secrets file is valid.
+    /// Indicates whether the secrets file is valid.
     /// </summary>
     public readonly Column<bool> b_secretsfilevalid = new(sql_type: SqlDbType.Bit);
 
@@ -109,7 +101,7 @@ public class ConfigurationDBDef : EntityDefinition
     public readonly Column<bool> b_recreatedatabase = new(sql_type: SqlDbType.Bit);
 
     /// <summary>
-    /// Default browse view definition.
+    /// Standard browse view for configuration database records.
     /// </summary>
     public ViewDefinition dfg_brwStandard { get; private set; } = new(nameof(c_confgidb_id));
 
@@ -124,19 +116,23 @@ public class ConfigurationDB : Entity<ConfigurationDBDef>
     /// Initializes a new instance of the <see cref="ConfigurationDB"/> class.
     /// </summary>
     public ConfigurationDB() : base() { }
-
     /// <summary>
-    /// Initializes a new instance with a database client and optional encryptor.
+    /// Initializes a new instance using the specified entity client and optional encryptor.
     /// </summary>
-    /// <param name="ec">Database client.</param>
-    /// <param name="encryptor">Optional encryptor.</param>
+    /// <param name="ec">Entity client used for data access.</param>
+    /// <param name="encryptor">Optional encryptor for sensitive fields.</param>
     public ConfigurationDB(IEntityClient ec, IMicroMEncryption? encryptor = null) : base(ec, encryptor) { }
 
 
     /// <summary>
-    /// Retrieves configuration data.
+    /// Retrieves configuration data using the provided options and claims.
     /// </summary>
-    /// <inheritdoc/>
+    /// <param name="ct">Cancellation token.</param>
+    /// <param name="options">Framework configuration options.</param>
+    /// <param name="server_claims">Server claims containing connection information.</param>
+    /// <param name="api">Optional Web API services instance.</param>
+    /// <param name="app_id">Optional application identifier.</param>
+    /// <returns>True if data retrieval succeeded; otherwise, false.</returns>
     public override async Task<bool> GetData(CancellationToken ct, MicroMOptions? options = null, Dictionary<string, object>? server_claims = null, IWebAPIServices? api = null, string? app_id = null)
     {
         ThrowIfNull(server_claims);
@@ -145,9 +141,15 @@ public class ConfigurationDB : Entity<ConfigurationDBDef>
     }
 
     /// <summary>
-    /// Updates configuration data.
+    /// Updates configuration data using the provided options and claims.
     /// </summary>
-    /// <inheritdoc/>
+    /// <param name="ct">Cancellation token.</param>
+    /// <param name="throw_dbstat_exception">Whether to throw if the database status indicates an error.</param>
+    /// <param name="options">Framework configuration options.</param>
+    /// <param name="server_claims">Server claims containing connection information.</param>
+    /// <param name="api">Optional Web API services instance.</param>
+    /// <param name="app_id">Optional application identifier.</param>
+    /// <returns>Result of the database operation.</returns>
     public override async Task<DBStatusResult> UpdateData(CancellationToken ct, bool throw_dbstat_exception = false, MicroMOptions? options = null, Dictionary<string, object>? server_claims = null, IWebAPIServices? api = null, string? app_id = null)
     {
         ThrowIfNull(server_claims);
