@@ -9,13 +9,25 @@ using static MicroM.Generators.Constants;
 
 namespace MicroM.Generators.ReactGenerator
 {
+    /// <summary>
+    /// Provides extension methods for generating TypeScript definitions and other
+    /// helpers used by the React generator.
+    /// </summary>
     public static class ColumnExtensions
     {
+        /// <summary>
+        /// Formats a column name into a user friendly display string by removing
+        /// prefixes, replacing underscores and applying title casing.
+        /// </summary>
         public static string AsDisplayName(this ColumnBase column)
         {
             return CultureInfo.InvariantCulture.TextInfo.ToTitleCase(column.Name.StripColumnPrefix().Replace('_', ' '));
         }
 
+        /// <summary>
+        /// Converts <see cref="ColumnFlags"/> values to their corresponding
+        /// TypeScript flag expressions.
+        /// </summary>
         internal static string ToTypeScriptFlags(this ColumnFlags flags)
         {
             if (flags == ColumnFlags.None) return "EntityColumnFlags.None";
@@ -105,6 +117,10 @@ namespace MicroM.Generators.ReactGenerator
             return $"//ERROR: can't translate column definition for {col.Name}. Reason: Unsupported type {m.SQLType}";
         }
 
+        /// <summary>
+        /// Builds a TypeScript column definition block from a set of columns,
+        /// using the provided separator to join each column definition.
+        /// </summary>
         internal static string AsTypeScriptColumnsDefinition<T>(this T cols, string separator = $",\n{TAB}{TAB}") where T : IReadonlyOrderedDictionary<ColumnBase>
         {
             IEnumerator<ColumnBase> col_enumerator = cols.GetWithFlags(ColumnFlags.All, exclude_flags: ColumnFlags.None, exclude_names: SystemColumnNames.AsStringArray).GetEnumerator();
