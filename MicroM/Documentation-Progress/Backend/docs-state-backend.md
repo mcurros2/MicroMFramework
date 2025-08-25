@@ -19,8 +19,8 @@ This file tracks the current documentation state of the backend (`/MicroM/core`)
 - Notes: Namespace and all public types documented with XML comments and pages.
 
 ### MicroM.DataDictionary
-- State: Incomplete ⚠️
-- Notes: Added documentation for ApplicationsUrls, FileStore, FileStoreProcess, FileStoreStatus and Numbering; other entities remain pending.
+- State: Complete ✅
+- Notes: Namespace and all public types documented with XML comments and pages.
 
 ### MicroM.DataDictionary.CategoriesDefinitions
 - State: Complete ✅

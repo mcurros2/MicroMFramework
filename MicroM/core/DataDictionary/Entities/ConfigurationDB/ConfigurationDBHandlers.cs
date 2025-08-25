@@ -13,8 +13,11 @@ using static MicroM.Validators.Expressions;
 
 namespace MicroM.DataDictionary;
 
+/// <summary>
+/// Helper methods for managing configuration database settings and secrets.
+/// </summary>
 public static class ConfigurationDBHandlers
-{
+{    
 
     private async static Task<InitialConfigurationResult> CheckInitialStatus(IEntityClient dbc, string config_user, string configuration_db, CancellationToken ct)
     {
@@ -48,6 +51,12 @@ public static class ConfigurationDBHandlers
         await File.WriteAllTextAsync(config_file, encrypted, ct);
     }
 
+    /// <summary>
+    /// Reads configuration database parameters from the encrypted secrets file.
+    /// </summary>
+    /// <param name="certificate_thumbprint">Thumbprint of the certificate used to decrypt the file.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>Decrypted configuration options if available.</returns>
     public async static Task<SecretsOptions?> ReadConfigurationDBParms(string certificate_thumbprint, CancellationToken ct)
     {
         SecretsOptions? result = null;
@@ -66,6 +75,14 @@ public static class ConfigurationDBHandlers
         return result;
     }
 
+    /// <summary>
+    /// Retrieves configuration database settings and status information.
+    /// </summary>
+    /// <param name="cfg">Configuration database entity to populate.</param>
+    /// <param name="options">Application options.</param>
+    /// <param name="server_claims">Claims for the current server user.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns><c>true</c> if the operation succeeds.</returns>
     public async static Task<bool> HandleGetData(ConfigurationDB cfg, MicroMOptions options, Dictionary<string, object> server_claims, CancellationToken ct)
     {
         // MMC: this is the logged in user to the control panel
@@ -143,6 +160,16 @@ public static class ConfigurationDBHandlers
 
     }
 
+    /// <summary>
+    /// Updates configuration database settings and creates the database if required.
+    /// </summary>
+    /// <param name="cfg">Configuration database entity containing updated values.</param>
+    /// <param name="throw_dbstat_exception">Indicates whether to throw on database status failure.</param>
+    /// <param name="options">Application options.</param>
+    /// <param name="server_claims">Claims for the current server user.</param>
+    /// <param name="api">Optional API services for refresh operations.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>Status of the update operation.</returns>
     public async static Task<DBStatusResult> HandleUpdateData(ConfigurationDB cfg, bool throw_dbstat_exception, MicroMOptions options, Dictionary<string, object> server_claims, IWebAPIServices? api, CancellationToken ct)
     {
         // MMC: this is the logged in user to the control panel
