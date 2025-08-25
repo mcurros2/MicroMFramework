@@ -9,21 +9,31 @@ using static MicroM.Generators.Constants;
 
 namespace MicroM.Generators.SQLGenerator
 {
+    /// <summary>
+    /// Provides extension methods for generating SQL scripts related to entity status values.
+    /// </summary>
     internal static class StatusExtensions
     {
         /// <summary>
-        /// Returns a two SQL scripts with the DDL to create a child status table and fk index to store related categories for an <see cref="Entity{TDefinition}"/> record.
-        /// The status table name for the specified <seealso cref="Entity{TDefinition}"/> will be <![CDATA[<entity table name>_status]]>.
-        /// The columns will contain the <see cref="Entity{TDefinition}"/> primary keys + <seealso cref="Status"/> primary keys + <see cref="DefaultColumns"/>
+        /// Returns two SQL scripts with the DDL to create a child status table and a foreign key index for an <see cref="Entity{TDefinition}"/>.
+        /// The status table name for the specified entity will be <![CDATA[<entity table name>_status]]> and will include the primary keys of the entity and <see cref="Status"/> along with <see cref="DefaultColumns"/>.
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="entity"></param>
-        /// <returns></returns>
+        /// <typeparam name="T">The type of entity definition.</typeparam>
+        /// <param name="entity">The entity for which to create the status table.</param>
+        /// <returns>A list containing the table creation and index scripts.</returns>
         internal static List<string> CreateStatusTable<T>(this T entity) where T : EntityBase
         {
             return entity.CreateCategoryOrStatusTable(true);
         }
 
+        /// <summary>
+        /// Builds an INSERT statement for the status table for the specified entity.
+        /// </summary>
+        /// <typeparam name="T">The type of entity definition.</typeparam>
+        /// <param name="entity">The entity whose status values will be inserted.</param>
+        /// <param name="separator">The separator used between SQL values.</param>
+        /// <param name="status_alias">The alias used for the status table.</param>
+        /// <returns>A SQL INSERT statement or an empty string when no status values exist.</returns>
         internal static string AsStatusInsertValues<T>(this T entity, string separator = $"\n{TAB}{TAB}{TAB}{TAB}, ", string status_alias = "a") where T : EntityBase
         {
             if (entity.Def.RelatedStatus.Count == 0) return "";
@@ -44,6 +54,13 @@ namespace MicroM.Generators.SQLGenerator
             return sb.ToString();
         }
 
+        /// <summary>
+        /// Builds a DELETE statement to remove status values for the specified entity.
+        /// </summary>
+        /// <typeparam name="T">The type of entity definition.</typeparam>
+        /// <param name="entity">The entity whose status values will be deleted.</param>
+        /// <param name="separator">The separator used between predicate clauses.</param>
+        /// <returns>A SQL DELETE statement or an empty string when no status values exist.</returns>
         internal static string AsStatusDelete<T>(this T entity, string separator = $"\n{TAB}{TAB}{TAB}and ") where T : EntityBase
         {
             if (entity.Def.RelatedStatus.Count == 0) return "";
@@ -61,6 +78,14 @@ namespace MicroM.Generators.SQLGenerator
             return sb.ToString();
         }
 
+        /// <summary>
+        /// Builds UPDATE statements for status values of the specified entity using template values.
+        /// </summary>
+        /// <typeparam name="T">The type of entity definition.</typeparam>
+        /// <param name="entity">The entity whose status values will be updated.</param>
+        /// <param name="union_string">The string used to join WHERE clause conditions.</param>
+        /// <param name="separator">The separator used between update values.</param>
+        /// <returns>A SQL UPDATE statement or an empty string when no status values exist.</returns>
         internal static string AsStatusUpdateTemplateValues<T>(this T entity, string union_string = $"\n{TAB}{TAB}{TAB}and ", string separator = $"\n{TAB}{TAB}{TAB}, ") where T : EntityBase
         {
             if (entity.Def.RelatedStatus.Count == 0) return "";
