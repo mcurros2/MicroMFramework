@@ -9,6 +9,11 @@ namespace MicroM.Generators.ReactGenerator
     public static class EntityExtensions
     {
 
+        /// <summary>
+        /// Generates the TypeScript entity definition for the provided entity.
+        /// </summary>
+        /// <param name="entity">The entity whose definition will be converted.</param>
+        /// <returns>A string containing the TypeScript entity definition.</returns>
         public static string AsTypeScriptEntityDefinition<T>(this T entity) where T : EntityBase
         {
             string lookup_definitions = entity.Def.AsLookupDefinition();
@@ -33,6 +38,11 @@ namespace MicroM.Generators.ReactGenerator
             return Templates.ENTITY_DEFINITION_TEMPLATE.ReplaceTemplate(parms).RemoveEmptyLines();
         }
 
+        /// <summary>
+        /// Generates a TypeScript entity for the provided entity definition.
+        /// </summary>
+        /// <param name="entity">The entity to convert into TypeScript.</param>
+        /// <returns>A string containing the TypeScript entity.</returns>
         public static string AsTypeScriptEntity<T>(this T entity) where T : EntityBase
         {
             var parms = new TemplateValues()
@@ -46,6 +56,11 @@ namespace MicroM.Generators.ReactGenerator
 
 
         //-----------------------------------------------------------------------------------------------------------------------------
+        /// <summary>
+        /// Generates the TypeScript form for the given entity.
+        /// </summary>
+        /// <param name="entity">The entity for which to generate a form.</param>
+        /// <returns>A string containing the TypeScript entity form.</returns>
         public static string AsTypeScriptEntityForm<T>(this T entity) where T : EntityBase
         {
             var parms = new TemplateValues()
