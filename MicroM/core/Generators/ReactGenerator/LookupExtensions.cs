@@ -7,6 +7,9 @@ using static MicroM.Generators.Constants;
 
 namespace MicroM.Generators.ReactGenerator
 {
+    /// <summary>
+    /// Extension methods for generating lookup definitions used by the React client.
+    /// </summary>
     public static class LookupExtensions
     {
         private static void AppendDefaultLookupDefinition(this StringBuilder sb, EntityForeignKeyBase fk, string indent)
@@ -17,6 +20,12 @@ namespace MicroM.Generators.ReactGenerator
             sb.Append(CultureInfo.InvariantCulture, $"\n{indent}{TAB}}}");
         }
 
+        /// <summary>
+        /// Generates default lookup definitions for the provided foreign keys.
+        /// </summary>
+        /// <param name="foreign_keys">Foreign keys whose parent entities define default lookups.</param>
+        /// <param name="indent">Indentation applied to each generated line.</param>
+        /// <returns>A string containing formatted lookup definitions for the default lookups.</returns>
         public static string AsDefaultLookupDefinitionContent(this IReadOnlyDictionary<string, EntityForeignKeyBase> foreign_keys, string indent = $"{TAB}")
         {
             var lookups_enumerator = foreign_keys.Values.GetEnumerator();
@@ -47,6 +56,12 @@ namespace MicroM.Generators.ReactGenerator
             sb.Append(CultureInfo.InvariantCulture, $"\n{indent}{TAB}}}");
         }
 
+        /// <summary>
+        /// Generates lookup definitions for explicit lookups defined on the provided foreign keys.
+        /// </summary>
+        /// <param name="foreign_keys">Foreign keys that contain lookup definitions.</param>
+        /// <param name="indent">Indentation applied to each generated line.</param>
+        /// <returns>A string containing formatted lookup definitions for the configured lookups.</returns>
         public static string AsLookupDefinitionContent(this IReadOnlyDictionary<string, EntityForeignKeyBase> foreign_keys, string indent = $"{TAB}")
         {
             var lookups_enumerator = foreign_keys.Values.SelectMany(
@@ -70,6 +85,12 @@ namespace MicroM.Generators.ReactGenerator
             return sb.ToString();
         }
 
+        /// <summary>
+        /// Builds the lookup definitions for an entity, combining foreign key and category lookups.
+        /// </summary>
+        /// <param name="def">The entity definition to generate lookups for.</param>
+        /// <param name="indent">Indentation applied to each generated line.</param>
+        /// <returns>A string containing the lookup definition snippet, or an empty string if no lookups are present.</returns>
         public static string AsLookupDefinition(this EntityDefinition def, string indent = $"{TAB}")
         {
             string? fk_default_lookups = def.ForeignKeys.Count > 0 ? def.ForeignKeys.AsDefaultLookupDefinitionContent() : null;
