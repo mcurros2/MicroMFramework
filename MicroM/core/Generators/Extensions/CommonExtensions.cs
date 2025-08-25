@@ -1,5 +1,9 @@
 ﻿namespace MicroM.Generators.Extensions
 {
+    /// <summary>
+    /// String utility helper extensions for tasks such as removing empty lines and
+    /// splitting camel case words.
+    /// </summary>
     public static class CommonExtensions
     {
         private static readonly string MULTIPLE_LINE_REPLACEMENT = Environment.NewLine + Environment.NewLine;
