@@ -9,6 +9,10 @@ using static MicroM.Generators.Constants;
 
 namespace MicroM.Generators.SQLGenerator
 {
+    /// <summary>
+    /// Extension methods that generate SQL fragments for working with
+    /// related categories on <see cref="EntityBase"/> implementations.
+    /// </summary>
     internal static class CategoriesExtensions
     {
         /// <summary>
@@ -24,6 +28,14 @@ namespace MicroM.Generators.SQLGenerator
             return entity.CreateCategoryOrStatusTable(false);
         }
 
+        /// <summary>
+        /// Builds SQL to parse JSON category parameters into temporary tables for
+        /// array-based related category columns.
+        /// </summary>
+        /// <typeparam name="T">Type of the entity.</typeparam>
+        /// <param name="entity">Entity whose category data is being processed.</param>
+        /// <param name="separator">Separator used when joining SQL fragments.</param>
+        /// <returns>SQL string that parses category JSON into temp tables.</returns>
         internal static string AsJSONCategories<T>(this T entity, string separator = $"\n{TAB}{TAB}{TAB}, ") where T : EntityBase
         {
             if (entity.Def.RelatedCategories.Count == 0) return "";
@@ -46,6 +58,14 @@ namespace MicroM.Generators.SQLGenerator
             return sb.ToString();
         }
 
+        /// <summary>
+        /// Generates SQL insert statements for category values supplied as JSON
+        /// arrays in the stored procedure parameters.
+        /// </summary>
+        /// <typeparam name="T">Type of the entity.</typeparam>
+        /// <param name="entity">Entity whose categories are being inserted.</param>
+        /// <param name="separator">Separator used when joining SQL fragments.</param>
+        /// <returns>SQL string that inserts parsed JSON category values.</returns>
         internal static string AsInsertJSONCategories<T>(this T entity, string separator = $"\n{TAB}{TAB}{TAB}, ") where T : EntityBase
         {
             if (entity.Def.RelatedCategories.Count == 0) return "";
@@ -96,6 +116,14 @@ namespace MicroM.Generators.SQLGenerator
             return sb.ToString();
         }
 
+        /// <summary>
+        /// Creates SQL insert statements for non-array related category columns
+        /// on the specified entity.
+        /// </summary>
+        /// <typeparam name="T">Type of the entity.</typeparam>
+        /// <param name="entity">Entity whose category values are being inserted.</param>
+        /// <param name="separator">Separator used when joining SQL fragments.</param>
+        /// <returns>SQL string that inserts category values.</returns>
         internal static string AsCategoriesInsertValues<T>(this T entity, string separator = $"\n{TAB}{TAB}{TAB}, ") where T : EntityBase
         {
             if (entity.Def.RelatedCategories.Count == 0) return "";
