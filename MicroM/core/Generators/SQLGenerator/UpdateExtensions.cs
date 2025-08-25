@@ -7,8 +7,16 @@ using static MicroM.Generators.Constants;
 
 namespace MicroM.Generators.SQLGenerator
 {
+    /// <summary>
+    /// Provides helper methods for generating SQL update stored procedures.
+    /// </summary>
     internal static class UpdateExtensions
     {
+        /// <summary>
+        /// Generates the SQL script segment to obtain a new autonumber value for the entity.
+        /// </summary>
+        /// <param name="entity">The entity definition used to derive the autonumber information.</param>
+        /// <returns>A SQL fragment that declares and assigns the autonumber when required; otherwise, an empty string.</returns>
         private static string GetAutonum(this EntityBase entity)
         {
             string ret = "";
@@ -28,6 +36,12 @@ namespace MicroM.Generators.SQLGenerator
             return ret;
         }
 
+        /// <summary>
+        /// Builds a SQL snippet that returns the autonumber value or a success message.
+        /// </summary>
+        /// <param name="entity">The entity whose autonumber is being returned.</param>
+        /// <param name="with_iupdate">Indicates whether the snippet is generated for an iUpdate procedure.</param>
+        /// <returns>A SQL select statement returning the autonumber or a default status message.</returns>
         private static string GetAutonumReturn(this EntityBase entity, bool with_iupdate = false)
         {
             string result_prefix = "", msg_prefix = "";
@@ -42,6 +56,14 @@ namespace MicroM.Generators.SQLGenerator
         }
 
 
+        /// <summary>
+        /// Generates the SQL script for the standard update stored procedure for the entity.
+        /// </summary>
+        /// <typeparam name="T">The entity type.</typeparam>
+        /// <param name="entity">The entity definition used to generate the procedure.</param>
+        /// <param name="create_or_alter">Indicates whether to create or alter the procedure.</param>
+        /// <param name="force">If set to <c>true</c>, generates the script even for fake entities.</param>
+        /// <returns>The SQL script for the update stored procedure.</returns>
         internal static string GetUpdateProc<T>(this T entity, bool create_or_alter = false, bool force = false) where T : EntityBase
         {
             if (entity.Def.Fake && force == false) return "";
@@ -96,6 +118,14 @@ namespace MicroM.Generators.SQLGenerator
             return Templates.UPDATE_TEMPLATE.ReplaceTemplate(parms).RemoveEmptyLines();
         }
 
+        /// <summary>
+        /// Generates the SQL script for the intermediate update (_iupdate) stored procedure for the entity.
+        /// </summary>
+        /// <typeparam name="T">The entity type.</typeparam>
+        /// <param name="entity">The entity definition used to generate the procedure.</param>
+        /// <param name="create_or_alter">Indicates whether to create or alter the procedure.</param>
+        /// <param name="force">If set to <c>true</c>, generates the script even for fake entities.</param>
+        /// <returns>The SQL script for the iUpdate stored procedure.</returns>
         internal static string GetIUpdateProc<T>(this T entity, bool create_or_alter = false, bool force = false) where T : EntityBase
         {
             if (entity.Def.Fake && force == false) return "";
@@ -151,6 +181,14 @@ namespace MicroM.Generators.SQLGenerator
         }
 
 
+        /// <summary>
+        /// Generates the SQL script for an update procedure that calls the iUpdate procedure.
+        /// </summary>
+        /// <typeparam name="T">The entity type.</typeparam>
+        /// <param name="entity">The entity definition used to generate the procedure.</param>
+        /// <param name="create_or_alter">Indicates whether to create or alter the procedure.</param>
+        /// <param name="force">If set to <c>true</c>, generates the script even for fake entities.</param>
+        /// <returns>The SQL script that wraps the iUpdate procedure.</returns>
         internal static string GetUpdateForIUpdateProc<T>(this T entity, bool create_or_alter = false, bool force = false) where T : EntityBase
         {
             if (entity.Def.Fake && force == false) return "";
