@@ -1,4 +1,4 @@
-# Namespace: MicroM.DataDictionary
+﻿# Namespace: MicroM.DataDictionary
 ## Overview
 Data dictionary entity definitions and related helpers.
 
@@ -17,9 +17,16 @@ Data dictionary entity definitions and related helpers.
 | [Categories](Categories/index.md) | Entity for working with categories. |
 | [CategoriesValuesDef](CategoriesValuesDef/index.md) | Schema definition for category values. |
 | [CategoriesValues](CategoriesValues/index.md) | Entity for working with category values. |
+| [ClassesDef](ClassesDef/index.md) | Definition for classes associated with objects. |
+| [Classes](Classes/index.md) | Runtime entity representing a class associated with an object. |
 | [ConfigurationDBDef](ConfigurationDBDef/index.md) | Schema definition for configuration database settings. |
 | [ConfigurationDB](ConfigurationDB/index.md) | Entity used to manage configuration database settings. |
 | [ConfigurationDBHandlers](ConfigurationDBHandlers/index.md) | Helper methods for configuration database operations. |
+| [EntitiesAssembliesDef](EntitiesAssembliesDef/index.md) | Definition for assembly records. |
+| [EntitiesAssemblies](EntitiesAssemblies/index.md) | Runtime entity for assembly records. |
+| [EntitiesAssembliesTypesDef](EntitiesAssembliesTypesDef/index.md) | Definition for assembly type mappings. |
+| [EntitiesAssembliesTypes](EntitiesAssembliesTypes/index.md) | Runtime entity for mapping assemblies to their types. |
+| [InitialConfigurationResult](InitialConfigurationResult/index.md) | Result of initial configuration validation. |
 | [FileStoreDef](FileStoreDef/index.md) | Schema definition for stored files. |
 | [FileStore](FileStore/index.md) | Entity for stored files. |
 | [FileStoreProcessDef](FileStoreProcessDef/index.md) | Schema definition for file storage processes. |
@@ -43,6 +50,8 @@ Data dictionary entity definitions and related helpers.
 | [MicromUsersLoginHistoryDef](MicromUsersLoginHistoryDef/index.md) | Schema definition for login history. |
 | [MicromUsersLoginHistory](MicromUsersLoginHistory/index.md) | Login history records. |
 | [MicromUsersStatusPanelDef](MicromUsersStatusPanelDef/index.md) | Definition extending entities with user status fields. |
+| [ObjectsCategoriesDef](ObjectsCategoriesDef/index.md) | Definition linking objects to categories. |
+| [ObjectsCategories](ObjectsCategories/index.md) | Runtime entity for associating objects with categories. |
 | [NumberingDef](NumberingDef/index.md) | Schema definition for sequential numbers. |
 | [Numbering](Numbering/index.md) | Entity for sequential number operations. |
 | [ViewParmsDef](ViewParmsDef/index.md) | Schema definition for view parameters. |
