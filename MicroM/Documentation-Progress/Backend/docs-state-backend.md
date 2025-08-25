@@ -32,11 +32,11 @@ This file tracks the current documentation state of the backend (`/MicroM/core`)
 
 ### MicroM.DataDictionary.Entities
 - State: Incomplete ⚠️
-- Notes: ConfigurationParameters documented; MicromUsers partially documented (LoginResult, LoginAttemptResult, LoginAttemptStatus, LoginData, RefreshTokenResult); added XML comments for EntitiesAssembliesTypes, ObjectsCategories, Classes, and ConfigurationDB InitialConfigurationResult; remaining entities pending.
+- Notes: ConfigurationParameters and MicromUsers documented; added XML comments for EntitiesAssembliesTypes, ObjectsCategories, Classes, and ConfigurationDB InitialConfigurationResult; remaining entities pending.
 
 ### MicroM.DataDictionary.Entities.MicromUsers
-- State: Incomplete ⚠️
-- Notes: Namespace index with LoginResult, LoginAttemptResult, LoginAttemptStatus, LoginData, and RefreshTokenResult documented.
+- State: Complete ✅
+- Notes: Namespace and all MicromUsers types documented.
 
 ### MicroM.DataDictionary.StatusDefs
 - State: Complete ✅
