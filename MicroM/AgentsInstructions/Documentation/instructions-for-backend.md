@@ -57,6 +57,17 @@ This file defines the iterative documentation workflow for documenting the backe
 - Each class, struct, enum, or interface `index.md` must follow the corresponding template (e.g., [`class-doc-template.md`](Templates/class-doc-template.md)).
 - Each class, struct, enum, or interface must be listed in its namespace `index.md`.
 
+## `docs-state-backend.md` file
+- This file tracks the current documentation state of the backend (`/MicroM/core`).
+- It should record the latest checked out commit hash and branch name. (the one that is being documented)
+- Namespaces and tutorials are listed here with notes about completeness.
+- Use [`docs-state-backend-sample.md`](docs-state-backend-sample.md)
+
+## Recording documentation state and progress
+- Always update `docs-state-backend.md` after a baseline verification run.
+- Always append to `iteration-summary.md` after each iteration.
+- Use `iteration-notes.md` for overflow details or context that exceeds summary scope.
+
 ---
 
 ## Documentation State & Iteration Summary Guidelines
@@ -64,6 +75,8 @@ This file defines the iterative documentation workflow for documenting the backe
 Both `docs-state-backend.md` and `iteration-summary.md` follow the same principles:
 
 - **docs-state-backend.md**
+  - This file tracks the current documentation state of the backend (`/MicroM/core`).
+  - It should record the latest checked out commit hash and branch name. (the one that is being documented)
   - Organized by namespace.
   - Notes coverage of XML comments, missing pages, and incomplete docs.
   - Always updated after a baseline verification run.
@@ -148,6 +161,8 @@ The **baseline phase** establishes the current state of documentation for a name
 After baseline verification, documentation improves in cycles.
 
 ### Plan Phase
+- Determine what have changed since the last iteration.
+  - Detect changes to the code base since the last iteration using the latest commit hash recorded in `docs-state-backend.md`.
 - Review the documentation templates in `Templates/`.
   - Check if sections were added or removed.
   - If templates were updated, ensure they are used in the next iteration.

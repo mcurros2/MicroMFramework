@@ -28,3 +28,7 @@ Namespaces and tutorials are listed here with notes about completeness.
 - Database initialization: ⚠️ Incomplete (Reason: missing setup section)
 
 *(Add more tutorial entries as they are planned or drafted.)*
+
+## Latest commit
+- Branch: `{{working_in_branch_name}}`
+- Commit hash: `{{checkout_commit_hash_for_last_iteration}}`
