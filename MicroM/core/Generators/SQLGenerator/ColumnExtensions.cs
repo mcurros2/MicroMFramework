@@ -8,14 +8,29 @@ using System.Text;
 
 namespace MicroM.Generators.SQLGenerator
 {
+    /// <summary>
+    /// Provides helper methods for converting <see cref="ColumnBase"/> definitions into
+    /// fragments of SQL used throughout the generator.
+    /// </summary>
     internal static class ColumnExtensions
     {
+        /// <summary>
+        /// Escapes single quotes in a string so it can be safely embedded in SQL statements.
+        /// </summary>
+        /// <param name="sql_value">Value to escape.</param>
+        /// <returns>The escaped value or the original string if it was <c>null</c> or empty.</returns>
         internal static string SQLEscape(this string sql_value)
         {
             if (string.IsNullOrEmpty(sql_value)) return sql_value;
             return sql_value.Replace("'", "''");
         }
 
+        /// <summary>
+        /// Converts a PascalCase class name into a snake_case SQL identifier and optionally adds an alias.
+        /// </summary>
+        /// <param name="class_name">The original class name.</param>
+        /// <param name="alias">Optional alias appended after the identifier.</param>
+        /// <returns>A SQL friendly name.</returns>
         internal static string ToSQLName(this string class_name, string alias = "")
         {
             StringBuilder ret = new(class_name.Length + 20);
@@ -41,18 +56,31 @@ namespace MicroM.Generators.SQLGenerator
             return ret.ToString();
         }
 
+        /// <summary>
+        /// Returns the first column that appears to contain descriptive text.
+        /// </summary>
+        /// <param name="cols">Columns to inspect.</param>
+        /// <param name="alias">Optional table alias used in the returned expression.</param>
+        /// <returns>A column reference suitable for use in SQL or an empty string if none is found.</returns>
         internal static string GetDescriptionColumn(this IReadonlyOrderedDictionary<ColumnBase> cols, string alias = "")
         {
             foreach (var col in cols)
             {
                 if (col.SQLMetadata.SQLType.IsIn(SqlDbType.VarChar, SqlDbType.NVarChar, SqlDbType.Text, SqlDbType.NText) && (col.SQLMetadata.Size == 0 || col.SQLMetadata.Size >= 80) && col.ColumnMetadata.HasFlag(ColumnFlags.Fake) == false)
                 {
-                    return $"{(!string.IsNullOrEmpty(alias) ? $"{alias}." : "")}{col.Name}";
+                    return $"{(!string.IsNullOrEmpty(alias) ? $"{alias}." : "")}{col.Name}"; 
                 }
             }
             return "";
         }
 
+        /// <summary>
+        /// Builds a SQL type declaration for the provided column.
+        /// </summary>
+        /// <typeparam name="T">Concrete column type.</typeparam>
+        /// <param name="col">Column definition to convert.</param>
+        /// <param name="include_nullable">When true, includes <c>NOT NULL</c> for non-nullable columns.</param>
+        /// <returns>SQL type string.</returns>
         internal static string AsSQLTypeString<T>(this T col, bool include_nullable = true) where T : ColumnBase
         {
             SQLServerMetadata m = col.SQLMetadata;
@@ -68,6 +96,13 @@ namespace MicroM.Generators.SQLGenerator
             return $"{m.SQLType}{(include_nullable ? m.Nullable ? "" : " NOT NULL" : "")}";
         }
 
+        /// <summary>
+        /// Formats a stored procedure parameter for the column.
+        /// </summary>
+        /// <typeparam name="T">Concrete column type.</typeparam>
+        /// <param name="col">Column to convert into a parameter.</param>
+        /// <param name="include_declaration">If true, includes the SQL type declaration.</param>
+        /// <returns>The formatted parameter string.</returns>
         internal static string AsProcParm<T>(this T col, bool include_declaration) where T : ColumnBase
         {
             return $"@{col.SQLParameterName}{(include_declaration ? $" {col.AsSQLTypeString(false)}" : "")}";
@@ -131,6 +166,15 @@ namespace MicroM.Generators.SQLGenerator
 
         }
 
+        /// <summary>
+        /// Builds a separated list of column expressions for stored procedures.
+        /// </summary>
+        /// <param name="cols">Columns to process.</param>
+        /// <param name="separator">Separator placed between columns.</param>
+        /// <param name="alias">Optional table alias used for real columns.</param>
+        /// <param name="cat_alias">Starting alias for category or status tables.</param>
+        /// <param name="rtrim_chars">Whether to trim fixed width character columns.</param>
+        /// <returns>Formatted column list.</returns>
         internal static string AsProcColumns(this IReadonlyOrderedDictionary<ColumnBase> cols, string separator = ", ", string alias = "", string cat_alias = "b", bool rtrim_chars = true)
         {
             StringBuilder sb = new();
@@ -157,21 +201,50 @@ namespace MicroM.Generators.SQLGenerator
             return sb.ToString();
         }
 
+        /// <summary>
+        /// Formats the columns as parameters for a stored procedure call.
+        /// </summary>
+        /// <typeparam name="T">Concrete column type.</typeparam>
+        /// <param name="cols">Columns to convert.</param>
+        /// <param name="separator">Separator placed between parameters.</param>
+        /// <returns>Comma separated parameter list.</returns>
         internal static string AsProcParms<T>(this IReadonlyOrderedDictionary<T> cols, string separator = ", ") where T : ColumnBase
         {
             return GetProcParms(cols.Values.GetEnumerator(), false, separator);
         }
 
+        /// <summary>
+        /// Formats the columns as parameter declarations for a stored procedure.
+        /// </summary>
+        /// <typeparam name="T">Concrete column type.</typeparam>
+        /// <param name="cols">Columns to convert.</param>
+        /// <param name="separator">Separator placed between parameters.</param>
+        /// <returns>Parameter declaration list.</returns>
         internal static string AsProcParmsDeclaration<T>(this IReadonlyOrderedDictionary<T> cols, string separator = ", ") where T : ColumnBase
         {
             return GetProcParms(cols.Values.GetEnumerator(), true, separator);
         }
 
+        /// <summary>
+        /// Formats dictionary based column collections as parameter declarations for a stored procedure.
+        /// </summary>
+        /// <typeparam name="T">Concrete column type.</typeparam>
+        /// <param name="cols">Dictionary of columns to convert.</param>
+        /// <param name="separator">Separator placed between parameters.</param>
+        /// <returns>Parameter declaration list.</returns>
         internal static string AsProcParmsDeclaration<T>(this Dictionary<string, T> cols, string separator = ", ") where T : ColumnBase
         {
             return GetProcParms(cols.Values.GetEnumerator(), true, separator);
         }
 
+        /// <summary>
+        /// Generates T-SQL checks ensuring parameters are not null or empty.
+        /// </summary>
+        /// <typeparam name="T">Concrete column type.</typeparam>
+        /// <param name="cols">Columns to validate.</param>
+        /// <param name="separator">Separator inserted before each check.</param>
+        /// <param name="for_i_update">When true, prefixes error assignments for insert/update procedures.</param>
+        /// <returns>Validation statements.</returns>
         internal static string AsValidateNotNullOrEmptyParm<T>(this IReadonlyOrderedDictionary<T> cols, string separator = "\n", bool for_i_update = false) where T : ColumnBase
         {
             // $"{separator}{col_enumerator.Current.AsProcParm(include_declaration)}"
@@ -207,6 +280,14 @@ namespace MicroM.Generators.SQLGenerator
             return result;
         }
 
+        /// <summary>
+        /// Formats the columns as <c>column = @parameter</c> pairs.
+        /// </summary>
+        /// <param name="cols">Columns to convert.</param>
+        /// <param name="pair_separator">Operator between column and parameter.</param>
+        /// <param name="union_string">String used to join pairs.</param>
+        /// <param name="alias">Optional table alias.</param>
+        /// <returns>Concatenated column/value expressions.</returns>
         internal static string AsColumnValuePairs(this IEnumerable<ColumnBase> cols, string pair_separator = "=", string union_string = " and ", string alias = "")
         {
             using var col_enumerator = cols.GetEnumerator();
@@ -219,11 +300,29 @@ namespace MicroM.Generators.SQLGenerator
             return col_parms;
         }
 
+        /// <summary>
+        /// Formats the columns as <c>column = @parameter</c> pairs using an ordered dictionary.
+        /// </summary>
+        /// <typeparam name="T">Concrete column type.</typeparam>
+        /// <param name="cols">Columns to convert.</param>
+        /// <param name="pair_separator">Operator between column and parameter.</param>
+        /// <param name="union_string">String used to join pairs.</param>
+        /// <param name="alias">Optional table alias.</param>
+        /// <returns>Concatenated column/value expressions.</returns>
         internal static string AsColumnValuePairs<T>(this IReadonlyOrderedDictionary<T> cols, string pair_separator = "=", string union_string = " and ", string alias = "") where T : ColumnBase
         {
             return cols.Values.AsColumnValuePairs(pair_separator, union_string, alias);
         }
 
+        /// <summary>
+        /// Formats the columns as <c>column LIKE phrase</c> pairs joined with a union string.
+        /// </summary>
+        /// <typeparam name="T">Concrete column type.</typeparam>
+        /// <param name="cols">Columns to convert.</param>
+        /// <param name="pair_separator">The comparison operator (typically <c>LIKE</c>).</param>
+        /// <param name="union_string">String used to join pairs.</param>
+        /// <param name="alias">Optional table alias.</param>
+        /// <returns>Concatenated like expressions.</returns>
         internal static string AsLikeValuePairs<T>(this IReadonlyOrderedDictionary<T> cols, string pair_separator = "like", string union_string = " or ", string alias = "") where T : ColumnBase
         {
             using var col_enumerator = cols.Values.GetEnumerator();
@@ -237,6 +336,16 @@ namespace MicroM.Generators.SQLGenerator
 
         }
 
+        /// <summary>
+        /// Formats the columns as <c>TitleCase Column = value</c> pairs for use in SQL titles.
+        /// </summary>
+        /// <typeparam name="T">Concrete column type.</typeparam>
+        /// <param name="cols">Columns to convert.</param>
+        /// <param name="pair_separator">Operator between column and value.</param>
+        /// <param name="union_string">String used to join pairs.</param>
+        /// <param name="alias">Optional table alias.</param>
+        /// <param name="trim_char_cols">Whether to trim fixed width character columns.</param>
+        /// <returns>Concatenated title/value expressions.</returns>
         internal static string AsTitleColumnPairs<T>(this IReadonlyOrderedDictionary<T> cols, string pair_separator = "=", string union_string = ", ", string alias = "", bool trim_char_cols = true) where T : ColumnBase
         {
             using var col_enumerator = cols.Values.GetEnumerator();
@@ -274,6 +383,13 @@ namespace MicroM.Generators.SQLGenerator
             return sb.ToString();
         }
 
+        /// <summary>
+        /// Generates <c>NULLIF</c> checks for nullable string columns.
+        /// </summary>
+        /// <typeparam name="T">Concrete column type.</typeparam>
+        /// <param name="cols">Columns to inspect.</param>
+        /// <param name="separator">Separator inserted before each statement.</param>
+        /// <returns>Concatenated <c>NULLIF</c> statements.</returns>
         internal static string AsNullIfChecks<T>(this IReadonlyOrderedDictionary<T> cols, string separator = "\n") where T : ColumnBase
         {
             return AsNullIfChecks(cols.Values.GetEnumerator(), separator);
