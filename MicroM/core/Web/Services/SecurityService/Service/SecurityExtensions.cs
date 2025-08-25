@@ -1,4 +1,4 @@
-﻿using MicroM.Configuration;
+﻿﻿using MicroM.Configuration;
 using MicroM.Core;
 using MicroM.Data;
 using MicroM.DataDictionary;
@@ -6,13 +6,36 @@ using System.Security.Claims;
 
 namespace MicroM.Extensions
 {
+    /// <summary>
+    /// Provides extension helpers used by the security subsystem. Includes
+    /// methods for translating claim dictionaries into <see cref="Claim"/> objects,
+    /// generating entity route paths, and persisting those paths to the database.
+    /// </summary>
     public static class SecurityExtensions
     {
+        /// <summary>
+        /// Converts a dictionary of claim types and values into a sequence of
+        /// <see cref="Claim"/> objects. Useful when building a
+        /// <see cref="ClaimsPrincipal"/> from raw server data.
+        /// </summary>
+        /// <param name="dictionary">Dictionary containing claim types and their values.</param>
+        /// <returns>An enumerable of claims created from the dictionary.</returns>
         public static IEnumerable<Claim> ToClaims(this IDictionary<string, object> dictionary)
         {
             return dictionary.Select(kv => new Claim(kv.Key, kv.Value?.ToString() ?? string.Empty));
         }
 
+        /// <summary>
+        /// Builds the list of route paths for the specified entity type based on
+        /// the provided <paramref name="route_flags"/>. Optional arrays can
+        /// further restrict the views, procedures, or actions to include.
+        /// </summary>
+        /// <param name="entity_type">Type of the entity.</param>
+        /// <param name="route_flags">Flags that describe which routes to generate.</param>
+        /// <param name="views">Optional list of view names to include.</param>
+        /// <param name="procs">Optional list of procedure names to include.</param>
+        /// <param name="actions">Optional list of action names to include.</param>
+        /// <returns>A list of route paths matching the specified flags.</returns>
         public static List<string> GetRoutePaths(this Type entity_type, AllowedRouteFlags route_flags, string[]? views = null, string[]? procs = null, string[]? actions = null)
         {
             ArgumentNullException.ThrowIfNull(entity_type);
@@ -42,6 +65,17 @@ namespace MicroM.Extensions
             return entity.GetRoutePaths(entity_type.Name, route_flags, views, procs, actions);
         }
 
+        /// <summary>
+        /// Builds the list of route paths for the given entity instance using its
+        /// definition metadata.
+        /// </summary>
+        /// <param name="entity">Entity instance providing metadata.</param>
+        /// <param name="entity_name">Name of the entity.</param>
+        /// <param name="route_flags">Flags describing which routes to include.</param>
+        /// <param name="views">Optional view names.</param>
+        /// <param name="procs">Optional procedure names.</param>
+        /// <param name="actions">Optional action names.</param>
+        /// <returns>List of generated route paths.</returns>
         public static List<string> GetRoutePaths(this EntityBase entity, string entity_name, AllowedRouteFlags route_flags, string[]? views = null, string[]? procs = null, string[]? actions = null)
         {
             List<string> paths = [];
@@ -122,6 +156,15 @@ namespace MicroM.Extensions
 
         }
 
+        /// <summary>
+        /// Persists the routes generated for the specified entity into the
+        /// database using the provided client. Useful for seeding security
+        /// metadata with default routes.
+        /// </summary>
+        /// <param name="entity">Entity whose routes will be created.</param>
+        /// <param name="ec">Client used to interact with the database.</param>
+        /// <param name="ct">Cancellation token.</param>
+        /// <returns>A task that completes when all routes have been stored.</returns>
         public async static Task CreateEntityRoutes(this EntityBase entity, IEntityClient ec, CancellationToken ct)
         {
             ArgumentNullException.ThrowIfNull(entity);
@@ -148,6 +191,14 @@ namespace MicroM.Extensions
             }
         }
 
+        /// <summary>
+        /// Creates all route paths for the specified entity type and persists
+        /// them using the provided database client.
+        /// </summary>
+        /// <param name="entity_type">Entity type for which to create routes.</param>
+        /// <param name="ec">Database client used to store the routes.</param>
+        /// <param name="ct">Cancellation token.</param>
+        /// <returns>A task that completes when the operation finishes.</returns>
         public async static Task CreateEntityRoutes(this Type entity_type, IEntityClient ec, CancellationToken ct)
         {
             ArgumentNullException.ThrowIfNull(entity_type);

@@ -7,8 +7,16 @@ using System.Text.Json;
 
 namespace MicroM.Core
 {
+    /// <summary>
+    /// Provides cryptographic helper methods.
+    /// </summary>
     public class CryptClass
     {
+        /// <summary>
+        /// Temporarily encrypts a string using a random AES key.
+        /// </summary>
+        /// <param name="to_encrypt">Text to encrypt.</param>
+        /// <returns>Encrypted bytes.</returns>
         public static async Task<byte[]> TempEncryptString(string to_encrypt)
         {
             using var aes = Aes.Create();
@@ -18,6 +26,9 @@ namespace MicroM.Core
             return await EncryptText(to_encrypt, SecurityDefaults.TempEncryptionKey, SecurityDefaults.TempEncryptionIV);
         }
 
+        /// <summary>
+        /// Derives a symmetric security key from a password and salt.
+        /// </summary>
         public static SymmetricSecurityKey GetSecurityKey(string password, string salt, int keySize = 256)
         {
             var pbkdf2 = new Rfc2898DeriveBytes(password, Encoding.UTF8.GetBytes(salt), 1000, HashAlgorithmName.SHA512);
@@ -27,6 +38,9 @@ namespace MicroM.Core
         }
 
 
+        /// <summary>
+        /// Encrypts text using AES with the provided key and IV.
+        /// </summary>
         public static async Task<byte[]> EncryptText(string text, byte[] key, byte[] iv)
         {
 
@@ -45,6 +59,9 @@ namespace MicroM.Core
 
         }
 
+        /// <summary>
+        /// Creates a self-signed X509 certificate.
+        /// </summary>
         public static X509Certificate2 CreateSelfSignedCertificate(string distinguished_name = ConfigurationDefaults.CertificateSubjectName, int expires_years = 50)
         {
             using var rsa = RSA.Create(2048);
@@ -69,12 +86,18 @@ namespace MicroM.Core
 
         }
 
+        /// <summary>
+        /// Exports a certificate to a PFX file.
+        /// </summary>
         public static async Task ExportCertificate(X509Certificate2 cert, string certificate_full_path, string export_password, CancellationToken ct)
         {
             if (!Directory.Exists(certificate_full_path)) Directory.CreateDirectory(certificate_full_path);
             await File.WriteAllBytesAsync(certificate_full_path, cert.Export(X509ContentType.Pkcs12, export_password), ct);
         }
 
+        /// <summary>
+        /// Stores a certificate in the current user's certificate store.
+        /// </summary>
         public static X509Certificate2 StoreCertificate(X509Certificate2 certificate, string certificate_password)
         {
             // Export the certificate to a PFX file, to create with a password
@@ -93,6 +116,9 @@ namespace MicroM.Core
 
         }
 
+        /// <summary>
+        /// Creates a self-signed certificate and stores it in the current user's store.
+        /// </summary>
         public static X509Certificate2 CreateSelfSignedCertificateAndStoreInUser(string certificate_password, string distinguished_name = ConfigurationDefaults.CertificateSubjectName, int expires_years = 50)
         {
 
@@ -101,6 +127,9 @@ namespace MicroM.Core
         }
 
 
+        /// <summary>
+        /// Deletes a certificate by subject name from the current user's store.
+        /// </summary>
         public static bool DeleteCertificate(string subject_name)
         {
             bool ret = false;
@@ -144,6 +173,9 @@ namespace MicroM.Core
             return null;
         }
 
+        /// <summary>
+        /// Finds a certificate by subject name.
+        /// </summary>
         public static X509Certificate2? FindCertificateByName(string subject_name)
         {
             return Find(X509FindType.FindBySubjectName, subject_name);
@@ -151,11 +183,17 @@ namespace MicroM.Core
         }
 
 
+        /// <summary>
+        /// Finds a certificate by thumbprint.
+        /// </summary>
         public static X509Certificate2? FindCertificate(string thumbprint)
         {
             return Find(X509FindType.FindByThumbprint, thumbprint);
         }
 
+        /// <summary>
+        /// Encrypts text using the public key of the certificate.
+        /// </summary>
         public static string? X509Encrypt(string plainText, X509Certificate2 cert)
         {
             // Get the public key from the certificate
@@ -169,6 +207,9 @@ namespace MicroM.Core
             return encryptedData == null ? null : Convert.ToBase64String(encryptedData);
         }
 
+        /// <summary>
+        /// Decrypts text using the private key of the certificate.
+        /// </summary>
         public static string? X509Decrypt(string encryptedText, X509Certificate2 cert)
         {
             // Get the private key from the certificate
@@ -182,6 +223,9 @@ namespace MicroM.Core
             return decryptedData == null ? null : Encoding.UTF8.GetString(decryptedData);
         }
 
+        /// <summary>
+        /// Generates a random base64 string of the specified byte length.
+        /// </summary>
         public static string GenerateRandomBase64String(int count = 8)
         {
             byte[] bytes = RandomNumberGenerator.GetBytes(count);
@@ -189,6 +233,9 @@ namespace MicroM.Core
             return Convert.ToBase64String(bytes);
         }
 
+        /// <summary>
+        /// Creates a random password satisfying the specified requirements.
+        /// </summary>
         public static string CreateRandomPassword(int length = 50, int minSymbols = 5, int minNumbers = 5, int minUppercase = 5, int minLowercase = 5)
         {
             ReadOnlySpan<char> symbols = "!@#$%^&*()_-+=[]{};:>|./?";
@@ -243,6 +290,9 @@ namespace MicroM.Core
             return span;
         }
 
+        /// <summary>
+        /// Encrypts an object using hybrid RSA/AES and returns a base64 string.
+        /// </summary>
         public static string EncryptObject<T>(T obj, X509Certificate2 cert)
         {
             var rsaParams = (cert.GetRSAPublicKey()?.ExportParameters(false)) ?? throw new Exception("Could not get RSA parameters from certificate");
@@ -282,6 +332,9 @@ namespace MicroM.Core
             return Convert.ToBase64String(result);
         }
 
+        /// <summary>
+        /// Decrypts a previously encrypted object.
+        /// </summary>
         public static T? DecryptObject<T>(string encryptedString, X509Certificate2 cert)
         {
             byte[] data = Convert.FromBase64String(encryptedString);

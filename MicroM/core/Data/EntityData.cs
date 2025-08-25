@@ -7,6 +7,9 @@ using static MicroM.Data.IEntityClient;
 
 namespace MicroM.Data
 {
+    /// <summary>
+    /// Provides common operations for interacting with entity data and procedures.
+    /// </summary>
     public class EntityData(IEntityClient ec, EntityDefinition def, IMicroMEncryption? encryptor = null) : IEntityData
     {
         public IEntityClient EntityClient { get; init; } = ec;

@@ -5,10 +5,13 @@ using System.Runtime.CompilerServices;
 namespace MicroM.Generators
 {
     /// <summary>
-    /// Provides a base container for storing template tokens.
+    /// Base class that manages placeholder tokens for template replacement.
     /// </summary>
     internal abstract class TemplateValuesBase
     {
+        /// <summary>
+        /// Stores token–value pairs for template processing.
+        /// </summary>
         public readonly Dictionary<string, string> tokens = [];
 
         /// <summary>
@@ -19,17 +22,19 @@ namespace MicroM.Generators
             FillTokens();
         }
 
-        // MMC: this aims to ease the use of the tokens dictionary
         /// <summary>
-        /// Populates the token dictionary with placeholders for init-only string properties.
+        /// Prepopulates the <see cref="tokens"/> dictionary with placeholders.
         /// </summary>
+        /// <remarks>
+        /// Adds an empty string entry for each init-only string property defined on the instance, simplifying
+        /// subsequent token replacement.
+        /// </remarks>
         private void FillTokens()
         {
             object obj = this;
 
             IOrderedEnumerable<MemberInfo> instance_members = this.GetType().GetAndCacheInstanceMembers();
 
-            // MMC: this is to initialize the tokens dictionary with empty strings for all properties that are init only
             foreach (var prop in instance_members)
             {
                 bool isInitOnly = false;

@@ -170,12 +170,24 @@ public static class DataDictionaryExtensions
         return cat;
     }
 
-
+    /// <summary>
+    /// Adds an entity definition to the data dictionary.
+    /// </summary>
+    /// <typeparam name="T">Entity type.</typeparam>
+    /// <param name="ent">Entity instance to register.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>The registered entity.</returns>
     public static async Task<T> AddToDataDictionary<T>(this T ent, CancellationToken ct) where T : EntityBase, new()
     {
         return (T)await AddInstanceToDataDictionary(ent, ct);
     }
 
+    /// <summary>
+    /// Inserts the entity and related metadata into the data dictionary.
+    /// </summary>
+    /// <param name="ent">Entity instance.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>The inserted entity.</returns>
     public static async Task<EntityBase> AddInstanceToDataDictionary(this EntityBase ent, CancellationToken ct)
     {
         var ec = ent.Client;
@@ -202,6 +214,12 @@ public static class DataDictionaryExtensions
         return ent;
     }
 
+    /// <summary>
+    /// Adds a menu definition and its items to the data dictionary.
+    /// </summary>
+    /// <param name="menu_definition">Menu definition to insert.</param>
+    /// <param name="ec">Entity client.</param>
+    /// <param name="ct">Cancellation token.</param>
     public static async Task AddMenu(this MenuDefinition menu_definition, IEntityClient ec, CancellationToken ct)
     {
         bool should_close = !(ec.ConnectionState == System.Data.ConnectionState.Open);
@@ -260,6 +278,12 @@ public static class DataDictionaryExtensions
         }
     }
 
+    /// <summary>
+    /// Adds a user group definition to the data dictionary with its allowed menu items.
+    /// </summary>
+    /// <param name="user_group">User group definition.</param>
+    /// <param name="ec">Entity client.</param>
+    /// <param name="ct">Cancellation token.</param>
     public static async Task AddUserGroup(this UsersGroupDefinition user_group, IEntityClient ec, CancellationToken ct)
     {
         bool should_close = !(ec.ConnectionState == System.Data.ConnectionState.Open);

@@ -6,18 +6,32 @@ using System.Runtime.CompilerServices;
 namespace MicroM.DataDictionary.Configuration
 {
     /// <summary>
-    /// This class is used to define an application menu. It also defines the access granted to the entities related to the menu.
-    /// When a user logs in, the system will check the user's groups and the menu definitions to determine which entities the user can access.
-    /// <see cref="MenuItemDefinition"/>, <see cref="MicromUsersGroups"/>
-    /// When creating an application database the system will create the necessary tables and views to support the menu definitions.
+    /// Represents the definition of an application menu and the access granted to related entities.
+    /// When a user logs in, the menu definitions are used together with the user's groups to determine
+    /// which entities are available. Database objects required to support these menus are created during
+    /// application initialization.
     /// </summary>
     public class MenuDefinition
     {
+        /// <summary>
+        /// Identifier for the menu. Defaults to the name of the implementing class.
+        /// </summary>
         public readonly string MenuID;
+
+        /// <summary>
+        /// Human‑readable text shown for the menu.
+        /// </summary>
         public readonly string MenuDescription;
 
+        /// <summary>
+        /// Ordered collection of menu items contained in the menu.
+        /// </summary>
         public readonly CustomOrderedDictionary<MenuItemDefinition> MenuItems = new();
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="MenuDefinition"/> class.
+        /// </summary>
+        /// <param name="menuDescription">Description text for the menu.</param>
         public MenuDefinition(string menuDescription)
         {
             MenuID = this.GetType().Name;
@@ -25,6 +39,9 @@ namespace MicroM.DataDictionary.Configuration
             FillMenuItemsDictionary();
         }
 
+        /// <summary>
+        /// Populates the <see cref="MenuItems"/> collection using reflected instance members.
+        /// </summary>
         private void FillMenuItemsDictionary()
         {
             IOrderedEnumerable<MemberInfo> instance_members = this.GetType().GetAndCacheInstanceMembers();

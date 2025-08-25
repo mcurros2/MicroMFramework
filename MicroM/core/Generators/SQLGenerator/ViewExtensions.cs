@@ -7,18 +7,19 @@ using static MicroM.Generators.Constants;
 namespace MicroM.Generators.SQLGenerator
 {
     /// <summary>
-    /// Provides extension methods for generating SQL scripts related to views.
+    /// Extensions for generating SQL scripts for entity browse views.
     /// </summary>
     internal static class ViewExtensions
     {
         /// <summary>
-        /// Creates the SQL to create or alter a view stored procedure for the specified entity.
+        /// Builds the SQL script for the standard browse view stored procedure
+        /// (<c>_brwStandard</c>) of an entity.
         /// </summary>
-        /// <typeparam name="T">Type of <see cref="EntityBase"/>.</typeparam>
-        /// <param name="entity">Entity definition used to build the view.</param>
-        /// <param name="create_or_alter">When <c>true</c> generates an ALTER statement; otherwise CREATE.</param>
-        /// <param name="force">When <c>true</c> generates SQL even for fake entities.</param>
-        /// <returns>The SQL script for the view stored procedure or a message when no view is defined.</returns>
+        /// <typeparam name="T">Entity type.</typeparam>
+        /// <param name="entity">Entity definition.</param>
+        /// <param name="create_or_alter">Emit <c>create or alter</c> if true.</param>
+        /// <param name="force">Generate script even when entity is marked fake.</param>
+        /// <returns>SQL script or explanatory comment if view is missing.</returns>
         public static string AsCreateViewProc<T>(this T entity, bool create_or_alter = false, bool force = false) where T : EntityBase
         {
             if (entity.Def.Fake && force == false) return "";

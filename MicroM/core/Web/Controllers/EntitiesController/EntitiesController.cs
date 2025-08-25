@@ -9,9 +9,15 @@ using static MicroM.Web.Controllers.MicroMControllersMessages;
 
 namespace MicroM.Web.Controllers;
 
+/// <summary>
+/// Provides endpoints for executing operations on application entities.
+/// </summary>
 [ApiController]
 public class EntitiesController : ControllerBase, IEntitiesController
 {
+    /// <summary>
+    /// Returns a simple response indicating that the entities API is available.
+    /// </summary>
     [AllowAnonymous]
     [HttpGet("entities-api-status")]
     public string GetStatus()
@@ -19,6 +25,9 @@ public class EntitiesController : ControllerBase, IEntitiesController
         return "OK";
     }
 
+    /// <summary>
+    /// Executes a custom action on the specified entity.
+    /// </summary>
     [Authorize(policy: nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy))]
     [HttpPost("{app_id}/ent/{entityName}/action/{actionName}")]
     public async Task<ObjectResult> Action([FromServices] IAuthenticationProvider auth, [FromServices] IMicroMAppConfiguration app_config, [FromServices] IEntitiesService ents, string app_id, string entityName, string actionName, [FromBody] DataWebAPIRequest parms, CancellationToken ct)
@@ -44,6 +53,9 @@ public class EntitiesController : ControllerBase, IEntitiesController
         }
     }
 
+    /// <summary>
+    /// Deletes an entity instance.
+    /// </summary>
     [Authorize(policy: nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy))]
     [HttpPost("{app_id}/ent/{entityName}/delete")]
     public async Task<ObjectResult> Delete([FromServices] IAuthenticationProvider auth, [FromServices] IMicroMAppConfiguration app_config, [FromServices] IEntitiesService ents, string app_id, string entityName, [FromBody] DataWebAPIRequest parms, CancellationToken ct)
@@ -68,6 +80,9 @@ public class EntitiesController : ControllerBase, IEntitiesController
     }
 
 
+    /// <summary>
+    /// Retrieves a single entity by name.
+    /// </summary>
     [Authorize(policy: nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy))]
     [HttpPost("{app_id}/ent/{entityName}/get")]
     public async Task<ObjectResult> Get([FromServices] IAuthenticationProvider auth, [FromServices] IMicroMAppConfiguration app_config, [FromServices] IEntitiesService ents, string app_id, string entityName, [FromBody] DataWebAPIRequest parms, CancellationToken ct)
@@ -95,6 +110,9 @@ public class EntitiesController : ControllerBase, IEntitiesController
 
 
 
+    /// <summary>
+    /// Retrieves the metadata definition of an entity.
+    /// </summary>
     [Authorize(policy: nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy))]
     [HttpGet("{app_id}/ent/{entityName}/definition")]
     public ObjectResult GetDefinition([FromServices] IEntitiesService ents, [FromServices] IMicroMAppConfiguration app_config, string app_id, string entityName)
@@ -119,6 +137,9 @@ public class EntitiesController : ControllerBase, IEntitiesController
     }
 
 
+    /// <summary>
+    /// Gets the time-zone offset in minutes for the server.
+    /// </summary>
     [Authorize(policy: nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy))]
     [HttpPost("{app_id}/ent/timezoneoffset")]
     public async Task<int> GetTimeZoneOffset([FromServices] IAuthenticationProvider auth, [FromServices] IMicroMAppConfiguration app_config, [FromServices] IEntitiesService ents, string app_id, CancellationToken ct)
@@ -141,6 +162,9 @@ public class EntitiesController : ControllerBase, IEntitiesController
         }
     }
 
+    /// <summary>
+    /// Imports data into the specified entity using an optional procedure.
+    /// </summary>
     [Authorize(policy: nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy))]
     [HttpPost("{app_id}/ent/{entityName}/import/{import_proc?}")]
     public async Task<ObjectResult> Import([FromServices] IAuthenticationProvider auth, [FromServices] IMicroMAppConfiguration app_config, [FromServices] IEntitiesService ents, string app_id, string entityName, string? import_proc, [FromBody] DataWebAPIRequest parms, CancellationToken ct)
@@ -166,6 +190,9 @@ public class EntitiesController : ControllerBase, IEntitiesController
         }
     }
 
+    /// <summary>
+    /// Creates a new entity instance.
+    /// </summary>
     [Authorize(policy: nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy))]
     [HttpPost("{app_id}/ent/{entityName}/insert")]
     public async Task<ObjectResult> Insert(
@@ -198,6 +225,9 @@ public class EntitiesController : ControllerBase, IEntitiesController
     }
 
 
+    /// <summary>
+    /// Runs a lookup query for an entity.
+    /// </summary>
     [Authorize(policy: nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy))]
     [HttpPost("{app_id}/ent/{entityName}/lookup/{lookupName?}")]
     public async Task<ObjectResult> Lookup([FromServices] IAuthenticationProvider auth, [FromServices] IMicroMAppConfiguration app_config, [FromServices] IEntitiesService ents, string app_id, string entityName, string? lookupName, [FromBody] DataWebAPIRequest parms, CancellationToken ct)
@@ -218,6 +248,9 @@ public class EntitiesController : ControllerBase, IEntitiesController
         }
     }
 
+    /// <summary>
+    /// Executes a stored procedure for an entity.
+    /// </summary>
     [Authorize(policy: nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy))]
     [HttpPost("{app_id}/ent/{entityName}/proc/{procName}")]
     public async Task<ObjectResult> Proc([FromServices] IAuthenticationProvider auth, [FromServices] IMicroMAppConfiguration app_config, [FromServices] IEntitiesService ents, string app_id, string entityName, string procName, [FromBody] DataWebAPIRequest parms, CancellationToken ct)
@@ -241,6 +274,9 @@ public class EntitiesController : ControllerBase, IEntitiesController
         }
     }
 
+    /// <summary>
+    /// Executes a stored procedure that returns status information.
+    /// </summary>
     [Authorize(policy: nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy))]
     [HttpPost("{app_id}/ent/{entityName}/process/{procName}")]
     public async Task<ObjectResult> Process([FromServices] IAuthenticationProvider auth, [FromServices] IMicroMAppConfiguration app_config, [FromServices] IEntitiesService ents, string app_id, string entityName, string procName, [FromBody] DataWebAPIRequest parms, CancellationToken ct)
@@ -264,6 +300,9 @@ public class EntitiesController : ControllerBase, IEntitiesController
         }
     }
 
+    /// <summary>
+    /// Updates an existing entity instance.
+    /// </summary>
     [Authorize(policy: nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy))]
     [HttpPost("{app_id}/ent/{entityName}/update")]
     public async Task<ObjectResult> Update([FromServices] IAuthenticationProvider auth, [FromServices] IMicroMAppConfiguration app_config, [FromServices] IEntitiesService ents, string app_id, string entityName, [FromBody] DataWebAPIRequest parms, CancellationToken ct)
@@ -289,6 +328,9 @@ public class EntitiesController : ControllerBase, IEntitiesController
         }
     }
 
+    /// <summary>
+    /// Executes a view for an entity and returns its results.
+    /// </summary>
     [Authorize(policy: nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy))]
     [HttpPost("{app_id}/ent/{entityName}/view/{viewName}")]
     public async Task<ObjectResult> View([FromServices] IAuthenticationProvider auth, [FromServices] IMicroMAppConfiguration app_config, [FromServices] IEntitiesService ents, string app_id, string entityName, string viewName, [FromBody] DataWebAPIRequest parms, CancellationToken ct)

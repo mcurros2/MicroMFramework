@@ -1,9 +1,12 @@
-﻿namespace MicroM.Configuration
+namespace MicroM.Configuration
 {
+    /// <summary>
+    /// Default values for data access operations.
+    /// </summary>
     public static class DataDefaults
     {
         /// <summary>
-        /// Connection timeout in seconds. Default = 5
+        /// Connection timeout in seconds. Default = 15
         /// </summary>
         public static int DefaultConnectionTimeOutInSecs = 15;
         /// <summary>

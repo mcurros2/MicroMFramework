@@ -5,12 +5,18 @@ using Microsoft.Extensions.Options;
 
 namespace MicroM.Web.Services
 {
+    /// <summary>
+    /// Represents the MicroMEncryption.
+    /// </summary>
     public class MicroMEncryption : IMicroMEncryption, IDisposable
     {
         private readonly X509Encryptor? _encryptor;
         private readonly ILogger<MicroMEncryption> _log;
         private bool disposedValue;
 
+        /// <summary>
+        /// Performs the MicroMEncryption operation.
+        /// </summary>
         public MicroMEncryption(IOptions<MicroMOptions> options, ILogger<MicroMEncryption> log)
         {
             _log = log;
@@ -55,26 +61,41 @@ namespace MicroM.Web.Services
             }
         }
 
+        /// <summary>
+        /// _encryptor?.CertificateThumbprint; field.
+        /// </summary>
         public string? CertificateThumbprint => _encryptor?.CertificateThumbprint;
 
+        /// <summary>
+        /// Performs the Decrypt operation.
+        /// </summary>
         public string Decrypt(string base64_encrypted)
         {
             if (string.IsNullOrEmpty(base64_encrypted)) return base64_encrypted;
             return _encryptor?.Decrypt(base64_encrypted) ?? throw new InvalidOperationException("Certificate thumbprint not configured");
         }
 
+        /// <summary>
+        /// Performs the Encrypt operation.
+        /// </summary>
         public string Encrypt(string plaintext)
         {
             if (string.IsNullOrEmpty(plaintext)) return plaintext;
             return _encryptor?.Encrypt(plaintext) ?? throw new InvalidOperationException("Certificate thumbprint not configured");
         }
 
+        /// <summary>
+        /// Performs the EncryptObject<T> operation.
+        /// </summary>
         public string EncryptObject<T>(T obj)
         {
             if (obj == null) throw new ArgumentNullException(nameof(obj));
             return _encryptor?.EncryptObject(obj) ?? throw new InvalidOperationException("Certificate thumbprint not configured");
         }
 
+        /// <summary>
+        /// Performs the DecryptObject<T> operation.
+        /// </summary>
         public T? DecryptObject<T>(string encryptedString)
         {
             if (string.IsNullOrEmpty(encryptedString)) throw new ArgumentException("Encrypted string cannot be null or empty.", nameof(encryptedString));
@@ -98,6 +119,9 @@ namespace MicroM.Web.Services
         }
 
 
+        /// <summary>
+        /// Performs the Dispose operation.
+        /// </summary>
         public void Dispose()
         {
             // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method

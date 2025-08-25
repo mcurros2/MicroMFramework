@@ -4,16 +4,17 @@ using MicroM.Generators.Extensions;
 namespace MicroM.Generators.ReactGenerator
 {
     /// <summary>
-    /// Extensions for generating react entities
+    /// Extension methods for generating TypeScript code for React client
+    /// entities.
     /// </summary>
     public static class EntityExtensions
     {
-
         /// <summary>
-        /// Generates the TypeScript entity definition for the provided entity.
+        /// Creates the TypeScript entity definition class for the specified entity.
         /// </summary>
-        /// <param name="entity">The entity whose definition will be converted.</param>
-        /// <returns>A string containing the TypeScript entity definition.</returns>
+        /// <typeparam name="T">Type of the entity.</typeparam>
+        /// <param name="entity">Entity used to build the definition.</param>
+        /// <returns>TypeScript code for the entity definition.</returns>
         public static string AsTypeScriptEntityDefinition<T>(this T entity) where T : EntityBase
         {
             string lookup_definitions = entity.Def.AsLookupDefinition();
@@ -39,10 +40,11 @@ namespace MicroM.Generators.ReactGenerator
         }
 
         /// <summary>
-        /// Generates a TypeScript entity for the provided entity definition.
+        /// Creates the TypeScript entity class for the specified entity definition.
         /// </summary>
-        /// <param name="entity">The entity to convert into TypeScript.</param>
-        /// <returns>A string containing the TypeScript entity.</returns>
+        /// <typeparam name="T">Type of the entity.</typeparam>
+        /// <param name="entity">Entity used to generate the class.</param>
+        /// <returns>TypeScript code for the entity class.</returns>
         public static string AsTypeScriptEntity<T>(this T entity) where T : EntityBase
         {
             var parms = new TemplateValues()
@@ -57,10 +59,11 @@ namespace MicroM.Generators.ReactGenerator
 
         //-----------------------------------------------------------------------------------------------------------------------------
         /// <summary>
-        /// Generates the TypeScript form for the given entity.
+        /// Generates the React form component for the entity.
         /// </summary>
-        /// <param name="entity">The entity for which to generate a form.</param>
-        /// <returns>A string containing the TypeScript entity form.</returns>
+        /// <typeparam name="T">Type of the entity.</typeparam>
+        /// <param name="entity">Entity for which to build the form.</param>
+        /// <returns>TypeScript code for the entity form component.</returns>
         public static string AsTypeScriptEntityForm<T>(this T entity) where T : EntityBase
         {
             var parms = new TemplateValues()

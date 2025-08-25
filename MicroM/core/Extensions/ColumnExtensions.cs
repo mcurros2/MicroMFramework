@@ -12,6 +12,14 @@ namespace MicroM.Extensions
 {
     public static class ColumnExtensions
     {
+        /// <summary>
+        /// Retrieves columns that match the specified <paramref name="flags"/> while excluding others.
+        /// </summary>
+        /// <param name="cols">Source column collection.</param>
+        /// <param name="flags">Flags to include.</param>
+        /// <param name="exclude_flags">Flags to exclude.</param>
+        /// <param name="exclude_names">Column names to skip.</param>
+        /// <returns>Dictionary with the matching columns.</returns>
         public static CustomOrderedDictionary<ColumnBase> GetWithFlags(this IReadonlyOrderedDictionary<ColumnBase> cols, ColumnFlags flags, ColumnFlags exclude_flags = ColumnFlags.Fake, params string[] exclude_names)
         {
             var ret = new CustomOrderedDictionary<ColumnBase>();
@@ -24,6 +32,13 @@ namespace MicroM.Extensions
             return ret;
         }
 
+        /// <summary>
+        /// Copies column values from <paramref name="values"/> into <paramref name="cols"/> for the specified names.
+        /// </summary>
+        /// <typeparam name="T">Column collection type.</typeparam>
+        /// <param name="cols">Target columns.</param>
+        /// <param name="values">Source values.</param>
+        /// <param name="names_to_copy">Column names to copy.</param>
         public static void SetColumnValuesByName<T>(this T cols, IReadonlyOrderedDictionary<ColumnBase> values, params string[] names_to_copy) where T : Dictionary<string, ColumnBase>, IReadonlyOrderedDictionary<ColumnBase>
         {
             foreach (ColumnBase value in values.Values)
@@ -33,6 +48,11 @@ namespace MicroM.Extensions
             }
         }
 
+        /// <summary>
+        /// Copies column values from the <paramref name="source"/> dictionary to <paramref name="cols"/> when names match.
+        /// </summary>
+        /// <param name="cols">Destination columns.</param>
+        /// <param name="source">Source columns.</param>
         public static void CopyColumnValuesByName(this IReadonlyOrderedDictionary<ColumnBase> cols, IReadonlyOrderedDictionary<ColumnBase> source)
         {
             foreach (ColumnBase value in source.Values)
@@ -42,16 +62,33 @@ namespace MicroM.Extensions
         }
 
 
+        /// <summary>
+        /// Returns columns that match the specified <paramref name="flags"/>.
+        /// </summary>
+        /// <param name="cols">Source columns.</param>
+        /// <param name="flags">Flags to include.</param>
+        /// <returns>Enumeration of matching columns.</returns>
         public static IEnumerable<ColumnBase> GetParmsWithFlags(this IReadonlyOrderedDictionary<ColumnBase> cols, ColumnFlags flags)
         {
             return cols.GetWithFlags(flags, ColumnFlags.None).Values;
         }
 
+        /// <summary>
+        /// Adds an existing column instance to the collection.
+        /// </summary>
+        /// <param name="collection">Target collection.</param>
+        /// <param name="col">Column to add.</param>
         public static void AddExisting(this CustomOrderedDictionary<ColumnBase> collection, ColumnBase col)
         {
             collection.Add(col.Name, col);
         }
 
+        /// <summary>
+        /// Determines whether all keys from <paramref name="cols"/> exist in <paramref name="source"/>.
+        /// </summary>
+        /// <param name="source">Source columns.</param>
+        /// <param name="cols">Columns containing keys to check.</param>
+        /// <returns><c>true</c> if all keys are present.</returns>
         public static bool ContainsAllKeys(this IReadonlyOrderedDictionary<ColumnBase> source, IReadonlyOrderedDictionary<ColumnBase> cols)
         {
             foreach (string key in cols.Keys)
@@ -61,6 +98,12 @@ namespace MicroM.Extensions
             return true;
         }
 
+        /// <summary>
+        /// Determines whether all provided <paramref name="keys"/> exist in <paramref name="source"/>.
+        /// </summary>
+        /// <param name="source">Source columns.</param>
+        /// <param name="keys">Keys to check.</param>
+        /// <returns><c>true</c> if all keys are present.</returns>
         public static bool ContainsAllKeys(this IReadonlyOrderedDictionary<ColumnBase> source, params string[] keys)
         {
             foreach (string key in keys)
@@ -70,6 +113,11 @@ namespace MicroM.Extensions
             return true;
         }
 
+        /// <summary>
+        /// Encrypts string column values using the provided <paramref name="encryptor"/>.
+        /// </summary>
+        /// <param name="cols">Columns to encrypt.</param>
+        /// <param name="encryptor">Encryption service.</param>
         public static void EncryptColumnData(this IEnumerable<ColumnBase> cols, IMicroMEncryption encryptor)
         {
             foreach (ColumnBase col in cols)
@@ -81,6 +129,11 @@ namespace MicroM.Extensions
             }
         }
 
+        /// <summary>
+        /// Decrypts string column values using the provided <paramref name="encryptor"/>.
+        /// </summary>
+        /// <param name="cols">Columns to decrypt.</param>
+        /// <param name="encryptor">Encryption service.</param>
         public static void DecryptColumnData(this IEnumerable<ColumnBase> cols, IMicroMEncryption encryptor)
         {
             foreach (ColumnBase col in cols)
@@ -92,6 +145,12 @@ namespace MicroM.Extensions
             }
         }
 
+        /// <summary>
+        /// Maps column values to a new instance of type <typeparamref name="T"/>.
+        /// </summary>
+        /// <typeparam name="T">Destination record type.</typeparam>
+        /// <param name="cols">Source columns.</param>
+        /// <returns>Instance of <typeparamref name="T"/> populated with column values.</returns>
         public static T MapColumnData<T>(this IReadonlyOrderedDictionary<ColumnBase> cols) where T : class, new()
         {
             var members = typeof(T).GetMembers(BindingFlags.Public | BindingFlags.Instance).Where(p => p.MemberType.IsIn(MemberTypes.Property, MemberTypes.Field) && p.GetCustomAttribute<CompilerGeneratedAttribute>() == null);
@@ -120,6 +179,20 @@ namespace MicroM.Extensions
         }
 
 
+        /// <summary>
+        /// Adds a new column definition to the collection.
+        /// </summary>
+        /// <typeparam name="T">Column value type.</typeparam>
+        /// <param name="collection">Target collection.</param>
+        /// <param name="name">Column name.</param>
+        /// <param name="sql_type">SQL type of the column.</param>
+        /// <param name="size">Column size.</param>
+        /// <param name="precision">Numeric precision.</param>
+        /// <param name="scale">Numeric scale.</param>
+        /// <param name="value">Initial value.</param>
+        /// <param name="output">Whether the column is an output parameter.</param>
+        /// <param name="column_flags">Flags describing column behavior.</param>
+        /// <returns>The created column.</returns>
         public static Column<T> AddCol<T>(this CustomOrderedDictionary<ColumnBase> collection, string name, SqlDbType? sql_type, int size = 0, byte precision = 0, byte scale = 0,
             T value = default!, bool output = false, ColumnFlags column_flags = ColumnFlags.Insert | ColumnFlags.Update)
         {
@@ -128,6 +201,19 @@ namespace MicroM.Extensions
             return col;
         }
 
+        /// <summary>
+        /// Adds a primary key column definition.
+        /// </summary>
+        /// <typeparam name="T">Column value type.</typeparam>
+        /// <param name="collection">Target collection.</param>
+        /// <param name="name">Column name.</param>
+        /// <param name="sql_type">SQL type of the column.</param>
+        /// <param name="size">Column size.</param>
+        /// <param name="precision">Numeric precision.</param>
+        /// <param name="scale">Numeric scale.</param>
+        /// <param name="value">Initial value.</param>
+        /// <param name="autonum">Whether the column is auto-numbered.</param>
+        /// <returns>The created primary key column.</returns>
         public static Column<T> AddPK<T>(this CustomOrderedDictionary<ColumnBase> collection, string name, SqlDbType? sql_type = SqlDbType.Char, int size = 20, byte precision = 0, byte scale = 0,
             T value = default!, bool autonum = false)
         {
@@ -139,12 +225,29 @@ namespace MicroM.Extensions
             return col;
         }
 
+        /// <summary>
+        /// Adds a foreign key column definition.
+        /// </summary>
+        /// <typeparam name="T">Column value type.</typeparam>
+        /// <param name="collection">Target collection.</param>
+        /// <param name="name">Column name.</param>
+        /// <param name="sql_type">SQL type of the column.</param>
+        /// <param name="size">Column size.</param>
+        /// <param name="precision">Numeric precision.</param>
+        /// <param name="scale">Numeric scale.</param>
+        /// <param name="value">Initial value.</param>
+        /// <returns>The created foreign key column.</returns>
         public static Column<T> AddFK<T>(this CustomOrderedDictionary<ColumnBase> collection, string name, SqlDbType? sql_type = SqlDbType.Char, int size = 20, byte precision = 0, byte scale = 0, T value = default!)
         {
             return collection.AddCol(name, value: value, sql_type: sql_type, size: size, precision: precision,
                 scale: scale, column_flags: ColumnFlags.Insert | ColumnFlags.Update | ColumnFlags.Delete | ColumnFlags.Get | ColumnFlags.FK);
         }
 
+        /// <summary>
+        /// Creates a <see cref="SqlParameter"/> from the specified column.
+        /// </summary>
+        /// <param name="sql_col">Column used to build the parameter.</param>
+        /// <returns>The created parameter.</returns>
         public static SqlParameter CreateSQLParameter(this ColumnBase sql_col)
         {
             var parm = new SqlParameter
@@ -168,6 +271,11 @@ namespace MicroM.Extensions
         }
 
 
+        /// <summary>
+        /// Converts a collection of columns into an array of <see cref="SqlParameter"/>.
+        /// </summary>
+        /// <param name="sql_cols">Columns to convert.</param>
+        /// <returns>Array of SQL parameters.</returns>
         public static SqlParameter[] AsSqlParameters(this IEnumerable<ColumnBase> sql_cols)
         {
             var ret = new List<SqlParameter>();
@@ -178,6 +286,11 @@ namespace MicroM.Extensions
             return [.. ret];
         }
 
+        /// <summary>
+        /// Removes table prefix from a column name if present.
+        /// </summary>
+        /// <param name="column_name">Column name with optional prefix.</param>
+        /// <returns>Column name without prefix.</returns>
         public static string StripColumnPrefix(this string column_name)
         {
             int prefix_idx = column_name.IndexOf('_');
@@ -190,6 +303,16 @@ namespace MicroM.Extensions
             return column_name;
         }
 
+        /// <summary>
+        /// Converts a column to a <see cref="ViewParm"/> definition.
+        /// </summary>
+        /// <param name="column">Source column.</param>
+        /// <param name="column_mapping">Optional column mapping.</param>
+        /// <param name="compound_group">Compound group name.</param>
+        /// <param name="compound_position">Position inside compound group.</param>
+        /// <param name="compound_key">Indicates if part of compound key.</param>
+        /// <param name="browsing_key">Indicates if used for browsing.</param>
+        /// <returns>New <see cref="ViewParm"/> instance.</returns>
         public static ViewParm AsViewItemParm(this ColumnBase column, int column_mapping = -1, string compound_group = "", int compound_position = -1, bool compound_key = false, bool browsing_key = false)
         {
             Type SQLColType = typeof(Column<>).MakeGenericType(column.SystemType);
@@ -198,6 +321,12 @@ namespace MicroM.Extensions
             return new ViewParm(col, column_mapping, compound_group, compound_position, compound_key, browsing_key);
         }
 
+        /// <summary>
+        /// Converts columns to a dictionary of name and value pairs.
+        /// </summary>
+        /// <param name="cols">Source columns.</param>
+        /// <param name="exclude_colnames">Optional set of column names to exclude.</param>
+        /// <returns>Dictionary of column values.</returns>
         public static Dictionary<string, object?> ToDictionary(this IReadonlyOrderedDictionary<ColumnBase> cols, HashSet<string>? exclude_colnames = null)
         {
             Dictionary<string, object?> ret = new(StringComparer.OrdinalIgnoreCase);
@@ -211,6 +340,12 @@ namespace MicroM.Extensions
             return ret;
         }
 
+        /// <summary>
+        /// Creates a dictionary keyed by column name from the provided columns.
+        /// </summary>
+        /// <param name="cols">Source columns.</param>
+        /// <param name="exclude_colnames">Optional set of column names to exclude.</param>
+        /// <returns>Dictionary of columns.</returns>
         public static Dictionary<string, ColumnBase> ToColumnsDictionary(this IReadonlyOrderedDictionary<ColumnBase> cols, HashSet<string>? exclude_colnames = null)
         {
             Dictionary<string, ColumnBase> ret = new(StringComparer.OrdinalIgnoreCase);
@@ -225,6 +360,13 @@ namespace MicroM.Extensions
         }
 
 
+        /// <summary>
+        /// Attempts to convert a string value into the column's data type.
+        /// </summary>
+        /// <param name="col">Target column.</param>
+        /// <param name="value_to_convert">String value to convert.</param>
+        /// <param name="converted_value">Resulting value if conversion succeeds.</param>
+        /// <returns><c>true</c> if conversion was successful.</returns>
         public static bool TryConvertFromString(this ColumnBase col, string? value_to_convert, out object? converted_value)
         {
             bool ret = false;
@@ -330,6 +472,13 @@ namespace MicroM.Extensions
         }
 
 
+        /// <summary>
+        /// Attempts to convert a <see cref="JsonElement"/> to the specified type.
+        /// </summary>
+        /// <typeparam name="T">Target type.</typeparam>
+        /// <param name="source">JSON element to convert.</param>
+        /// <param name="result">Converted result when successful.</param>
+        /// <returns><c>true</c> if conversion succeeded.</returns>
         public static bool TryConvertFromJsonElement<T>(this JsonElement source, out T result)
         {
             var type = Nullable.GetUnderlyingType(typeof(T)) ?? typeof(T);
@@ -359,6 +508,13 @@ namespace MicroM.Extensions
             return false;
         }
 
+        /// <summary>
+        /// Attempts to convert a <see cref="JsonElement"/> into a value compatible with the specified column.
+        /// </summary>
+        /// <param name="element">JSON element to convert.</param>
+        /// <param name="col">Target column definition.</param>
+        /// <param name="converted_value">Resulting value when successful.</param>
+        /// <returns><c>true</c> if conversion succeeded.</returns>
         public static bool TryConvertFromJsonElement(this JsonElement element, ColumnBase col, out object? converted_value)
         {
             bool ret = false;

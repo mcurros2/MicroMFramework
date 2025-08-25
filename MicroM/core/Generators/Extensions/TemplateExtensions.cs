@@ -3,8 +3,7 @@
 namespace MicroM.Generators.Extensions
 {
     /// <summary>
-    /// Provides helper methods for working with string templates by replacing
-    /// placeholder tokens with their corresponding values.
+    /// Provides utility methods for processing string templates.
     /// </summary>
     internal static class TemplateExtensions
     {

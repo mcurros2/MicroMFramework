@@ -2,11 +2,15 @@
 
 namespace MicroM.Data
 {
+    /// <summary>
+    /// Represents a typed database column and related factory helpers.
+    /// </summary>
+    /// <typeparam name="T">Type of the column value.</typeparam>
     public class Column<T> : ColumnBase
     {
 
         /// <summary>
-        /// Creates a column with the specified name, value, and type.
+        /// Initializes a new instance of the <see cref="Column{T}"/> class.
         /// </summary>
         /// <param name="name">destination_name is usually not specified and obtained through reflection</param>
         /// <param name="value"></param>
@@ -41,6 +45,12 @@ namespace MicroM.Data
             if (fake) ColumnMetadata |= ColumnFlags.Fake;
         }
 
+        /// <summary>
+        /// Initializes a new instance by copying an existing column.
+        /// </summary>
+        /// <param name="original">Source column.</param>
+        /// <param name="new_name">Optional new name.</param>
+        /// <param name="output">Whether column is an output parameter.</param>
         public Column(Column<T> original, string new_name = "", bool output = false)
             : base(original, new_name, output)
         {
@@ -48,6 +58,9 @@ namespace MicroM.Data
 
         // Columns creation factories
 
+        /// <summary>
+        /// Creates a primary key column definition.
+        /// </summary>
         public static Column<T> PK(string name = "", SqlDbType? sql_type = null, int size = 20, byte precision = 0, byte scale = 0,
             T value = default!, bool autonum = false, bool fake = false, string? override_with = null)
         {
@@ -72,6 +85,9 @@ namespace MicroM.Data
             return col;
         }
 
+        /// <summary>
+        /// Creates a foreign key column definition.
+        /// </summary>
         public static Column<T> FK(string name = "", SqlDbType? sql_type = null, int size = 20, byte precision = 0, byte scale = 0, T value = default!, bool fake = false
             , bool? nullable = null, string? override_with = null)
         {
@@ -94,6 +110,9 @@ namespace MicroM.Data
                 scale: scale, column_flags: flags, nullable: nullable, override_with: override_with);
         }
 
+        /// <summary>
+        /// Creates a text column definition.
+        /// </summary>
         public static Column<T> Text(T value = default!, int size = 255, bool fake = false, bool? nullable = null, bool isArray = false, bool encrypted = false
             , ColumnFlags column_flags = ColumnFlags.Insert | ColumnFlags.Update, string? override_with = null)
         {
@@ -106,6 +125,9 @@ namespace MicroM.Data
             return new Column<T>("", value: value, sql_type: SqlDbType.VarChar, size: size, column_flags: column_flags, nullable: nullable, isArray: isArray, encrypted: encrypted, override_with: override_with);
         }
 
+        /// <summary>
+        /// Creates a fixed-length character column definition.
+        /// </summary>
         public static Column<T> Char(T value = default!, int size = 255, bool fake = false, bool? nullable = null, bool isArray = false, string? override_with = null)
         {
             if (typeof(T) != typeof(string) && typeof(T) != typeof(string[]) && Nullable.GetUnderlyingType(typeof(T)) != typeof(string[]))
@@ -133,6 +155,9 @@ namespace MicroM.Data
 
 
         //
+        /// <summary>
+        /// Creates a copy of this column.
+        /// </summary>
         public Column<T> Clone()
         {
             return new Column<T>(this);
@@ -140,6 +165,9 @@ namespace MicroM.Data
 
 
 
+        /// <summary>
+        /// Creates a column embedding a category identifier.
+        /// </summary>
         public static Column<T> EmbedCategory(object category_id, bool nullable = false, bool isArray = false, T value = default!)
         {
             if (typeof(T) != typeof(string) && typeof(T) != typeof(string[]) && Nullable.GetUnderlyingType(typeof(T)) != typeof(string[]))
@@ -160,6 +188,9 @@ namespace MicroM.Data
             }
         }
 
+        /// <summary>
+        /// Creates a column embedding a status identifier.
+        /// </summary>
         public static Column<string> EmbedStatus(string status_id, string value = default!)
         {
             if (typeof(T) != typeof(string))
@@ -171,6 +202,7 @@ namespace MicroM.Data
             return new Column<string>("", value: value, sql_type: SqlDbType.Char, size: 20, column_flags: column_flags) { RelatedStatusID = status_id };
         }
 
+        /// <summary>Gets or sets the typed value of the column.</summary>
         public T Value
         {
             get

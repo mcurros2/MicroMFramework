@@ -34,4 +34,4 @@ Continue to the next sections for detailed guides, API references, and advanced 
 
 ## Documentation Sections
 
-- [Backend](./Backend/index.md) – Namespaces, tutorials, and API reference for the server-side framework.
+- [Backend](./Backend/index.md) â€“ Namespaces, tutorials, and API reference for the server-side framework.

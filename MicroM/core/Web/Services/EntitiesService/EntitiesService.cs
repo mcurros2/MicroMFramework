@@ -15,6 +15,9 @@ using System.Text.Json;
 
 namespace MicroM.Web.Services;
 
+/// <summary>
+/// Represents the EntitiesService.
+/// </summary>
 public class EntitiesService : IEntitiesService
 {
     private readonly ConcurrentDictionary<string, Dictionary<string, object>> _ApplicationKeys = new(StringComparer.OrdinalIgnoreCase);
@@ -23,6 +26,9 @@ public class EntitiesService : IEntitiesService
     private readonly WebAPIServices _api;
     private readonly MicroMOptions _options;
 
+    /// <summary>
+    /// Initializes a new instance of <see cref="EntitiesService"/>.
+    /// </summary>
     public EntitiesService(IOptions<MicroMOptions> options,
             ILogger<WebAPIServices> logger,
             IMicroMEncryption encryptor,
@@ -46,6 +52,12 @@ public class EntitiesService : IEntitiesService
         if (_options.DefaultCommandTimeOutInMins != -1) DataDefaults.DefaultCommandTimeOutInMins = _options.DefaultCommandTimeOutInMins;
     }
 
+    /// <summary>
+    /// Creates a new database client configured for the specified application.
+    /// </summary>
+    /// <param name="app">Application configuration.</param>
+    /// <param name="server_claims">Claims used to resolve SQL credentials when required.</param>
+    /// <returns>A configured <see cref="IEntityClient"/> ready for use.</returns>
     public IEntityClient CreateDbConnection(ApplicationOption app, Dictionary<string, object>? server_claims)
     {
         string user = app.AuthenticationType == nameof(AuthenticationTypes.SQLServerAuthentication) && string.IsNullOrEmpty(app.SQLUser) ? (string?)server_claims?[MicroMServerClaimTypes.MicroMUsername] ?? "" : app.SQLUser;
@@ -75,16 +87,25 @@ public class EntitiesService : IEntitiesService
         return dbc;
     }
 
+    /// <summary>
+    /// Asynchronously creates a new database client configured for the specified application.
+    /// </summary>
+    /// <param name="app">Application configuration.</param>
+    /// <param name="server_claims">Claims used to resolve SQL credentials when required.</param>
+    /// <param name="ct">Token to observe for cancellation.</param>
+    /// <returns>A task producing a configured <see cref="IEntityClient"/>.</returns>
+    /// <remarks>Throws <see cref="OperationCanceledException"/> when <paramref name="ct"/> is cancelled.</remarks>
     public Task<IEntityClient> CreateDbConnection(ApplicationOption app, Dictionary<string, object>? server_claims, CancellationToken ct)
     {
+        ct.ThrowIfCancellationRequested();
         return Task.FromResult(CreateDbConnection(app, server_claims));
     }
 
     /// <summary>
-    /// Creates an Entity if exists in the configured assembly <see cref="LoadEntityTypes(Assembly)"/>.
+    /// Creates an Entity if it exists in the configured assembly.
     /// </summary>
-    /// <param name="entity_name"></param>
-    /// <param name="ec"></param>
+    /// <param name="entity_name">Target entity identifier.</param>
+    /// <param name="ec">Optional entity client.</param>
     /// <returns></returns>
     public EntityBase? CreateEntity(ApplicationOption app, string entity_name, Dictionary<string, object>? server_claims, IEntityClient? ec = null)
     {
@@ -96,6 +117,13 @@ public class EntitiesService : IEntitiesService
         return entity;
     }
 
+    /// <summary>
+    /// Creates an entity instance for the specified application.
+    /// </summary>
+    /// <param name="entity_name">Name of the entity type to instantiate.</param>
+    /// <param name="server_claims">Claims used to resolve SQL credentials when required.</param>
+    /// <param name="ct">Token to observe for cancellation.</param>
+    /// <returns>The created entity instance, or <see langword="null"/> if the entity type is not found.</returns>
     public EntityBase? CreateEntity(ApplicationOption app, string entity_name, Dictionary<string, object>? server_claims, CancellationToken ct)
     {
         EntityBase? entity = null;
@@ -106,6 +134,9 @@ public class EntitiesService : IEntitiesService
         return entity;
     }
 
+    /// <summary>
+    /// Ensures required application keys are present in the supplied values.
+    /// </summary>
     public void EnsureApplicationKeys(string app_id, Dictionary<string, object> values)
     {
         _ApplicationKeys.TryGetValue(app_id, out Dictionary<string, object>? app_keys);
@@ -118,12 +149,18 @@ public class EntitiesService : IEntitiesService
         }
     }
 
+    /// <summary>
+    /// Retrieves cached application key values.
+    /// </summary>
     public Dictionary<string, object> GetApplicationKeys(string app_id)
     {
         _ApplicationKeys.TryGetValue(app_id, out Dictionary<string, object>? app_keys);
         return app_keys ?? new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
     }
 
+    /// <summary>
+    /// Deletes records from the specified entity.
+    /// </summary>
     public async Task<DBStatusResult?> HandleDeleteEntity(ApplicationOption app, string entity_name, DataWebAPIRequest parms, IEntityClient ec, CancellationToken ct)
     {
         DBStatusResult? result = null;
@@ -193,6 +230,9 @@ public class EntitiesService : IEntitiesService
 
     }
 
+    /// <summary>
+    /// Executes an action on the specified entity.
+    /// </summary>
     public async Task<EntityActionResult?> HandleExecuteAction(ApplicationOption app, string entity_name, string entity_action, DataWebAPIRequest parms, IEntityClient ec, CancellationToken ct)
     {
         EntityActionResult? result = null;
@@ -232,6 +272,9 @@ public class EntitiesService : IEntitiesService
 
     }
 
+    /// <summary>
+    /// Executes a stored procedure on the entity and returns its results.
+    /// </summary>
     public async Task<List<DataResult>?> HandleExecuteProc(ApplicationOption app, string entity_name, string proc_name, DataWebAPIRequest parms, IEntityClient ec, CancellationToken ct)
     {
         List<DataResult> result = [];
@@ -301,6 +344,9 @@ public class EntitiesService : IEntitiesService
 
     }
 
+    /// <summary>
+    /// Executes a stored procedure and returns a database status.
+    /// </summary>
     public async Task<DBStatusResult?> HandleExecuteProcDBStatus(ApplicationOption app, string entity_name, string proc_name, DataWebAPIRequest parms, IEntityClient ec, CancellationToken ct)
     {
         DBStatusResult result = new();
@@ -372,6 +418,9 @@ public class EntitiesService : IEntitiesService
 
     }
 
+    /// <summary>
+    /// Executes a view and returns the resulting data.
+    /// </summary>
     public async Task<List<DataResult>?> HandleExecuteView(ApplicationOption app, string entity_name, string view_name, DataWebAPIRequest parms, IEntityClient ec, CancellationToken ct)
     {
         List<DataResult>? result = null;
@@ -423,6 +472,9 @@ public class EntitiesService : IEntitiesService
 
     }
 
+    /// <summary>
+    /// Retrieves an entity record from the database.
+    /// </summary>
     public async Task<Dictionary<string, object?>?> HandleGetEntity(ApplicationOption app, string entity_name, DataWebAPIRequest parms, IEntityClient ec, CancellationToken ct)
     {
         Dictionary<string, object?>? result = null;
@@ -457,6 +509,9 @@ public class EntitiesService : IEntitiesService
         return result;
     }
 
+    /// <summary>
+    /// Gets metadata definition for an entity.
+    /// </summary>
     public EntityDefinition? HandleGetEntityDefinition(ApplicationOption app, string entity_name)
     {
         EntityDefinition? result = null;
@@ -481,6 +536,9 @@ public class EntitiesService : IEntitiesService
         return result;
     }
 
+    /// <summary>
+    /// Obtains the time zone offset for the application.
+    /// </summary>
     public async Task<int> HandleGetTimeZoneOffset(ApplicationOption app, IEntityClient ec, CancellationToken ct)
     {
         try
@@ -506,6 +564,9 @@ public class EntitiesService : IEntitiesService
     }
 
 
+    /// <summary>
+    /// Imports data using the provided CSV information.
+    /// </summary>
     public async Task<CSVImportResult?> HandleImportData(ApplicationOption app, string entity_name, string? import_proc, DataWebAPIRequest parms, IEntityClient ec, CancellationToken ct)
     {
         try
@@ -643,6 +704,9 @@ public class EntitiesService : IEntitiesService
 
     }
 
+    /// <summary>
+    /// Inserts a new record for the specified entity.
+    /// </summary>
     public async Task<DBStatusResult?> HandleInsertEntity(ApplicationOption app, string entity_name, DataWebAPIRequest parms, IEntityClient ec, CancellationToken ct)
     {
         DBStatusResult? result = null;
@@ -717,6 +781,9 @@ public class EntitiesService : IEntitiesService
         return result;
     }
 
+    /// <summary>
+    /// Performs a lookup operation for the specified entity.
+    /// </summary>
     public async Task<LookupResult> HandleLookupEntity(ApplicationOption app, string entity_name, DataWebAPIRequest parms, IEntityClient ec, CancellationToken ct, string? lookup_name = null)
     {
         string? result = null;
@@ -752,6 +819,9 @@ public class EntitiesService : IEntitiesService
 
     }
 
+    /// <summary>
+    /// Updates an existing entity record.
+    /// </summary>
     public async Task<DBStatusResult?> HandleUpdateEntity(ApplicationOption app, string entity_name, DataWebAPIRequest parms, IEntityClient ec, CancellationToken ct)
     {
         DBStatusResult? result = null;
@@ -826,6 +896,9 @@ public class EntitiesService : IEntitiesService
 
     }
 
+    /// <summary>
+    /// Replaces the value of an application key.
+    /// </summary>
     public void ReplaceApplicationKey(string app_id, string key, string value)
     {
         _ApplicationKeys.TryGetValue(app_id, out Dictionary<string, object>? app_keys);

@@ -8,7 +8,8 @@ using static MicroM.Generators.Constants;
 namespace MicroM.Generators.SQLGenerator
 {
     /// <summary>
-    /// Provides helper methods for generating SQL update stored procedures.
+    /// Extension methods for generating SQL update procedures and related
+    /// helper scripts for entities.
     /// </summary>
     internal static class UpdateExtensions
     {
@@ -57,13 +58,13 @@ namespace MicroM.Generators.SQLGenerator
 
 
         /// <summary>
-        /// Generates the SQL script for the standard update stored procedure for the entity.
+        /// Builds the standard <c>_update</c> stored procedure script for an entity.
         /// </summary>
-        /// <typeparam name="T">The entity type.</typeparam>
-        /// <param name="entity">The entity definition used to generate the procedure.</param>
-        /// <param name="create_or_alter">Indicates whether to create or alter the procedure.</param>
-        /// <param name="force">If set to <c>true</c>, generates the script even for fake entities.</param>
-        /// <returns>The SQL script for the update stored procedure.</returns>
+        /// <typeparam name="T">Entity type.</typeparam>
+        /// <param name="entity">Entity definition.</param>
+        /// <param name="create_or_alter">True to emit a <c>create or alter</c> header.</param>
+        /// <param name="force">Generate script even if the entity is marked fake.</param>
+        /// <returns>SQL script or empty string when not applicable.</returns>
         internal static string GetUpdateProc<T>(this T entity, bool create_or_alter = false, bool force = false) where T : EntityBase
         {
             if (entity.Def.Fake && force == false) return "";
@@ -119,13 +120,14 @@ namespace MicroM.Generators.SQLGenerator
         }
 
         /// <summary>
-        /// Generates the SQL script for the intermediate update (_iupdate) stored procedure for the entity.
+        /// Generates the transactional <c>_iupdate</c> stored procedure script for
+        /// an entity.
         /// </summary>
-        /// <typeparam name="T">The entity type.</typeparam>
-        /// <param name="entity">The entity definition used to generate the procedure.</param>
-        /// <param name="create_or_alter">Indicates whether to create or alter the procedure.</param>
-        /// <param name="force">If set to <c>true</c>, generates the script even for fake entities.</param>
-        /// <returns>The SQL script for the iUpdate stored procedure.</returns>
+        /// <typeparam name="T">Entity type.</typeparam>
+        /// <param name="entity">Entity definition.</param>
+        /// <param name="create_or_alter">True to emit a <c>create or alter</c> header.</param>
+        /// <param name="force">Generate script even if the entity is marked fake.</param>
+        /// <returns>SQL script or empty string when not applicable.</returns>
         internal static string GetIUpdateProc<T>(this T entity, bool create_or_alter = false, bool force = false) where T : EntityBase
         {
             if (entity.Def.Fake && force == false) return "";
@@ -182,13 +184,14 @@ namespace MicroM.Generators.SQLGenerator
 
 
         /// <summary>
-        /// Generates the SQL script for an update procedure that calls the iUpdate procedure.
+        /// Creates the wrapper <c>_update</c> procedure that calls the
+        /// transactional <c>_iupdate</c> procedure.
         /// </summary>
-        /// <typeparam name="T">The entity type.</typeparam>
-        /// <param name="entity">The entity definition used to generate the procedure.</param>
-        /// <param name="create_or_alter">Indicates whether to create or alter the procedure.</param>
-        /// <param name="force">If set to <c>true</c>, generates the script even for fake entities.</param>
-        /// <returns>The SQL script that wraps the iUpdate procedure.</returns>
+        /// <typeparam name="T">Entity type.</typeparam>
+        /// <param name="entity">Entity definition.</param>
+        /// <param name="create_or_alter">True to emit a <c>create or alter</c> header.</param>
+        /// <param name="force">Generate script even if the entity is marked fake.</param>
+        /// <returns>SQL script or empty string when not applicable.</returns>
         internal static string GetUpdateForIUpdateProc<T>(this T entity, bool create_or_alter = false, bool force = false) where T : EntityBase
         {
             if (entity.Def.Fake && force == false) return "";
@@ -207,14 +210,14 @@ namespace MicroM.Generators.SQLGenerator
         }
 
         /// <summary>
-        /// Returns a SQL script to create the default _update stored procedure for the specified <see cref="Entity{TDefinition}"/>.
+        /// Creates the scripts for the entity's update stored procedures.
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="entity"></param>
-        /// <param name="create_or_alter"></param>
-        /// <param name="with_iupdate"></param>
-        /// <param name="force"></param>
-        /// <returns></returns>
+        /// <typeparam name="T">Entity type.</typeparam>
+        /// <param name="entity">Entity definition.</param>
+        /// <param name="create_or_alter">True to emit <c>create or alter</c> headers.</param>
+        /// <param name="with_iupdate">Include transactional <c>_iupdate</c> variant if true.</param>
+        /// <param name="force">Generate scripts even if the entity is marked fake.</param>
+        /// <returns>List of SQL scripts implementing update logic.</returns>
         public static List<string> AsCreateUpdateProc<T>(this T entity, bool create_or_alter = false, bool with_iupdate = false, bool force = false) where T : EntityBase
         {
             List<string> scripts = [];

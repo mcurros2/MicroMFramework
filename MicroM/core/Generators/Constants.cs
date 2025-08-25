@@ -1,4 +1,4 @@
-﻿namespace MicroM.Generators
+namespace MicroM.Generators
 {
     /// <summary>
     /// Common constants used across code generators.
@@ -11,3 +11,4 @@
         public const string TAB = "    ";
     }
 }
+

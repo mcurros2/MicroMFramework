@@ -2,11 +2,26 @@
 
 namespace MicroM.Web.Services.Security
 {
+    /// <summary>
+    /// Middleware that validates requests to endpoints marked with
+    /// <see cref="PublicEndpointAttribute"/>. It ensures that only routes
+    /// explicitly configured for public access are served without
+    /// authentication.
+    /// </summary>
+    /// <param name="next">Next component in the pipeline.</param>
+    /// <param name="config">Application configuration used to obtain allowed public routes.</param>
     public class PublicEndpointsMiddleware(RequestDelegate next, IMicroMAppConfiguration config)
     {
         private readonly RequestDelegate _next = next;
         private readonly IMicroMAppConfiguration _config = config;
 
+        /// <summary>
+        /// Validates that a request targeting a public endpoint is configured
+        /// to allow anonymous access. Requests to endpoints that are not
+        /// listed in configuration result in a 403 response.
+        /// </summary>
+        /// <param name="context">Current HTTP context.</param>
+        /// <returns>A task that completes when the middleware finishes processing.</returns>
         public async Task InvokeAsync(HttpContext context)
         {
             var endpoint = context.GetEndpoint();

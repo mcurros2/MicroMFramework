@@ -5,54 +5,119 @@ using MicroM.ImportData;
 
 namespace MicroM.Web.Services;
 
+/// <summary>
+/// Represents the IEntitiesService.
+/// </summary>
 public interface IEntitiesService
 {
     /// <summary>
-    /// Creates an Entity if exists in the configured assembly <see cref="LoadEntityTypes(Assembly)"/>.
+    /// Creates an Entity if it exists in the configured assembly.
     /// </summary>
-    /// <param name="entity_name"></param>
-    /// <param name="ec"></param>
+    /// <param name="entity_name">Target entity identifier.</param>
+    /// <param name="ec">Optional entity client.</param>
     /// <returns></returns>
     public EntityBase? CreateEntity(ApplicationOption app, string entity_name, Dictionary<string, object>? server_claims, IEntityClient? ec = null);
-    public EntityBase? CreateEntity(ApplicationOption app, string entity_name, Dictionary<string, object>? server_claims, CancellationToken ct);
+    /// <summary>
+    /// Creates an entity instance using the provided cancellation token.
+    /// </summary>
+    /// <param name="entity_name">Name of the entity type to instantiate.</param>
+    /// <param name="server_claims">Claims used to resolve SQL credentials when required.</param>
+    /// <param name="ct">Token to observe for cancellation.</param>
+    /// <returns>The created entity instance, or <see langword="null"/> if the entity type is not found.</returns>
+    EntityBase? CreateEntity(ApplicationOption app, string entity_name, Dictionary<string, object>? server_claims, CancellationToken ct);
 
     /// <summary>
-    /// Connection factory for the webAPI.
+    /// Creates a new database client configured for the specified application.
     /// </summary>
-    /// <returns></returns>
+    /// <param name="app">Application configuration.</param>
+    /// <param name="server_claims">Claims used to resolve SQL credentials when required.</param>
+    /// <returns>A configured <see cref="IEntityClient"/>.</returns>
     public IEntityClient CreateDbConnection(ApplicationOption app, Dictionary<string, object>? server_claims);
 
+    /// <summary>
+    /// Asynchronously creates a new database client for the specified application.
+    /// </summary>
+    /// <param name="app">Application configuration.</param>
+    /// <param name="server_claims">Claims used to resolve SQL credentials when required.</param>
+    /// <param name="ct">Token to observe for cancellation.</param>
+    /// <returns>A task producing a configured <see cref="IEntityClient"/>.</returns>
+    /// <remarks>Throws <see cref="OperationCanceledException"/> when <paramref name="ct"/> is cancelled.</remarks>
     public Task<IEntityClient> CreateDbConnection(ApplicationOption app, Dictionary<string, object>? server_claims, CancellationToken ct);
 
     // TODO: dynamic entities
 
-    public EntityDefinition? HandleGetEntityDefinition(ApplicationOption app, string entity_name);
+    /// <summary>
+    /// Retrieves definition metadata for an entity.
+    /// </summary>
+    EntityDefinition? HandleGetEntityDefinition(ApplicationOption app, string entity_name);
 
-    public Task<Dictionary<string, object?>?> HandleGetEntity(ApplicationOption app, string entity_name, DataWebAPIRequest parms, IEntityClient ec, CancellationToken ct);
+    /// <summary>
+    /// Retrieves a single entity record.
+    /// </summary>
+    Task<Dictionary<string, object?>?> HandleGetEntity(ApplicationOption app, string entity_name, DataWebAPIRequest parms, IEntityClient ec, CancellationToken ct);
 
-    public Task<DBStatusResult?> HandleUpdateEntity(ApplicationOption app, string entity_name, DataWebAPIRequest parms, IEntityClient ec, CancellationToken ct);
+    /// <summary>
+    /// Updates an entity record.
+    /// </summary>
+    Task<DBStatusResult?> HandleUpdateEntity(ApplicationOption app, string entity_name, DataWebAPIRequest parms, IEntityClient ec, CancellationToken ct);
 
-    public Task<DBStatusResult?> HandleDeleteEntity(ApplicationOption app, string entity_name, DataWebAPIRequest parms, IEntityClient ec, CancellationToken ct);
+    /// <summary>
+    /// Deletes entity records.
+    /// </summary>
+    Task<DBStatusResult?> HandleDeleteEntity(ApplicationOption app, string entity_name, DataWebAPIRequest parms, IEntityClient ec, CancellationToken ct);
 
-    public Task<DBStatusResult?> HandleInsertEntity(ApplicationOption app, string entity_name, DataWebAPIRequest parms, IEntityClient ec, CancellationToken ct);
+    /// <summary>
+    /// Inserts a new entity record.
+    /// </summary>
+    Task<DBStatusResult?> HandleInsertEntity(ApplicationOption app, string entity_name, DataWebAPIRequest parms, IEntityClient ec, CancellationToken ct);
 
-    public Task<LookupResult> HandleLookupEntity(ApplicationOption app, string entity_name, DataWebAPIRequest parms, IEntityClient ec, CancellationToken ct, string? lookup_name = null);
+    /// <summary>
+    /// Performs a lookup for entity values.
+    /// </summary>
+    Task<LookupResult> HandleLookupEntity(ApplicationOption app, string entity_name, DataWebAPIRequest parms, IEntityClient ec, CancellationToken ct, string? lookup_name = null);
 
-    public Task<List<DataResult>?> HandleExecuteView(ApplicationOption app, string entity_name, string view_name, DataWebAPIRequest parms, IEntityClient ec, CancellationToken ct);
+    /// <summary>
+    /// Executes a view and returns its data.
+    /// </summary>
+    Task<List<DataResult>?> HandleExecuteView(ApplicationOption app, string entity_name, string view_name, DataWebAPIRequest parms, IEntityClient ec, CancellationToken ct);
 
-    public Task<List<DataResult>?> HandleExecuteProc(ApplicationOption app, string entity_name, string proc_name, DataWebAPIRequest parms, IEntityClient ec, CancellationToken ct);
+    /// <summary>
+    /// Executes a stored procedure and returns its data.
+    /// </summary>
+    Task<List<DataResult>?> HandleExecuteProc(ApplicationOption app, string entity_name, string proc_name, DataWebAPIRequest parms, IEntityClient ec, CancellationToken ct);
 
-    public Task<DBStatusResult?> HandleExecuteProcDBStatus(ApplicationOption app, string entity_name, string proc_name, DataWebAPIRequest parms, IEntityClient ec, CancellationToken ct);
+    /// <summary>
+    /// Executes a stored procedure returning database status information.
+    /// </summary>
+    Task<DBStatusResult?> HandleExecuteProcDBStatus(ApplicationOption app, string entity_name, string proc_name, DataWebAPIRequest parms, IEntityClient ec, CancellationToken ct);
 
-    public Task<EntityActionResult?> HandleExecuteAction(ApplicationOption app, string entity_name, string entity_action, DataWebAPIRequest parms, IEntityClient ec, CancellationToken ct);
+    /// <summary>
+    /// Executes an entity action.
+    /// </summary>
+    Task<EntityActionResult?> HandleExecuteAction(ApplicationOption app, string entity_name, string entity_action, DataWebAPIRequest parms, IEntityClient ec, CancellationToken ct);
 
-    public Task<CSVImportResult?> HandleImportData(ApplicationOption app, string entity_name, string? import_proc, DataWebAPIRequest parms, IEntityClient ec, CancellationToken ct);
+    /// <summary>
+    /// Imports data using the specified procedure and parameters.
+    /// </summary>
+    Task<CSVImportResult?> HandleImportData(ApplicationOption app, string entity_name, string? import_proc, DataWebAPIRequest parms, IEntityClient ec, CancellationToken ct);
 
-    public Task<int> HandleGetTimeZoneOffset(ApplicationOption app, IEntityClient ec, CancellationToken ct);
+    /// <summary>
+    /// Retrieves the application's time zone offset.
+    /// </summary>
+    Task<int> HandleGetTimeZoneOffset(ApplicationOption app, IEntityClient ec, CancellationToken ct);
 
-    public void ReplaceApplicationKey(string app_id, string key, string value);
+    /// <summary>
+    /// Replaces a key/value pair for the specified application.
+    /// </summary>
+    void ReplaceApplicationKey(string app_id, string key, string value);
 
-    public void EnsureApplicationKeys(string app_id, Dictionary<string, object> values);
+    /// <summary>
+    /// Adds required application keys to the provided dictionary if missing.
+    /// </summary>
+    void EnsureApplicationKeys(string app_id, Dictionary<string, object> values);
 
-    public Dictionary<string, object> GetApplicationKeys(string app_id);
+    /// <summary>
+    /// Gets the cached key/value pairs for the application.
+    /// </summary>
+    Dictionary<string, object> GetApplicationKeys(string app_id);
 }

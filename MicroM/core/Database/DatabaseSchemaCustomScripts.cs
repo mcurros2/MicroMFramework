@@ -5,8 +5,16 @@ using static MicroM.Data.SystemStandardProceduresSuffixs;
 
 namespace MicroM.Database;
 
+/// <summary>
+/// Helpers to parse and classify custom SQL scripts embedded in assemblies.
+/// </summary>
 public static partial class DatabaseSchemaCustomScripts
 {
+    /// <summary>
+    /// Extracts basic information from a SQL script and classifies it.
+    /// </summary>
+    /// <param name="sql_text">SQL script text.</param>
+    /// <returns>The classified script or <c>null</c> if not recognized.</returns>
     public static CustomScript? ExtractCustomScript(string sql_text)
     {
         if (string.IsNullOrWhiteSpace(sql_text))
@@ -142,6 +150,11 @@ public static partial class DatabaseSchemaCustomScripts
     [GeneratedRegex(@"^\s*GO\s*(?:\r?\n|$)", RegexOptions.Multiline | RegexOptions.IgnoreCase)]
     private static partial Regex SplitSQLScriptsRegex();
 
+    /// <summary>
+    /// Splits and classifies a SQL script into individual custom scripts.
+    /// </summary>
+    /// <param name="sql_script">Combined SQL script.</param>
+    /// <returns>Enumerated custom scripts.</returns>
     public static IEnumerable<CustomScript> ClassifyCustomSQLScript(string sql_script)
     {
 
@@ -158,6 +171,11 @@ public static partial class DatabaseSchemaCustomScripts
         }
     }
 
+    /// <summary>
+    /// Classifies a list of SQL scripts into custom script objects.
+    /// </summary>
+    /// <param name="sql_scripts">Collection of SQL scripts.</param>
+    /// <returns>Dictionary of classified custom scripts.</returns>
     public static CustomOrderedDictionary<CustomScript> ClassifyCustomSQLScripts(List<string> sql_scripts)
     {
         CustomOrderedDictionary<CustomScript> procs = new();

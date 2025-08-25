@@ -45,6 +45,9 @@ namespace MicroM.Core
         /// </summary>
         public bool Fake { get; init; } = false;
 
+        /// <summary>
+        /// Options used when generating SQL for this entity.
+        /// </summary>
         public SQLCreationOptionsMetadata SQLCreationOptions = SQLCreationOptionsMetadata.None;
 
         private readonly CustomOrderedDictionary<ColumnBase> _Columns = new();

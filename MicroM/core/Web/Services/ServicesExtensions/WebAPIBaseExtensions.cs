@@ -18,33 +18,51 @@ using System.Security.Claims;
 
 namespace MicroM.Web.Services
 {
+    /// <summary>
+    /// Represents the WebAPIBaseExtensions.
+    /// </summary>
     public static class WebAPIBaseExtensions
     {
 
+        /// <summary>
+        /// Performs the AddDeviceIDService operation.
+        /// </summary>
         public static IServiceCollection AddDeviceIDService(this IServiceCollection services)
         {
             services.AddSingleton<IDeviceIdService, BrowserDeviceIDService>();
             return services;
         }
 
+        /// <summary>
+        /// Performs the AddFileUploadService operation.
+        /// </summary>
         public static IServiceCollection AddFileUploadService(this IServiceCollection services)
         {
             services.AddSingleton<IFileUploadService, FileUploadService>();
             return services;
         }
 
+        /// <summary>
+        /// Performs the AddThumbnailService operation.
+        /// </summary>
         public static IServiceCollection AddThumbnailService(this IServiceCollection services)
         {
             services.AddSingleton<IThumbnailService, ImageThumbnailService>();
             return services;
         }
 
+        /// <summary>
+        /// Performs the AddAuthenticationService operation.
+        /// </summary>
         public static IServiceCollection AddAuthenticationService(this IServiceCollection services)
         {
             services.AddSingleton<IAuthenticationService, AuthenticationService>();
             return services;
         }
 
+        /// <summary>
+        /// Performs the AddEntitiesService operation.
+        /// </summary>
         public static IServiceCollection AddEntitiesService(this IServiceCollection services)
         {
             services.AddSingleton<IEntitiesService, EntitiesService>();
@@ -57,35 +75,53 @@ namespace MicroM.Web.Services
         //    return services;
         //}
 
+        /// <summary>
+        /// Performs the AddMicroMEncryption operation.
+        /// </summary>
         public static IServiceCollection AddMicroMEncryption(this IServiceCollection services)
         {
             services.AddSingleton<IMicroMEncryption, MicroMEncryption>();
             return services;
         }
 
+        /// <summary>
+        /// Performs the AddMicroMAuthenticator operation.
+        /// </summary>
         public static IServiceCollection AddMicroMAuthenticator(this IServiceCollection services)
         {
             services.AddSingleton<IAuthenticator, MicroMAuthenticator>();
             return services;
         }
 
+        /// <summary>
+        /// Performs the AddSQLServerAuthenticator operation.
+        /// </summary>
         public static IServiceCollection AddSQLServerAuthenticator(this IServiceCollection services)
         {
             services.AddSingleton<IAuthenticator, SQLServerAuthenticator>();
             return services;
         }
 
+        /// <summary>
+        /// Performs the AddMicroMAuthenticationProvider operation.
+        /// </summary>
         public static IServiceCollection AddMicroMAuthenticationProvider(this IServiceCollection services)
         {
             services.AddSingleton<IAuthenticationProvider, MicroMAuthenticationProvider>();
             return services;
         }
 
+        /// <summary>
+        /// Performs the UseDebugRoutes operation.
+        /// </summary>
         public static IApplicationBuilder UseDebugRoutes(this IApplicationBuilder app, string path = "/debug-routes")
         {
             return app.UseMiddleware<DebugRoutesMiddleware>(path);
         }
 
+        /// <summary>
+        /// Performs the ToClaimsDictionary operation.
+        /// </summary>
         public static Dictionary<string, object> ToClaimsDictionary(this IEnumerable<Claim> claims)
         {
             return claims.GroupBy(c => c.Type)
@@ -97,6 +133,9 @@ namespace MicroM.Web.Services
 
 
         // Hosted services
+        /// <summary>
+        /// Performs the AddMemoryQueue operation.
+        /// </summary>
         public static IServiceCollection AddMemoryQueue(this IServiceCollection services)
         {
             services.AddSingleton<MemoryQueueHostedService>();
@@ -106,6 +145,9 @@ namespace MicroM.Web.Services
             return services;
         }
 
+        /// <summary>
+        /// Performs the AddMicroMAppConfiguration operation.
+        /// </summary>
         public static IServiceCollection AddMicroMAppConfiguration(this IServiceCollection services)
         {
             services.AddSingleton<MicroMAppConfigurationProvider>();
@@ -115,6 +157,9 @@ namespace MicroM.Web.Services
             return services;
         }
 
+        /// <summary>
+        /// Performs the AddEmailService operation.
+        /// </summary>
         public static IServiceCollection AddEmailService(this IServiceCollection services)
         {
             services.AddSingleton<EmailHostedService>();
@@ -124,6 +169,9 @@ namespace MicroM.Web.Services
             return services;
         }
 
+        /// <summary>
+        /// Performs the AddSecurityService operation.
+        /// </summary>
         public static IServiceCollection AddSecurityService(this IServiceCollection services)
         {
             services.AddSingleton<SecurityService>();
@@ -133,6 +181,9 @@ namespace MicroM.Web.Services
             return services;
         }
 
+        /// <summary>
+        /// Performs the AddMicroMApiServices operation.
+        /// </summary>
         public static IServiceCollection AddMicroMApiServices(this IServiceCollection services, IConfiguration configuration)
         {
             services.Configure<MicroMOptions>(configuration.GetSection(MicroMOptions.MicroM));
@@ -229,6 +280,9 @@ namespace MicroM.Web.Services
             return services;
         }
 
+        /// <summary>
+        /// Performs the UseMicroMWebAPI operation.
+        /// </summary>
         public static IApplicationBuilder UseMicroMWebAPI(this IApplicationBuilder app)
         {
             app.UseAuthentication();

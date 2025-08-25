@@ -6,6 +6,14 @@ namespace MicroM.Extensions
 {
     public static class DatabaseSchemaExtensions
     {
+        /// <summary>
+        /// Executes custom SQL procedures embedded in the assembly resources.
+        /// </summary>
+        /// <param name="assembly">Assembly containing resources.</param>
+        /// <param name="ec">Entity client used to execute scripts.</param>
+        /// <param name="ct">Cancellation token.</param>
+        /// <param name="mneo">Optional mneo filter.</param>
+        /// <param name="starts_with">Optional name prefix filter.</param>
         public static async Task CreateAssemblyCustomProcs(this Assembly assembly, IEntityClient ec, CancellationToken ct, string? mneo = null, string? starts_with = null)
         {
             foreach (string script in await assembly.GetAssemblyCustomProcs(mneo, starts_with, ct))
@@ -21,6 +29,12 @@ namespace MicroM.Extensions
             }
         }
 
+        /// <summary>
+        /// Creates all category definitions discovered in the assembly.
+        /// </summary>
+        /// <param name="asm">Assembly to scan.</param>
+        /// <param name="ec">Entity client.</param>
+        /// <param name="ct">Cancellation token.</param>
         public async static Task CreateAllCategories(this Assembly asm, IEntityClient ec, CancellationToken ct)
         {
             bool should_close = !(ec.ConnectionState == System.Data.ConnectionState.Open);
@@ -41,6 +55,12 @@ namespace MicroM.Extensions
             }
         }
 
+        /// <summary>
+        /// Creates all status definitions discovered in the assembly.
+        /// </summary>
+        /// <param name="asm">Assembly to scan.</param>
+        /// <param name="ec">Entity client.</param>
+        /// <param name="ct">Cancellation token.</param>
         public async static Task CreateAllStatus(this Assembly asm, IEntityClient ec, CancellationToken ct)
         {
             bool should_close = !(ec.ConnectionState == System.Data.ConnectionState.Open);

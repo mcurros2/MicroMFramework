@@ -8,11 +8,17 @@ using static MicroM.Web.Controllers.MicroMControllersMessages;
 
 namespace MicroM.Web.Controllers;
 
+/// <summary>
+/// Provides anonymous endpoints for executing public entity operations.
+/// </summary>
 [ApiController]
 public class PublicController : ControllerBase, IPublicController
 {
     const string PUBLIC_USERNAME = "public";
 
+    /// <summary>
+    /// Returns a simple response indicating that the public API is available.
+    /// </summary>
     [AllowAnonymous]
     [HttpGet("public-api-status")]
     public string GetStatus()
@@ -20,6 +26,9 @@ public class PublicController : ControllerBase, IPublicController
         return "OK";
     }
 
+    /// <summary>
+    /// Executes a public action on an entity.
+    /// </summary>
     [AllowAnonymous]
     [PublicEndpoint]
     [HttpPost("{app_id}/public/{entityName}/action/{actionName}")]
@@ -51,6 +60,9 @@ public class PublicController : ControllerBase, IPublicController
     }
 
 
+    /// <summary>
+    /// Deletes an entity using public access.
+    /// </summary>
     [AllowAnonymous]
     [PublicEndpoint]
     [HttpPost("{app_id}/public/{entityName}/delete")]
@@ -77,6 +89,9 @@ public class PublicController : ControllerBase, IPublicController
         }
     }
 
+    /// <summary>
+    /// Retrieves an entity using public access.
+    /// </summary>
     [AllowAnonymous]
     [PublicEndpoint]
     [HttpPost("{app_id}/public/{entityName}/get")]
@@ -106,6 +121,9 @@ public class PublicController : ControllerBase, IPublicController
         }
     }
 
+    /// <summary>
+    /// Creates an entity using public access.
+    /// </summary>
     [AllowAnonymous]
     [PublicEndpoint]
     [HttpPost("{app_id}/public/{entityName}/insert")]
@@ -134,6 +152,9 @@ public class PublicController : ControllerBase, IPublicController
         }
     }
 
+    /// <summary>
+    /// Runs a lookup query on an entity using public access.
+    /// </summary>
     [AllowAnonymous]
     [PublicEndpoint]
     [HttpPost("{app_id}/public/{entityName}/lookup/{lookupName?}")]
@@ -157,6 +178,9 @@ public class PublicController : ControllerBase, IPublicController
         }
     }
 
+    /// <summary>
+    /// Executes a stored procedure on an entity using public access.
+    /// </summary>
     [AllowAnonymous]
     [PublicEndpoint]
     [HttpPost("{app_id}/public/{entityName}/proc/{procName}")]
@@ -183,6 +207,9 @@ public class PublicController : ControllerBase, IPublicController
         }
     }
 
+    /// <summary>
+    /// Executes a stored procedure that returns status information using public access.
+    /// </summary>
     [AllowAnonymous]
     [PublicEndpoint]
     [HttpPost("{app_id}/public/{entityName}/process/{procName}")]
@@ -209,6 +236,9 @@ public class PublicController : ControllerBase, IPublicController
         }
     }
 
+    /// <summary>
+    /// Updates an entity using public access.
+    /// </summary>
     [AllowAnonymous]
     [PublicEndpoint]
     [HttpPost("{app_id}/public/{entityName}/update")]
@@ -237,6 +267,9 @@ public class PublicController : ControllerBase, IPublicController
         }
     }
 
+    /// <summary>
+    /// Executes a view on an entity using public access.
+    /// </summary>
     [AllowAnonymous]
     [PublicEndpoint]
     [HttpPost("{app_id}/public/{entityName}/view/{viewName}")]

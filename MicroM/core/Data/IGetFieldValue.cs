@@ -8,13 +8,50 @@ namespace MicroM.Data
     /// </summary>
     public interface IGetFieldValue
     {
+        /// <summary>
+        /// Asynchronously retrieves a field value by its column position.
+        /// </summary>
+        /// <typeparam name="T">Expected return type.</typeparam>
+        /// <param name="position">Zero-based column ordinal.</param>
+        /// <param name="ct">Cancellation token.</param>
+        /// <returns>The value cast to <typeparamref name="T"/>.</returns>
         public Task<T> GetFieldValueAsync<T>(int position, CancellationToken ct);
+
+        /// <summary>
+        /// Asynchronously retrieves a field value by its column name.
+        /// </summary>
+        /// <typeparam name="T">Expected return type.</typeparam>
+        /// <param name="column_name">Column name.</param>
+        /// <param name="ct">Cancellation token.</param>
+        /// <returns>The value cast to <typeparamref name="T"/>.</returns>
         public Task<T> GetFieldValueAsync<T>(string column_name, CancellationToken ct);
+
+        /// <summary>
+        /// Retrieves a field value by its column position.
+        /// </summary>
+        /// <typeparam name="T">Expected return type.</typeparam>
+        /// <param name="position">Zero-based column ordinal.</param>
+        /// <returns>The value cast to <typeparamref name="T"/>.</returns>
         public T GetFieldValue<T>(int position);
+
+        /// <summary>
+        /// Retrieves a field value by its column name.
+        /// </summary>
+        /// <typeparam name="T">Expected return type.</typeparam>
+        /// <param name="column_name">Column name.</param>
+        /// <returns>The value cast to <typeparamref name="T"/>.</returns>
         public T GetFieldValue<T>(string column_name);
 
     }
 
+    /// <summary>
+    /// Provides an implementation of <see cref="IGetFieldValue"/> that wraps a
+    /// <see cref="SqlDataReader"/> to retrieve typed column values.
+    /// </summary>
+    /// <remarks>
+    /// Methods on this class delegate to the underlying <see cref="DbDataReader"/>
+    /// while fulfilling the <see cref="IGetFieldValue"/> contract.
+    /// </remarks>
     public class ValueReader(SqlDataReader reader) : IGetFieldValue
     {
         internal DbDataReader _reader = reader;

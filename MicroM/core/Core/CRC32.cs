@@ -1,8 +1,11 @@
-﻿using System.Text;
+using System;
+using System.Text;
 
 namespace MicroM.Core
 {
-    // implemented algorithm: CRC-32/ISO-HDLC
+    /// <summary>
+    /// Provides methods to compute CRC-32/ISO-HDLC checksums.
+    /// </summary>
     public class CRC32
     {
         static UInt32[] Crc32Table = {
@@ -45,6 +48,11 @@ namespace MicroM.Core
             return Crc32Table[((crc ^ b) & 0xFF)] ^ ((crc >> 8) & 0xFFFFFF);
         }
 
+        /// <summary>
+        /// Calculates a CRC-32 checksum for a byte array.
+        /// </summary>
+        /// <param name="bytes">The bytes to compute the checksum for.</param>
+        /// <returns>The CRC-32 checksum.</returns>
         public static UInt32 CRC32FromByteArray(byte[] bytes)
         {
             UInt32 crc = 0xFFFFFFFF;
@@ -55,6 +63,11 @@ namespace MicroM.Core
             return crc ^ 0xFFFFFFFF;
         }
 
+        /// <summary>
+        /// Calculates a CRC-32 checksum for a UTF-8 encoded string.
+        /// </summary>
+        /// <param name="string_to_hash">The string to compute the checksum for.</param>
+        /// <returns>The CRC-32 checksum.</returns>
         public static UInt32 CRCFromString(string string_to_hash)
         {
             return CRC32FromByteArray(Encoding.UTF8.GetBytes(string_to_hash));

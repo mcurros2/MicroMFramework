@@ -4,15 +4,23 @@ using System.Text.Json;
 
 namespace MicroM.Data
 {
+    /// <summary>
+    /// Represents base metadata and value handling for a database column.
+    /// </summary>
     public abstract class ColumnBase
     {
+        /// <summary>Gets the CLR type of the column value.</summary>
         public readonly Type SystemType = null!;
 
+        /// <summary>Gets flags describing column behavior.</summary>
         public ColumnFlags ColumnMetadata { get; init; }
 
+        /// <summary>Gets SQL Server metadata for the column.</summary>
         public SQLServerMetadata SQLMetadata { get; private set; }
 
         private string _Name = null!;
+
+        /// <summary>Gets the column name.</summary>
         public string Name
         {
             get => _Name;
@@ -53,6 +61,7 @@ namespace MicroM.Data
         }
 
         private object? _value;
+        /// <summary>Gets or sets the raw value of the column.</summary>
         public object? ValueObject
         {
             get => _value;
@@ -70,6 +79,7 @@ namespace MicroM.Data
         }
 
         private string _SQLParameterName = null!;
+        /// <summary>Gets the parameter name used in SQL commands.</summary>
         public string SQLParameterName
         {
             get
@@ -82,11 +92,32 @@ namespace MicroM.Data
             }
         }
 
+        /// <summary>Gets the related category identifier if any.</summary>
         public string? RelatedCategoryID { get; init; }
+
+        /// <summary>Gets the related status identifier if any.</summary>
         public string? RelatedStatusID { get; init; }
 
+        /// <summary>Gets the server claim key used to override the value.</summary>
         public string? OverrideWith { get; init; }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ColumnBase"/> class.
+        /// </summary>
+        /// <param name="system_type">CLR type of the value.</param>
+        /// <param name="name">Column name.</param>
+        /// <param name="value">Column value.</param>
+        /// <param name="sql_type">SQL type.</param>
+        /// <param name="size">Column size.</param>
+        /// <param name="precision">Numeric precision.</param>
+        /// <param name="scale">Numeric scale.</param>
+        /// <param name="output">Whether column is an output parameter.</param>
+        /// <param name="column_flags">Column behavior flags.</param>
+        /// <param name="nullable">Column allows nulls.</param>
+        /// <param name="related_category_id">Related category identifier.</param>
+        /// <param name="encrypted">Value is encrypted.</param>
+        /// <param name="isArray">Value represents an array.</param>
+        /// <param name="override_with">Server claim key to override value.</param>
         public ColumnBase(
             Type system_type
             , string name
@@ -136,6 +167,12 @@ namespace MicroM.Data
         }
 
 
+        /// <summary>
+        /// Initializes a new instance by copying an existing column.
+        /// </summary>
+        /// <param name="col">Source column.</param>
+        /// <param name="new_name">Optional new name.</param>
+        /// <param name="output">Whether column is an output parameter.</param>
         public ColumnBase(ColumnBase col, string new_name = "", bool output = false)
             : this(
                   col.SystemType
@@ -156,6 +193,10 @@ namespace MicroM.Data
         {
         }
 
+        /// <summary>
+        /// Returns the column name.
+        /// </summary>
+        /// <returns>Column name.</returns>
         public override string ToString()
         {
             return Name;

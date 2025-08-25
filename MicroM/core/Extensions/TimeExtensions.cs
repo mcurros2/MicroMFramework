@@ -2,6 +2,11 @@
 {
     public static class TimeExtensions
     {
+        /// <summary>
+        /// Formats a <see cref="TimeSpan"/> into a human-readable duration string.
+        /// </summary>
+        /// <param name="duration">Duration to format.</param>
+        /// <returns>Human-friendly duration text.</returns>
         public static string ToHumanDuration(this TimeSpan duration)
         {
             if (duration.TotalDays >= 1)

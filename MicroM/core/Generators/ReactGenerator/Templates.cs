@@ -31,7 +31,7 @@ export class cat{CATEGORY_ID} extends CategoriesValues {
 ";
 
         /// <summary>
-        /// Template that defines the structure of entity lookups.
+        /// Template for the lookup definition function of an entity.
         /// </summary>
         internal const string ENTITY_LOOKUPS_TEMPLATE =
 @"
@@ -42,7 +42,7 @@ const lookups = () =>
 ";
 
         /// <summary>
-        /// Template that defines entity procedure declarations.
+        /// Template for the stored procedure definition function of an entity.
         /// </summary>
         internal const string ENTITY_PROCS_TEMPLATE =
 @"
@@ -53,7 +53,7 @@ const procs = () =>
 ";
 
         /// <summary>
-        /// Template for generating the entity definition.
+        /// Template for the TypeScript entity definition class.
         /// </summary>
         internal const string ENTITY_DEFINITION_TEMPLATE =
 @"

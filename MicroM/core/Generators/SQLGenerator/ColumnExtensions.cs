@@ -247,7 +247,6 @@ namespace MicroM.Generators.SQLGenerator
         /// <returns>Validation statements.</returns>
         internal static string AsValidateNotNullOrEmptyParm<T>(this IReadonlyOrderedDictionary<T> cols, string separator = "\n", bool for_i_update = false) where T : ColumnBase
         {
-            // $"{separator}{col_enumerator.Current.AsProcParm(include_declaration)}"
             string result = "";
             using var col_enumerator = cols.Values.GetEnumerator();
             if (col_enumerator.MoveNext())

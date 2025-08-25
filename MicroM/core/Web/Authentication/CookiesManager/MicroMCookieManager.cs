@@ -6,6 +6,9 @@ using Microsoft.Extensions.Options;
 
 namespace MicroM.Web.Services
 {
+    /// <summary>
+    /// Cookie manager that scopes authentication cookies per application tenant.
+    /// </summary>
     public class MicroMCookieManager : ICookieManager
     {
         private readonly ChunkingCookieManager _inner = new();
@@ -13,6 +16,11 @@ namespace MicroM.Web.Services
         private readonly ILogger<MicroMCookieManager> _log;
         private readonly PathString _basePathString;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="MicroMCookieManager"/> class.
+        /// </summary>
+        /// <param name="microm_config">Configuration options for the MicroM application.</param>
+        /// <param name="logger">Logger used to emit diagnostic messages.</param>
         public MicroMCookieManager(IOptions<MicroMOptions> microm_config, ILogger<MicroMCookieManager> logger)
         {
             _config = microm_config;
@@ -83,11 +91,24 @@ namespace MicroM.Web.Services
 
         }
 
+        /// <summary>
+        /// Retrieves a cookie from the incoming request.
+        /// </summary>
+        /// <param name="context">The HTTP context of the current request.</param>
+        /// <param name="key">The cookie key.</param>
+        /// <returns>The cookie value, or <see langword="null"/> if not found.</returns>
         public string? GetRequestCookie(HttpContext context, string key)
         {
             return _inner.GetRequestCookie(context, key);
         }
 
+        /// <summary>
+        /// Appends a cookie to the outgoing response, adjusting the path for the tenant when applicable.
+        /// </summary>
+        /// <param name="context">The HTTP context of the current request.</param>
+        /// <param name="key">The cookie key.</param>
+        /// <param name="value">The cookie value.</param>
+        /// <param name="options">Options controlling cookie creation.</param>
         public void AppendResponseCookie(HttpContext context, string key, string? value, CookieOptions options)
         {
             var tenantPath = GetTenantPath(context);
@@ -102,6 +123,12 @@ namespace MicroM.Web.Services
             _inner.AppendResponseCookie(context, key, value, tenantOptions);
         }
 
+        /// <summary>
+        /// Deletes a cookie from the response, adjusting the path for the tenant when applicable.
+        /// </summary>
+        /// <param name="context">The HTTP context of the current request.</param>
+        /// <param name="key">The cookie key.</param>
+        /// <param name="options">Options controlling cookie deletion.</param>
         public void DeleteCookie(HttpContext context, string key, CookieOptions options)
         {
             var tenantPath = GetTenantPath(context);

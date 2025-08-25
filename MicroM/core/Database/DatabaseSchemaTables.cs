@@ -6,8 +6,18 @@ using static MicroM.Database.DatabaseManagement;
 
 namespace MicroM.Database
 {
+    /// <summary>
+    /// Helpers for creating tables, types and constraints for entity schemas.
+    /// </summary>
     public static class DatabaseSchemaTables
     {
+        /// <summary>
+        /// Returns the names of tables that do not exist for the given entities.
+        /// </summary>
+        /// <param name="ec">Entity client.</param>
+        /// <param name="entities">Entities to check.</param>
+        /// <param name="ct">Cancellation token.</param>
+        /// <returns>Set of table names that are missing.</returns>
         public static async Task<HashSet<string>> GetEntitiesInexistingTables(IEntityClient ec, CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>> entities, CancellationToken ct)
         {
             bool should_close = !(ec.ConnectionState == System.Data.ConnectionState.Open);
@@ -28,6 +38,13 @@ namespace MicroM.Database
             return inexisting_tables;
         }
 
+        /// <summary>
+        /// Creates tables for entities that are missing in the database.
+        /// </summary>
+        /// <param name="ec">Entity client.</param>
+        /// <param name="entities">Entities to process.</param>
+        /// <param name="ct">Cancellation token.</param>
+        /// <returns>Dictionary of entities whose tables were created.</returns>
         public static async Task<CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>>> CreateEntitiesInexistentTables(IEntityClient ec, CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>> entities, CancellationToken ct)
         {
             bool should_close = !(ec.ConnectionState == System.Data.ConnectionState.Open);
@@ -68,6 +85,13 @@ namespace MicroM.Database
             }
         }
 
+        /// <summary>
+        /// Creates custom SQL types and sequences contained in the provided scripts.
+        /// </summary>
+        /// <param name="ec">Entity client.</param>
+        /// <param name="classified_custom_procs">Classified custom scripts.</param>
+        /// <param name="ct">Cancellation token.</param>
+        /// <param name="create_or_alter">Indicates if existing objects should be altered.</param>
         public async static Task CreateAllCustomSQLTypes(IEntityClient ec, CustomOrderedDictionary<CustomScript>? classified_custom_procs, CancellationToken ct, bool create_or_alter = true)
         {
             bool should_close = !(ec.ConnectionState == System.Data.ConnectionState.Open);
@@ -97,6 +121,13 @@ namespace MicroM.Database
             }
         }
 
+        /// <summary>
+        /// Creates custom tables defined in the classified scripts.
+        /// </summary>
+        /// <param name="ec">Entity client.</param>
+        /// <param name="classified_custom_procs">Classified custom scripts.</param>
+        /// <param name="ct">Cancellation token.</param>
+        /// <param name="create_or_alter">Indicates if existing objects should be altered.</param>
         public async static Task CreateAllCustomTables(IEntityClient ec, CustomOrderedDictionary<CustomScript>? classified_custom_procs, CancellationToken ct, bool create_or_alter = true)
         {
             bool should_close = !(ec.ConnectionState == System.Data.ConnectionState.Open);
@@ -119,6 +150,13 @@ namespace MicroM.Database
             }
         }
 
+        /// <summary>
+        /// Creates custom views defined in the classified scripts.
+        /// </summary>
+        /// <param name="ec">Entity client.</param>
+        /// <param name="classified_custom_procs">Classified custom scripts.</param>
+        /// <param name="ct">Cancellation token.</param>
+        /// <param name="create_or_alter">Indicates if existing objects should be altered.</param>
         public async static Task CreateAllCustomViews(IEntityClient ec, CustomOrderedDictionary<CustomScript>? classified_custom_procs, CancellationToken ct, bool create_or_alter = true)
         {
             bool should_close = !(ec.ConnectionState == System.Data.ConnectionState.Open);
@@ -141,6 +179,12 @@ namespace MicroM.Database
             }
         }
 
+        /// <summary>
+        /// Drops indexes for the specified entities.
+        /// </summary>
+        /// <param name="ec">Entity client.</param>
+        /// <param name="entities">Entity types.</param>
+        /// <param name="ct">Cancellation token.</param>
         public static async Task DropEntitiesIndexes(IEntityClient ec, Dictionary<string, Type> entities, CancellationToken ct)
         {
             bool should_close = !(ec.ConnectionState == System.Data.ConnectionState.Open);
@@ -169,6 +213,12 @@ namespace MicroM.Database
             }
         }
 
+        /// <summary>
+        /// Creates indexes for the specified entities.
+        /// </summary>
+        /// <param name="ec">Entity client.</param>
+        /// <param name="entities">Entity types.</param>
+        /// <param name="ct">Cancellation token.</param>
         public static async Task CreateEntitiesIndexes(IEntityClient ec, Dictionary<string, Type> entities, CancellationToken ct)
         {
             bool should_close = !(ec.ConnectionState == System.Data.ConnectionState.Open);
@@ -197,6 +247,13 @@ namespace MicroM.Database
             }
         }
 
+        /// <summary>
+        /// Drops constraints and indexes for the specified entities.
+        /// </summary>
+        /// <param name="ec">Entity client.</param>
+        /// <param name="entities">Entity types.</param>
+        /// <param name="ct">Cancellation token.</param>
+        /// <param name="drop_primary_keys">Whether to drop primary keys as well.</param>
         public static async Task DropEntitiesConstraintsAndIndexes(IEntityClient ec, Dictionary<string, Type> entities, CancellationToken ct, bool drop_primary_keys = false)
         {
             bool should_close = !(ec.ConnectionState == System.Data.ConnectionState.Open);
@@ -234,6 +291,12 @@ namespace MicroM.Database
             }
         }
 
+        /// <summary>
+        /// Creates constraints and indexes for the specified entities.
+        /// </summary>
+        /// <param name="ec">Entity client.</param>
+        /// <param name="entities">Entities to process.</param>
+        /// <param name="ct">Cancellation token.</param>
         public static async Task CreateEntitiesConstraintsAndIndexes(IEntityClient ec, CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>> entities, CancellationToken ct)
         {
             bool should_close = !(ec.ConnectionState == System.Data.ConnectionState.Open);

@@ -10,8 +10,28 @@ using System.Security.Claims;
 
 namespace MicroM.Web.Authentication;
 
-public record TokenResult { public string? Token { get; init; } public SecurityTokenDescriptor? SD { get; init; } }
+/// <summary>
+/// Encapsulates the result of generating a JSON Web Token.
+/// </summary>
+public record TokenResult
+{
+    /// <summary>
+    /// The serialized JSON Web Token.
+    /// </summary>
+    public string? Token { get; init; }
 
+    /// <summary>
+    /// Descriptor used to create the token.
+    /// </summary>
+    public SecurityTokenDescriptor? SD { get; init; }
+}
+
+/// <summary>
+/// Handles creation and validation of encrypted JWTs for MicroM Web APIs.
+/// </summary>
+/// <param name="app_config">Application configuration provider used to resolve JWT settings.</param>
+/// <param name="http_context">Accessor for the current HTTP context.</param>
+/// <param name="logger">Logger for diagnostic messages.</param>
 public class WebAPIJsonWebTokenHandler(
     IMicroMAppConfiguration app_config, IHttpContextAccessor http_context, ILogger<WebAPIJsonWebTokenHandler> logger
     ) : JsonWebTokenHandler
@@ -32,12 +52,11 @@ public class WebAPIJsonWebTokenHandler(
     }
 
     /// <summary>
-    /// Generate a JwtToken with encryption. Claims will be encrypted and cannot be used in the client. 
-    /// Claims here are mean to be used from the backend and protected from tampering within the client.
+    /// Generates an encrypted JWT whose claims are intended for backend use only.
     /// </summary>
-    /// <param name="claims"></param>
-    /// <param name="app"></param>
-    /// <returns></returns>
+    /// <param name="claims">Claims to embed in the token.</param>
+    /// <param name="app">Application configuration providing signing and encryption settings.</param>
+    /// <returns>A <see cref="TokenResult"/> containing the token and its descriptor.</returns>
     public TokenResult GenerateJwtTokenWEBApi(Dictionary<string, object> claims, ApplicationOption app)
     {
         var securityKey = CryptClass.GetSecurityKey(app.JWTKey, app.ApplicationName);
@@ -68,6 +87,12 @@ public class WebAPIJsonWebTokenHandler(
         return new() { Token = token, SD = sd };
     }
 
+    /// <summary>
+    /// Validates a JWT without enforcing the token's expiration time.
+    /// </summary>
+    /// <param name="app">Application configuration used to build validation parameters.</param>
+    /// <param name="token">The JWT string to validate.</param>
+    /// <returns>The claims principal extracted from the token when validation succeeds; otherwise, <c>null</c>.</returns>
     public async Task<ClaimsPrincipal?> ValidateExpiredToken(ApplicationOption app, string token)
     {
         var parms = GetValidationParameters(app);
@@ -145,6 +170,12 @@ public class WebAPIJsonWebTokenHandler(
 
     }
 
+    /// <summary>
+    /// Validates a JWT token string using context-aware validation parameters.
+    /// </summary>
+    /// <param name="token">The JWT token to validate.</param>
+    /// <param name="validationParameters">Validation settings provided by the caller.</param>
+    /// <returns>The result of token validation.</returns>
     public override Task<TokenValidationResult> ValidateTokenAsync(string token, TokenValidationParameters validationParameters)
     {
 
@@ -153,6 +184,12 @@ public class WebAPIJsonWebTokenHandler(
         return base.ValidateTokenAsync(token, validationParameters);
     }
 
+    /// <summary>
+    /// Validates a JWT <see cref="SecurityToken"/> instance using context-aware parameters.
+    /// </summary>
+    /// <param name="token">Token instance to validate.</param>
+    /// <param name="validationParameters">Validation settings provided by the caller.</param>
+    /// <returns>The result of token validation.</returns>
     public override Task<TokenValidationResult> ValidateTokenAsync(SecurityToken token, TokenValidationParameters validationParameters)
     {
         SetContextTokenValidationParameters(validationParameters);

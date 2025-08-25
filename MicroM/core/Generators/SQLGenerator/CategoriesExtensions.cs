@@ -91,6 +91,15 @@ namespace MicroM.Generators.SQLGenerator
             return sb.ToString();
         }
 
+        /// <summary>
+        /// Generates SQL to update category tables based on JSON arrays provided
+        /// for an entity.
+        /// </summary>
+        /// <typeparam name="T">Entity type.</typeparam>
+        /// <param name="entity">Entity definition.</param>
+        /// <param name="union_string">Union string used in WHERE clauses.</param>
+        /// <param name="separator">Separator between values.</param>
+        /// <returns>SQL fragment or empty string when not applicable.</returns>
         internal static string AsUpdateJSONCategories<T>(this T entity, string union_string = $"\n{TAB}{TAB}{TAB}and ", string separator = $"\n{TAB}{TAB}{TAB}, ") where T : EntityBase
         {
             if (entity.Def.RelatedCategories.Count == 0) return "";
@@ -173,6 +182,14 @@ namespace MicroM.Generators.SQLGenerator
         }
 
 
+        /// <summary>
+        /// Builds update statements for category tables using entity metadata.
+        /// </summary>
+        /// <typeparam name="T">Entity type.</typeparam>
+        /// <param name="entity">Entity definition.</param>
+        /// <param name="union_string">Union string used in WHERE clauses.</param>
+        /// <param name="separator">Separator between values.</param>
+        /// <returns>SQL fragment or empty string when not applicable.</returns>
         internal static string AsCategoriesUpdateTemplateValues<T>(this T entity, string union_string = $"\n{TAB}{TAB}{TAB}and ", string separator = $"\n{TAB}{TAB}{TAB}, ") where T : EntityBase
         {
             if (entity.Def.RelatedCategories.Count == 0) return "";
@@ -203,6 +220,14 @@ namespace MicroM.Generators.SQLGenerator
             return sb.ToString();
         }
 
+        /// <summary>
+        /// Generates the DELETE clause for removing related category rows when an
+        /// entity record is dropped.
+        /// </summary>
+        /// <typeparam name="T">Entity type.</typeparam>
+        /// <param name="entity">Entity definition.</param>
+        /// <param name="separator">Separator used between conditions.</param>
+        /// <returns>SQL fragment or empty string when not applicable.</returns>
         internal static string AsCategoriesDelete<T>(this T entity, string separator = $"\n{TAB}{TAB}{TAB}and ") where T : EntityBase
         {
             if (entity.Def.RelatedCategories.Count == 0) return "";
@@ -220,6 +245,13 @@ namespace MicroM.Generators.SQLGenerator
             return sb.ToString();
         }
 
+        /// <summary>
+        /// Builds SQL to return category values as JSON arrays for an entity.
+        /// </summary>
+        /// <typeparam name="T">Entity type.</typeparam>
+        /// <param name="entity">Entity definition.</param>
+        /// <param name="union_string">Union string used in WHERE clauses.</param>
+        /// <returns>SQL fragment or empty string when not applicable.</returns>
         internal static string AsJSONCategoriesGet<T>(this T entity, string union_string = $"\n{TAB}{TAB}and ") where T : EntityBase
         {
             if (entity.Def.RelatedCategories.Count == 0) return "";
@@ -245,6 +277,13 @@ namespace MicroM.Generators.SQLGenerator
             return sb.ToString();
         }
 
+        /// <summary>
+        /// Produces the variable declarations required to hold JSON category
+        /// arrays when retrieving a record.
+        /// </summary>
+        /// <typeparam name="T">Entity type.</typeparam>
+        /// <param name="entity">Entity definition.</param>
+        /// <returns>SQL declarations or empty string when not applicable.</returns>
         internal static string AsJSONCategoriesGetParmsDeclaration<T>(this T entity) where T : EntityBase
         {
             if (entity.Def.RelatedCategories.Count == 0) return "";

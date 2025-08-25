@@ -2,6 +2,9 @@
 
 namespace MicroM.Data;
 
+/// <summary>
+/// Contains standard suffixes used for system stored procedures.
+/// </summary>
 public static class SystemStandardProceduresSuffixs
 {
     public const string _update = "_update";
@@ -12,6 +15,9 @@ public static class SystemStandardProceduresSuffixs
     public const string _iupdate = "_iupdate";
     public const string _idrop = "_idrop";
 
+    /// <summary>
+    /// Determines the standard procedure type based on its name.
+    /// </summary>
     public static SQLProcStandardType GetProcStandardType(string? proc_name)
     {
         if (string.IsNullOrWhiteSpace(proc_name)) return SQLProcStandardType.Unknown;
