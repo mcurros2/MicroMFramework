@@ -6,8 +6,19 @@ using static MicroM.Generators.Constants;
 
 namespace MicroM.Generators.SQLGenerator
 {
+    /// <summary>
+    /// Provides extension methods for generating SQL scripts related to views.
+    /// </summary>
     internal static class ViewExtensions
     {
+        /// <summary>
+        /// Creates the SQL to create or alter a view stored procedure for the specified entity.
+        /// </summary>
+        /// <typeparam name="T">Type of <see cref="EntityBase"/>.</typeparam>
+        /// <param name="entity">Entity definition used to build the view.</param>
+        /// <param name="create_or_alter">When <c>true</c> generates an ALTER statement; otherwise CREATE.</param>
+        /// <param name="force">When <c>true</c> generates SQL even for fake entities.</param>
+        /// <returns>The SQL script for the view stored procedure or a message when no view is defined.</returns>
         public static string AsCreateViewProc<T>(this T entity, bool create_or_alter = false, bool force = false) where T : EntityBase
         {
             if (entity.Def.Fake && force == false) return "";
