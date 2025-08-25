@@ -4,16 +4,25 @@ using System.Runtime.CompilerServices;
 
 namespace MicroM.Generators
 {
+    /// <summary>
+    /// Provides a base container for storing template tokens.
+    /// </summary>
     internal abstract class TemplateValuesBase
     {
         public readonly Dictionary<string, string> tokens = [];
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="TemplateValuesBase"/> class and fills the token dictionary.
+        /// </summary>
         public TemplateValuesBase()
         {
             FillTokens();
         }
 
         // MMC: this aims to ease the use of the tokens dictionary
+        /// <summary>
+        /// Populates the token dictionary with placeholders for init-only string properties.
+        /// </summary>
         private void FillTokens()
         {
             object obj = this;
