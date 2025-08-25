@@ -44,6 +44,8 @@ This file defines the iterative documentation workflow for documenting the backe
 - Respect file encoding:
   - Use **UTF-8** encoding for all markdown files.
   - Ensure BOM (Byte Order Mark) is present in the files.
+- Do not assume that each folder corresponds to a namespace.
+  - Always verify the actual namespace in the source code.
   
 ## How to document a namespace
 - Each namespace must have its own folder in `MicroM/Documentation/Backend/`.
