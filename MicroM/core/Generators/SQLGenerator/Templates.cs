@@ -1,7 +1,16 @@
 ﻿namespace MicroM.Generators.SQLGenerator
 {
+    /// <summary>
+    /// Provides reusable SQL statement templates with token placeholders that
+    /// are substituted when generating stored procedures and other scripts.
+    /// </summary>
     internal class Templates
     {
+        /// <summary>
+        /// Template for constructing a LIKE filter. Replace <c>{LIKE_CLAUSE}</c>
+        /// with the comparison expressions evaluated for each token returned by
+        /// <c>sys_tfLike(@like)</c>.
+        /// </summary>
         internal const string LIKE_TEMPLATE =
 @"
         not exists (
@@ -13,6 +22,12 @@
             )
         )
 ";
+        /// <summary>
+        /// Template for a browse/view stored procedure. Replace
+        /// <c>{CREATE}</c>, <c>{MNEO}</c>, <c>{PARMS_DECLARATION}</c>,
+        /// <c>{VIEW_COLUMNS}</c>, <c>{TABLE_NAME}</c>, <c>{CATEGORIES_JOIN}</c>
+        /// and <c>{WHERE_CLAUSE}</c> with generated values.
+        /// </summary>
         internal const string VIEW_TEMPLATE =
 @"
 {CREATE} proc {MNEO}_brwStandard
@@ -24,6 +39,13 @@ from    {TABLE_NAME}{CATEGORIES_JOIN}
 where   {WHERE_CLAUSE}
 ";
 
+        /// <summary>
+        /// Template for a drop stored procedure that removes a record and its
+        /// related category and status rows. Placeholders:
+        /// <c>{CREATE}</c>, <c>{MNEO}</c>, <c>{PARMS_DECLARATION}</c>,
+        /// <c>{CATEGORIES_DELETE}</c>, <c>{STATUS_DELETE}</c>,
+        /// <c>{TABLE_NAME}</c>, <c>{WHERE_CLAUSE}</c>.
+        /// </summary>
         internal const string DROP_TEMPLATE =
 @"
 {CREATE} proc {MNEO}_drop
@@ -55,6 +77,11 @@ begin catch
 end catch
 ";
 
+        /// <summary>
+        /// Internal drop stored procedure used inside an existing transaction.
+        /// Accepts <c>@result</c> and <c>@msg</c> output parameters. Uses the
+        /// same placeholders as <c>DROP_TEMPLATE</c>.
+        /// </summary>
         internal const string IDROP_TEMPLATE =
 @"
 {CREATE} proc {MNEO}_idrop
@@ -82,6 +109,11 @@ begin catch
 end catch
 ";
 
+        /// <summary>
+        /// Drop wrapper that begins a transaction and calls the internal drop
+        /// procedure. Placeholders include <c>{CREATE}</c>, <c>{MNEO}</c>,
+        /// <c>{PARMS_DECLARATION}</c> and <c>{PARMS}</c>.
+        /// </summary>
         internal const string DROP_CALLS_IDROP_TEMPLATE =
 @"
 {CREATE} proc {MNEO}_drop
@@ -121,6 +153,12 @@ begin catch
 end catch
 ";
 
+        /// <summary>
+        /// Template for a lookup stored procedure returning a description
+        /// column. Placeholders: <c>{CREATE}</c>, <c>{MNEO}</c>,
+        /// <c>{PARMS_DECLARATION}</c>, <c>{DESC_COLUMN}</c>,
+        /// <c>{TABLE_NAME}</c>, <c>{WHERE_CLAUSE}</c>.
+        /// </summary>
         internal const string LOOKUP_TEMPLATE =
 @"
 {CREATE} proc {MNEO}_lookup
@@ -132,6 +170,11 @@ from    {TABLE_NAME}
 where   {WHERE_CLAUSE}
 ";
 
+        /// <summary>
+        /// Selects category values into a JSON array. Replace
+        /// <c>{CATEGORY_PARM}</c>, <c>{CATEGORIES_TABLE}</c> and
+        /// <c>{WHERE_CLAUSE}</c> as needed.
+        /// </summary>
         internal const string JSON_CATEGORY_GET_TEMPLATE =
 @"
 select  {CATEGORY_PARM} = '[' + STRING_AGG('""'+replace(RTRIM(c_categoryvalue_id), '""','\""')+'""', ',') + ']'
@@ -140,6 +183,14 @@ where   {WHERE_CLAUSE}
 ";
 
 
+        /// <summary>
+        /// Template for a get stored procedure returning a single row along
+        /// with JSON category information. Placeholders include
+        /// <c>{CREATE}</c>, <c>{MNEO}</c>, <c>{PARMS_DECLARATION}</c>,
+        /// <c>{JSON_PARMS_DECLARATION}</c>, <c>{JSON_CATEGORIES_GET}</c>,
+        /// <c>{GET_VALUES}</c>, <c>{TABLE_NAME}</c>, <c>{CATEGORIES_JOIN}</c>,
+        /// and <c>{WHERE_CLAUSE}</c>.
+        /// </summary>
         internal const string GET_TEMPLATE =
 @"
 {CREATE} proc {MNEO}_get
@@ -153,6 +204,11 @@ from    {TABLE_NAME}{CATEGORIES_JOIN}
 where   {WHERE_CLAUSE}
 ";
 
+        /// <summary>
+        /// Concurrency check snippet for update procedures. Replaces the
+        /// transaction with a rollback when the last-update timestamp does not
+        /// match. Used inside <c>UPDATE_TEMPLATE</c>.
+        /// </summary>
         internal const string UPDATE_LU_CONTROL_TEMPLATE =
 @"
     if @cu<>@lu or @lu is null 
@@ -164,6 +220,10 @@ where   {WHERE_CLAUSE}
 
 ";
 
+        /// <summary>
+        /// Concurrency check for inline update procedures returning
+        /// <c>@result</c> and <c>@msg</c>. Used in <c>IUPDATE_TEMPLATE</c>.
+        /// </summary>
         internal const string IUPDATE_LU_CONTROL_TEMPLATE =
 @"
     if @cu<>@lu or @lu is null 
@@ -174,6 +234,11 @@ where   {WHERE_CLAUSE}
 
 ";
 
+        /// <summary>
+        /// Update statement for the main table. Replace <c>{TABLE_NAME}</c>,
+        /// <c>{UPDATE_VALUES}</c> and <c>{WHERE_CLAUSE}</c> with generated
+        /// values.
+        /// </summary>
         internal const string UPDATE_CLAUSE_TEMPLATE =
 @"
     update  {TABLE_NAME}
@@ -184,6 +249,12 @@ where   {WHERE_CLAUSE}
     where   {WHERE_CLAUSE}
 ";
 
+        /// <summary>
+        /// Parses a JSON array of category values into a temporary table and
+        /// ensures missing category entries are inserted. Placeholders:
+        /// <c>{CATEGORY_TEMP_TABLE}</c>, <c>{CATEGORY_PARM}</c>,
+        /// <c>{CATEGORY}</c>.
+        /// </summary>
         internal const string JSON_CATEGORIES_PARSE_TEMPLATE =
         @"
     create table {CATEGORY_TEMP_TABLE} (jsoncategory_id char(20), category_desc varchar(max))
@@ -211,14 +282,20 @@ where   {WHERE_CLAUSE}
             , @login
     from    {CATEGORY_TEMP_TABLE} a
     where   not exists (
-				select  *
-				from    [categories_values]
-				where   c_category_id = {CATEGORY}
-						and c_categoryvalue_id = a.jsoncategory_id
-				)
+                                select  *
+                                from    [categories_values]
+                                where   c_category_id = {CATEGORY}
+                                                and c_categoryvalue_id = a.jsoncategory_id
+                                )
 ";
 
 
+        /// <summary>
+        /// Inserts category rows from the JSON temp table when the parameter is
+        /// not null. Placeholders: <c>{CATEGORY_PARM}</c>,
+        /// <c>{CATEGORIES_TABLE}</c>, <c>{INSERT_VALUES}</c>,
+        /// <c>{CATEGORY_TEMP_TABLE}</c>.
+        /// </summary>
         internal const string INSERT_JSON_CAT_TEMPLATE =
         @"
         if ({CATEGORY_PARM} is not null)
@@ -237,12 +314,18 @@ where   {WHERE_CLAUSE}
         end
 ";
 
+        /// <summary>
+        /// Synchronises category rows based on the JSON temp table. Deletes
+        /// missing values and inserts new ones. Placeholders:
+        /// <c>{CATEGORIES_TABLE}</c>, <c>{WHERE_CLAUSE}</c>,
+        /// <c>{INSERT_VALUES}</c>, <c>{CATEGORY_TEMP_TABLE}</c>.
+        /// </summary>
         internal const string UPDATE_JSON_CAT_TEMPLATE =
         @"
     delete  {CATEGORIES_TABLE}
     WHERE   {WHERE_CLAUSE}
             and c_categoryvalue_id not in(SELECT jsoncategory_id FROM {CATEGORY_TEMP_TABLE})
-    
+
     INSERT {CATEGORIES_TABLE}
     SELECT  {INSERT_VALUES}
             , @now
@@ -252,15 +335,28 @@ where   {WHERE_CLAUSE}
             , @login
             , @login
     FROM    {CATEGORY_TEMP_TABLE}
-    WHERE   jsoncategory_id NOT IN 
+    WHERE   jsoncategory_id NOT IN
             (
-                SELECT  c_categoryvalue_id 
-                FROM    {CATEGORIES_TABLE} 
+                SELECT  c_categoryvalue_id
+                FROM    {CATEGORIES_TABLE}
                 where   {WHERE_CLAUSE}
             )
 ";
 
 
+        /// <summary>
+        /// Full update stored procedure. Handles insert when the record does
+        /// not exist, performs concurrency checks and updates categories and
+        /// status. Uses numerous placeholders such as <c>{CREATE}</c>,
+        /// <c>{MNEO}</c>, <c>{PARMS_DECLARATION}</c>, <c>{PARMS_VALIDATION}</c>,
+        /// <c>{NULLIF_CHECKS}</c>, <c>{JSON_CATEGORIES}</c>,
+        /// <c>{TABLE_NAME}</c>, <c>{WHERE_CLAUSE}</c>, <c>{AUTONUM}</c>,
+        /// <c>{INSERT_VALUES}</c>, <c>{JSON_CATEGORIES_INSERT}</c>,
+        /// <c>{CATEGORIES_INSERT}</c>, <c>{STATUS_INSERT}</c>,
+        /// <c>{AUTONUM_RETURN}</c>, <c>{UPDATE_LU_CONTROL}</c>,
+        /// <c>{UPDATE_CLAUSE}</c>, <c>{JSON_CATEGORIES_UPDATE}</c>,
+        /// <c>{CATEGORIES_UPDATE}</c> and <c>{STATUS_UPDATE}</c>.
+        /// </summary>
         internal const string UPDATE_TEMPLATE =
 @"
 {CREATE} proc {MNEO}_update
@@ -322,6 +418,11 @@ begin catch
 end catch
 ";
 
+        /// <summary>
+        /// Inline update stored procedure intended to run within an existing
+        /// transaction and returning <c>@result</c> and <c>@msg</c> outputs.
+        /// Shares placeholders with <c>UPDATE_TEMPLATE</c>.
+        /// </summary>
         internal const string IUPDATE_TEMPLATE =
 @"
 {CREATE} proc {MNEO}_iupdate
@@ -375,6 +476,13 @@ begin catch
 end catch
 ";
 
+        /// <summary>
+        /// Wrapper update stored procedure that validates parameters, begins a
+        /// transaction and calls the internal update procedure.
+        /// Placeholders: <c>{CREATE}</c>, <c>{MNEO}</c>,
+        /// <c>{PARMS_DECLARATION}</c>, <c>{PARMS_VALIDATION}</c>,
+        /// <c>{NULLIF_CHECKS}</c>, <c>{PARMS}</c>.
+        /// </summary>
         internal const string UPDATE_CALLS_IUPDATE_TEMPLATE =
 @"
 {CREATE} proc {MNEO}_update
@@ -418,13 +526,18 @@ begin catch
 end catch
 ";
 
+        /// <summary>
+        /// Inserts a category row only when the category parameter is not
+        /// null. Placeholders: <c>{CATEGORY_PARM}</c>, <c>{CATEGORIES_TABLE}</c>,
+        /// <c>{INSERT_VALUES}</c>.
+        /// </summary>
         internal const string INSERT_CATEGORY_TEMPLATE_NULL =
 @"
         if ({CATEGORY_PARM} is not null)
         begin
 
             insert  {CATEGORIES_TABLE}
-            values  
+            values
                 (
                 {INSERT_VALUES}
                 , @now
@@ -438,6 +551,10 @@ end catch
         end
 ";
 
+        /// <summary>
+        /// Inserts a category row without checking for null. Placeholders:
+        /// <c>{CATEGORIES_TABLE}</c>, <c>{INSERT_VALUES}</c>.
+        /// </summary>
         internal const string INSERT_CATEGORY_TEMPLATE =
 @"
         insert  {CATEGORIES_TABLE}
@@ -453,6 +570,11 @@ end catch
             )
 ";
 
+        /// <summary>
+        /// Deletes category rows when the category parameter is null.
+        /// Placeholders: <c>{CATEGORY_PARM}</c>, <c>{CATEGORIES_TABLE}</c>,
+        /// <c>{WHERE_CLAUSE}</c>.
+        /// </summary>
         internal const string DELETE_CATEGORY_NULL_TEMPLATE =
 @"
     if ({CATEGORY_PARM} is null)
@@ -465,6 +587,13 @@ end catch
 
 ";
 
+        /// <summary>
+        /// Inserts, updates or deletes a single category row based on the
+        /// supplied parameter. Uses placeholders <c>{CATEGORY_DELETE_NULL}</c>,
+        /// <c>{CATEGORIES_TABLE}</c>, <c>{WHERE_CLAUSE}</c>,
+        /// <c>{CATEGORY_PARM}</c>, <c>{INSERT_VALUES}</c>,
+        /// <c>{UPDATE_VALUES}</c>.
+        /// </summary>
         internal const string UPDATE_CATEGORY_TEMPLATE =
 @"
     {CATEGORY_DELETE_NULL}
@@ -504,12 +633,20 @@ end catch
     end
 ";
 
+        /// <summary>
+        /// Deletes category rows unconditionally. Placeholders:
+        /// <c>{CATEGORIES_TABLE}</c> and <c>{WHERE_CLAUSE}</c>.
+        /// </summary>
         internal const string DELETE_CATEGORY_TEMPLATE =
 @"
     delete  {CATEGORIES_TABLE}
     where   {WHERE_CLAUSE}
 ";
 
+        /// <summary>
+        /// Inserts initial status values for a new record. Replace
+        /// <c>{STATUS_TABLE}</c>, <c>{INSERT_VALUES}</c> and <c>{MNEO}</c>.
+        /// </summary>
         internal const string INSERT_STATUS_TEMPLATE =
 @"
         insert  {STATUS_TABLE}
@@ -529,12 +666,21 @@ end catch
                 a.bt_initial_value = 1
 ";
 
+        /// <summary>
+        /// Deletes status rows. Placeholders: <c>{STATUS_TABLE}</c>,
+        /// <c>{WHERE_CLAUSE}</c>.
+        /// </summary>
         internal const string DELETE_STATUS_TEMPLATE =
 @"
     delete  {STATUS_TABLE}
     where   {WHERE_CLAUSE}
 ";
 
+        /// <summary>
+        /// Updates the status value when it changes. Placeholders:
+        /// <c>{STATUS_TABLE}</c>, <c>{UPDATE_VALUES}</c>, <c>{WHERE_CLAUSE}</c>,
+        /// <c>{STATUS_PARM}</c>.
+        /// </summary>
         internal const string UPDATE_STATUS_TEMPLATE =
 @"
     update  {STATUS_TABLE}
