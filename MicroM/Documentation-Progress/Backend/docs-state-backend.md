@@ -31,8 +31,8 @@ This file tracks the current documentation state of the backend (`/MicroM/core`)
 - Notes: Namespace and classes documented.
 
 ### MicroM.DataDictionary.Entities
-- State: Incomplete ⚠️
-- Notes: ConfigurationParameters and MicromUsers documented; added XML comments for EntitiesAssembliesTypes, ObjectsCategories, Classes, and ConfigurationDB InitialConfigurationResult; remaining entities pending.
+- State: Complete ✅
+- Notes: Namespace and all entity types documented.
 
 ### MicroM.DataDictionary.Entities.MicromUsers
 - State: Complete ✅
