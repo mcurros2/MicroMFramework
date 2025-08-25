@@ -6,8 +6,19 @@ using static MicroM.Generators.Constants;
 
 namespace MicroM.Generators.SQLGenerator
 {
+    /// <summary>
+    /// Provides extension methods for generating SQL GET stored procedures.
+    /// </summary>
     internal static class GetExtensions
     {
+        /// <summary>
+        /// Generates a SQL script for creating a GET stored procedure for the given entity.
+        /// </summary>
+        /// <typeparam name="T">Type of the entity.</typeparam>
+        /// <param name="entity">Entity definition used to create the stored procedure.</param>
+        /// <param name="create_or_alter">Indicates whether to CREATE or ALTER the procedure.</param>
+        /// <param name="force">Force generation even if the entity is marked as fake.</param>
+        /// <returns>The SQL script for the GET stored procedure, or an empty string if not generated.</returns>
         public static string AsCreateGetProc<T>(this T entity, bool create_or_alter = false, bool force = false) where T : EntityBase
         {
             if (entity.Def.Fake && force == false) return "";
