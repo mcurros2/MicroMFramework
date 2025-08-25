@@ -11,6 +11,8 @@ Contains entity definitions used by the MicroM data dictionary such as configura
 | [ConfigurationDBDef](<ConfigurationDBDef/index.md>) | Schema definition for configuration database settings. |
 | [ConfigurationParameters](<ConfigurationParameters/index.md>) | Entity for storing configuration parameter values. |
 | [ConfigurationParametersDef](<ConfigurationParametersDef/index.md>) | Schema definition for configuration parameters. |
+| [EntitiesAssemblies](<EntitiesAssemblies/index.md>) | Runtime entity for assembly records. |
+| [EntitiesAssembliesDef](<EntitiesAssembliesDef/index.md>) | Definition for assembly records. |
 | [EntitiesAssembliesTypes](<EntitiesAssembliesTypes/index.md>) | Runtime entity for mapping assemblies to their types. |
 | [EntitiesAssembliesTypesDef](<EntitiesAssembliesTypesDef/index.md>) | Definition for assembly type mappings. |
 | [InitialConfigurationResult](<InitialConfigurationResult/index.md>) | Result of initial configuration validation. |
