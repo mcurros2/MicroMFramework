@@ -52,8 +52,11 @@
   
   <ItemGroup>
     <Compile Remove="DataDictionary\Entities\MicromPermissions\**" />
+    <Compile Remove="Web\Services\SSOService\**" />
     <EmbeddedResource Remove="DataDictionary\Entities\MicromPermissions\**" />
+    <EmbeddedResource Remove="Web\Services\SSOService\**" />
     <None Remove="DataDictionary\Entities\MicromPermissions\**" />
+    <None Remove="Web\Services\SSOService\**" />
   </ItemGroup>
   
   
@@ -172,10 +175,6 @@
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>
     </None>
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Web\Services\SSOService\" />
   </ItemGroup>
 
   <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
