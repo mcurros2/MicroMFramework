@@ -4,6 +4,7 @@ using MicroM.Data;
 using MicroM.Extensions;
 using MicroM.Web.Authentication;
 using MicroM.Web.Services;
+using Microsoft.Extensions.Logging;
 using System.Security.Cryptography;
 using static MicroM.Database.ConfigurationDatabaseSchema;
 using static MicroM.Database.DatabaseManagement;
@@ -262,8 +263,19 @@ public static class ConfigurationDBHandlers
             await CreateConfigurationDBSchemaAndProcs(dbc, entities, ct, true);
             await GrantExecutionToAllProcs(dbc, entities, cfg.Def.vc_configsqluser.Value, ct);
 
-            secrets = new() { ConfigSQLUser = cfg.Def.vc_configsqluser.Value, ConfigSQLPassword = new_password };
-            await SaveConfigurationDBParms(secrets, existing_config.Def.vc_certificatethumbprint.Value, ct);
+            api?.log.LogWarning("Changing {user} sql password", cfg.Def.vc_configsqluser.Value);
+
+            try
+            {
+                secrets = new() { ConfigSQLUser = cfg.Def.vc_configsqluser.Value, ConfigSQLPassword = new_password };
+                await SaveConfigurationDBParms(secrets, existing_config.Def.vc_certificatethumbprint.Value, ct);
+            }
+            catch (Exception ex)
+            {
+                api?.log.LogError(ex, "Error saving configuration secrets");
+                if (existing_config.Def.b_configuserexists.Value) await dbc.ExecuteSQLNonQuery($"alter login [{cfg.Def.vc_configsqluser.Value}] with password = '{existing_config.Def.vc_configsqlpassword.Value}'", ct);
+            }
+
             if (api != null)
             {
                 await api.app_config.RefreshConfiguration(null, ct);

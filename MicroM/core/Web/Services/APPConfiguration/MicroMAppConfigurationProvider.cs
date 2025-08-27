@@ -133,6 +133,7 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
             control_panel.SQLPassword = secrets?.ConfigSQLPassword ?? "";
         }
 
+        //_log.LogError("ERROR: User: {user} Pass: {pass}", control_panel.SQLUser, control_panel.SQLPassword);
         _ApplicationsCache.TryAdd(control_panel.ApplicationID, control_panel);
     }
 

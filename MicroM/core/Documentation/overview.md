@@ -9,9 +9,8 @@
 	- Generate SQL Stored procedures for CRUD operations
 	- Web API with conventions for CRUD operations for created entities
 	- Email Service
-	- Encrypon Service
-	- File upload service
-	- File serve service
+	- Encryption Service
+	- File service (upload and serve endpoints)
 	- Built-in Authentication Service
 	- Code generation for frontend components using micromlib
 	- Batch CRUD operations

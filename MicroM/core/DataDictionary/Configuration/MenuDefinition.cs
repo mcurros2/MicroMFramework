@@ -3,67 +3,66 @@ using MicroM.Extensions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 
-namespace MicroM.DataDictionary.Configuration
+namespace MicroM.DataDictionary.Configuration;
+
+/// <summary>
+/// This class is used to define an application menu. It also defines the access granted to the entities related to the menu.
+/// When a user logs in, the system will check the user's groups and the menu definitions to determine which entities the user can access.
+/// <see cref="MenuItemDefinition"/>, <see cref="MicromUsersGroups"/>
+/// When creating an application database the system will create the necessary tables and views to support the menu definitions.
+/// </summary>
+public class MenuDefinition
 {
-    /// <summary>
-    /// This class is used to define an application menu. It also defines the access granted to the entities related to the menu.
-    /// When a user logs in, the system will check the user's groups and the menu definitions to determine which entities the user can access.
-    /// <see cref="MenuItemDefinition"/>, <see cref="MicromUsersGroups"/>
-    /// When creating an application database the system will create the necessary tables and views to support the menu definitions.
-    /// </summary>
-    public class MenuDefinition
+    public readonly string MenuID;
+    public readonly string MenuDescription;
+
+    public readonly CustomOrderedDictionary<MenuItemDefinition> MenuItems = new();
+
+    public MenuDefinition(string menuDescription)
     {
-        public readonly string MenuID;
-        public readonly string MenuDescription;
+        MenuID = this.GetType().Name;
+        MenuDescription = menuDescription;
+        FillMenuItemsDictionary();
+    }
 
-        public readonly CustomOrderedDictionary<MenuItemDefinition> MenuItems = new();
+    private void FillMenuItemsDictionary()
+    {
+        IOrderedEnumerable<MemberInfo> instance_members = this.GetType().GetAndCacheInstanceMembers();
 
-        public MenuDefinition(string menuDescription)
+        foreach (var prop in instance_members)
         {
-            MenuID = this.GetType().Name;
-            MenuDescription = menuDescription;
-            FillMenuItemsDictionary();
-        }
-
-        private void FillMenuItemsDictionary()
-        {
-            IOrderedEnumerable<MemberInfo> instance_members = this.GetType().GetAndCacheInstanceMembers();
-
-            foreach (var prop in instance_members)
+            if (prop.MemberType.IsIn(MemberTypes.Property, MemberTypes.Field) && prop.GetCustomAttribute<CompilerGeneratedAttribute>() == null)
             {
-                if (prop.MemberType.IsIn(MemberTypes.Property, MemberTypes.Field) && prop.GetCustomAttribute<CompilerGeneratedAttribute>() == null)
+                if (prop.GetMemberType() == typeof(MenuItemDefinition))
                 {
-                    if (prop.GetMemberType() == typeof(MenuItemDefinition))
+                    var menu_item = (MenuItemDefinition?)prop.GetMemberValue(this);
+                    if (menu_item != null)
                     {
-                        var menu_item = (MenuItemDefinition?)prop.GetMemberValue(this);
-                        if (menu_item != null)
+                        if (MenuItems.TryAdd(prop.Name, menu_item))
                         {
-                            if (MenuItems.TryAdd(prop.Name, menu_item))
+                            menu_item.MenuID = this.MenuID;
+                            menu_item.MenuItemID = prop.Name;
+                            if (menu_item.ParentMenuItemID != null)
                             {
-                                menu_item.MenuID = this.MenuID;
-                                menu_item.MenuItemID = prop.Name;
-                                if (menu_item.ParentMenuItemID != null)
+                                if (MenuItems.TryGetValue(menu_item.ParentMenuItemID, out MenuItemDefinition? parent))
                                 {
-                                    if (MenuItems.TryGetValue(menu_item.ParentMenuItemID, out MenuItemDefinition? parent))
-                                    {
-                                        menu_item.Parent = parent;
-                                        parent!.Children.Add(menu_item);
-                                        menu_item.ItemPath = $"{parent.ItemPath}/{menu_item.MenuItemID}";
-                                    }
-                                    else
-                                    {
-                                        throw new ArgumentException($"Parent MenuItem not found: Value {menu_item.ParentMenuItemID} ({menu_item.MenuItemDescription}), Menu {this.MenuID} ({this.MenuDescription})");
-                                    }
+                                    menu_item.Parent = parent;
+                                    parent!.Children.Add(menu_item);
+                                    menu_item.ItemPath = $"{parent.ItemPath}/{menu_item.MenuItemID}";
                                 }
                                 else
                                 {
-                                    menu_item.ItemPath = $"/{menu_item.MenuItemID}";
+                                    throw new ArgumentException($"Parent MenuItem not found: Value {menu_item.ParentMenuItemID} ({menu_item.MenuItemDescription}), Menu {this.MenuID} ({this.MenuDescription})");
                                 }
                             }
                             else
                             {
-                                throw new ArgumentException($"Duplicate MenuItem: Value {menu_item.MenuItemID} ({menu_item.MenuItemDescription}), Menu {this.MenuID} ({this.MenuDescription})");
+                                menu_item.ItemPath = $"/{menu_item.MenuItemID}";
                             }
+                        }
+                        else
+                        {
+                            throw new ArgumentException($"Duplicate MenuItem: Value {menu_item.MenuItemID} ({menu_item.MenuItemDescription}), Menu {this.MenuID} ({this.MenuDescription})");
                         }
                     }
                 }
