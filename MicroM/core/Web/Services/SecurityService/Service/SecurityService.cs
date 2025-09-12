@@ -1,6 +1,6 @@
 ﻿using MicroM.Configuration;
-using MicroM.DataDictionary;
 using MicroM.DataDictionary.CategoriesDefinitions;
+using MicroM.DataDictionary.Entities;
 using MicroM.Extensions;
 using MicroM.Web.Authentication;
 using Microsoft.Extensions.Hosting;

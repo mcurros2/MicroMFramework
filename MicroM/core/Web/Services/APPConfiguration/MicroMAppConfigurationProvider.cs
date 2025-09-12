@@ -2,8 +2,8 @@
 using MicroM.Core;
 using MicroM.Data;
 using MicroM.Database;
-using MicroM.DataDictionary;
 using MicroM.DataDictionary.CategoriesDefinitions;
+using MicroM.DataDictionary.Entities;
 using MicroM.Extensions;
 using MicroM.Web.Services.Security;
 using Microsoft.Extensions.Configuration;

@@ -1,9 +1,9 @@
 ﻿using MicroM.Core;
 using MicroM.Data;
-using MicroM.DataDictionary;
 using MicroM.DataDictionary.CategoriesDefinitions;
 using MicroM.DataDictionary.Configuration;
-using MicroM.DataDictionary.StatusDefs;
+using MicroM.DataDictionary.Entities;
+using MicroM.DataDictionary.StatusDefinitions;
 using MicroM.Extensions;
 using System.Reflection;
 using static MicroM.Database.DatabaseSchema;
@@ -83,7 +83,7 @@ public static class DataDictionarySchema
             new EmailServiceTemplates(ec),
             new ImportProcess(ec),
             new ImportProcessErrors(ec),
-            new ImportProcessStatus(ec)
+            new ImportProcessStatus(ec),
             ]);
 
         return result;

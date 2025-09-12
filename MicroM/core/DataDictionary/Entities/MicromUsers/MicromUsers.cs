@@ -3,14 +3,12 @@ using MicroM.Configuration;
 using MicroM.Core;
 using MicroM.Data;
 using MicroM.DataDictionary.CategoriesDefinitions;
-using MicroM.DataDictionary.Entities.MicromUsers;
 using MicroM.Extensions;
 using MicroM.Web.Authentication;
 using MicroM.Web.Services;
 using System.Data;
 
-namespace MicroM.DataDictionary;
-
+namespace MicroM.DataDictionary.Entities;
 
 public class MicromUsersDef : EntityDefinition
 {

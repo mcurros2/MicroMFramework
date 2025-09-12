@@ -10,5 +10,9 @@ public interface IIdentityProviderService
     Task<string> HandleAuthorizationCode(string app_id, string userId, CancellationToken ct);
 
     Task<string> HandleBackchannelToken(string app_id, string userId, CancellationToken ct);
+
+    Task<string> HandleBackchannelPAR(string app_id, string userId, CancellationToken ct);
+
+    Task<string> HandleEndSession(string app_id, string userId, CancellationToken ct);
 }
 

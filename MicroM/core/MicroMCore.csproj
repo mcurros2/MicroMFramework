@@ -61,7 +61,7 @@
   
   
   <ItemGroup>
-    <None Remove="DataDictionary\Entities\ApplicationOIDCServer\SQL\ApplicationOidcServer\aois_iupdate.sql" />
+    <None Remove="DataDictionary\Entities\Applications\app_GetOIDCClients.sql" />
     <None Remove="DataDictionary\Entities\EmailService\SQL\EmailServiceConfiguration\eqc_get.sql" />
     <None Remove="DataDictionary\Entities\EmailService\SQL\EmailServiceConfiguration\eqc_iupdate.sql" />
     <None Remove="DataDictionary\Entities\EmailService\SQL\EmailServiceQueue\emq_EmailTagsTableType.sql" />
@@ -72,6 +72,9 @@
     <None Remove="DataDictionary\Entities\ImportProcess\SQL\ipr_get.sql" />
     <None Remove="DataDictionary\Entities\ImportProcess\SQL\ipr_update.sql" />
     <None Remove="DataDictionary\Entities\ImportProcess\SQL\ipr_UpdateStatus.sql" />
+    <None Remove="DataDictionary\Entities\MicromApplicationAPIKeys\SQL\MicromApplicationApiKeys\mak_get.sql" />
+    <None Remove="DataDictionary\Entities\MicromApplicationAPIKeys\SQL\MicromApplicationApiKeys\mak_getByAPIKey.sql" />
+    <None Remove="DataDictionary\Entities\MicromApplicationAPIKeys\SQL\MicromApplicationApiKeys\mak_iupdate.sql" />
     <None Remove="DataDictionary\Entities\MicromMenus\SQL\MicromMenusItems\mmi_update.sql" />
     <None Remove="DataDictionary\Entities\MicromRoutes\SQL\mro_iupdate.sql" />
     <None Remove="DataDictionary\Entities\MicromUsers\SQL\MicromUsersGroups\mug_iupdate.sql" />
@@ -83,7 +86,11 @@
   </ItemGroup>
    
   <ItemGroup>
-    <EmbeddedResource Include="DataDictionary\Entities\ApplicationOIDCServer\SQL\ApplicationOidcServer\aois_iupdate.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\ApplicationOIDCConfiguration\SQL\ApplicationOidcClients\aoi_get.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\ApplicationOIDCConfiguration\SQL\ApplicationOidcClients\aoi_update.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\ApplicationOIDCConfiguration\SQL\ApplicationOidcConfiguration\aoc_iupdate.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\Applications\app_GetOIDCClients.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\Applications\app_GetOIDCConfiguration.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\EmailService\SQL\EmailServiceConfiguration\eqc_get.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\EmailService\SQL\EmailServiceConfiguration\eqc_iupdate.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\EmailService\SQL\EmailServiceQueue\emq_EmailTagsTableType.sql" />
@@ -105,6 +112,9 @@
     <EmbeddedResource Include="DataDictionary\Entities\ImportProcess\SQL\ipr_get.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\ImportProcess\SQL\ipr_update.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\ImportProcess\SQL\ipr_UpdateStatus.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\MicromApplicationAPIKeys\SQL\MicromApplicationApiKeys\mak_get.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\MicromApplicationAPIKeys\SQL\MicromApplicationApiKeys\mak_getByAPIKey.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\MicromApplicationAPIKeys\SQL\MicromApplicationApiKeys\mak_iupdate.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\MicromMenus\SQL\MicromMenusItemsAllowedRoutes\mir_drop.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\MicromMenus\SQL\MicromMenusItemsAllowedRoutes\mir_get.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\MicromMenus\SQL\MicromMenusItemsAllowedRoutes\mir_update.sql" />

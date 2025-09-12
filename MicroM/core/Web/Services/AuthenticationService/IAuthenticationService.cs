@@ -1,5 +1,4 @@
-﻿using MicroM.DataDictionary.Entities.MicromUsers;
-using MicroM.Web.Authentication;
+﻿using MicroM.Web.Authentication;
 
 namespace MicroM.Web.Services;
 

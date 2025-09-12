@@ -1,9 +1,9 @@
 ﻿using MicroM.Configuration;
 using MicroM.Core;
 using MicroM.Data;
-using MicroM.DataDictionary;
 using MicroM.DataDictionary.CategoriesDefinitions;
-using MicroM.DataDictionary.StatusDefs;
+using MicroM.DataDictionary.Entities;
+using MicroM.DataDictionary.StatusDefinitions;
 using MicroM.Extensions;
 using MicroM.ImportData;
 using MicroM.Web.Authentication;

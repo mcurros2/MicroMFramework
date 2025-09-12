@@ -7,6 +7,9 @@ using Microsoft.Extensions.Options;
 
 namespace MicroM.Web.Authentication;
 
+/// <summary>
+/// Implements a CORS policy provider that dynamically sets CORS policies based on application configuration.
+/// </summary>
 public class MicroMCorsPolicyProvider : ICorsPolicyProvider
 {
 

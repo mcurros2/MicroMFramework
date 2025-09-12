@@ -25,10 +25,9 @@
 		, @assembly5 VarChar(2048)
 		, @identity_provider_role_id char(20)
 		, @oidc_url_wellknown VarChar(2048)
-		, @oidc_url_jwks VarChar(2048)
-		, @oidc_url_authorize VarChar(2048)
-		, @oidc_url_token_backchannel VarChar(2048)
-		, @oidc_url_endsession VarChar(2048)
+        , @certificate_unique_id varchar(2048)
+        , @certificate_blob varbinary(max)
+        , @certificate_password varchar(2048)
 		, @lu DateTime
 		, @webusr VarChar(80)
         , @result int output
@@ -56,10 +55,17 @@ END
 
 begin try
     declare @cu datetime, @now datetime=getdate(), @login sysname=original_login(), @iresult int, @imsg varchar(255)
+            , @certificate_id char(20), @certificate_lu datetime, @certificate_guid_id uniqueidentifier
 
-    select  @cu=dt_lu
-    from    [applications] with (rowlock, holdlock, updlock)
-    where   c_application_id = @application_id
+    select  @certificate_guid_id = convert(uniqueidentifier, @certificate_unique_id)
+
+    select  @cu=a.dt_lu
+            , @certificate_id=b.c_certificate_id
+            , @certificate_lu=b.dt_lu
+    from    [applications] a with (rowlock, holdlock, updlock)
+            left join microm_application_certificates b
+            on(a.c_application_id = b.c_application_id and b.ui_certificate_guid_id=@certificate_guid_id)
+    where   a.c_application_id = @application_id
 
     if @cu is null
     begin
@@ -135,7 +141,16 @@ begin try
             from    [#TempAppUrls]
         end
 
-        exec aois_iupdate @application_id, @oidc_url_wellknown, @oidc_url_jwks, @oidc_url_authorize, @oidc_url_token_backchannel, @oidc_url_endsession, null, @webusr, @result out, @msg out
+        exec mac_iupdate @application_id, null, @certificate_unique_id, @certificate_blob, @certificate_password, null, @webusr, @iresult out, @imsg out
+        if @iresult not in(0, 15)
+        begin
+            select @result = @iresult, @msg = @imsg
+            return
+        end
+
+        select @certificate_id = @imsg
+
+        exec aoc_iupdate @application_id, @certificate_id, @oidc_url_wellknown, null, @webusr, @result out, @msg out
         if @result not in(0, 15)
         begin
             return
@@ -266,7 +281,18 @@ begin try
                 where   x.c_application_id=@application_id 
             )
 
-    exec aois_iupdate @application_id, @oidc_url_wellknown, @oidc_url_jwks, @oidc_url_authorize, @oidc_url_token_backchannel, @oidc_url_endsession, null, @webusr, @result out, @msg out
+    if @certificate_id is null
+    begin
+        exec mac_iupdate @application_id, null, @certificate_unique_id, @certificate_blob, @certificate_password, null, @webusr, @iresult out, @imsg out
+        if @iresult not in(0, 15)
+        begin
+            select @result = @iresult, @msg = @imsg
+            return
+        end
+        select @certificate_id = @imsg
+    end
+
+    exec aoc_iupdate @application_id, @certificate_id, @oidc_url_wellknown, null, @webusr, @result out, @msg out
     if @result not in(0, 15)
     begin
         return

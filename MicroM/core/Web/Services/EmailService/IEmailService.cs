@@ -1,11 +1,10 @@
-﻿using MicroM.DataDictionary;
+﻿using MicroM.DataDictionary.Entities;
 
-namespace MicroM.Web.Services
+namespace MicroM.Web.Services;
+
+public interface IEmailService
 {
-    public interface IEmailService
-    {
-        Task<List<SubmitToQueueResult>> QueueEmail(string app_id, EmailServiceItem send_item, CancellationToken ct, bool start_processing_queue = false);
+    Task<List<SubmitToQueueResult>> QueueEmail(string app_id, EmailServiceItem send_item, CancellationToken ct, bool start_processing_queue = false);
 
-        Task StartProcessingQueue(string app_id, CancellationToken ct);
-    }
+    Task StartProcessingQueue(string app_id, CancellationToken ct);
 }

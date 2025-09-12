@@ -1,7 +1,7 @@
 ﻿using MicroM.Configuration;
 using MicroM.Data;
-using MicroM.DataDictionary;
-using MicroM.DataDictionary.StatusDefs;
+using MicroM.DataDictionary.Entities;
+using MicroM.DataDictionary.StatusDefinitions;
 using MicroM.Extensions;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.Extensions.Caching.Memory;
@@ -303,7 +303,7 @@ namespace MicroM.Web.Services
                 }
 
                 // TODO: free unmanaged resources (unmanaged objects) and override finalizer
-                
+
                 disposedValue = true;
             }
         }

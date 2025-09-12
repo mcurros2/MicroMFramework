@@ -1,8 +1,7 @@
 ﻿using MicroM.Configuration;
 using MicroM.Core;
 using MicroM.Data;
-using MicroM.DataDictionary;
-using MicroM.DataDictionary.Entities.MicromUsers;
+using MicroM.DataDictionary.Entities;
 using MicroM.Extensions;
 using MicroM.Web.Services;
 using Microsoft.AspNetCore.Http;

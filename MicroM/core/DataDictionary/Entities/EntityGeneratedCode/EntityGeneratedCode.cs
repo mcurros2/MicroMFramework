@@ -9,7 +9,7 @@ using MicroM.Web.Services;
 using static MicroM.Database.DatabaseManagement;
 using static System.ArgumentNullException;
 
-namespace MicroM.DataDictionary;
+namespace MicroM.DataDictionary.Entities;
 
 public class EntityGeneratedCodeDef : EntityDefinition
 {

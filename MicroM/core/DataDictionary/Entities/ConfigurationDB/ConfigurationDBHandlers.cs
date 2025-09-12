@@ -12,7 +12,7 @@ using static MicroM.Database.DatabaseSchemaPermissions;
 using static MicroM.Validators.Expressions;
 
 
-namespace MicroM.DataDictionary;
+namespace MicroM.DataDictionary.Entities;
 
 public static class ConfigurationDBHandlers
 {

@@ -18,11 +18,6 @@ from		entities_assemblies a
 		on(b.c_assembly_id=a.c_assembly_id)
 )
 
-/* column names and table names are inferred from the class definition
-   in the DataDictionary project, so they should match the class properties. 
-   Example: applicatiuons_cat table is named from ApplicationsCat (lowercase and when camel case changes is uses and underscore. 
-   Mnemonic code that prefix the SP name is in the class definition */ 
-
 select  [c_application_id] = rtrim(a.c_application_id)
 		, a.vc_appname
 		, vc_appurls=@appurls
@@ -55,10 +50,9 @@ select  [c_application_id] = rtrim(a.c_application_id)
         , b_serverup = convert(bit,0)
 		, c_identity_provider_role_id = rtrim(c.c_categoryvalue_id)
 		, vc_oidc_url_wellknown=d.vc_url_wellknown
-		, vc_oidc_url_jwks=d.vc_url_jwks
-		, vc_oidc_url_authorize=d.vc_url_authorize
-		, vc_oidc_url_token_backchannel=d.vc_url_token_backchannel
-		, vc_oidc_url_endsession=d.vc_url_endsession
+		, vc_certificate_unique_id=convert(varchar(2048),e.ui_certificate_guid_id)
+		, vb_certificate_blob = null 
+		, vc_certificate_password = null
 		, a.dt_inserttime
 		, a.dt_lu
 		, a.vc_webinsuser
@@ -71,6 +65,8 @@ from    [applications] a
 		and b.c_category_id = 'AuthenticationTypes')
 		left join applications_cat c
 		on(a.c_application_id = c.c_application_id and c.c_category_id = 'IdentityProviderRole')
-		left join application_oidc_server d
+		left join application_oidc_configuration d
 		on(d.c_application_id = a.c_application_id)
+		left join microm_application_certificates e
+		on(e.c_application_id = d.c_application_id and e.c_certificate_id = d.c_certificate_id)
 where   a.c_application_id = @application_id

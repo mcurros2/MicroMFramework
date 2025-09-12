@@ -1,7 +1,7 @@
 ﻿using MicroM.Core;
 using MicroM.Data;
-using MicroM.DataDictionary;
 using MicroM.DataDictionary.Configuration;
+using MicroM.DataDictionary.Entities;
 using MicroM.Extensions;
 using MicroM.Generators.Extensions;
 using System.Text;

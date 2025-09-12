@@ -16,7 +16,7 @@ using MicroM.Web.Services;
  * 
 */
 
-namespace MicroM.DataDictionary;
+namespace MicroM.DataDictionary.Entities;
 
 public class NumberingDef : EntityDefinition
 {

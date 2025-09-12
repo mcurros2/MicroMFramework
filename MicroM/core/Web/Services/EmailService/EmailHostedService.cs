@@ -1,4 +1,4 @@
-﻿using MicroM.DataDictionary;
+﻿using MicroM.DataDictionary.Entities;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 

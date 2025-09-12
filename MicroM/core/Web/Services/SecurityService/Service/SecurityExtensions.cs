@@ -1,7 +1,7 @@
 ﻿using MicroM.Configuration;
 using MicroM.Core;
 using MicroM.Data;
-using MicroM.DataDictionary;
+using MicroM.DataDictionary.Entities;
 using System.Security.Claims;
 
 namespace MicroM.Extensions

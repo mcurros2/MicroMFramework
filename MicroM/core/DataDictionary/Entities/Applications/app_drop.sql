@@ -9,10 +9,16 @@ begin try
     delete  application_oidc_server_sessions
     where   c_application_id = @application_id
 
-    delete  application_oidc_server
+    delete  application_oidc_configuration
+    where   c_application_id = @application_id
+
+    delete  application_oidc_clients_authorized_urls
     where   c_application_id = @application_id
 
     delete  application_oidc_clients
+    where   c_application_id = @application_id
+
+    delete  microm_application_certificates
     where   c_application_id = @application_id
 
     delete  [applications_assemblies]
