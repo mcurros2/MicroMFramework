@@ -2,31 +2,30 @@
 using MicroM.Data;
 using MicroM.Web.Services;
 
-namespace MicroM.DataDictionary
+namespace MicroM.DataDictionary.Entities;
+
+public class ApplicationsAssembliesDef : EntityDefinition
 {
-    public class ApplicationsAssembliesDef : EntityDefinition
-    {
-        public ApplicationsAssembliesDef() : base("apa", nameof(ApplicationsAssemblies)) { SQLCreationOptions = SQLCreationOptionsMetadata.WithIUpdateAndIDrop; }
+    public ApplicationsAssembliesDef() : base("apa", nameof(ApplicationsAssemblies)) { SQLCreationOptions = SQLCreationOptionsMetadata.WithIUpdateAndIDrop; }
 
-        public readonly Column<string> c_application_id = Column<string>.PK();
-        public readonly Column<string> c_assembly_id = Column<string>.PK();
-        public readonly Column<int> i_order = new();
+    public readonly Column<string> c_application_id = Column<string>.PK();
+    public readonly Column<string> c_assembly_id = Column<string>.PK();
+    public readonly Column<int> i_order = new();
 
-        public ViewDefinition apa_brwStandard { get; private set; } = new(nameof(c_application_id), nameof(c_assembly_id));
+    public ViewDefinition apa_brwStandard { get; private set; } = new(nameof(c_application_id), nameof(c_assembly_id));
 
-        public ProcedureDefinition apa_GetAssemblies { get; private set; } = new();
+    public ProcedureDefinition apa_GetAssemblies { get; private set; } = new();
 
-        public readonly EntityUniqueConstraint UNAssembliesOrder = new(keys: new[] { nameof(c_application_id), nameof(i_order) });
+    public readonly EntityUniqueConstraint UNAssembliesOrder = new(keys: new[] { nameof(c_application_id), nameof(i_order) });
 
-        public readonly EntityForeignKey<Applications, ApplicationsAssemblies> FKApplications = new();
-        public readonly EntityForeignKey<EntitiesAssemblies, ApplicationsAssemblies> FKApplicationsAssemblies = new();
-    }
+    public readonly EntityForeignKey<Applications, ApplicationsAssemblies> FKApplications = new();
+    public readonly EntityForeignKey<EntitiesAssemblies, ApplicationsAssemblies> FKApplicationsAssemblies = new();
+}
 
-    public class ApplicationsAssemblies : Entity<ApplicationsAssembliesDef>
-    {
-        public ApplicationsAssemblies() : base() { }
-        public ApplicationsAssemblies(IEntityClient ec, IMicroMEncryption? encryptor = null) : base(ec, encryptor) { }
+public class ApplicationsAssemblies : Entity<ApplicationsAssembliesDef>
+{
+    public ApplicationsAssemblies() : base() { }
+    public ApplicationsAssemblies(IEntityClient ec, IMicroMEncryption? encryptor = null) : base(ec, encryptor) { }
 
 
-    }
 }

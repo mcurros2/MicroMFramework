@@ -1,4 +1,4 @@
-﻿using MicroM.DataDictionary;
+﻿using MicroM.DataDictionary.Entities;
 using MicroM.Extensions;
 
 namespace MicroM.Web.Services.Security

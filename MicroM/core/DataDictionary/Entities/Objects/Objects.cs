@@ -3,7 +3,7 @@ using MicroM.Data;
 using MicroM.Web.Services;
 using System.Data;
 
-namespace MicroM.DataDictionary;
+namespace MicroM.DataDictionary.Entities;
 
 /*
  * MMC: The idea here is to persist only entities that need to

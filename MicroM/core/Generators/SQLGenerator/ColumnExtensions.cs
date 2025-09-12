@@ -1,6 +1,6 @@
 ﻿using MicroM.Core;
 using MicroM.Data;
-using MicroM.DataDictionary;
+using MicroM.DataDictionary.Entities;
 using MicroM.Extensions;
 using System.Data;
 using System.Globalization;

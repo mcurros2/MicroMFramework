@@ -2,27 +2,23 @@
 using MicroM.Data;
 using MicroM.Web.Services;
 
-namespace MicroM.DataDictionary
+namespace MicroM.DataDictionary.Entities;
+public class MicromRoutesDef : EntityDefinition
 {
-    public class MicromRoutesDef : EntityDefinition
-    {
-        public MicromRoutesDef() : base("mro", nameof(MicromRoutes)) { }
+    public MicromRoutesDef() : base("mro", nameof(MicromRoutes)) { }
 
-        public readonly Column<string> c_route_id = Column<string>.PK(autonum: true);
-        public readonly Column<string> vc_route_path = Column<string>.Text(size: 2048);
+    public readonly Column<string> c_route_id = Column<string>.PK(autonum: true);
+    public readonly Column<string> vc_route_path = Column<string>.Text(size: 2048);
 
-        public readonly ViewDefinition mro_brwStandard = new(nameof(c_route_id), nameof(vc_route_path));
+    public readonly ViewDefinition mro_brwStandard = new(nameof(c_route_id), nameof(vc_route_path));
 
-        public readonly EntityUniqueConstraint UNRoutePath = new(keys: nameof(vc_route_path));
+    public readonly EntityUniqueConstraint UNRoutePath = new(keys: nameof(vc_route_path));
 
-    }
+}
 
-    public class MicromRoutes : Entity<MicromRoutesDef>
-    {
-        public MicromRoutes() : base() { }
-        public MicromRoutes(IEntityClient ec, IMicroMEncryption? encryptor = null) : base(ec, encryptor) { }
-
-    }
-
+public class MicromRoutes : Entity<MicromRoutesDef>
+{
+    public MicromRoutes() : base() { }
+    public MicromRoutes(IEntityClient ec, IMicroMEncryption? encryptor = null) : base(ec, encryptor) { }
 
 }

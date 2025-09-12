@@ -8,7 +8,7 @@ using System.Text.Json;
 using static MicroM.Database.ApplicationDatabase;
 
 
-namespace MicroM.DataDictionary;
+namespace MicroM.DataDictionary.Entities;
 
 public class ApplicationsDef : EntityDefinition
 {
@@ -56,15 +56,18 @@ public class ApplicationsDef : EntityDefinition
     // Indentity provider embedded columns
     public readonly Column<string> c_identity_provider_role_id = Column<string>.EmbedCategory(nameof(IdentityProviderRole));
     public readonly Column<string?> vc_oidc_url_wellknown = Column<string?>.Text(size: 2048, nullable: true, fake: true);
-    public readonly Column<string?> vc_oidc_url_jwks = Column<string?>.Text(size: 2048, nullable: true, fake: true);
-    public readonly Column<string?> vc_oidc_url_authorize = Column<string?>.Text(size: 2048, nullable: true, fake: true);
-    public readonly Column<string?> vc_oidc_url_token_backchannel = Column<string?>.Text(size: 2048, nullable: true, fake: true);
-    public readonly Column<string?> vc_oidc_url_endsession = Column<string?>.Text(size: 2048, nullable: true, fake: true);
 
+    // certificate embedded columns
+    public readonly Column<string?> vc_certificate_unique_id = Column<string?>.Text(size: 2048, fake: true);
+    public readonly Column<byte[]> vb_certificate_blob = new(size: 0, fake: true);
+    public readonly Column<string> vc_certificate_password = Column<string>.Text(size: 2048, encrypted: true, fake: true);
 
-    public ViewDefinition app_brwStandard { get; private set; } = new(nameof(c_application_id));
+    public readonly ViewDefinition app_brwStandard = new(nameof(c_application_id));
 
-    public ProcedureDefinition app_GetConfiguration { get; private set; } = new();
+    public readonly ProcedureDefinition app_GetConfiguration = new(readonly_locks: true);
+    public readonly ProcedureDefinition app_GetOIDCClients = new(readonly_locks: true);
+    public readonly ProcedureDefinition app_GetOIDCConfiguration = new(readonly_locks: true);
+
 }
 
 public class Applications : Entity<ApplicationsDef>
@@ -103,42 +106,74 @@ public class Applications : Entity<ApplicationsDef>
 
     public override async Task<DBStatusResult> InsertData(CancellationToken ct, bool throw_dbstat_exception = false, MicroMOptions? options = null, Dictionary<string, object>? server_claims = null, IWebAPIServices? api = null, string? app_id = null)
     {
-        this.Def.vc_password.Value = CryptClass.CreateRandomPassword();
-        this.Def.vc_JWTKey.Value = CryptClass.CreateRandomPassword();
-        this.Def.vc_app_admin_password.Value = CryptClass.CreateRandomPassword();
-
-        var result = await base.InsertData(ct, throw_dbstat_exception, options, server_claims, api);
-        if (!result.Failed && api != null)
+        var ec = this.Client;
+        try
         {
-            result = await PerformCreateOrDropDatabase(ct, options, server_claims, api);
-            if (!result.Failed)
+            await ec.Connect(ct);
+
+            Def.vc_password.Value = CryptClass.CreateRandomPassword();
+            Def.vc_JWTKey.Value = CryptClass.CreateRandomPassword();
+            Def.vc_app_admin_password.Value = CryptClass.CreateRandomPassword();
+
+            var cert = MicromApplicationCertificates.CreateNewApplicationCertificate(Def.c_application_id.Value);
+
+            Def.vc_certificate_unique_id.Value = cert.guid.ToString();
+            Def.vb_certificate_blob.Value = cert.certificate;
+            Def.vc_certificate_password.Value = cert.password;
+
+            var result = await base.InsertData(ct, throw_dbstat_exception, options, server_claims, api);
+            if (!result.Failed && api != null)
             {
-                await api.app_config.RefreshConfiguration(this.Def.c_application_id.Value.Trim(), ct);
-                await api.securityService.RefreshGroupsSecurityRecords(this.Def.c_application_id.Value.Trim(), ct);
+                result = await PerformCreateOrDropDatabase(ct, options, server_claims, api);
+                if (!result.Failed)
+                {
+                    await api.app_config.RefreshConfiguration(this.Def.c_application_id.Value.Trim(), ct);
+                    await api.securityService.RefreshGroupsSecurityRecords(this.Def.c_application_id.Value.Trim(), ct);
+                }
             }
+            return result;
         }
-        return result;
+        finally
+        {
+            await ec.Disconnect();
+        }
     }
 
     public override async Task<DBStatusResult> UpdateData(CancellationToken ct, bool throw_dbstat_exception = false, MicroMOptions? options = null, Dictionary<string, object>? server_claims = null, IWebAPIServices? api = null, string? app_id = null)
     {
-        if (this.Def.b_createdatabase.Value)
+        var ec = this.Client;
+        try
         {
-            this.Def.vc_app_admin_password.Value = CryptClass.CreateRandomPassword();
-        }
+            await ec.Connect(ct);
 
-        var result = await base.UpdateData(ct, throw_dbstat_exception, options, server_claims, api);
-
-        if (!result.Failed && api != null)
-        {
-            result = await PerformCreateOrDropDatabase(ct, options, server_claims, api);
-            if (!result.Failed)
+            if (Def.b_createdatabase.Value)
             {
-                await api.app_config.RefreshConfiguration(this.Def.c_application_id.Value.Trim(), ct);
-                await api.securityService.RefreshGroupsSecurityRecords(this.Def.c_application_id.Value.Trim(), ct);
+                Def.vc_app_admin_password.Value = CryptClass.CreateRandomPassword();
             }
+
+            var cert = MicromApplicationCertificates.CreateNewApplicationCertificate(Def.c_application_id.Value);
+
+            Def.vc_certificate_unique_id.Value = cert.guid.ToString();
+            Def.vb_certificate_blob.Value = cert.certificate;
+            Def.vc_certificate_password.Value = cert.password;
+
+            var result = await base.UpdateData(ct, throw_dbstat_exception, options, server_claims, api);
+
+            if (!result.Failed && api != null)
+            {
+                result = await PerformCreateOrDropDatabase(ct, options, server_claims, api);
+                if (!result.Failed)
+                {
+                    await api.app_config.RefreshConfiguration(this.Def.c_application_id.Value.Trim(), ct);
+                    await api.securityService.RefreshGroupsSecurityRecords(this.Def.c_application_id.Value.Trim(), ct);
+                }
+            }
+            return result;
         }
-        return result;
+        finally
+        {
+            await ec.Disconnect();
+        }
     }
 
     public override async Task<bool> GetData(CancellationToken ct, MicroMOptions? options = null, Dictionary<string, object>? server_claims = null, IWebAPIServices? api = null, string? app_id = null)
@@ -191,15 +226,15 @@ public class Applications : Entity<ApplicationsDef>
                     AccountLockoutMinutes = await fv.GetFieldValueAsync<int>(nameof(result.AccountLockoutMinutes), ct),
                     MaxBadLogonAttempts = await fv.GetFieldValueAsync<int>(nameof(result.MaxBadLogonAttempts), ct),
                     MaxRefreshTokenAttempts = await fv.GetFieldValueAsync<int>(nameof(result.MaxRefreshTokenAttempts), ct),
-                    IdentityProviderRoleType = await fv.GetFieldValueAsync<string>(nameof(result.IdentityProviderRoleType), ct),
+                    //IdentityProviderRoleType = await fv.GetFieldValueAsync<string>(nameof(result.IdentityProviderRoleType), ct),
                     AuthenticationType = await fv.GetFieldValueAsync<string?>(nameof(result.AuthenticationType), ct),
                 };
 
-                var OIDCClients = await fv.GetFieldValueAsync<string?>(nameof(result.IdentityProviderClients), ct);
-                if (!string.IsNullOrEmpty(OIDCClients))
-                {
-                    result.IdentityProviderClients = JsonSerializer.Deserialize<List<string>>(OIDCClients) ?? [];
-                }
+                //var OIDCClients = await fv.GetFieldValueAsync<string?>(nameof(result.IdentityProviderClients), ct);
+                //if (!string.IsNullOrEmpty(OIDCClients))
+                //{
+                //    result.IdentityProviderClients = JsonSerializer.Deserialize<List<string>>(OIDCClients) ?? [];
+                //}
 
                 var appurls = await fv.GetFieldValueAsync<string?>(nameof(result.FrontendURLS), ct);
                 if (!string.IsNullOrEmpty(appurls))

@@ -1,5 +1,4 @@
-﻿using MicroM.DataDictionary.Entities.MicromUsers;
-using Microsoft.AspNetCore.Identity;
+﻿using Microsoft.AspNetCore.Identity;
 
 namespace MicroM.Web.Authentication
 {

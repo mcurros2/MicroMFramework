@@ -1,8 +1,8 @@
 ﻿using MailKit.Net.Smtp;
 using MailKit.Security;
 using MicroM.Data;
-using MicroM.DataDictionary;
-using MicroM.DataDictionary.StatusDefs;
+using MicroM.DataDictionary.Entities;
+using MicroM.DataDictionary.StatusDefinitions;
 using MicroM.Extensions;
 using Microsoft.Extensions.Logging;
 using MimeKit;
@@ -19,13 +19,13 @@ namespace MicroM.Web.Services
         {
             ArgumentNullException.ThrowIfNullOrEmpty(send_item.EmailServiceConfigurationId, nameof(send_item.EmailServiceConfigurationId));
 
-            using DatabaseClient? dbc = app_config.GetDatabaseClient(app_id) 
+            using DatabaseClient? dbc = app_config.GetDatabaseClient(app_id)
                 ?? throw new ArgumentNullException($"Can't get a database connection for app {app_id}");
             try
             {
                 await dbc.Connect(ct);
 
-                var config = await GetEmailConfiguration(send_item.EmailServiceConfigurationId ?? "", dbc, ct) 
+                var config = await GetEmailConfiguration(send_item.EmailServiceConfigurationId ?? "", dbc, ct)
                     ?? throw new ArgumentNullException($"Can't get email configuration for {send_item.EmailServiceConfigurationId}");
 
                 var sender_email = send_item.SenderEmail ?? config.vc_default_sender_email
@@ -111,7 +111,7 @@ namespace MicroM.Web.Services
             SendMailResult result = new();
             try
             {
-                if(config.i_smtp_port == 587)
+                if (config.i_smtp_port == 587)
                 {
                     await client.ConnectAsync(config.vc_smtp_host, config.i_smtp_port, SecureSocketOptions.StartTls, ct);
 

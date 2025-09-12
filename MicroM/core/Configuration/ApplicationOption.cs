@@ -24,9 +24,9 @@ public class ApplicationOption
 
     public string? AuthenticationType { get; set; } = nameof(AuthenticationTypes.MicroMAuthentication);
 
-    public string? IdentityProviderRoleType { get; set; } = nameof(IdentityProviderRole.IDPDisabled);
+    //public string? IdentityProviderRoleType { get; set; } = nameof(IdentityProviderRole.IDPDisabled);
 
-    public List<string> IdentityProviderClients { get; set; } = [];
+    //public List<string> IdentityProviderClients { get; set; } = [];
 
     public List<string> FrontendURLS { get; set; } = [];
 }

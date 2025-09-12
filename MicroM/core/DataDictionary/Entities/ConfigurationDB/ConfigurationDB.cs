@@ -3,10 +3,10 @@ using MicroM.Core;
 using MicroM.Data;
 using MicroM.Web.Services;
 using System.Data;
-using static MicroM.DataDictionary.ConfigurationDBHandlers;
+using static MicroM.DataDictionary.Entities.ConfigurationDBHandlers;
 using static System.ArgumentNullException;
 
-namespace MicroM.DataDictionary;
+namespace MicroM.DataDictionary.Entities;
 
 public class ConfigurationDBDef : EntityDefinition
 {
