@@ -66,7 +66,6 @@ public class ApplicationsDef : EntityDefinition
 
     public readonly ProcedureDefinition app_GetConfiguration = new(readonly_locks: true);
     public readonly ProcedureDefinition app_GetOIDCClients = new(readonly_locks: true);
-    public readonly ProcedureDefinition app_GetOIDCConfiguration = new(readonly_locks: true);
 
 }
 
@@ -210,48 +209,91 @@ public class Applications : Entity<ApplicationsDef>
             await ec.Connect(ct);
             result = await app.Data.ExecuteProc(ct, app.Def.app_GetConfiguration, set_parms_from_columns: false, mapper: async (IGetFieldValue fv, string[] headers, CancellationToken ct) =>
             {
-                ApplicationOption result = new()
+                ApplicationOption app_result = new()
                 {
-                    ApplicationID = await fv.GetFieldValueAsync<string>(nameof(result.ApplicationID), ct),
-                    ApplicationName = await fv.GetFieldValueAsync<string>(nameof(result.ApplicationName), ct),
-                    SQLServer = await fv.GetFieldValueAsync<string>(nameof(result.SQLServer), ct),
-                    SQLDB = await fv.GetFieldValueAsync<string>(nameof(result.SQLDB), ct),
-                    SQLUser = await fv.GetFieldValueAsync<string>(nameof(result.SQLUser), ct),
-                    SQLPassword = await fv.GetFieldValueAsync<string>(nameof(result.SQLPassword), ct),
-                    JWTAudience = await fv.GetFieldValueAsync<string?>(nameof(result.JWTAudience), ct),
-                    JWTIssuer = await fv.GetFieldValueAsync<string>(nameof(result.JWTIssuer), ct),
-                    JWTKey = await fv.GetFieldValueAsync<string>(nameof(result.JWTKey), ct),
-                    JWTRefreshExpirationHours = await fv.GetFieldValueAsync<int>(nameof(result.JWTRefreshExpirationHours), ct),
-                    JWTTokenExpirationMinutes = await fv.GetFieldValueAsync<int>(nameof(result.JWTTokenExpirationMinutes), ct),
-                    AccountLockoutMinutes = await fv.GetFieldValueAsync<int>(nameof(result.AccountLockoutMinutes), ct),
-                    MaxBadLogonAttempts = await fv.GetFieldValueAsync<int>(nameof(result.MaxBadLogonAttempts), ct),
-                    MaxRefreshTokenAttempts = await fv.GetFieldValueAsync<int>(nameof(result.MaxRefreshTokenAttempts), ct),
-                    //IdentityProviderRoleType = await fv.GetFieldValueAsync<string>(nameof(result.IdentityProviderRoleType), ct),
-                    AuthenticationType = await fv.GetFieldValueAsync<string?>(nameof(result.AuthenticationType), ct),
+                    ApplicationID = await fv.GetFieldValueAsync<string>(nameof(app_result.ApplicationID), ct),
+                    ApplicationName = await fv.GetFieldValueAsync<string>(nameof(app_result.ApplicationName), ct),
+                    SQLServer = await fv.GetFieldValueAsync<string>(nameof(app_result.SQLServer), ct),
+                    SQLDB = await fv.GetFieldValueAsync<string>(nameof(app_result.SQLDB), ct),
+                    SQLUser = await fv.GetFieldValueAsync<string>(nameof(app_result.SQLUser), ct),
+                    SQLPassword = await fv.GetFieldValueAsync<string>(nameof(app_result.SQLPassword), ct),
+                    JWTAudience = await fv.GetFieldValueAsync<string?>(nameof(app_result.JWTAudience), ct),
+                    JWTIssuer = await fv.GetFieldValueAsync<string>(nameof(app_result.JWTIssuer), ct),
+                    JWTKey = await fv.GetFieldValueAsync<string>(nameof(app_result.JWTKey), ct),
+                    JWTRefreshExpirationHours = await fv.GetFieldValueAsync<int>(nameof(app_result.JWTRefreshExpirationHours), ct),
+                    JWTTokenExpirationMinutes = await fv.GetFieldValueAsync<int>(nameof(app_result.JWTTokenExpirationMinutes), ct),
+                    AccountLockoutMinutes = await fv.GetFieldValueAsync<int>(nameof(app_result.AccountLockoutMinutes), ct),
+                    MaxBadLogonAttempts = await fv.GetFieldValueAsync<int>(nameof(app_result.MaxBadLogonAttempts), ct),
+                    MaxRefreshTokenAttempts = await fv.GetFieldValueAsync<int>(nameof(app_result.MaxRefreshTokenAttempts), ct),
+                    IdentityProviderRoleType = await fv.GetFieldValueAsync<string>(nameof(app_result.IdentityProviderRoleType), ct),
+                    AuthenticationType = await fv.GetFieldValueAsync<string?>(nameof(app_result.AuthenticationType), ct),
+                    OIDCWellKnownURL = await fv.GetFieldValueAsync<string?>(nameof(app_result.OIDCWellKnownURL), ct),
+                    OIDCCertificateUniqueID = await fv.GetFieldValueAsync<string?>(nameof(app_result.OIDCCertificateUniqueID), ct),
+                    OIDCCertificateBlob = await fv.GetFieldValueAsync<byte[]?>(nameof(app_result.OIDCCertificateBlob), ct),
+                    OIDCCertificatePassword = await fv.GetFieldValueAsync<string>(nameof(app_result.OIDCCertificatePassword), ct),
                 };
 
-                //var OIDCClients = await fv.GetFieldValueAsync<string?>(nameof(result.IdentityProviderClients), ct);
-                //if (!string.IsNullOrEmpty(OIDCClients))
-                //{
-                //    result.IdentityProviderClients = JsonSerializer.Deserialize<List<string>>(OIDCClients) ?? [];
-                //}
-
-                var appurls = await fv.GetFieldValueAsync<string?>(nameof(result.FrontendURLS), ct);
+                var appurls = await fv.GetFieldValueAsync<string?>(nameof(app_result.FrontendURLS), ct);
                 if (!string.IsNullOrEmpty(appurls))
                 {
-                    result.FrontendURLS = JsonSerializer.Deserialize<List<string>>(appurls) ?? [];
+                    app_result.FrontendURLS = JsonSerializer.Deserialize<List<string>>(appurls) ?? [];
                 }
 
-                if (encryptor != null) result.SQLPassword = encryptor.Decrypt(result.SQLPassword);
+                if (encryptor != null)
+                {
+                    app_result.SQLPassword = encryptor.Decrypt(app_result.SQLPassword);
+                    app_result.OIDCCertificatePassword = encryptor.Decrypt(app_result.OIDCCertificatePassword);
+                }
 
-                return result;
+                return app_result;
             });
+
+            List<OIDCClientConfigurationOption> oidc_clients = [];
+            oidc_clients = await app.Data.ExecuteProc(ct, app.Def.app_GetOIDCClients, set_parms_from_columns: false, mapper: async (IGetFieldValue fv, string[] headers, CancellationToken ct) =>
+            {
+                OIDCClientConfigurationOption client_result = new()
+                {
+                    ApplicationID = await fv.GetFieldValueAsync<string>(nameof(client_result.ApplicationID), ct),
+                    ClientAPPID = await fv.GetFieldValueAsync<string>(nameof(client_result.ClientAPPID), ct),
+                    URLFrontChannelLogout = await fv.GetFieldValueAsync<string>(nameof(client_result.URLFrontChannelLogout), ct),
+                    URLBackchannelLogout = await fv.GetFieldValueAsync<string>(nameof(client_result.URLBackchannelLogout), ct),
+                    URLClientJWKS = await fv.GetFieldValueAsync<string>(nameof(client_result.URLClientJWKS), ct),
+                    CertificateID = await fv.GetFieldValueAsync<string>(nameof(client_result.CertificateID), ct),
+                    APIKey = await fv.GetFieldValueAsync<string>(nameof(client_result.APIKey), ct),
+                    APISecret = await fv.GetFieldValueAsync<string>(nameof(client_result.APISecret), ct),
+                };
+
+                var redirect_urls = await fv.GetFieldValueAsync<string?>(nameof(client_result.URLAuthorizedRedirects), ct);
+                if (!string.IsNullOrEmpty(redirect_urls))
+                {
+                    client_result.URLAuthorizedRedirects = JsonSerializer.Deserialize<List<string>>(redirect_urls) ?? [];
+                }
+
+                if (encryptor != null)
+                {
+                    client_result.APIKey = encryptor.Decrypt(client_result.APIKey);
+                    client_result.APISecret = encryptor.Decrypt(client_result.APISecret);
+                }
+
+                return client_result;
+            });
+
+            // Assign clients to the right application
+            foreach (var app_item in result)
+            {
+                var clients = oidc_clients.Where(c => c.ApplicationID == app_item.ApplicationID).ToList();
+                if (clients.Count > 0)
+                {
+                    app_item.OIDCClientConfiguration = clients.ToDictionary(c => c.ClientAPPID, c => c);
+                }
+            }
 
         }
         finally
         {
             await ec.Disconnect();
         }
+
         return result;
     }
 

@@ -16,19 +16,20 @@ select	ApplicationID = rtrim(a.c_application_id)
 		, MaxRefreshTokenAttempts = a.i_MaxRefreshTokenAttempts
 		, AuthenticationType = rtrim(b.c_categoryvalue_id)
 		, IdentityProviderRoleType = rtrim(c.c_categoryvalue_id)
-		, IdentityProviderClients = d.clients
+		, OIDCWellKnownURL=d.vc_url_wellknown
+		, OIDCCertificateUniqueID=convert(varchar(2048),f.ui_certificate_guid_id)
+		, OIDCCertificateBlob = f.vb_certificate_blob
+		, OIDCCertificatePassword = f.vc_certificate_password
 		, FrontendURLS=e.frontend_urls
 from	applications a
 		left join applications_cat b
 		on(b.c_application_id=a.c_application_id and b.c_category_id='AuthenticationTypes')
 		left join applications_cat c
 		on(c.c_application_id=a.c_application_id and c.c_category_id='IdentityProviderRole')
-		outer apply
-		(
-			select	clients='[' + string_agg('"'+replace(rtrim(x.c_client_app_id),'"', '\"')+'"', ',') + ']'
-			from	application_oidc_clients x
-			where	x.c_application_id=a.c_application_id
-		) d
+		left join application_oidc_configuration d
+		on(d.c_application_id=a.c_application_id)
+		left join microm_application_certificates f
+		on(f.c_application_id=d.c_application_id and f.c_certificate_id=d.c_certificate_id)
 		outer apply
 		(
 			select	frontend_urls='[' + string_agg('"'+replace(rtrim(x.vc_application_url),'"', '\"')+'"', ',') + ']'

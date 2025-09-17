@@ -1,4 +1,6 @@
 ﻿using MicroM.Configuration;
+using MicroM.DataDictionary.CategoriesDefinitions;
+using MicroM.DataDictionary.Entities;
 using MicroM.Extensions;
 using MicroM.Web.Authentication;
 using Microsoft.AspNetCore.Identity;
@@ -26,6 +28,7 @@ public class AuthenticationService(
 
         TokenResult? token_result = null;
         AuthenticatorResult? authenticatorResult = null;
+        string? oidc_session_id = null;
 
         var authenticator = auth.GetAuthenticator(app);
         if (authenticator != null)
@@ -44,11 +47,28 @@ public class AuthenticationService(
             {
                 if (authenticatorResult.PasswordVerificationResult.IsIn(PasswordVerificationResult.Success, PasswordVerificationResult.SuccessRehashNeeded) && authenticatorResult.LoginData != null)
                 {
+                    if (app.IdentityProviderRoleType == nameof(IdentityProviderRole.IDPServer))
+                    {
+                        using var ec = app_config.GetDatabaseClient(app.ApplicationID);
+
+                        if (ec != null)
+                        {
+                            var session_guid = await ApplicationOidcActiveSessions.CreateActiveSession(ec, authenticatorResult.LoginData.user_id, ct);
+                            oidc_session_id = session_guid.ToString();
+                            authenticatorResult.ServerClaims[MicroMServerClaimTypes.MicroMOidcSessionID] = oidc_session_id;
+                        }
+                        else
+                        {
+                            log.LogError("LOGIN: APP_ID {app_id} can't connect to database to create OIDC session", app_id);
+                        }
+                    }
+
                     var merged_claims = authenticatorResult.ServerClaims.Concat(server_claims)
                                   .GroupBy(i => i.Key)
                                   .ToDictionary(g => g.Key, g => g.First().Value);
 
                     token_result = jwt_handler.GenerateJwtTokenWEBApi(merged_claims, app);
+
                 }
             }
         }
@@ -66,10 +86,12 @@ public class AuthenticationService(
                 refresh_token = authenticatorResult.LoginData.refresh_token,
                 username = authenticatorResult.LoginData.username,
                 client_claims = authenticatorResult.ClientClaims,
-                authenticator_result = authenticatorResult
+                authenticator_result = authenticatorResult,
+                oidc_session_id = oidc_session_id
             };
 
         }
+
 
         return (result, token_result);
     }
@@ -81,6 +103,18 @@ public class AuthenticationService(
         var authenticator = auth.GetAuthenticator(app);
         if (authenticator != null)
         {
+            if (app.IdentityProviderRoleType == nameof(IdentityProviderRole.IDPServer))
+            {
+                using var ec = app_config.GetDatabaseClient(app.ApplicationID);
+                if (ec != null)
+                {
+                    await ApplicationOidcActiveSessions.DeleteActiveSessions(ec, user_name, ct);
+                }
+                else
+                {
+                    log.LogError("LOGOFF: APP_ID {app_id} can't connect to database to delete OIDC sessions", app_id);
+                }
+            }
             await authenticator.Logoff(app, user_name, ct);
         }
         else

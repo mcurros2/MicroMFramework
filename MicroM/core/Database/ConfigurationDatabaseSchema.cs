@@ -21,12 +21,15 @@ public static class ConfigurationDatabaseSchema
             new ApplicationsAssemblies(ec),
             new ApplicationAssemblyTypes(ec),
             new ApplicationsUrls(ec),
+
             new ApplicationOidcConfiguration(ec),
-            new ApplicationOidcActiveSessions(ec),
+
             new MicromApplicationApiKeys(ec),
             new MicromApplicationCertificates(ec),
+
             new ApplicationOidcClients(ec),
             new ApplicationOidcClientsAuthorizedUrls(ec),
+
             ]);
 
         return result;
@@ -50,7 +53,6 @@ public static class ConfigurationDatabaseSchema
             await CreateSchemaAndDictionary<ApplicationsUrls>(ec, ct, create_custom_procs: true, create_or_alter: create_or_alter);
             await CreateSchemaAndDictionary<MicromApplicationCertificates>(ec, ct, create_custom_procs: true, create_or_alter: create_or_alter);
             await CreateSchemaAndDictionary<ApplicationOidcConfiguration>(ec, ct, create_custom_procs: true, create_or_alter: create_or_alter);
-            await CreateSchemaAndDictionary<ApplicationOidcActiveSessions>(ec, ct, create_custom_procs: true, create_or_alter: create_or_alter);
             await CreateSchemaAndDictionary<MicromApplicationApiKeys>(ec, ct, create_custom_procs: true, create_or_alter: create_or_alter);
             await CreateSchemaAndDictionary<ApplicationOidcClients>(ec, ct, create_custom_procs: true, create_or_alter: create_or_alter);
             await CreateSchemaAndDictionary<ApplicationOidcClientsAuthorizedUrls>(ec, ct, create_custom_procs: true, create_or_alter: create_or_alter);

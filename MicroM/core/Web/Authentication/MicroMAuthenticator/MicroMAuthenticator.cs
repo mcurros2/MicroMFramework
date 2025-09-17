@@ -121,7 +121,6 @@ public class MicroMAuthenticator : IAuthenticator
 
                         result.ClientClaims = client_claims;
                         result.ServerClaims = server_claims;
-
                     }
 
                     result.ServerClaims[MicroMServerClaimTypes.MicroMUser_id] = login_data.user_id;
@@ -132,6 +131,7 @@ public class MicroMAuthenticator : IAuthenticator
 
                     // Json string array of user groups ids
                     result.ServerClaims[MicroMServerClaimTypes.MicroMUserGroups] = login_data.user_groups ?? "[]";
+
                 }
 
             }
