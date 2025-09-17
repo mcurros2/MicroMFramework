@@ -13,7 +13,7 @@ where   c_application_id = @application_id
 select	b.c_application_id,
 		b.i_order,
 		a.vc_assemblypath
-from		entities_assemblies a
+from	entities_assemblies a
 		join applications_assemblies b
 		on(b.c_assembly_id=a.c_assembly_id)
 )

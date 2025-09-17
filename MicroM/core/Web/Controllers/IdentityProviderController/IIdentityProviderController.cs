@@ -1,12 +1,15 @@
 ﻿using MicroM.Web.Authentication;
+using MicroM.Web.Authentication.SSO;
 using MicroM.Web.Services;
+using Microsoft.AspNetCore.Mvc;
 
 namespace MicroM.Web.Controllers;
 
 public interface IIdentityProviderController
 {
-    Task<Dictionary<string, string>> WellKnown(IMicroMAppConfiguration app_config, string app_id, CancellationToken ct);
-    Task<string> Jwks(IMicroMAppConfiguration app_config, string app_id, CancellationToken ct);
+    ActionResult WellKnown(IMicroMAppConfiguration app_config, IIdentityProviderService idp, string app_id, CancellationToken ct);
+
+    ActionResult Jwks(IMicroMAppConfiguration app_config, IIdentityProviderService idp, string app_id, CancellationToken ct);
 
     Task<Dictionary<string, object?>> UserInfo(IAuthenticationProvider auth, IMicroMAppConfiguration app_config, string app_id, string userId, CancellationToken ct);
 

@@ -84,6 +84,7 @@ public static class DataDictionarySchema
             new ImportProcess(ec),
             new ImportProcessErrors(ec),
             new ImportProcessStatus(ec),
+            new ApplicationOidcActiveSessions(ec),
             ]);
 
         return result;
@@ -179,6 +180,8 @@ public static class DataDictionarySchema
         result.TryAddType<ImportProcess>();
         result.TryAddType<ImportProcessErrors>();
         result.TryAddType<ImportProcessStatus>();
+
+        result.TryAddType<ApplicationOidcActiveSessions>();
 
         return result;
     }
