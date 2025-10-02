@@ -12,7 +12,7 @@ public enum OIDCResponseMode { query, fragment, form_post }
 
 
 [JsonConverter(typeof(JsonStringEnumConverter))]
-public enum OIDCSubjectType { @public }
+public enum OIDCSubjectType { @public, pairwise }
 
 /*
    +--------------+-------------------------------+--------------------+
@@ -76,70 +76,70 @@ public enum OIDCProfileScopes { openid, email, profile }
 
 public sealed record OIDCJwksResponse(List<OIDCJwksKeyResponse> keys);
 
-public class OIDCWellKnownResponse
-{
+public record OIDCWellKnownResponse
+(
     // Required
-    public required string issuer { get; set; }
-    public required string authorization_endpoint { get; set; }
-    public required string token_endpoint { get; set; }
-    public required string jwks_uri { get; set; }
+    string issuer,
+    string authorization_endpoint,
+    string token_endpoint,
+    string jwks_uri,
 
     // Use strongly-typed lists so serialization follows spec and values are consistent.
-    public List<OIDCResponseType>? response_types_supported { get; set; }
-    public List<OIDCSubjectType>? subject_types_supported { get; set; }
-    public List<OIDCSigningAlg>? id_token_signing_alg_values_supported { get; set; }
+    List<OIDCResponseType>? response_types_supported = null,
+    List<OIDCSubjectType>? subject_types_supported = null,
+    List<OIDCSigningAlg>? id_token_signing_alg_values_supported = null,
 
     // Optional
-    public string? userinfo_endpoint { get; set; }
-    public string? end_session_endpoint { get; set; }
-    public string? pushed_authorization_request_endpoint { get; set; }
-    public string? check_session_iframe { get; set; }
-    public List<OIDCGrantType>? grant_types_supported { get; set; }
-    public List<string>? acr_values_supported { get; set; }
-    public List<OIDCResponseMode>? response_modes_supported { get; set; }
-    public List<OIDCProfileScopes>? scopes_supported { get; set; }
-    public List<string>? claims_supported { get; set; }
-    public bool? claims_parameter_supported { get; set; }
-    public bool? request_uri_parameter_supported { get; set; }
-    public bool? require_request_uri_registration { get; set; }
-    public bool? require_pushed_authorization_requests { get; set; }
+    string? userinfo_endpoint = null,
+    string? end_session_endpoint = null,
+    string? pushed_authorization_request_endpoint = null,
+    string? check_session_iframe = null,
+    List<OIDCGrantType>? grant_types_supported = null,
+    List<string>? acr_values_supported = null,
+    List<OIDCResponseMode>? response_modes_supported = null,
+    List<OIDCProfileScopes>? scopes_supported = null,
+    List<string>? claims_supported = null,
+    bool? claims_parameter_supported = null,
+    bool? request_uri_parameter_supported = null,
+    bool? require_request_uri_registration = null,
+    bool? require_pushed_authorization_requests = null,
 
-    public bool? frontchannel_logout_supported { get; set; }
-    public bool? frontchannel_logout_session_supported { get; set; }
-    public bool? backchannel_logout_supported { get; set; }
-    public bool? backchannel_logout_session_supported { get; set; }
+    bool? frontchannel_logout_supported = null,
+    bool? frontchannel_logout_session_supported = null,
+    bool? backchannel_logout_supported = null,
+    bool? backchannel_logout_session_supported = null,
 
     // Token auth methods / signing algs
-    public List<OIDCTokenEndpointAuthMethod>? token_endpoint_auth_methods_supported { get; set; }
-    public List<OIDCSigningAlg>? token_endpoint_auth_signing_alg_values_supported { get; set; }
+    List<OIDCTokenEndpointAuthMethod>? token_endpoint_auth_methods_supported = null,
+    List<OIDCSigningAlg>? token_endpoint_auth_signing_alg_values_supported = null,
 
-    public List<string>? display_values_supported { get; set; }
-    public List<string>? claim_types_supported { get; set; }
-    public string? service_documentation { get; set; }
-    public string? op_policy_uri { get; set; }
-    public string? op_tos_uri { get; set; }
-    public List<string>? request_object_signing_alg_values_supported { get; set; }
-    public List<string>? ui_locales_supported { get; set; }
-    public List<string>? id_token_encryption_alg_values_supported { get; set; }
-    public List<string>? id_token_encryption_enc_values_supported { get; set; }
-    public List<string>? userinfo_signing_alg_values_supported { get; set; }
-    public List<string>? userinfo_encryption_alg_values_supported { get; set; }
-    public List<string>? userinfo_encryption_enc_values_supported { get; set; }
-    public List<string>? request_object_encryption_alg_values_supported { get; set; }
-    public List<string>? request_object_encryption_enc_values_supported { get; set; }
+    List<string>? display_values_supported = null,
+    List<string>? claim_types_supported = null,
+    string? service_documentation = null,
+    string? op_policy_uri = null,
+    string? op_tos_uri = null,
+    List<string>? request_object_signing_alg_values_supported = null,
+    List<string>? ui_locales_supported = null,
+    List<string>? id_token_encryption_alg_values_supported = null,
+    List<string>? id_token_encryption_enc_values_supported = null,
+    List<string>? userinfo_signing_alg_values_supported = null,
+    List<string>? userinfo_encryption_alg_values_supported = null,
+    List<string>? userinfo_encryption_enc_values_supported = null,
+    List<string>? request_object_encryption_alg_values_supported = null,
+    List<string>? request_object_encryption_enc_values_supported = null,
 
-    public string? revocation_endpoint { get; set; }
-    public List<OIDCTokenEndpointAuthMethod>? revocation_endpoint_auth_methods_supported { get; set; }
-    public List<OIDCSigningAlg>? revocation_endpoint_auth_signing_alg_values_supported { get; set; }
+    string? revocation_endpoint = null,
+    List<OIDCTokenEndpointAuthMethod>? revocation_endpoint_auth_methods_supported = null,
+    List<OIDCSigningAlg>? revocation_endpoint_auth_signing_alg_values_supported = null,
 
-    public string? introspection_endpoint { get; set; }
-    public List<OIDCTokenEndpointAuthMethod>? introspection_endpoint_auth_methods_supported { get; set; }
-    public List<OIDCSigningAlg>? introspection_endpoint_auth_signing_alg_values_supported { get; set; }
+    string? introspection_endpoint = null,
+    List<OIDCTokenEndpointAuthMethod>? introspection_endpoint_auth_methods_supported = null,
+    List<OIDCSigningAlg>? introspection_endpoint_auth_signing_alg_values_supported = null,
 
-    public bool? authorization_response_iss_parameter_supported { get; set; }
+    bool? authorization_response_iss_parameter_supported = null,
 
-    public List<OIDCCodeChallengeMethod>? code_challenge_methods_supported { get; set; }
-    public string? registration_endpoint { get; set; }
-    public List<string>? claims_locales_supported { get; set; }
-    public bool? request_parameter_supported { get; set; }
-}
+    List<OIDCCodeChallengeMethod>? code_challenge_methods_supported = null,
+    string? registration_endpoint = null,
+    List<string>? claims_locales_supported = null,
+    bool? request_parameter_supported = null
+);

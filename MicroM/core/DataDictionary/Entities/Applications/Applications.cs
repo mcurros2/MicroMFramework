@@ -35,6 +35,7 @@ public class ApplicationsDef : EntityDefinition
     public readonly Column<int> i_AccountLockoutMinutes = new();
     public readonly Column<int> i_MaxBadLogonAttempts = new();
     public readonly Column<int> i_MaxRefreshTokenAttempts = new();
+
     public readonly Column<string> c_authenticationtype_id = Column<string>.EmbedCategory(nameof(AuthenticationTypes));
 
     // application assemblies embedded columns
@@ -113,6 +114,7 @@ public class Applications : Entity<ApplicationsDef>
             Def.vc_password.Value = CryptClass.CreateRandomPassword();
             Def.vc_JWTKey.Value = CryptClass.CreateRandomPassword();
             Def.vc_app_admin_password.Value = CryptClass.CreateRandomPassword();
+
 
             var cert = MicromApplicationCertificates.CreateNewApplicationCertificate(Def.c_application_id.Value);
 
@@ -258,7 +260,7 @@ public class Applications : Entity<ApplicationsDef>
                     URLFrontChannelLogout = await fv.GetFieldValueAsync<string>(nameof(client_result.URLFrontChannelLogout), ct),
                     URLBackchannelLogout = await fv.GetFieldValueAsync<string>(nameof(client_result.URLBackchannelLogout), ct),
                     URLClientJWKS = await fv.GetFieldValueAsync<string>(nameof(client_result.URLClientJWKS), ct),
-                    CertificateID = await fv.GetFieldValueAsync<string>(nameof(client_result.CertificateID), ct),
+                    CertificateUniqueID = await fv.GetFieldValueAsync<string>(nameof(client_result.CertificateUniqueID), ct),
                     APIKey = await fv.GetFieldValueAsync<string>(nameof(client_result.APIKey), ct),
                     APISecret = await fv.GetFieldValueAsync<string>(nameof(client_result.APISecret), ct),
                 };

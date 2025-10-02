@@ -10,7 +10,9 @@ public interface IEntitiesService
     /// <summary>
     /// Creates an Entity if exists in the configured assembly <see cref="LoadEntityTypes(Assembly)"/>.
     /// </summary>
+    /// <param name="app"></param>
     /// <param name="entity_name"></param>
+    /// <param name="server_claims"></param>
     /// <param name="ec"></param>
     /// <returns></returns>
     public EntityBase? CreateEntity(ApplicationOption app, string entity_name, Dictionary<string, object>? server_claims, IEntityClient? ec = null);

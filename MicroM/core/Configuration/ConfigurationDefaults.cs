@@ -6,10 +6,18 @@
         public const string SQLConfigUser = "microm_config";
         public const string ControlPanelAppID = "micromcp";
         public const string CertificateSubjectName = "MicroMEncryptionCertificate";
+        public const double EtagCacheDurationSeconds = 86400; // 1 day
+        public const double JwksCacheDurationSeconds = 3600; // 1 hour
         public static string SecretsFilename = "microm_config.cry";
         public static string MicroMCommonID = "MicroM";
         public static string SecretsFilePath = Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData);
         public const string UploadsFolder = "uploads";
+
+        public const string HTTPClientOidcName = "oidc";
+        public const string HTTPClientOidcUserAgent = "MicroM.OIDC/1.0";
+        public const string HTTPClientJwksName = "jwks";
+        public const string HTTPClientJwksUserAgent = "MicroM.OIDC-JWKS/1.0";
+
         public static string[] AllowedFileUploadExtensions = [
             ".doc",
             ".docx",

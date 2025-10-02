@@ -73,7 +73,8 @@ public class SQLServerAuthenticator : IAuthenticator
             }
         }
 
-        using DatabaseClient dbc = new(app_config.SQLServer, "master", user_login.Username, user_login.Password);
+        // This is a special case as we use the connection to authenticate the user.
+        using DatabaseClient dbc = app_config.CreateDatabaseClient(_log, null, null);
 
         try
         {
@@ -188,12 +189,17 @@ public class SQLServerAuthenticator : IAuthenticator
         throw new NotImplementedException();
     }
 
-    Task<(bool failed, string? error_message)> IAuthenticator.SendPasswordRecoveryEmail(ApplicationOption app_config, string user_name, CancellationToken ct)
+    Task<ResultWithStatus<bool, string>> IAuthenticator.SendPasswordRecoveryEmail(ApplicationOption app_config, string user_name, CancellationToken ct)
     {
         throw new NotImplementedException();
     }
 
-    Task<(bool failed, string? error_message)> IAuthenticator.RecoverPassword(ApplicationOption app_config, string user_name, string new_password, string recovery_code, CancellationToken ct)
+    Task<ResultWithStatus<bool, string>> IAuthenticator.RecoverPassword(ApplicationOption app_config, string user_name, string new_password, string recovery_code, CancellationToken ct)
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task<ExternalSignInResult> HandleExternalSignIn(ApplicationOption app, ExternalIdentity identity, string deviceId, CancellationToken ct)
     {
         throw new NotImplementedException();
     }

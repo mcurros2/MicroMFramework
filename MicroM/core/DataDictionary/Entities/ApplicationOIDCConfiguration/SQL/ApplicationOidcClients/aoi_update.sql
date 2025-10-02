@@ -6,7 +6,7 @@
         , @url_sso_frontchannel_logout VarChar(2048)
         , @url_sso_backchannel_logout VarChar(2048)
         , @url_client_jwks VarChar(2048)
-        , @certificate_id VarChar(2048)
+        , @certificate_unique_id VarChar(2048)
         , @apikey varchar(2048)
         , @secret VarChar(2048)
         , @change_secret bit
@@ -92,7 +92,7 @@ begin try
             , @url_sso_frontchannel_logout
             , @url_sso_backchannel_logout
             , @url_client_jwks
-            , @certificate_id
+            , @certificate_unique_id
             , @now
             , @now
             , @webusr
@@ -133,7 +133,7 @@ begin try
     set     vc_url_sso_backchannel_logout = @url_sso_backchannel_logout
             , vc_url_sso_frontchannel_logout = @url_sso_frontchannel_logout
             , vc_url_client_jwks = @url_client_jwks
-            , vc_certificate_id = @certificate_id
+            , vc_certificate_unique_id = @certificate_unique_id
             , vc_webluuser = @webusr
             , vc_luuser = @login
             , dt_lu = @now

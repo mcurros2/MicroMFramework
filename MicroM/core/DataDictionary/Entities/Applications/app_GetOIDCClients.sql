@@ -6,7 +6,7 @@ select	[c_application_id] = rtrim(a.c_application_id)
 		, [vc_url_sso_backchannel_logout] = a.vc_url_sso_backchannel_logout
 		, [vc_url_client_jwks] = a.vc_url_client_jwks
 		, [vc_url_authorized_redirects] = e.authorized_urls
-		, [vc_certificate_id] = a.vc_certificate_id
+		, [vc_certificate_unique_id] = a.vc_certificate_unique_id
 		, [vc_apikey] = b.vc_apikey
 		, [vc_secret] = b.vc_secret
 from	applications c
