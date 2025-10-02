@@ -1,241 +1,120 @@
 ﻿using MicroM.Configuration;
-using MicroM.Web.Services;
-using Microsoft.IdentityModel.Tokens;
-using System.Collections.Concurrent;
-using System.Security.Cryptography;
-using System.Security.Cryptography.X509Certificates;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Headers;
+using System.Security.Claims;
 using System.Text.Json;
 
 namespace MicroM.Web.Authentication.SSO;
 
-public class IdentityProviderService : IIdentityProviderService
+public class IdentityProviderService(
+    IOauthTokenService oauth_token_service,
+    IPushedAuthorizationService par_service,
+    IAuthorizationCodeService code_service,
+    IEtagCacheService etag_cache,
+    IJwksService jwks_service
+    ) : IIdentityProviderService
 {
-    private readonly ConcurrentDictionary<string, X509Certificate2> _certificateCache = new();
-
-    private EtagCache _etagCache = new();
-
     private JsonSerializerOptions _jsonSerializationOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
     };
 
-    private JsonSerializerOptions _jsonUnsafeSerializationOptions = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull,
-        Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
-    };
-
-
-    private X509Certificate2 AddCertificateToCache(ApplicationOption app)
-    {
-        if (app.OIDCCertificateBlob == null || app.OIDCCertificateBlob.Length == 0) throw new InvalidOperationException("OIDC Certificate Blob is null or empty");
-        return _certificateCache.GetOrAdd(app.ApplicationID, key =>
-        {
-            var cert = new X509Certificate2(app.OIDCCertificateBlob, app.OIDCCertificatePassword, X509KeyStorageFlags.EphemeralKeySet);
-            _certificateCache[app.ApplicationID] = cert;
-            return cert;
-        });
-    }
-
-    public void ClearCache()
-    {
-        _certificateCache.Clear();
-        _etagCache.Clear();
-    }
-
-    private OIDCWellKnownResponse CreateWellKnown(ApplicationOption app, string request_base)
-    {
-        return new OIDCWellKnownResponse
-        {
-            issuer = request_base,
-            authorization_endpoint = $"{request_base}/oauth2/authorize",
-            token_endpoint = $"{request_base}/oauth2/token",
-            userinfo_endpoint = $"{request_base}/oauth2/userinfo",
-            jwks_uri = $"{request_base}/oidc/jwks",
-            pushed_authorization_request_endpoint = $"{request_base}/oauth2/par",
-            end_session_endpoint = $"{request_base}/oauth2/endsession",
-            revocation_endpoint = $"{request_base}/oauth2/revoke",
-            introspection_endpoint = $"{request_base}/oauth2/introspect",
-
-            // Capabilities
-            response_types_supported = [OIDCResponseType.code],
-            response_modes_supported = [OIDCResponseMode.query, OIDCResponseMode.form_post],
-            subject_types_supported = [OIDCSubjectType.@public],
-            id_token_signing_alg_values_supported = [OIDCSigningAlg.RS256, app.OIDCTokenSigningAlg!.Value],
-            code_challenge_methods_supported = [app.OIDCTokenCodeChallengeMethod!.Value],
-            grant_types_supported = [OIDCGrantType.authorization_code, OIDCGrantType.refresh_token],
-            backchannel_logout_supported = true,
-            backchannel_logout_session_supported = true,
-
-            require_pushed_authorization_requests = true,
-            request_uri_parameter_supported = true,
-            authorization_response_iss_parameter_supported = true,
-
-            introspection_endpoint_auth_methods_supported = [OIDCTokenEndpointAuthMethod.private_key_jwt],
-            introspection_endpoint_auth_signing_alg_values_supported = [OIDCSigningAlg.RS256, app.OIDCTokenSigningAlg!.Value],
-
-            revocation_endpoint_auth_methods_supported = [OIDCTokenEndpointAuthMethod.private_key_jwt],
-            revocation_endpoint_auth_signing_alg_values_supported = [OIDCSigningAlg.RS256, app.OIDCTokenSigningAlg!.Value],
-
-            // Token endpoint
-            token_endpoint_auth_methods_supported = [OIDCTokenEndpointAuthMethod.private_key_jwt],
-            token_endpoint_auth_signing_alg_values_supported = [OIDCSigningAlg.RS256, app.OIDCTokenSigningAlg!.Value],
-
-            scopes_supported = [OIDCProfileScopes.openid, OIDCProfileScopes.profile, OIDCProfileScopes.email]
-        };
-    }
-
-    public EtagContent HandleWellKnown(ApplicationOption app, string request_base, CancellationToken ct)
+    public EtagCacheServiceCacheCheckResult HandleWellKnown(ApplicationOption app, string request_base, RequestHeaders request_headers, IHeaderDictionary response_headers)
     {
         var key = $"{app.ApplicationID}_WK";
-        var result = _etagCache.Get(key);
 
-        result ??= _etagCache.GetOrAdd(key, () =>
+        var result = etag_cache.GetOrAddResponseWithCacheCheck(
+            key,
+            request_headers,
+            response_headers,
+            cache_duration_seconds: ConfigurationDefaults.EtagCacheDurationSeconds,
+            () =>
             {
-                var wellKnown = CreateWellKnown(app, request_base);
+                var wellKnown = WellKnownProvider.CreateWellKnown(app, request_base);
                 return JsonSerializer.Serialize(wellKnown, _jsonSerializationOptions);
             });
 
         return result;
     }
 
-    private OIDCJwksKeyResponse? GetRSAKey(ApplicationOption app, X509Certificate2 cert)
+    public EtagCacheServiceCacheCheckResult? HandleJwks(ApplicationOption app, RequestHeaders request_headers, IHeaderDictionary response_headers)
     {
-        var kid = !string.IsNullOrEmpty(app.OIDCCertificateUniqueID) ? app.OIDCCertificateUniqueID : cert.Thumbprint;
-        var x5c = new List<string> { Convert.ToBase64String(cert.RawData) };
+        return jwks_service.HandleJwks(app, request_headers, response_headers);
+    }
 
-        var sha1 = SHA1.HashData(cert.RawData);
-        var sha256 = SHA256.HashData(cert.RawData);
-        var x5t = Base64UrlEncoder.Encode(sha1);
-        var x5tS256 = Base64UrlEncoder.Encode(sha256);
+    public (OIDCTokenResponse? response, object? error) HandleToken(ApplicationOption app, IFormCollection form, ClaimsPrincipal client)
+    {
+        var authenticated_client = client.FindFirstValue(ClaimTypes.NameIdentifier);
 
-        using var rsa = cert.GetRSAPublicKey();
-        if (rsa != null)
+        if (string.IsNullOrEmpty(authenticated_client))
         {
-            var par = rsa.ExportParameters(false);
-
-            var rsaKey = new OIDCJwksKeyResponse
-            {
-                kid = kid,
-                kty = OIDCKeyType.RSA,
-                use = OIDCKeyUse.sig,
-                // MMC: omited alg here to allow both RS256 and RS512 with the same certificate
-                // Setting alg here would make clients compare the alg with well knwon
-                //alg = app.OIDCTokenSigningAlg,
-                n = Base64UrlEncoder.Encode(par.Modulus),
-                e = Base64UrlEncoder.Encode(par.Exponent),
-                x5c = x5c,
-                x5t = x5t,
-                x5tS256 = x5tS256
-            };
-
-            return rsaKey;
+            return new(null, new { error = "invalid_client", error_description = "Client authentication required" });
         }
 
-        return null;
+        return oauth_token_service.HandleTokenRequest(app, form, authenticated_client);
     }
 
-    private OIDCJwksKeyResponse? GetECDKey(ApplicationOption app, X509Certificate2 cert)
+    public (OIDCPARResponse? response, object? error) HandlePAR(ApplicationOption app, IFormCollection form, ClaimsPrincipal client)
     {
-        var kid = !string.IsNullOrEmpty(app.OIDCCertificateUniqueID) ? app.OIDCCertificateUniqueID : cert.Thumbprint;
-        var x5c = new List<string> { Convert.ToBase64String(cert.RawData) };
+        var clientId = client.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
-        var sha1 = SHA1.HashData(cert.RawData);
-        var sha256 = SHA256.HashData(cert.RawData);
-        var x5t = Base64UrlEncoder.Encode(sha1);
-        var x5tS256 = Base64UrlEncoder.Encode(sha256);
-
-        using var ecdsa = cert.GetECDsaPublicKey();
-        if (ecdsa != null)
+        if (string.IsNullOrEmpty(clientId))
         {
-            var ecParams = ecdsa.ExportParameters(false);
-
-            // Determine curve name (crv) by coordinate length
-            OIDCKeyCurveValues crv;
-            int coordLen = ecParams.Q.X?.Length ?? 0;
-            OIDCSigningAlg alg;
-            if (coordLen == 32)
-            {
-                crv = OIDCKeyCurveValues.P256;
-                alg = OIDCSigningAlg.ES256;
-            }
-            else if (coordLen == 48)
-            {
-                crv = OIDCKeyCurveValues.P384;
-                alg = OIDCSigningAlg.ES384;
-            }
-            else if (coordLen == 66)
-            {
-                crv = OIDCKeyCurveValues.P521;
-                alg = OIDCSigningAlg.ES512;
-            }
-            else
-            {
-                return null;
-            }
-
-            var ecKey = new OIDCJwksKeyResponse
-            {
-                kid = kid,
-                kty = OIDCKeyType.EC,
-                use = OIDCKeyUse.sig,
-                alg = alg,
-                crv = crv,
-                x = Base64UrlEncoder.Encode(ecParams.Q.X),
-                y = Base64UrlEncoder.Encode(ecParams.Q.Y),
-                x5c = x5c,
-                x5t = x5t,
-                x5tS256 = x5tS256
-            };
-
-            return ecKey;
+            return (null, new { error = "invalid_client", error_description = "Client authentication required" });
         }
 
-        return null;
+        return par_service.CreatePushedRequest(app, form, clientId);
     }
 
-    private OIDCJwksResponse CreateJwksResponse(ApplicationOption app)
+    public Task<(string? redirectUrl, string? loginUrl, object? error)> HandleAuthorize(ApplicationOption app, IQueryCollection query, ClaimsPrincipal user, string request_base, CancellationToken ct)
     {
-        X509Certificate2 cert = AddCertificateToCache(app);
+        // Accept either a request_uri (PAR) or inline params.
+        // Build an authoritative parameter set to use.
+        var (qs, error) = AuthorizeEndpointProvider.ValidateAndOverrideWithPARAuthorizationRequest(app, par_service, query);
 
-        OIDCJwksKeyResponse? key = GetRSAKey(app, cert);
-
-        return new(keys: key != null ? [key] : []);
-
-    }
-
-    public EtagContent HandleJwks(ApplicationOption app, CancellationToken ct)
-    {
-        var key = $"{app.ApplicationID}_JWKS";
-        var result = _etagCache.Get(key);
-
-        result ??= _etagCache.GetOrAdd(key, () =>
+        if (qs == null || error != null)
         {
-            var jwks = CreateJwksResponse(app);
-            return JsonSerializer.Serialize(jwks, _jsonUnsafeSerializationOptions);
-        });
+            return Task.FromResult<(string? redirectUrl, string? loginUrl, object? error)>((null, null, error));
+        }
 
-        return result;
-    }
+        // If user is not authenticated, redirect to interactive login SPA.
+        if (user?.Identity == null || !user.Identity.IsAuthenticated)
+        {
+            string login_url = AuthorizeEndpointProvider.BuildLoginURL(app, query, request_base);
+            return Task.FromResult<(string? redirectUrl, string? loginUrl, object? error)>((null, login_url, null));
+        }
 
-    public Task<string> HandleAuthorize(ApplicationOption app_config, string app_id, string user_id, CancellationToken ct)
-    {
-        throw new NotImplementedException();
+        // User is authenticated -> issue authorization code and redirect to redirect_uri with code and state
+        var userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value ??
+                     user.FindFirst("sub")?.Value ??
+                     user.Identity.Name ?? Guid.NewGuid().ToString("N");
+
+        // Extract IdP session ID (sid) from the authenticated user's claims if present
+        var sid = user.FindFirst("sid")?.Value
+                  ?? user.FindFirst(MicroMServerClaimTypes.MicroMOidcSessionID)?.Value;
+
+        // build authorization code record
+        var record = new AuthorizationCodeRecord(
+            Code: string.Empty,
+            ClientId: qs.client_id,
+            UserId: userId,
+            RedirectUri: qs.redirect_uri!,
+            Sid: sid,
+            ExpiresAt: DateTimeOffset.UtcNow.AddMinutes(5),
+            CodeChallenge: string.IsNullOrEmpty(qs.code_challenge) ? null : qs.code_challenge,
+            CodeChallengeMethod: string.IsNullOrEmpty(qs.code_challenge_method) ? null : qs.code_challenge_method
+        );
+
+        // store per-client
+        var created_record = code_service.CreateAndStoreAuthorizationCode(app, qs.client_id, record);
+
+        // build redirect URI with code and state
+        string redirect_uri = AuthorizeEndpointProvider.BuildRedirectURI(qs.redirect_uri!, qs.state, created_record.Code);
+        return Task.FromResult<(string? redirectUrl, string? loginUrl, object? error)>((redirect_uri, null, null));
     }
 
     public Task<bool> HandleEndSession(ApplicationOption app_config, string app_id, string user_id, CancellationToken ct)
-    {
-        throw new NotImplementedException();
-    }
-
-    public Task<Dictionary<string, object?>> HandlePAR(ApplicationOption app_config, string app_id, string token, CancellationToken ct)
-    {
-        throw new NotImplementedException();
-    }
-
-    public Task<string> HandleToken(ApplicationOption app_config, string app_id, string user_id, CancellationToken ct)
     {
         throw new NotImplementedException();
     }
@@ -244,5 +123,6 @@ public class IdentityProviderService : IIdentityProviderService
     {
         throw new NotImplementedException();
     }
+
 
 }

@@ -61,6 +61,8 @@
   
   
   <ItemGroup>
+    <None Remove="DataDictionary\Entities\ApplicationOIDCConfiguration\SQL\ApplicationOidcActiveSessions\aos_deleteAllSessions.sql" />
+    <None Remove="DataDictionary\Entities\ApplicationOIDCConfiguration\SQL\ApplicationOidcActiveSessions\aos_deleteSessionGUID.sql" />
     <None Remove="DataDictionary\Entities\ApplicationOIDCConfiguration\SQL\ApplicationOidcActiveSessions\aos_deleteUserSessions.sql" />
     <None Remove="DataDictionary\Entities\Applications\app_GetOIDCClients.sql" />
     <None Remove="DataDictionary\Entities\EmailService\SQL\EmailServiceConfiguration\eqc_get.sql" />
@@ -87,6 +89,8 @@
   </ItemGroup>
    
   <ItemGroup>
+    <EmbeddedResource Include="DataDictionary\Entities\ApplicationOIDCConfiguration\SQL\ApplicationOidcActiveSessions\aos_deleteAllSessions.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\ApplicationOIDCConfiguration\SQL\ApplicationOidcActiveSessions\aos_deleteSessionGUID.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\ApplicationOIDCConfiguration\SQL\ApplicationOidcActiveSessions\aos_deleteUserSessions.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\ApplicationOIDCConfiguration\SQL\ApplicationOidcClients\aoi_get.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\ApplicationOIDCConfiguration\SQL\ApplicationOidcClients\aoi_update.sql" />

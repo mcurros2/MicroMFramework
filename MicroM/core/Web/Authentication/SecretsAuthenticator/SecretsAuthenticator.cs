@@ -47,7 +47,7 @@ public class SecretsAuthenticator(
             }
         }
 
-        using DatabaseClient ec = new(server: app_config.SQLServer, user: app_config.SQLUser, password: app_config.SQLPassword, db: app_config.SQLDB);
+        using DatabaseClient ec = app_config.CreateDatabaseClient(_log, _deviceIdService, null);
 
         try
         {
@@ -153,12 +153,12 @@ public class SecretsAuthenticator(
         return Task.CompletedTask;
     }
 
-    public Task<(bool failed, string? error_message)> RecoverPassword(ApplicationOption app_config, string user_name, string new_password, string recovery_code, CancellationToken ct)
+    public Task<ResultWithStatus<bool, string>> RecoverPassword(ApplicationOption app_config, string user_name, string new_password, string recovery_code, CancellationToken ct)
     {
         throw new NotImplementedException();
     }
 
-    public Task<(bool failed, string? error_message)> SendPasswordRecoveryEmail(ApplicationOption app_config, string user_name, CancellationToken ct)
+    public Task<ResultWithStatus<bool, string>> SendPasswordRecoveryEmail(ApplicationOption app_config, string user_name, CancellationToken ct)
     {
         throw new NotImplementedException();
     }
@@ -168,5 +168,8 @@ public class SecretsAuthenticator(
         // nothing to unencrypt
     }
 
-
+    public Task<ExternalSignInResult> HandleExternalSignIn(ApplicationOption app, ExternalIdentity identity, string deviceId, CancellationToken ct)
+    {
+        throw new NotImplementedException();
+    }
 }

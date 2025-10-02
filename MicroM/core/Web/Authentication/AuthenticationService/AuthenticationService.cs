@@ -1,17 +1,23 @@
 ﻿using MicroM.Configuration;
+using MicroM.Core;
 using MicroM.DataDictionary.CategoriesDefinitions;
-using MicroM.DataDictionary.Entities;
 using MicroM.Extensions;
 using MicroM.Web.Authentication;
+using MicroM.Web.Authentication.SSO;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
+using System.Globalization;
 using System.Security.Claims;
 
 namespace MicroM.Web.Services;
 
 public class AuthenticationService(
             ILogger<AuthenticationService> log,
-            IMicroMAppConfiguration app_config
+            IMicroMAppConfiguration app_config,
+            IIdPSessionService idp_session_service
     ) : IAuthenticationService
 {
     public async Task<(LoginResult? user_data, TokenResult? token_result)> HandleLogin(IAuthenticationProvider auth, WebAPIJsonWebTokenHandler jwt_handler, string app_id, UserLogin user_login, Dictionary<string, object> server_claims, CancellationToken ct)
@@ -49,18 +55,9 @@ public class AuthenticationService(
                 {
                     if (app.IdentityProviderRoleType == nameof(IdentityProviderRole.IDPServer))
                     {
-                        using var ec = app_config.GetDatabaseClient(app.ApplicationID);
-
-                        if (ec != null)
-                        {
-                            var session_guid = await ApplicationOidcActiveSessions.CreateActiveSession(ec, authenticatorResult.LoginData.user_id, ct);
-                            oidc_session_id = session_guid.ToString();
-                            authenticatorResult.ServerClaims[MicroMServerClaimTypes.MicroMOidcSessionID] = oidc_session_id;
-                        }
-                        else
-                        {
-                            log.LogError("LOGIN: APP_ID {app_id} can't connect to database to create OIDC session", app_id);
-                        }
+                        var session_guid = await idp_session_service.CreateSession(app, app.ApplicationID, authenticatorResult.LoginData.username, ct, user_login.LocalDeviceID, server_claims);
+                        oidc_session_id = session_guid.ToString();
+                        authenticatorResult.ServerClaims[MicroMServerClaimTypes.MicroMOidcSessionID] = oidc_session_id;
                     }
 
                     var merged_claims = authenticatorResult.ServerClaims.Concat(server_claims)
@@ -96,7 +93,7 @@ public class AuthenticationService(
         return (result, token_result);
     }
 
-    public async Task HandleLogoff(IAuthenticationProvider auth, string app_id, string user_name, CancellationToken ct)
+    public async Task HandleLogoff(IAuthenticationProvider auth, string app_id, string user_name, string user_id, CancellationToken ct)
     {
         ApplicationOption app = app_config.GetAppConfiguration(app_id)!;
 
@@ -105,15 +102,7 @@ public class AuthenticationService(
         {
             if (app.IdentityProviderRoleType == nameof(IdentityProviderRole.IDPServer))
             {
-                using var ec = app_config.GetDatabaseClient(app.ApplicationID);
-                if (ec != null)
-                {
-                    await ApplicationOidcActiveSessions.DeleteActiveSessions(ec, user_name, ct);
-                }
-                else
-                {
-                    log.LogError("LOGOFF: APP_ID {app_id} can't connect to database to delete OIDC sessions", app_id);
-                }
+                await idp_session_service.RemoveUserSessions(app, user_id, ct);
             }
             await authenticator.Logoff(app, user_name, ct);
         }
@@ -123,13 +112,13 @@ public class AuthenticationService(
         }
     }
 
-    public async Task<(bool failed, string? error_message)> HandleRecoverPassword(IAuthenticationProvider auth, string app_id, string user_name, string new_password, string recovery_code, CancellationToken ct)
+    public async Task<ResultWithStatus<bool, string>> HandleRecoverPassword(IAuthenticationProvider auth, string app_id, string user_name, string new_password, string recovery_code, CancellationToken ct)
     {
         ApplicationOption? app = app_config.GetAppConfiguration(app_id);
         if (app == null)
         {
             log.LogTrace("RECOVER_PASSWORD: Invalid APP_ID {app_id}", app_id);
-            return (failed: true, error_message: null);
+            return new(true, null);
         }
 
         var authenticator = auth.GetAuthenticator(app);
@@ -141,7 +130,7 @@ public class AuthenticationService(
         else
         {
             log.LogError("RECOVER_PASSWORD: Invalid authenticator specified: {authenticator} APP_ID {app_id}", app.AuthenticationType, app_id);
-            return (failed: true, null);
+            return new(true, null);
         }
     }
 
@@ -203,13 +192,13 @@ public class AuthenticationService(
         return (null, null);
     }
 
-    public async Task<(bool failed, string? error_message)> HandleSendRecoveryEmail(IAuthenticationProvider auth, string app_id, string user_name, CancellationToken ct)
+    public async Task<ResultWithStatus<bool, string>> HandleSendRecoveryEmail(IAuthenticationProvider auth, string app_id, string user_name, CancellationToken ct)
     {
         ApplicationOption? app = app_config.GetAppConfiguration(app_id);
         if (app == null)
         {
             log.LogTrace("RECOVERY_EMAIL: Invalid APP_ID {app_id}", app_id);
-            return (failed: true, error_message: null);
+            return new(true, null);
         }
 
         var authenticator = auth.GetAuthenticator(app);
@@ -221,8 +210,33 @@ public class AuthenticationService(
         else
         {
             log.LogError("RECOVERY_EMAIL: Invalid authenticator specified: {authenticator} APP_ID {app_id}", app.AuthenticationType, app_id);
-            return (failed: true, null);
+            return new(true, null);
         }
 
     }
+
+    public async Task<Dictionary<string, string>> SignInAsync(HttpContext httpc, TokenResult token_result, string refresh_token)
+    {
+        if (token_result.SD == null) throw new Exception("SecurityTokenDescriptor is null");
+        if (token_result.Token == null) throw new Exception("token is null");
+        if (token_result.SD.Expires == null) throw new Exception("Expires is null");
+
+        var claimsIdentity = new ClaimsIdentity(token_result.SD.Claims.ToClaims(), CookieAuthenticationDefaults.AuthenticationScheme);
+
+        await httpc.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(claimsIdentity), new AuthenticationProperties()
+        {
+            ExpiresUtc = token_result.SD.Expires
+        });
+
+        string expires_in = ((int)(token_result.SD.Expires - DateTime.UtcNow).Value.TotalSeconds).ToString(CultureInfo.InvariantCulture);
+        return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) {
+                    { "access_token", token_result.Token }
+                    , { "token_type", "Bearer" }
+                    , { "expires_in", expires_in }
+                    , { "refresh-token", refresh_token}
+                };
+
+    }
+
+
 }

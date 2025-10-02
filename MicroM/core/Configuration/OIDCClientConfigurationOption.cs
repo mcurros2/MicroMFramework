@@ -7,7 +7,7 @@ public class OIDCClientConfigurationOption
     public string URLFrontChannelLogout { get; set; } = "";
     public string URLBackchannelLogout { get; set; } = "";
     public string URLClientJWKS { get; set; } = "";
-    public string CertificateID { get; set; } = "";
+    public string CertificateUniqueID { get; set; } = "";
     public string APIKey { get; set; } = "";
     public string APISecret { get; set; } = "";
     public List<string> URLAuthorizedRedirects { get; set; } = [];

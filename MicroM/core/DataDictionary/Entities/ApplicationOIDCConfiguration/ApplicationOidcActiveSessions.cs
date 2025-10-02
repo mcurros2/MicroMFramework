@@ -1,6 +1,7 @@
 ﻿using MicroM.Core;
 using MicroM.Data;
 using MicroM.Web.Services;
+using System.Data;
 
 namespace MicroM.DataDictionary.Entities;
 
@@ -8,16 +9,28 @@ public class ApplicationOidcActiveSessionsDef : EntityDefinition
 {
     public ApplicationOidcActiveSessionsDef() : base("aos", nameof(ApplicationOidcActiveSessions)) { }
 
+    public readonly Column<string> c_application_id = Column<string>.PK();
+    public readonly Column<string> vc_username = Column<string>.PK();
+    public readonly Column<string> c_device_id = Column<string>.PK();
     public readonly Column<string> c_session_id = Column<string>.PK(autonum: true);
-    public readonly Column<string> c_user_id = Column<string>.FK();
 
-    public readonly Column<Guid> c_session_guid_id = new();
+    public readonly Column<Guid> ui_oidc_session_guid_id = new();
 
-    public readonly ProcedureDefinition aos_deleteUserSessions = new(nameof(c_user_id));
+    public readonly Column<string?> vc_oidc_refreshtoken = new(sql_type: SqlDbType.VarChar, size: 255, nullable: true, encrypted: true);
+    public readonly Column<DateTime?> dt_refresh_expiration = new(nullable: true);
+
+    public readonly ProcedureDefinition aos_deleteUserSessions = new(nameof(vc_username));
+    public readonly ProcedureDefinition aos_deleteAllSessions = new();
+    public readonly ProcedureDefinition aos_deleteSessionGUID = new(nameof(ui_oidc_session_guid_id));
+
+    // No referential integrity for application. The applications table is only created in the configuration db
+    // users and devices are left out intentionally to be orphaned if the user or device is deleted
+    // When acting as IdPServer sessions are maintained here
+    // When acting as a client, sessions are maintained to link with IdP.
 
     public readonly EntityForeignKey<MicromUsers, ApplicationOidcActiveSessions> FKUsers = new();
 
-    public readonly EntityUniqueConstraint UNApplicationSession = new(keys: [nameof(c_session_guid_id)]);
+    public readonly EntityUniqueConstraint UNApplicationSession = new(keys: [nameof(ui_oidc_session_guid_id)]);
 }
 
 public class ApplicationOidcActiveSessions : Entity<ApplicationOidcActiveSessionsDef>
@@ -25,24 +38,4 @@ public class ApplicationOidcActiveSessions : Entity<ApplicationOidcActiveSession
     public ApplicationOidcActiveSessions() : base() { }
     public ApplicationOidcActiveSessions(IEntityClient ec, IMicroMEncryption? encryptor = null) : base(ec, encryptor) { }
 
-    public async static Task<Guid> CreateActiveSession(IEntityClient ec, string user_id, CancellationToken ct)
-    {
-        ApplicationOidcActiveSessions new_session = new(ec);
-
-        var session_guid = Guid.NewGuid();
-        new_session.Def.c_user_id.Value = user_id;
-        new_session.Def.c_session_guid_id.Value = session_guid;
-        await new_session.InsertData(ct);
-
-        return session_guid;
-    }
-
-    public async static Task DeleteActiveSessions(IEntityClient ec, string user_id, CancellationToken ct)
-    {
-        ApplicationOidcActiveSessions del_session = new(ec);
-        del_session.Def.c_user_id.Value = user_id;
-        await del_session.ExecuteProc(ct, del_session.Def.aos_deleteUserSessions);
-
-        return;
-    }
 }

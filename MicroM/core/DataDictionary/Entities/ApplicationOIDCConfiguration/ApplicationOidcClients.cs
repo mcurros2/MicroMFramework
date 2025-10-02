@@ -19,7 +19,7 @@ public class ApplicationOidcClientsDef : EntityDefinition
     // This is for private jwks authentication
     // The URL should resolve and keep the ceritificate in memory when the service starts
     public readonly Column<string?> vc_url_client_jwks = Column<string?>.Text(size: 2048);
-    public readonly Column<string?> vc_certificate_id = Column<string?>.Text(size: 2048);
+    public readonly Column<string?> vc_certificate_unique_id = Column<string?>.Text(size: 2048);
 
     // These are stored encrypted so the user can copy them in the control panel
     public readonly Column<string?> vc_apikey = Column<string?>.Text(size: 2048, encrypted: true, fake: true);

@@ -1,6 +1,7 @@
 ﻿using MicroM.Configuration;
 using MicroM.Data;
 using MicroM.Web.Services.Security;
+using Microsoft.AspNetCore.Http;
 using System.Reflection;
 
 namespace MicroM.Web.Services
@@ -15,7 +16,7 @@ namespace MicroM.Web.Services
 
         public Task<bool> RefreshConfiguration(string? app_id, CancellationToken ct);
 
-        public DatabaseClient? GetDatabaseClient(string app_id, int? connection_tiemout_secs = 15);
+        public DatabaseClient? GetDatabaseClient(string app_id, int connection_tiemout_secs = 5);
 
         public List<string> GetAppIDs();
 
@@ -23,5 +24,6 @@ namespace MicroM.Web.Services
 
         public bool IsCORSOriginAllowed(string? app_id, string origin);
 
+        public string? GetTenantPath(HttpContext context);
     }
 }

@@ -3,12 +3,6 @@ using MicroM.Web.Authentication.SSO;
 
 namespace MicroM.Configuration;
 
-public enum ApplicationOptionCacheKeys
-{
-    OIDCWellKnown,
-    OIDCJwks
-}
-
 public class ApplicationOption
 {
 
@@ -31,17 +25,16 @@ public class ApplicationOption
 
     public string? AuthenticationType { get; set; } = nameof(AuthenticationTypes.MicroMAuthentication);
 
-    internal string? IdentityProviderRoleType { get; set; } = nameof(IdentityProviderRole.IDPDisabled);
-    internal string? OIDCWellKnownURL { get; set; } = null;
-    internal string? OIDCCertificateUniqueID { get; set; } = null;
-    internal byte[]? OIDCCertificateBlob { get; set; } = null;
-    internal string OIDCCertificatePassword { get; set; } = "";
+    public string? IdentityProviderRoleType { get; set; } = nameof(IdentityProviderRole.IDPDisabled);
+    public string? OIDCWellKnownURL { get; set; } = null;
+    public string? OIDCCertificateUniqueID { get; set; } = null;
+    public byte[]? OIDCCertificateBlob { get; set; } = null;
+    public string OIDCCertificatePassword { get; set; } = "";
 
-    internal OIDCSigningAlg? OIDCTokenSigningAlg { get; set; } = OIDCSigningAlg.RS512;
-    internal OIDCCodeChallengeMethod? OIDCTokenCodeChallengeMethod { get; set; } = OIDCCodeChallengeMethod.S256;
+    public OIDCSigningAlg? OIDCTokenSigningAlg { get; set; } = OIDCSigningAlg.RS512;
+    public OIDCCodeChallengeMethod? OIDCTokenCodeChallengeMethod { get; set; } = OIDCCodeChallengeMethod.S256;
 
-    internal Dictionary<string, OIDCClientConfigurationOption>? OIDCClientConfiguration { get; set; } = null;
-
+    public Dictionary<string, OIDCClientConfigurationOption>? OIDCClientConfiguration { get; set; } = null;
 
     public List<string> FrontendURLS { get; set; } = [];
 }

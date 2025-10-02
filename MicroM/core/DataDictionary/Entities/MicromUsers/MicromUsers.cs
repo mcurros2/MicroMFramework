@@ -220,7 +220,7 @@ public class MicromUsers : Entity<MicromUsersDef>
         return result;
     }
 
-    public async static Task<(string? recovery_code, string? error)> GetRecoveryCode(string username, IEntityClient ec, CancellationToken ct)
+    public async static Task<ResultWithStatus<string, string>> GetRecoveryCode(string username, IEntityClient ec, CancellationToken ct)
     {
         MicromUsers user = new(ec);
 
@@ -230,12 +230,12 @@ public class MicromUsers : Entity<MicromUsersDef>
 
         if (result.Failed)
         {
-            return (null, result?.Results?[0].Message);
+            return new(null, result?.Results?[0].Message);
         }
 
         string? recovery_code = result.Results?[0].Message;
 
-        return (recovery_code, null);
+        return new(recovery_code, null);
     }
 
     public async static Task<List<string>> GetRecoveryEmails(string username, IEntityClient ec, CancellationToken ct)

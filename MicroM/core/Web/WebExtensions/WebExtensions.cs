@@ -11,4 +11,5 @@ public static class WebExtensions
         var hash = SHA256.HashData(cachedBytes);
         return Convert.ToBase64String(hash);
     }
+
 }

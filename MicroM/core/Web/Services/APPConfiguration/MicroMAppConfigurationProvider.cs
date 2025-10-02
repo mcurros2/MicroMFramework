@@ -5,7 +5,9 @@ using MicroM.Database;
 using MicroM.DataDictionary.CategoriesDefinitions;
 using MicroM.DataDictionary.Entities;
 using MicroM.Extensions;
+using MicroM.Web.Authentication.SSO;
 using MicroM.Web.Services.Security;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -32,6 +34,9 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
     private readonly IBackgroundTaskQueue _backgroundTaskQueue;
     private readonly IConfiguration _config;
     private readonly string _jwtkey;
+    private readonly IEtagCacheService _etag_cache;
+    private readonly IApplicationCertificateCacheService _certificate_cache;
+    private readonly PathString _basePathString;
 
     private static string NormalizeURL(string url)
     {
@@ -40,7 +45,14 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
         return url;
     }
 
-    public MicroMAppConfigurationProvider(IOptions<MicroMOptions> options, ILogger<MicroMAppConfigurationProvider> logger, IMicroMEncryption encryptor, IBackgroundTaskQueue queue, IConfiguration config)
+    public MicroMAppConfigurationProvider(
+        IOptions<MicroMOptions> options,
+        ILogger<MicroMAppConfigurationProvider> logger,
+        IMicroMEncryption encryptor,
+        IBackgroundTaskQueue queue,
+        IApplicationCertificateCacheService certificate_cache,
+        IEtagCacheService etag_cache,
+        IConfiguration config)
     {
         ThrowIfNull(options);
 
@@ -52,6 +64,21 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
         _jwtkey = CryptClass.GenerateRandomBase64String(32);
 
         _config = config;
+        _etag_cache = etag_cache;
+        _certificate_cache = certificate_cache;
+
+        var raw = options?.Value.MicroMAPIBaseRootPath ?? string.Empty;
+        var trimmed = raw.Trim().Trim('/');
+
+        if (string.IsNullOrEmpty(trimmed))
+        {
+            _basePathString = PathString.Empty;
+        }
+        else
+        {
+            _basePathString = new PathString("/" + trimmed);
+        }
+
         _log.LogTrace("initialized");
     }
 
@@ -187,18 +214,9 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
             _EntityTypesCache.Clear();
             LoadControlPanelAssemblies();
 
-            ret = true;
-            using DatabaseClient client = new
-                (
-                server: control_panel.SQLServer,
-                user: control_panel.SQLUser ?? "",
-                password: control_panel.SQLPassword ?? "",
-                db: control_panel.SQLDB ?? "",
-                integrated_security: control_panel.SQLPassword == null,
-                connection_timeout_secs: 15,
-                logger: _log
-                );
+            using DatabaseClient client = control_panel.CreateDatabaseClient(_log, null, null);
 
+            ret = true;
             try
             {
                 // Drop any unused assemblies first
@@ -248,7 +266,7 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
                             {
                                 if (string.IsNullOrEmpty(assembly_id)) throw new InvalidOperationException("No assembly_id received");
 
-                                using DatabaseClient dbc = new(client);
+                                using DatabaseClient dbc = (DatabaseClient)client.Clone();
                                 var assembly_types = new EntitiesAssembliesTypes(dbc);
 
                                 await dbc.Connect(ct);
@@ -329,17 +347,9 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
 
         if (control_panel != null && control_panel.SQLServer != "" && control_panel.SQLUser != "")
         {
+
             ret = true;
-            using DatabaseClient client = new
-                (
-                server: control_panel.SQLServer,
-                user: control_panel.SQLUser ?? "",
-                password: control_panel.SQLPassword ?? "",
-                db: control_panel.SQLDB ?? "",
-                integrated_security: control_panel.SQLPassword == null,
-                connection_timeout_secs: 5,
-                logger: _log
-                );
+            using DatabaseClient client = control_panel.CreateDatabaseClient(_log, null, null);
 
             try
             {
@@ -444,6 +454,8 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
         {
             try
             {
+                _etag_cache.ClearCache();
+                _certificate_cache.ClearCache();
                 _ApplicationsCache.Clear();
                 await RefreshConfiguration(null, ct);
             }
@@ -454,24 +466,15 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
         }
     }
 
-    public DatabaseClient? GetDatabaseClient(string app_id, int? connection_timeour_secs = 15)
+    public DatabaseClient? GetDatabaseClient(string app_id, int connection_timeout_secs = 5)
     {
         _ApplicationsCache.TryGetValue(app_id, out var app_config);
         if (app_config != null && app_config.SQLServer != "" && app_config.SQLDB != "")
         {
-            return new DatabaseClient(
-                server: app_config.SQLServer,
-                user: app_config.SQLUser ?? "",
-                password: app_config.SQLPassword ?? "",
-                db: app_config.SQLDB ?? "",
-                integrated_security: app_config.SQLPassword == null,
-                connection_timeout_secs: 15,
-                logger: _log
-                );
+            return app_config.CreateDatabaseClient(_log, null, null, connection_timeout_secs);
         }
 
         return null;
-
     }
 
     public List<string> GetAppIDs()
@@ -495,4 +498,56 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
         }
         return false;
     }
+
+    public string? GetTenantPath(HttpContext context)
+    {
+        if (_basePathString == PathString.Empty)
+        {
+            _log.LogWarning("MicroMAPIBaseRootPath is not configured.");
+            return null;
+        }
+
+        var fullPath = context.Request.PathBase.Add(context.Request.Path);
+
+        if (fullPath.StartsWithSegments(_basePathString, StringComparison.OrdinalIgnoreCase, out var remainingPath))
+        {
+            if (string.IsNullOrEmpty(remainingPath.Value))
+            {
+                _log.LogWarning("No APP_ID found in path {path}", fullPath);
+                return null;
+            }
+
+            // remainingPath starts with "/APP_ID/..." o "/APP_ID"
+            var remaining = remainingPath.Value.TrimStart('/');
+
+            // Get APP_ID, from first segment in remainingPath
+            var appIdEnd = remaining.IndexOf('/');
+            string appId;
+
+            if (appIdEnd == -1)
+            {
+                appId = remaining; // last segment
+            }
+            else
+            {
+                // Get appId from first segment
+                appId = remaining[..appIdEnd];
+            }
+
+            if (string.IsNullOrEmpty(appId))
+            {
+                _log.LogWarning("No APP_ID found in path {path}", fullPath);
+                return null;
+            }
+
+            // Assemble tenant fullPath
+            var tenantPath = $"{_basePathString.Value}/{appId}/";
+            return tenantPath;
+        }
+
+        _log.LogWarning("The path {path} does not match the configured base path {basePath}", fullPath, _basePathString.Value);
+        return null;
+    }
+
+
 }

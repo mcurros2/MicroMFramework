@@ -1,7 +1,6 @@
 ﻿using MicroM.Configuration;
 using MicroM.Core;
 using MicroM.Data;
-using MicroM.DataDictionary.CategoriesDefinitions;
 using MicroM.DataDictionary.Entities;
 using MicroM.DataDictionary.StatusDefinitions;
 using MicroM.Extensions;
@@ -48,31 +47,7 @@ public class EntitiesService : IEntitiesService
 
     public IEntityClient CreateDbConnection(ApplicationOption app, Dictionary<string, object>? server_claims)
     {
-        string user = app.AuthenticationType == nameof(AuthenticationTypes.SQLServerAuthentication) && string.IsNullOrEmpty(app.SQLUser) ? (string?)server_claims?[MicroMServerClaimTypes.MicroMUsername] ?? "" : app.SQLUser;
-        string pass = app.AuthenticationType == nameof(AuthenticationTypes.SQLServerAuthentication) && string.IsNullOrEmpty(app.SQLUser) ? (string?)server_claims?[MicroMServerClaimTypes.MicroMPassword] ?? "" : app.SQLPassword;
-
-        string local_device_id = "";
-        if (server_claims != null)
-        {
-            server_claims.TryGetValue(MicroMServerClaimTypes.MicroMUserDeviceID, out var local_device_claim);
-
-            local_device_id = local_device_claim?.ToString() ?? "";
-        }
-
-        var (device_id, ipaddress, user_agent) = _api.deviceIdService.GetDeviceID(local_device_id);
-        string workstation_id = $"{ipaddress} {device_id} {user_agent}".Truncate(128);
-
-        DatabaseClient dbc = new(server: app.SQLServer, user: user, password: pass, db: app.SQLDB, logger: _api.log, server_claims: server_claims)
-        {
-            // TODO: add to application option pooling options
-            Pooling = true,
-            MinPoolSize = 0,
-            MaxPoolSize = 500,
-            ApplicationName = $"MicroM - {app.ApplicationName}",
-            WorkstationID = workstation_id,
-        };
-
-        return dbc;
+        return app.CreateDatabaseClient(_api.log, _api.deviceIdService, server_claims);
     }
 
     public Task<IEntityClient> CreateDbConnection(ApplicationOption app, Dictionary<string, object>? server_claims, CancellationToken ct)

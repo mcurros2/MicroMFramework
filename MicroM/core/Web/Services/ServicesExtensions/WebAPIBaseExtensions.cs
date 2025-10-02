@@ -2,8 +2,10 @@
 using MicroM.Web.Authentication;
 using MicroM.Web.Authentication.SSO;
 using MicroM.Web.Controllers;
+using MicroM.Web.Extensions;
 using MicroM.Web.Middleware;
 using MicroM.Web.Services.Security;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
@@ -50,12 +52,6 @@ public static class WebAPIBaseExtensions
         services.AddSingleton<IEntitiesService, EntitiesService>();
         return services;
     }
-
-    //public static IServiceCollection AddWebAPIServices(this IServiceCollection services)
-    //{
-    //    services.AddSingleton<IWebAPIServices, WebAPIServices>();
-    //    return services;
-    //}
 
     public static IServiceCollection AddMicroMEncryption(this IServiceCollection services)
     {
@@ -133,8 +129,24 @@ public static class WebAPIBaseExtensions
         return services;
     }
 
+    public static IServiceCollection AddOIDCServices(this IServiceCollection services)
+    {
+        services.AddSingleton<IApplicationCertificateCacheService, ApplicationCertificateCacheService>();
+        services.AddSingleton<IEtagCacheService, EtagCacheService>();
+        services.AddSingleton<IJwksService, JwksService>();
+        services.AddSingleton<IAuthorizationCodeService, MemoryAuthorizationCodeService>();
+        services.AddSingleton<IOauthTokenService, OauthTokenService>();
+        services.AddSingleton<IPushedAuthorizationService, PushedAuthorizationService>();
+        services.AddSingleton<IIdPSessionService, IdPSessionService>();
+        services.AddSingleton<IOIDCClientService, OIDCClientService>();
+        services.AddSingleton<IStateAndNonceService, StateAndNonceService>();
+
+        return services;
+    }
+
     public static IServiceCollection AddIdentityProviderService(this IServiceCollection services)
     {
+        services.AddOIDCServices();
         services.AddSingleton<IIdentityProviderService, IdentityProviderService>();
         return services;
     }
@@ -142,6 +154,9 @@ public static class WebAPIBaseExtensions
     public static IServiceCollection AddMicroMApiServices(this IServiceCollection services, IConfiguration configuration)
     {
         services.Configure<MicroMOptions>(configuration.GetSection(MicroMOptions.MicroM));
+
+        services.AddHttpClient();
+        services.AddMicroMOidcHttpClients();
 
         services.AddMemoryQueue();
         services.AddDeviceIDService();
@@ -180,6 +195,9 @@ public static class WebAPIBaseExtensions
         const string JWT_COOKIE_POLICY_DISPLAYNAME = "Jwt/Cookie";
         const string COOKIE_NAME = "microm-a";
 
+        const string IDP_CLIENT_SCHEME = "IdPClient";
+        const string IDP_CLIENT_SCHEME_DISPLAYNAME = "IdP Client auth";
+
         services.AddAuthentication(opt =>
         {
             opt.DefaultAuthenticateScheme = JWT_COOKIE_POLICY;
@@ -216,7 +234,9 @@ public static class WebAPIBaseExtensions
 
                 return "Cookies";
             };
-        });
+        })
+        // Add IdP client authentication handler
+        .AddScheme<AuthenticationSchemeOptions, IdPBackchannelAuthenticationHandler>(IDP_CLIENT_SCHEME, IDP_CLIENT_SCHEME_DISPLAYNAME, options => { });
 
         // Configure cookies manager
         services.AddSingleton<IPostConfigureOptions<CookieAuthenticationOptions>, MicroMCookiesManagerSetup>();
@@ -224,6 +244,16 @@ public static class WebAPIBaseExtensions
         services.AddAuthorizationBuilder()
             .AddPolicy(nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy), policy =>
                 policy.Requirements.Add(new MicroMPermissionsRequirement()));
+
+        // Add an authorization policy that requires IdP client authentication
+        services.AddAuthorization(options =>
+        {
+            options.AddPolicy(nameof(MicroMPermissionsConstants.IdPClientPolicy), policy =>
+            {
+                policy.AddAuthenticationSchemes(IDP_CLIENT_SCHEME);
+                policy.RequireAuthenticatedUser();
+            });
+        });
 
         services.Configure<ApiBehaviorOptions>(options =>
         {
