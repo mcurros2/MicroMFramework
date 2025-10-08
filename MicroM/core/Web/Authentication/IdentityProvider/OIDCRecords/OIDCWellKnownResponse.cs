@@ -76,7 +76,7 @@ public enum OIDCProfileScopes { openid, email, profile }
 
 public sealed record OIDCJwksResponse(List<OIDCJwksKeyResponse> keys);
 
-public record OIDCWellKnownResponse
+public sealed record OIDCWellKnownResponse
 (
     // Required
     string issuer,

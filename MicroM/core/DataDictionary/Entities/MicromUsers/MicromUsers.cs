@@ -18,7 +18,7 @@ public class MicromUsersDef : EntityDefinition
     public readonly Column<string> vc_username = Column<string>.Text();
     public readonly Column<string?> vc_email = Column<string?>.Text(nullable: true);
     public readonly Column<string> vc_pwhash = Column<string>.Text(size: 2048);
-    public readonly Column<string?> vb_sid = Column<string?>.Text(size: 85, nullable: true);
+    public readonly Column<string?> vb_sid = Column<string?>.Text(size: 85, nullable: true); // this is the Windows SID if using Windows Auth
     public readonly Column<int> i_badlogonattempts = new(value: 0);
     public readonly Column<bool> bt_disabled = new();
     public readonly Column<DateTime?> dt_locked = new();

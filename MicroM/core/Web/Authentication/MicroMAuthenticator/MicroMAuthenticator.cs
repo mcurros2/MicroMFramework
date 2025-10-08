@@ -19,14 +19,22 @@ public class MicroMAuthenticator : IAuthenticator
     private readonly IHttpContextAccessor _contextAccessor;
     private readonly IOptions<MicroMOptions> _microm_config;
     private readonly IEmailService _emailService;
+    private readonly IMicroMEncryption _encryptor;
 
-    public MicroMAuthenticator(ILogger<MicroMAuthenticator> logger, IDeviceIdService deviceIdService, IHttpContextAccessor httpContextAccessor, IOptions<MicroMOptions> microm_config, IEmailService emailService)
+    public MicroMAuthenticator(
+        ILogger<MicroMAuthenticator> logger,
+        IDeviceIdService deviceIdService,
+        IHttpContextAccessor httpContextAccessor,
+        IOptions<MicroMOptions> microm_config,
+        IEmailService emailService,
+        IMicroMEncryption encryptor)
     {
         _log = logger;
         _deviceIdService = deviceIdService;
         _contextAccessor = httpContextAccessor;
         _microm_config = microm_config;
         _emailService = emailService;
+        _encryptor = encryptor;
     }
 
     private string GetRefreshCookieName(ApplicationOption app_config)
@@ -352,11 +360,6 @@ public class MicroMAuthenticator : IAuthenticator
                 jitUser.Def.vc_email.Value = identity.Email;
                 // Default user type
                 jitUser.Def.c_usertype_id.Value = nameof(UserTypes.USER);
-                // Store sid if available
-                if (!string.IsNullOrWhiteSpace(identity.Sid))
-                {
-                    jitUser.Def.vb_sid.Value = identity.Sid;
-                }
                 // Generate a random password (hashed by InsertData)
                 jitUser.Def.vc_password.Value = CryptClass.GenerateRandomBase64String();
 
@@ -403,12 +406,31 @@ public class MicroMAuthenticator : IAuthenticator
                 serverClaims[MicroMServerClaimTypes.MicroMUserDeviceID] = device_id;
                 serverClaims[MicroMServerClaimTypes.MicroMUserGroups] = login_data.user_groups ?? "[]";
 
-                if (!string.IsNullOrEmpty(identity.Sid))
+                if (!string.IsNullOrEmpty(identity.SessionId))
                 {
-                    serverClaims[MicroMServerClaimTypes.MicroMOidcSessionID] = identity.Sid;
+                    serverClaims[MicroMServerClaimTypes.MicroMOidcSessionID] = identity.SessionId;
                 }
 
-                // TODO: Upsert ApplicationOidcActiveSessions with (app_id, username, device_id, sid) and optionally store IdP refresh token (encrypted).
+                // Persist active OIDC session link (DB upsert) using IdP session GUID
+                if (!string.IsNullOrWhiteSpace(identity.SessionId))
+                {
+                    await ApplicationOidcActiveSessions.UpdateSession(
+                        app.ApplicationID,
+                        identity.Username,
+                        device_id,
+                        identity.SessionId,
+                        identity.Subject,
+                        identity.IdpRefreshToken,
+                        refresh_expiration_utc: identity.IdpRefreshExpirationUtc?.UtcDateTime,
+                        ec,
+                        _encryptor,
+                        ct
+                    );
+                }
+                else
+                {
+                    _log.LogWarning("External sign-in: missing or invalid IdP session GUID for user {username}. Session linkage not persisted.", identity.Username);
+                }
             }
             else
             {
@@ -420,9 +442,9 @@ public class MicroMAuthenticator : IAuthenticator
                 serverClaims[MicroMServerClaimTypes.MicroMUserType_id] = nameof(UserTypes.USER);
                 serverClaims[MicroMServerClaimTypes.MicroMUserGroups] = "[]";
 
-                if (!string.IsNullOrEmpty(identity.Sid))
+                if (!string.IsNullOrEmpty(identity.SessionId))
                 {
-                    serverClaims[MicroMServerClaimTypes.MicroMOidcSessionID] = identity.Sid;
+                    serverClaims[MicroMServerClaimTypes.MicroMOidcSessionID] = identity.SessionId;
                 }
             }
         }

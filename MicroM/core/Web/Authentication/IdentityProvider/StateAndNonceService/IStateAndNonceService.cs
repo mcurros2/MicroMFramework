@@ -6,9 +6,9 @@ namespace MicroM.Web.Authentication.SSO;
 
 public interface IStateAndNonceService
 {
-    StateAndNonceRecord EnsureStateAndNonce(IFormCollection original, string? providedState, string? providedNonce, string? providedDeviceId);
+    StateAndNonceContext EnsureStateAndNonce(IFormCollection original, string? providedState, string? providedNonce, string? providedDeviceId);
 
-    void StoreStateCookie(ApplicationOption app, string hmacKey, string state, string nonce, string? deviceId);
+    void StoreStateCookie(ApplicationOption app, string hmacKey, StateAndNonceData data);
 
-    ResultWithStatus<StateAndNonceRecord, string> ValidateAndConsumeStateCookie(string app_id, string hmacKey, string incomingState);
+    ResultWithStatus<StateAndNonceData, string> ValidateAndConsumeStateCookie(string app_id, string hmacKey, string incomingState);
 }

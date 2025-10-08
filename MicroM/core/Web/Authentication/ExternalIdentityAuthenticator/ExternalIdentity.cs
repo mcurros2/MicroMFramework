@@ -2,10 +2,11 @@
 
 public record ExternalIdentity(
     string Provider,
-    string Subject,
+    string? Subject,
     string Username,
     string? Email,
-    string? Sid,
+    string? SessionId,
     string? IdpRefreshToken,
+    DateTimeOffset? IdpRefreshExpirationUtc,
     IReadOnlyDictionary<string, string> Claims
 );

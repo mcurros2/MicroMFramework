@@ -6,7 +6,6 @@ using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
 using System.Security.Cryptography;
-using System.Text;
 
 namespace MicroM.Web.Authentication.SSO;
 
@@ -25,125 +24,95 @@ public class StateAndNonceService
         return $"m-oidc-stn-{app_config.ApplicationID}";
     }
 
-    private static string ComputeHmacBase64String(string keyMaterial, string data)
+    public StateAndNonceContext EnsureStateAndNonce(IFormCollection original, string? providedState, string? providedNonce, string? providedDeviceId)
     {
-        using var h = new HMACSHA256(Encoding.UTF8.GetBytes(keyMaterial));
-        return WebEncoders.Base64UrlEncode(h.ComputeHash(Encoding.UTF8.GetBytes(data)));
-    }
-
-    public StateAndNonceRecord EnsureStateAndNonce(IFormCollection original, string? providedState, string? providedNonce, string? providedDeviceId)
-    {
-        string state = string.IsNullOrWhiteSpace(providedState) ? WebEncoders.Base64UrlEncode(RandomNumberGenerator.GetBytes(32)) : providedState;
-        string nonce = string.IsNullOrWhiteSpace(providedNonce) ? WebEncoders.Base64UrlEncode(RandomNumberGenerator.GetBytes(32)) : providedNonce;
+        string state = string.IsNullOrWhiteSpace(providedState)
+            ? WebEncoders.Base64UrlEncode(RandomNumberGenerator.GetBytes(32))
+            : providedState;
+        string nonce = string.IsNullOrWhiteSpace(providedNonce)
+            ? WebEncoders.Base64UrlEncode(RandomNumberGenerator.GetBytes(32))
+            : providedNonce;
         string? deviceId = !string.IsNullOrWhiteSpace(providedDeviceId)
-                ? providedDeviceId
-                : (original.TryGetValue(WellknownIdentityConstants.LocalDeviceId, out var ldid) ? ldid.ToString() : null);
-
+            ? providedDeviceId
+            : (original.TryGetValue(WellknownIdentityConstants.LocalDeviceId, out var ldid) ? ldid.ToString() : null);
 
         var dict = new Dictionary<string, StringValues>(StringComparer.Ordinal);
         foreach (var kv in original) dict[kv.Key] = kv.Value;
-        dict[WellknownIdentityConstants.State] = new StringValues(state);
-        dict[WellknownIdentityConstants.Nonce] = new StringValues(nonce);
+        dict[WellknownIdentityConstants.State] = new(state);
+        dict[WellknownIdentityConstants.Nonce] = new(nonce);
         if (!string.IsNullOrWhiteSpace(deviceId))
         {
-            dict[WellknownIdentityConstants.LocalDeviceId] = new StringValues(deviceId);
+            dict[WellknownIdentityConstants.LocalDeviceId] = new(deviceId);
         }
 
-        return new(state, nonce, deviceId, new FormCollection(dict));
+        var data = new StateAndNonceData(state, nonce, deviceId, DateTimeOffset.UtcNow.ToUnixTimeSeconds());
+        return new StateAndNonceContext(data, new FormCollection(dict));
     }
 
-    public void StoreStateCookie(ApplicationOption app, string hmacKey, string state, string nonce, string? deviceId)
+    public void StoreStateCookie(ApplicationOption app, string hmacKey, StateAndNonceData data)
     {
         var context = http_context.HttpContext ?? throw new InvalidOperationException("No HttpContext available");
 
-        var ts = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-        var payload = $"{state}.{nonce}.{ts}.{deviceId ?? ""}";
-        var mac = ComputeHmacBase64String(hmacKey, payload);
-        var value = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes($"{payload}.{mac}"));
+        var encoded = StateAndNonceHashed.Encode(hmacKey, data);
 
         var cookie_name = GetStateAndNonceCookieName(app);
-
         var response = context.Response;
         var app_tenant_path = app_config.GetTenantPath(context);
 
         response.Cookies.Append(
             cookie_name,
-            value,
+            encoded,
             new CookieOptions
             {
                 HttpOnly = true,
                 Secure = true,
-                SameSite = SameSiteMode.Strict,
+                SameSite = SameSiteMode.Lax,
                 Path = app_tenant_path,
                 Expires = DateTimeOffset.UtcNow.AddMinutes(STATE_COOKIE_TTL_MINUTES)
             });
     }
 
-    public ResultWithStatus<StateAndNonceRecord, string> ValidateAndConsumeStateCookie(string app_id, string hmacKey, string incomingState)
+    public ResultWithStatus<StateAndNonceData, string> ValidateAndConsumeStateCookie(string app_id, string hmacKey, string incomingState)
     {
+        if (string.IsNullOrWhiteSpace(incomingState))
+        {
+            return new(null, "state_missing");
+        }
+
         var context = http_context.HttpContext ?? throw new InvalidOperationException("No HttpContext available");
         var request = context.Request;
 
-        var cookie_name = GetStateAndNonceCookieName(app_config.GetAppConfiguration(app_id) ?? throw new InvalidOperationException("App config not found"));
+        var appCfg = app_config.GetAppConfiguration(app_id) ?? throw new InvalidOperationException("App config not found");
+        var cookieName = GetStateAndNonceCookieName(appCfg);
 
-        if (!request.Cookies.TryGetValue(cookie_name, out var stored))
+        if (!request.Cookies.TryGetValue(cookieName, out var stored))
         {
-            log.LogDebug("State cookie {cookie_name} missing", cookie_name);
+            log.LogDebug("State cookie {cookie_name} missing", cookieName);
             return new(null, "state_cookie_missing");
         }
 
-        try
+        var (hashed, error) = StateAndNonceHashed.Decode(hmacKey, stored);
+        if (error != null || hashed == null)
         {
-            var decoded = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(stored));
-            var parts = decoded.Split('.', StringSplitOptions.RemoveEmptyEntries);
-            if (parts.Length != 4) return new(null, "state_cookie_invalid_format");
-
-            var state = parts[0];
-            var nonce = parts[1];
-            var tsStr = parts[2];
-            var deviceId = parts.Length == 5 ? parts[3] : null;
-            var mac = parts.Length == 5 ? parts[4] : parts[3];
-
-            if (!long.TryParse(tsStr, out var ts))
-            {
-                log.LogDebug("State cookie {cookie_name} has invalid timestamp", cookie_name);
-                return new(null, "state_cookie_timestamp_invalid");
-            }
-            var age = DateTimeOffset.UtcNow - DateTimeOffset.FromUnixTimeSeconds(ts);
-            if (age > TimeSpan.FromMinutes(STATE_COOKIE_TTL_MINUTES))
-            {
-                log.LogDebug("State cookie {cookie_name} has expired (age: {age})", cookie_name, age);
-                return new(null, "state_cookie_expired");
-            }
-
-            var macPayload = parts.Length == 5 ? $"{state}.{nonce}.{tsStr}.{deviceId}" : $"{state}.{nonce}.{tsStr}";
-            var expectedMac = ComputeHmacBase64String(hmacKey, macPayload);
-
-            if (!CryptographicOperations.FixedTimeEquals(
-                Encoding.UTF8.GetBytes(mac),
-                Encoding.UTF8.GetBytes(expectedMac)))
-            {
-                log.LogDebug("State cookie {cookie_name} has invalid MAC", cookie_name);
-                return new(null, "state_cookie_mac_invalid");
-            }
-
-            if (!string.Equals(state, incomingState, StringComparison.Ordinal))
-            {
-                log.LogDebug("State cookie {cookie_name} state mismatch (expected {expected}, got {actual})", cookie_name, state, incomingState);
-                return new(null, "state_mismatch");
-            }
-
-            // Single-use
-            var response = context.Response;
-            var app_tenant_path = app_config.GetTenantPath(context);
-            response.Cookies.Delete(cookie_name, new CookieOptions { Path = app_tenant_path });
-
-            return new(new(state, nonce, deviceId, null), null);
+            log.LogDebug("State cookie {cookie_name} decode error: {error}", cookieName, error);
+            return new(null, error);
         }
-        catch (Exception ex)
+
+        if (hashed.IsExpired(STATE_COOKIE_TTL_MINUTES))
         {
-            log.LogDebug(ex, "Failed to decode or validate state cookie {cookie_name}", cookie_name);
-            return new(null, "state_cookie_corrupt");
+            log.LogDebug("State cookie {cookie_name} expired", cookieName);
+            return new(null, "state_cookie_expired");
         }
+
+        if (!string.Equals(hashed.Data.State, incomingState, StringComparison.Ordinal))
+        {
+            log.LogDebug("State cookie {cookie_name} state mismatch (expected {expected}, got {actual})", cookieName, hashed.Data.State, incomingState);
+            return new(null, "state_mismatch");
+        }
+
+        // Single-use
+        context.Response.Cookies.Delete(cookieName, new CookieOptions { Path = app_config.GetTenantPath(context) });
+
+        return new(hashed.Data, null);
     }
 }

@@ -1,6 +1,6 @@
 ﻿namespace MicroM.Web.Authentication.SSO;
 
-public record OIDCTokenRequest
+public sealed record OIDCTokenRequest
 (
     OIDCGrantType grant_type,
     string? code = null,

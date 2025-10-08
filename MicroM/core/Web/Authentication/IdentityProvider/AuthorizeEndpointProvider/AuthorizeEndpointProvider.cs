@@ -1,4 +1,6 @@
 ﻿using MicroM.Configuration;
+using MicroM.Core;
+using MicroM.Web.Services;
 using Microsoft.AspNetCore.Http;
 
 namespace MicroM.Web.Authentication.SSO;
@@ -28,7 +30,7 @@ public static class AuthorizeEndpointProvider
         return auth_request;
     }
 
-    public static (OIDCAuthorizeRequest? request, object? error) ValidateAndOverrideWithPARAuthorizationRequest(ApplicationOption app, IPushedAuthorizationService par_service, IQueryCollection query_string)
+    public static ResultWithStatus<OIDCAuthorizeRequest, ErrorResult> ValidateAndOverrideWithPARAuthorizationRequest(ApplicationOption app, IPushedAuthorizationService par_service, IQueryCollection query_string)
     {
         var qs = GetAuthorizeRequest(query_string);
 
@@ -39,7 +41,7 @@ public static class AuthorizeEndpointProvider
             pushed = par_service.ConsumeRequest(qs.request_uri);
             if (pushed == null)
             {
-                return (null, new { error = "invalid_request", error_description = "request_uri not found or expired" });
+                return new(null, new("invalid_request", "request_uri not found or expired"));
             }
 
             qs = new
@@ -57,37 +59,37 @@ public static class AuthorizeEndpointProvider
         // Basic validation
         if (string.IsNullOrEmpty(qs.response_type) || !string.Equals(qs.response_type, "code", StringComparison.OrdinalIgnoreCase))
         {
-            return (null, new { error = "unsupported_response_type", error_description = "response_type must be 'code'" });
+            return new(null, new("unsupported_response_type", "response_type must be 'code'"));
         }
 
         if (string.IsNullOrEmpty(qs.client_id))
         {
-            return (null, new { error = "invalid_request", error_description = "client_id is required" });
+            return new(null, new("invalid_request", "client_id is required"));
         }
 
         if (string.IsNullOrEmpty(qs.redirect_uri))
         {
-            return (null, new { error = "invalid_request", error_description = "redirect_uri is required" });
+            return new(null, new("invalid_request", "redirect_uri is required"));
         }
 
         // Validate client registration and redirect_uri
         if (app.OIDCClientConfiguration == null || !app.OIDCClientConfiguration.TryGetValue(qs.client_id, out var clientCfg))
         {
-            return (null, new { error = "invalid_client", error_description = "Unknown client_id" });
+            return new(null, new("invalid_client", "Unknown client_id"));
         }
 
         if (clientCfg.URLAuthorizedRedirects == null || clientCfg.URLAuthorizedRedirects.Count == 0)
         {
-            return (null, new { error = "invalid_request", error_description = "Client has no registered redirect URIs" });
+            return new(null, new("invalid_request", "Client has no registered redirect URIs"));
         }
 
         var matched = clientCfg.URLAuthorizedRedirects.Any(registered => par_service.RedirectUriMatches(registered, qs.redirect_uri));
         if (!matched)
         {
-            return (null, new { error = "invalid_request", error_description = "redirect_uri not registered for client" });
+            return new(null, new("invalid_request", "redirect_uri not registered for client"));
         }
 
-        return (qs, null);
+        return new(qs, null);
     }
 
     public static string BuildLoginURL(ApplicationOption app, IQueryCollection query, string request_base)

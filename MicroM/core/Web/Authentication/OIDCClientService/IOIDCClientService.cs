@@ -11,10 +11,10 @@ public interface IOIDCClientService
     EtagCacheServiceCacheCheckResult? HandleClientJwks(ApplicationOption app, RequestHeaders request_headers, IHeaderDictionary response_headers);
 
     // Client-side PAR forwarder: returns (statusCode, contentType, body)
-    Task<OIDCHttpClientPostResponse> SignInOidc(ApplicationOption app, IHeaderDictionary requestHeaders, IFormCollection form, CancellationToken ct);
+    Task<OIDCHttpClientPostResponse> HandleSignInOidc(ApplicationOption app, IHeaderDictionary requestHeaders, IFormCollection form, CancellationToken ct);
 
     // OIDC authorization code callback: exchanges code at IdP /token (PKCE), validates id_token, returns a local ClaimsPrincipal
-    Task<ResultWithStatus<OIDCClientCallbackResult, string>> HandleSignInOidcCallback(
+    Task<ResultWithStatus<OIDCClientCallbackResult, string>> HandleAuthorizationCallback(
         ApplicationOption app,
         string code,
         string redirectUri,
@@ -22,5 +22,30 @@ public interface IOIDCClientService
         string state,
         CancellationToken ct);
 
-    Task HandleSignOut(ApplicationOption app, string id_token_hint, string? post_logout_redirect_uri, string? state, CancellationToken ct);
+    // FRONT-CHANNEL LOGOUT INITIATION (Client side)
+    // Builds the IdP end_session URL (optionally adding state + post_logout_redirect_uri) without performing redirect.
+    Task<ResultWithStatus<OIDCFrontChannelLogoutInitiation, string>> BuildEndSessionRequest(
+        ApplicationOption app,
+        string idTokenHint,
+        string? postLogoutRedirectUri,
+        string? state,
+        CancellationToken ct);
+
+    // FRONT-CHANNEL LOGOUT COMPLETION (Client callback after IdP redirect, if using post_logout_redirect_uri)
+    // Optionally clears local session if not already invalidated via backchannel.
+    Task<ResultWithStatus<bool, string>> HandleFrontChannelLogout(
+        ApplicationOption app,
+        string? state,
+        CancellationToken ct);
+
+    // BACKCHANNEL LOGOUT (receiver)
+    // Validates logout_token (signature, issuer, audience, events, iat/exp, sid/sub), enforces jti single-use,
+    // invalidates local sessions/refresh tokens, and returns structured result.
+    Task<OIDCBackchannelLogoutResult> HandleBackchannelLogout(
+        ApplicationOption app,
+        string logoutTokenJwt,
+        CancellationToken ct);
+
+
+
 }

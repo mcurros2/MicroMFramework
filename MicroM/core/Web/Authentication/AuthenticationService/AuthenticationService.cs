@@ -17,7 +17,7 @@ namespace MicroM.Web.Services;
 public class AuthenticationService(
             ILogger<AuthenticationService> log,
             IMicroMAppConfiguration app_config,
-            IIdPSessionService idp_session_service
+            IOIDCSessionService idp_session_service
     ) : IAuthenticationService
 {
     public async Task<(LoginResult? user_data, TokenResult? token_result)> HandleLogin(IAuthenticationProvider auth, WebAPIJsonWebTokenHandler jwt_handler, string app_id, UserLogin user_login, Dictionary<string, object> server_claims, CancellationToken ct)
@@ -55,8 +55,8 @@ public class AuthenticationService(
                 {
                     if (app.IdentityProviderRoleType == nameof(IdentityProviderRole.IDPServer))
                     {
-                        var session_guid = await idp_session_service.CreateSession(app, app.ApplicationID, authenticatorResult.LoginData.username, ct, user_login.LocalDeviceID, server_claims);
-                        oidc_session_id = session_guid.ToString();
+                        var session_id = await idp_session_service.CreateSession(app, app.ApplicationID, authenticatorResult.LoginData.username, ct, user_login.LocalDeviceID, server_claims);
+                        oidc_session_id = session_id.ToString();
                         authenticatorResult.ServerClaims[MicroMServerClaimTypes.MicroMOidcSessionID] = oidc_session_id;
                     }
 

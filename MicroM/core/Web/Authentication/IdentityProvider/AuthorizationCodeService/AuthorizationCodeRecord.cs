@@ -6,6 +6,7 @@ public record AuthorizationCodeRecord(
     string RedirectUri,
     string UserId,
     string? Sid,
+    string? Nonce,
     string? CodeChallenge,
     string? CodeChallengeMethod,
     DateTimeOffset ExpiresAt

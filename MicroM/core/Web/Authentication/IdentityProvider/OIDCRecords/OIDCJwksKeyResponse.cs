@@ -2,7 +2,7 @@
 
 namespace MicroM.Web.Authentication.SSO;
 
-public record OIDCJwksKeyResponse(
+public sealed record OIDCJwksKeyResponse(
     // Key identification / common metadata
     string? kid = null,
 
