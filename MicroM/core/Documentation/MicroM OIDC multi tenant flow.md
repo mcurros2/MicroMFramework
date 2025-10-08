@@ -19,7 +19,7 @@ Terminology
   - MicromUsers, MicromUsersDevices: local identities and per-device refresh tokens for local sessions.
   - ApplicationOidcActiveSessions: IdP session correlation per app. Columns include:
     - `c_application_id`, `vc_username`, `c_device_id`, `c_session_id` (PKs)
-    - `ui_oidc_session_guid_id` (sid), `vc_oidc_refreshtoken` (optional, encrypted), `dt_refresh_expiration`
+    - `vc_oidc_session_id` (sid), `vc_oidc_refreshtoken` (optional, encrypted), `dt_refresh_expiration`
   - CLIENT upserts a row on OIDC callback to link sid ↔ user/device; optionally stores IdP refresh_token for background claim refresh.
 
 1) Endpoints per application
@@ -59,8 +59,10 @@ Terminology
   - JIT provision user (if needed), create local cookie session (claims include `sub`, `sid`, `azp`), issue a CLIENT refresh token per device (MicromUsersDevices).
   - Upsert ApplicationOidcActiveSessions with (`c_application_id`, `vc_username` or `sub`, `c_device_id`, `ui_oidc_session_guid_id`), optionally `vc_oidc_refreshtoken` + `dt_refresh_expiration` if background IdP refresh is desired.
 - /auth/refresh (CLIENT):
-  - Validate/rotate the CLIENT refresh token (per device) and re-issue local cookie; do not call CENTRAL.
-  - Optional background IdP refresh on a longer cadence (e.g., 12–24h) using stored `vc_oidc_refreshtoken` with private_key_jwt; rotate and re-encrypt; update local claims if needed.
+  - Validate/rotate the CLIENT refresh token (per device) and re-issue local cookie; do not call CENTRAL. Same as APPs that valdiate locally (IDPDisabled).
+    - If local refresh fails and an IdP refresh_token exists, attempt refresh at CENTRAL as a one-time fallback; otherwise instruct SPA to re-initiate OIDC via /oidc-client/login.
+  - IdP refresh expiration is configured on the IdP at a longer cadence (e.g., 30 days). CLIENT should not issue a refresh token with an expiration greater than the IdP refresh expiration.
+  - CLIENT issues its own refresh token with a shorter expiration (e.g., 1 day) and rotates it on each /auth/refresh.
   - If local refresh fails and an IdP refresh_token exists, attempt a one-time IdP refresh; otherwise instruct SPA to re-initiate OIDC via /oidc-client/login.
 - Tokens remain server-side only; never return IdP refresh_token to the SPA.
 
@@ -97,7 +99,8 @@ Terminology
 - Client-initiated logout:
   - CLIENT local logoff clears local session and, when configured as OIDC client, initiates IdP endsession (back-channel) at CENTRAL.
   - CENTRAL endsession performs backchannel as above.
-
+  - Detailed documentation flow in `OIDC SLO flow.md`.
+  
 7) Security considerations
 - PAR: Use client_secret_basic or private_key_jwt (preferred). Redirect URIs are strictly normalized and validated.
 - PKCE: Always use S256.

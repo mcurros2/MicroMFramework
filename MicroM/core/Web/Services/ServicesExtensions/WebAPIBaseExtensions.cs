@@ -20,6 +20,7 @@ using Microsoft.Net.Http.Headers;
 using System.Security.Claims;
 
 namespace MicroM.Web.Services;
+
 public static class WebAPIBaseExtensions
 {
 
@@ -137,7 +138,7 @@ public static class WebAPIBaseExtensions
         services.AddSingleton<IAuthorizationCodeService, MemoryAuthorizationCodeService>();
         services.AddSingleton<IOauthTokenService, OauthTokenService>();
         services.AddSingleton<IPushedAuthorizationService, PushedAuthorizationService>();
-        services.AddSingleton<IIdPSessionService, IdPSessionService>();
+        services.AddSingleton<IOIDCSessionService, OIDCSessionService>();
         services.AddSingleton<IOIDCClientService, OIDCClientService>();
         services.AddSingleton<IStateAndNonceService, StateAndNonceService>();
 
@@ -156,6 +157,8 @@ public static class WebAPIBaseExtensions
         services.Configure<MicroMOptions>(configuration.GetSection(MicroMOptions.MicroM));
 
         services.AddHttpClient();
+        services.AddMemoryCache();
+
         services.AddMicroMOidcHttpClients();
 
         services.AddMemoryQueue();
@@ -171,9 +174,10 @@ public static class WebAPIBaseExtensions
         services.AddSecurityService();
         services.AddAuthenticationService();
         services.AddEntitiesService();
-        //services.AddWebAPIServices();
 
         services.AddIdentityProviderService();
+        services.AddSingleton<IOIDCReplayCacheService, OIDCReplayCacheService>();
+
 
         services.AddSingleton<WebAPIJsonWebTokenHandler>();
         services.AddSingleton<IPostConfigureOptions<JwtBearerOptions>, WebAPIJwtPostConfigurationOptions>();

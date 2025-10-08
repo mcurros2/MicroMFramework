@@ -175,12 +175,20 @@ public class IdentityProviderController : ControllerBase, IIdentityProviderContr
 
             string requestBase = $"{Request.Scheme}://{Request.Host.Value}{_api_path}/{app_id}";
 
-            var (redirectUrl, loginUrl, error) = await idp.HandleAuthorize(app, Request.Query, User, requestBase, ct);
+            var (result, error) = await idp.HandleAuthorize(app, Request.Query, User, requestBase, ct);
+
 
             if (error != null)
             {
                 return BadRequest(error);
             }
+
+            if (result == null)
+            {
+                return BadRequest(new { error = "server_error", error_description = "No result produced by authorize flow" });
+            }
+
+            var (redirectUrl, loginUrl) = result;
 
             if (!string.IsNullOrEmpty(loginUrl))
             {

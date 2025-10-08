@@ -6,5 +6,6 @@ public record OIDCTokenResponse(
     string access_token,
     string? refresh_token = null,
     string? id_token = null,
-    string scope = "openid"
+    string scope = "openid",
+    string? refresh_expiration_utc = null
 );

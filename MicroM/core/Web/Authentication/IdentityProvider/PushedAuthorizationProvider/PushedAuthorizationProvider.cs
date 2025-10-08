@@ -1,5 +1,6 @@
 ﻿using MicroM.Configuration;
 using MicroM.Core;
+using MicroM.Web.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
@@ -13,7 +14,7 @@ namespace MicroM.Web.Authentication.SSO;
 
 public static class PushedAuthorizationProvider
 {
-    public static (PushedAuthorizationRequest? request, object? error) ValidateRequest(IFormCollection form)
+    public static ResultWithStatus<PushedAuthorizationRequest, ErrorResult> ValidateRequest(IFormCollection form)
     {
         var responseType = form["response_type"].ToString();
         var redirectUri = form["redirect_uri"].ToString();
@@ -25,16 +26,16 @@ public static class PushedAuthorizationProvider
         if (string.IsNullOrEmpty(responseType) || !string.Equals(responseType, "code", StringComparison.OrdinalIgnoreCase))
         {
 
-            return (null, new { error = "invalid_request", error_description = "response_type must be 'code'" });
+            return new(null, new("invalid_request", "response_type must be 'code'"));
 
         }
         if (string.IsNullOrEmpty(redirectUri))
         {
-            return (null, new { error = "invalid_request", error_description = "redirect_uri is required" });
+            return new(null, new("invalid_request", "redirect_uri is required"));
         }
         if (string.IsNullOrEmpty(scope))
         {
-            return (null, new { error = "invalid_request", error_description = "scope is required" });
+            return new(null, new("invalid_request", "scope is required"));
         }
         var result = new PushedAuthorizationRequest(
             client_id: clientId,
@@ -45,7 +46,7 @@ public static class PushedAuthorizationProvider
             code_challenge: codeChallenge ?? "",
             code_challenge_method: codeChallengeMethod ?? ""
         );
-        return (result, null);
+        return new(result, null);
     }
 
     public static string GenerateBase64UrlCode(int sizeBytes)

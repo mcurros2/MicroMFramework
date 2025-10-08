@@ -1,6 +1,6 @@
 ﻿namespace MicroM.Web.Authentication.SSO;
 
-public record OIDCAuthorizeRequest
+public sealed record OIDCAuthorizeRequest
 (
     string response_type,
     string client_id,

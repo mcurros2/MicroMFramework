@@ -1,4 +1,5 @@
-﻿using MicroM.Web.Authentication;
+﻿using MicroM.Configuration;
+using MicroM.Web.Authentication;
 using MicroM.Web.Authentication.SSO;
 using MicroM.Web.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -9,8 +10,10 @@ namespace MicroM.Web.Controllers;
 public interface IOIDCClientController
 {
     ActionResult Jwks(IMicroMAppConfiguration app_config, IOIDCClientService client_service, string app_id, CancellationToken ct);
+
     Task<ActionResult> SignInOidc(IMicroMAppConfiguration app_config, IOIDCClientService clientService, string app_id, CancellationToken ct);
-    Task<ActionResult> OidcClientCallback(
+
+    Task<ActionResult> AuthorizeCallback(
         IMicroMAppConfiguration app_config,
         IOIDCClientService clientService,
         IDeviceIdService deviceid_service,
@@ -20,5 +23,14 @@ public interface IOIDCClientController
         ILogger<OIDCClientController> log,
         string app_id,
         CancellationToken ct);
-    Task SignOutOidc(string app_id, string? returnUrl, CancellationToken ct);
+
+    Task<ActionResult> FrontChannelLogout(
+       ApplicationOption app,
+       string? state,
+       CancellationToken ct);
+
+    Task<ActionResult> BackchannelLogout(
+        ApplicationOption app,
+        string logoutTokenJwt,
+        CancellationToken ct);
 }

@@ -1,4 +1,6 @@
 ﻿using MicroM.Configuration;
+using MicroM.Core;
+using MicroM.Web.Services;
 using Microsoft.AspNetCore.Http;
 using System.Collections.Concurrent;
 
@@ -13,25 +15,25 @@ public class PushedAuthorizationService : IPushedAuthorizationService
     // Default lifetime for a pushed request (seconds)
     private const int DEFAULT_EXPIRES_IN = 90;
 
-    public (OIDCPARResponse? response, object? error) CreatePushedRequest(ApplicationOption app, IFormCollection form, string authenticated_client_id)
+    public ResultWithStatus<OIDCPARResponse, ErrorResult> CreatePushedRequest(ApplicationOption app, IFormCollection form, string authenticated_client_id)
     {
         var (request, error) = PushedAuthorizationProvider.ValidateRequest(form);
 
         if (request == null || error != null)
         {
-            return (null, error);
+            return new(null, error);
         }
 
         request = request with { client_id = authenticated_client_id };
 
         if (app.OIDCClientConfiguration == null || !app.OIDCClientConfiguration.TryGetValue(request.client_id, out var clientCfg))
         {
-            return (null, new { error = "invalid_client", error_description = "Unknown client_id" });
+            return new(null, new("invalid_client", "Unknown client_id"));
         }
 
         if (clientCfg.URLAuthorizedRedirects == null || clientCfg.URLAuthorizedRedirects.Count == 0)
         {
-            return (null, new { error = "invalid_request", error_description = "Client has no registered redirect URIs" });
+            return new(null, new("invalid_request", "Client has no registered redirect URIs"));
         }
 
         if (clientCfg.URLAuthorizedRedirects != null && clientCfg.URLAuthorizedRedirects.Count > 0)
@@ -39,7 +41,7 @@ public class PushedAuthorizationService : IPushedAuthorizationService
             var matched = clientCfg.URLAuthorizedRedirects.Any(registered => RedirectUriMatches(registered, request.redirect_uri));
             if (!matched)
             {
-                return (null, new { error = "invalid_request", error_description = "redirect_uri not registered for client" });
+                return new(null, new("invalid_request", "redirect_uri not registered for client"));
             }
         }
 
@@ -50,7 +52,7 @@ public class PushedAuthorizationService : IPushedAuthorizationService
 
         var response = new OIDCPARResponse(request_uri: requestUri, expires_in: DEFAULT_EXPIRES_IN);
 
-        return (response, null);
+        return new(response, null);
     }
 
     public PushedAuthorizationRequest? ConsumeRequest(string requestUri)

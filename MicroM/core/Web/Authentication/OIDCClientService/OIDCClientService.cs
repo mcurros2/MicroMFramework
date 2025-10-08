@@ -53,7 +53,7 @@ public class OIDCClientService(
         return result;
     }
 
-    private async Task<ResultWithStatus<OIDCWellKnownResponse, string>> DiscoverWellKnownAsync(ApplicationOption app, CancellationToken ct)
+    private async Task<ResultWithStatus<OIDCWellKnownResponse, string>> DiscoverWellKnown(ApplicationOption app, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(app.OIDCWellKnownURL))
         {
@@ -103,7 +103,7 @@ public class OIDCClientService(
         }
     }
 
-    public async Task<OIDCHttpClientPostResponse> SignInOidc(ApplicationOption app, IHeaderDictionary requestHeaders, IFormCollection form, CancellationToken ct)
+    public async Task<OIDCHttpClientPostResponse> HandleSignInOidc(ApplicationOption app, IHeaderDictionary requestHeaders, IFormCollection form, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(app.OIDCWellKnownURL))
         {
@@ -112,7 +112,7 @@ public class OIDCClientService(
         }
 
         // Discover PAR endpoint
-        var (wellknown_result, wellknown_error) = await DiscoverWellKnownAsync(app, ct);
+        var (wellknown_result, wellknown_error) = await DiscoverWellKnown(app, ct);
         if (wellknown_error != null || wellknown_result == null)
         {
             log.LogWarning("Failed to discover IdP configuration for app {app}: {error}", app.ApplicationID, wellknown_error);
@@ -131,10 +131,10 @@ public class OIDCClientService(
         string? providedNonce = form.TryGetValue(WellknownIdentityConstants.Nonce, out var n) ? n.ToString() : null;
         string? providedDeviceId = form.TryGetValue(WellknownIdentityConstants.LocalDeviceId, out var d) ? d.ToString() : null;
 
-        var (state, nonce, deviceId, adjustedForm) = state_and_nonce_service.EnsureStateAndNonce(form, providedState, providedNonce, providedDeviceId);
+        var stateContext = state_and_nonce_service.EnsureStateAndNonce(form, providedState, providedNonce, providedDeviceId);
 
         // Prepare PAR body - forward incoming form params
-        var form_result = PushedAuthorizationProvider.ValidateSignInForm(app, adjustedForm);
+        var form_result = PushedAuthorizationProvider.ValidateSignInForm(app, stateContext.AdjustedForm!);
 
         if (form_result.error != null || form_result.valid_form == null)
         {
@@ -164,7 +164,7 @@ public class OIDCClientService(
         // Store state and nonce associated with this client_id and request_uri
         if (parResult.StatusCode is >= 200 and < 300)
         {
-            state_and_nonce_service.StoreStateCookie(app, app.JWTKey, state, nonce, deviceId);
+            state_and_nonce_service.StoreStateCookie(app, app.JWTKey, stateContext.Data);
         }
         else
         {
@@ -174,7 +174,7 @@ public class OIDCClientService(
         return parResult;
     }
 
-    public async Task<ResultWithStatus<OIDCClientCallbackResult, string>> HandleSignInOidcCallback(
+    public async Task<ResultWithStatus<OIDCClientCallbackResult, string>> HandleAuthorizationCallback(
             ApplicationOption app,
             string code,
             string redirectUri,
@@ -197,7 +197,7 @@ public class OIDCClientService(
         }
 
         // Discover IdP metadata
-        var (wellknown, wellknown_error) = await DiscoverWellKnownAsync(app, ct);
+        var (wellknown, wellknown_error) = await DiscoverWellKnown(app, ct);
         if (wellknown_error != null || wellknown == null)
             return new(null, wellknown_error ?? "Discovery failed");
 
@@ -231,6 +231,7 @@ public class OIDCClientService(
         // Exchange authorization code for tokens
         string id_token;
         string? idpRefreshToken = null;
+        DateTimeOffset? idpRefreshExpirationUtc = null;
 
         try
         {
@@ -252,6 +253,15 @@ public class OIDCClientService(
             {
                 idpRefreshToken = rt.GetString();
             }
+
+            if (doc.RootElement.TryGetProperty("refresh_expiration_utc", out var rexp))
+            {
+                var rexpStr = rexp.GetString();
+                if (!string.IsNullOrWhiteSpace(rexpStr) && DateTimeOffset.TryParse(rexpStr, out var parsed))
+                {
+                    idpRefreshExpirationUtc = parsed.ToUniversalTime();
+                }
+            }
         }
         catch (Exception ex)
         {
@@ -265,13 +275,31 @@ public class OIDCClientService(
             return new(null, jwt_error ?? "Invalid id_token");
         }
 
-        return new(new(jwt_result.Principal, jwt_result.ExpiresUtc, idpRefreshToken, state_result.DeviceId), null);
+        // Nonce verification against id_token
+        var nonceFromIdToken = jwt_result.Principal.FindFirst("nonce")?.Value;
+        if (!string.IsNullOrWhiteSpace(state_result.Nonce))
+        {
+            if (string.IsNullOrWhiteSpace(nonceFromIdToken) || !string.Equals(nonceFromIdToken, state_result.Nonce, StringComparison.Ordinal))
+            {
+                return new(null, "invalid_nonce");
+            }
+        }
+
+        return new(new(jwt_result.Principal, jwt_result.ExpiresUtc, idpRefreshToken, state_result.DeviceId, idpRefreshExpirationUtc), null);
     }
 
-    public Task HandleSignOut(ApplicationOption app, string id_token_hint, string? post_logout_redirect_uri, string? state, CancellationToken ct)
+    public Task<ResultWithStatus<OIDCFrontChannelLogoutInitiation, string>> BuildEndSessionRequest(ApplicationOption app, string idTokenHint, string? postLogoutRedirectUri, string? state, CancellationToken ct)
     {
         throw new NotImplementedException();
     }
 
+    public Task<ResultWithStatus<bool, string>> HandleFrontChannelLogout(ApplicationOption app, string? state, CancellationToken ct)
+    {
+        throw new NotImplementedException();
+    }
 
+    public Task<OIDCBackchannelLogoutResult> HandleBackchannelLogout(ApplicationOption app, string logoutTokenJwt, CancellationToken ct)
+    {
+        throw new NotImplementedException();
+    }
 }

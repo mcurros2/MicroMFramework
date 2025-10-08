@@ -6,5 +6,6 @@ public sealed record OIDCClientCallbackResult(
     ClaimsPrincipal? Principal,
     DateTimeOffset? ExpiresUtc,
     string? IdpRefreshToken,
-    string? DeviceId
+    string? DeviceId,
+    DateTimeOffset? IdpRefreshExpirationUtc
 );

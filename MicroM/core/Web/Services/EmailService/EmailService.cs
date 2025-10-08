@@ -195,11 +195,7 @@ namespace MicroM.Web.Services
 
                 int processed_emails = 0;
 
-                //logger.LogInformation("EmailService.StartProcessingQueue: Processing Emails for {app_id}", app_id);
-
                 List<EmailQueuedItem>? result = await emq.ExecuteProc<EmailQueuedItem>(serviceCT, emq.Def.emq_qryGetQueuedItems);
-
-                //logger.LogInformation("EmailService.StartProcessingQueue: Processing {count} emails", result?.Count);
 
                 while (result?.Count > 0)
                 {

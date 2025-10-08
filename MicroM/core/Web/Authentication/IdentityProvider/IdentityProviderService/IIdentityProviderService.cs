@@ -1,4 +1,6 @@
 ﻿using MicroM.Configuration;
+using MicroM.Core;
+using MicroM.Web.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Headers;
 using System.Security.Claims;
@@ -11,11 +13,11 @@ public interface IIdentityProviderService
 
     EtagCacheServiceCacheCheckResult? HandleJwks(ApplicationOption app_config, RequestHeaders request_headers, IHeaderDictionary response_headers);
 
-    (OIDCTokenResponse? response, object? error) HandleToken(ApplicationOption app, IFormCollection form, ClaimsPrincipal client);
+    ResultWithStatus<OIDCTokenResponse, ErrorResult> HandleToken(ApplicationOption app, IFormCollection form, ClaimsPrincipal client);
 
-    (OIDCPARResponse? response, object? error) HandlePAR(ApplicationOption app, IFormCollection form, ClaimsPrincipal client);
+    ResultWithStatus<OIDCPARResponse, ErrorResult> HandlePAR(ApplicationOption app, IFormCollection form, ClaimsPrincipal client);
 
-    Task<(string? redirectUrl, string? loginUrl, object? error)> HandleAuthorize(ApplicationOption app, IQueryCollection query, ClaimsPrincipal user, string request_base, CancellationToken ct);
+    Task<ResultWithStatus<OIDCAuthorizeRecord, ErrorResult>> HandleAuthorize(ApplicationOption app, IQueryCollection query, ClaimsPrincipal user, string request_base, CancellationToken ct);
 
     Task<Dictionary<string, object?>> HandleUserInfo(ApplicationOption app_config, string app_id, string user_id, CancellationToken ct);
 

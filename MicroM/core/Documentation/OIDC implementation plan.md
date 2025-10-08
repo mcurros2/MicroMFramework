@@ -1,99 +1,139 @@
 ﻿# OIDC Implementation Plan (Current Status & Next Tasks)
 
+Reference
+See “MicroM OIDC Multi-Tenant Flow (PAR + PKCE, SSO/SLO)” (`core/Documentation/MicroM OIDC multi tenant flow.md`).
+
 A — Persistence & Core Services
-- ETag cache, Certificate cache, JWKS service: COMPLETE
-- JwksProvider (fetch + validate via named client): COMPLETE
-- Backchannel client auth handler (IdP): COMPLETE (Basic + private_key_jwt; local cert/JWKS fallback)
-- Authorization code store (in-memory, PKCE): COMPLETE
-- PushedAuthorizationService (PAR store): COMPLETE
-- Centralized HttpClients (named OIDC/JWKS): COMPLETE
-- Typed OIDC HTTP client (`OIDCHttpClient`): COMPLETE (used by client for WellKnown, PAR, Token)
-- ApplicationOidcActiveSessions entity: COMPLETE (app/user/device/sid, optional IdP refresh)
+- Core caches & JWKS: COMPLETE (`EtagCacheService`, `ApplicationCertificateCacheService`, `JwksService`)
+- JWKS validation helper: COMPLETE (`JwksProvider.ValidateIdTokenAsync`)
+- Backchannel client auth (IdP): COMPLETE
+- Authorization code store (PKCE + nonce + redirect_uri + expiry): COMPLETE
+- PAR store & forwarding: COMPLETE
+- Centralized HttpClients + typed OIDC client: COMPLETE
+- Active OIDC session persistence: COMPLETE (refactored)
+  - Entity: `ApplicationOidcActiveSessions`
+  - Session id column: `vc_oidc_session_id` (string; replaces previous Guid-based column)
+  - Subject column: `vc_oidc_sub` (nullable, indexed) persisted directly from IdP `sub`
+  - Refresh token column enlarged to `VarChar(2048)` (`vc_oidc_refreshtoken`, encrypted)
+  - Unique constraint: `(c_application_id, vc_oidc_session_id)` (one active sid per app)
+  - One row per (app, username, device); sid rotation updates the existing row
+  - Query procs: `aos_getSessionsBySID`, `aos_getSessionsByUser`, `aos_getSessionsBySUB`
+  - Delete helpers: `aos_deleteUserSessions`, `aos_deleteSessionSID`, `aos_deleteAllSessions`
 
 B — Login / SSO Creation
-- IdP interactive login and SSO session: COMPLETE
-  - `AuthenticationService` creates IdP SSO session; `sid` available in server claims
-- Client local-login guard: COMPLETE
-- Client callback logic (code → tokens → principal): COMPLETE
-  - `OIDCClientService.HandleSignInOidcCallback` returns principal, expiresUtc, optional `idpRefreshToken`, and propagated `local_device_id`
-- Client callback HTTP endpoint: COMPLETE
-  - `/oidc-client/callback` issues the local session via `IAuthenticationService.SignInAsync`
-  - JIT provisioning and per-device refresh issuance are executed via `IAuthenticator.HandleExternalSignIn` (MicroMAuthenticator)
-  - Returns SPA token envelope (`access_token`, `token_type`, `expires_in`, `refresh-token` currently empty; cookie is set server-side)
+COMPLETE (`/oidc-client/auth-callback`)
 
-C — Authorization Flow (PAR + Authorize)
-- IdP PAR/Authorize flow: COMPLETE (request_uri TTL, strict redirect, PKCE)
-- Client PAR forwarder: COMPLETE (AllowAnonymous, CORS; strongest-first auth; typed client used)
-  - SPA-provided `local_device_id` is captured at login and persisted in HMAC-protected state cookie (not forwarded to IdP)
+C — Authorization Flow
+COMPLETE (PAR + Authorize + PKCE + state/nonce)
 
 D — EndSession / Single Logout (SLO)
-- IdP end_session + backchannel logout emission: PENDING
-- Client backchannel logout receiver: PENDING
-- Client local logoff → IdP end_session: PENDING
+STATUS: IN PROGRESS (session layer + replay cache complete)
+Policy: Backchannel logout performs user-wide (all devices) invalidation per application, not just the single sid row.
+Outstanding:
+- IdP `endsession` endpoint + logout_token issuance per client
+- Client backchannel endpoint logic
+- Refresh token invalidation batch proc
 
 E — Session Binding & Security
-- State & nonce: COMPLETE (cookie-based store/validate; HMAC-protected)
-- Nonce verification against id_token: PENDING (IdP must emit nonce)
-- sid propagation (authorize → id_token → client): COMPLETE
-  - Client stores `sid` in claims; DB linkage via `ApplicationOidcActiveSessions`: PENDING
-- Local device binding: COMPLETE
-  - SPA posts `local_device_id` to OIDC login; value is stored in state cookie and recovered at callback, used to bind the local session/device.
-- Local sessions per device with local refresh: PARTIAL/COMPLETE
-  - Per-device refresh token issuance and HttpOnly cookie are implemented in `MicroMAuthenticator.HandleExternalSignIn`
-  - `/auth/refresh` path already rotates/validates per-device refresh tokens (server-side). Response body’s `refresh-token` from callback remains empty; refresh cookie is authoritative.
+COMPLETE (state/nonce HMAC, TTL, device binding, persisted sid & sub)
 
 F — OIDC Client API Surface
-- GET /{app}/oidc-client/jwks: COMPLETE
-- POST /{app}/oidc-client/login (PAR): COMPLETE
-- /{app}/oidc-client/callback (GET/POST): COMPLETE (local session issuance + device binding + JIT + per-device refresh issuance)
-- POST /{app}/auth/login (IdPClient guard/wrapper): PARTIAL
-- POST /{app}/auth/refresh (local refresh per device): PARTIAL/COMPLETE (server flow implemented)
-- Backchannel logout endpoint: PENDING
+Core endpoints in place; logout endpoints (backchannel / front) PENDING
 
 G — Tokens & Claims
-- id_token validation (iss/aud/exp/signature via JWKS): COMPLETE
-- azp claim inclusion: COMPLETE
-- sid claim inclusion: COMPLETE
-- Refresh token lifecycle: PARTIAL/COMPLETE
-  - Per-device issuance at callback (cookie); rotation on refresh implemented
-  - DB linkage of `sid` and optional IdP refresh token storage: PENDING
-- Well-known identity constants (no string literals): COMPLETE
-  - Added `local_device_id` constant and wiring through state cookie
+COMPLETE (iss, aud, exp, signature, nonce, sid, azp handled)
 
 H — Tests
-- PAR auth variants, PKCE, id_token failures, sid propagation, SLO fan-out, callback E2E: PENDING
-- CLIENT per-device refresh flow; SLO by sid vs sub; backchannel idempotency (jti): PENDING
-- Device ID propagation E2E (SPA → PAR → state cookie → callback → session binding): PENDING
-- JIT provisioning path (user missing → provisioned → refresh issued → claims loaded): PENDING
+PENDING (no automated coverage for SLO & replay yet)
 
 I — Operational / Observability
-- CORS per app: COMPLETE
-- CSRF protections, rate limiting, metrics, tracing: PARTIAL/PENDING
+PENDING (rate limiting, metrics, structured logs)
 
 Recent changes
-- Implemented JIT provisioning and per-device refresh issuance at OIDC callback via `IAuthenticator.HandleExternalSignIn` (MicroMAuthenticator).
-- OIDC callback refactored to use authenticator external sign-in and to issue local session consistently.
-- Introduced explicit result types for state/nonce and OIDC client flows (removed tuples).
-- Implemented propagation of `local_device_id` using the HMAC-protected state cookie; used to bind device at callback.
+- Replaced GUID sid with string `vc_oidc_session_id`
+- Added `vc_oidc_sub` (indexed) for sub-only logout fallback
+- Added session enumeration & delete procs (sid/user/sub)
+- Enlarged refresh token storage to 2048 chars
+- Normalized blank subject → null
+- Replay cache implemented (simplified service)
+  - Service: `OIDCReplayCacheService` (`IOIDCReplayCacheService`)
+  - Fixed TTL = 10m, clock skew = 2m, max JTI length = 256
+  - In-memory (IMemoryCache) key prefix `oidc:logout:jti:`
+- Clarified SLO: global user sweep per app
 
-Next tasks (priority)
-1) DB links for sessions
-   - Upsert `ApplicationOidcActiveSessions` with (`app_id`, `username`, `device_id`, `sid`) on callback
-   - Optionally store IdP `refresh_token` (encrypted) and manage background refresh if needed
+Known gaps before release
+- IdP `endsession` + logout_token generation & dispatch
+- Client backchannel logout handling + refresh invalidation
+- Refresh token invalidation proc (user/device scope)
+- Replay handling integration in backchannel endpoint
+- Unit/integration tests (state/nonce tamper, SLO, replay)
+- Metrics (logout tokens processed, sessions removed, replays)
+- Rate limiting on sensitive endpoints
+- Optional IdP endpoints (userinfo / introspect / revoke)
+- Admin API for subject-wide purge (DB ready, API missing)
 
-2) CLIENT /auth/refresh alignment
-   - Ensure SPA behavior is consistent with cookie-based refresh; optionally include `refresh-token` in callback response body for parity with local login
+## SLO Implementation Roadmap
 
-3) EndSession / SLO
-   - CENTRAL: implement `/oauth2/endsession` + backchannel `logout_token` emission
-   - CLIENT: implement `/oidc-client/backchannel-logout` to validate token (CENTRAL JWKS), terminate sessions by `sid` or fallback to username/sub, delete refresh entries; enforce idempotency via `jti` replay cache
+Phase 0 — Contracts & Naming (COMPLETE)
 
-4) Nonce claim wiring
-   - IdP: emit `nonce` in `id_token`; CLIENT: validate against stored nonce
+Phase 1 — Session Layer (COMPLETE)
 
-5) Tests
-   - E2E: callback → JIT → per-device refresh → DB link; PAR/PKCE error paths; SLO fan-out; nonce validation; logout jti replay; device-id propagation
+Phase 2 — Replay Cache (COMPLETE)
+- Implemented simplified fixed-option cache (`OIDCReplayCacheService`)
 
-6) Security/ops
-   - Encrypt any stored IdP `refresh_token` at rest; rotate on refresh; delete on logout/backchannel
-   - Rate limit OIDC endpoints; add metrics/logging around PAR/Token/Callback; SameSite=Lax for cookies where appropriate
+Phase 3 — Backchannel Logout (Client) (NEXT)
+- Implement `HandleBackchannelLogoutAsync` in `OIDCClientService`
+  - Parse/validate logout_token (signature, iss, aud, events, iat)
+  - Extract `sid` & `sub`; prefer sub for global sweep
+  - Replay check via `IOIDCReplayCacheService`
+  - Enumerate + delete sessions (`aos_deleteUserSessions`) + invalidate refresh tokens (new proc)
+  - Idempotent success (200) for replay / unknown user
+  - Structured logging
+
+Phase 4 — Endpoints
+- POST `/{app}/oidc-client/backchannel-logout`
+- GET  `/{app}/oidc-client/front-logout`
+- (Optional) initiation endpoint
+
+Phase 5 — IdP Endsession
+- `POST /{app}/oauth2/endsession`
+- sid → sub → enumerate apps → issue logout_token per app (include both sid & sub where possible)
+
+Phase 6 — Tests
+- Replay cache unit tests
+- Logout token validation matrix
+- Integration (end-to-end SLO)
+- Negative & idempotency coverage
+
+Phase 7 — Metrics & Observability
+- Counters & latency
+- Structured logs with correlation fields
+
+## Immediate Next Tasks
+
+1. Implement backchannel logout logic (`HandleBackchannelLogoutAsync`) using replay cache (Phase 3)
+2. Expose backchannel and front logout endpoints
+3. Add refresh invalidation stored proc + service integration
+4. Implement IdP `endsession` + logout_token issuance
+5. Add initial SLO-focused tests (replay, user sweep, idempotency)
+6. Add metrics & structured logging
+7. Apply rate limiting to key endpoints
+
+## Adjusted Task Status
+- Replay cache: COMPLETE
+- Session enumeration (sid/sub/user): COMPLETE
+- Refresh invalidation: PENDING
+- Backchannel & endsession endpoints: PENDING
+
+Release gating
+- Backchannel + endsession with replay protection
+- User-wide invalidation verified (sub fallback)
+- Core tests (state/nonce, token validation, SLO idempotency)
+- Metrics/logging baseline
+
+Risks
+- Without refresh invalidation: refresh tokens might survive SLO
+- Without metrics/logging: limited visibility into coverage & failures
+- Without rate limiting: increased abuse surface
+
+

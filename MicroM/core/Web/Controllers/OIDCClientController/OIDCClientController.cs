@@ -1,4 +1,5 @@
-﻿using MicroM.Web.Authentication;
+﻿using MicroM.Configuration;
+using MicroM.Web.Authentication;
 using MicroM.Web.Authentication.SSO;
 using MicroM.Web.Services;
 using MicroM.Web.Services.Security;
@@ -52,7 +53,7 @@ public class OIDCClientController : ControllerBase, IOIDCClientController
         if (app == null) return NotFound("Application not found");
 
         var form = await Request.ReadFormAsync(ct);
-        var (status, contentType, body) = await clientService.SignInOidc(app, Request.Headers, form, ct);
+        var (status, contentType, body) = await clientService.HandleSignInOidc(app, Request.Headers, form, ct);
 
         return new ContentResult
         {
@@ -69,9 +70,9 @@ public class OIDCClientController : ControllerBase, IOIDCClientController
     /// Returns principal claims upon success.
     /// </summary>
     [AllowAnonymous]
-    [HttpGet("{app_id}/oidc-client/callback")]
-    [HttpPost("{app_id}/oidc-client/callback")]
-    public async Task<ActionResult> OidcClientCallback(
+    [HttpGet("{app_id}/oidc-client/auth-callback")]
+    [HttpPost("{app_id}/oidc-client/auth-callback")]
+    public async Task<ActionResult> AuthorizeCallback(
         [FromServices] IMicroMAppConfiguration app_config,
         [FromServices] IOIDCClientService clientService,
         [FromServices] IDeviceIdService deviceid_service,
@@ -123,7 +124,7 @@ public class OIDCClientController : ControllerBase, IOIDCClientController
             return BadRequest(new { error = "invalid_request", error_description = "code, redirect_uri, code_verifier and state are required" });
         }
 
-        var (callback_result, error) = await clientService.HandleSignInOidcCallback(app, code, redirectUri, codeVerifier, stateIncoming, ct);
+        var (callback_result, error) = await clientService.HandleAuthorizationCallback(app, code, redirectUri, codeVerifier, stateIncoming, ct);
 
         if (error != null || callback_result == null || callback_result.Principal == null)
         {
@@ -134,15 +135,15 @@ public class OIDCClientController : ControllerBase, IOIDCClientController
         var (device_id, _, _) = deviceid_service.GetDeviceID(local_device_id: callback_result.DeviceId ?? "");
         string username = callback_result.Principal.FindFirstValue(WellknownIdentityConstants.PreferredUsername)
                           ?? callback_result.Principal.FindFirstValue(ClaimTypes.NameIdentifier)
-                          ?? callback_result.Principal.FindFirstValue(WellknownIdentityConstants.Subject)
+                          ?? callback_result.Principal.FindFirstValue(WellknownIdentityConstants.SubjectIdentifier)
                           ?? string.Empty;
         if (string.IsNullOrEmpty(username))
         {
             return BadRequest(new { error = "invalid_userinfo", error_description = "Missing subject/username in id_token" });
         }
 
-        string? sub = callback_result.Principal.FindFirstValue(WellknownIdentityConstants.Subject);
-        string? sid = callback_result.Principal.FindFirstValue(WellknownIdentityConstants.SecurityIdentifier);
+        string? sub = callback_result.Principal.FindFirstValue(WellknownIdentityConstants.SubjectIdentifier);
+        string? sid = callback_result.Principal.FindFirstValue(WellknownIdentityConstants.SessionIdentifier);
         string? email = callback_result.Principal.FindFirstValue(ClaimTypes.Email) ?? callback_result.Principal.FindFirst("email")?.Value;
 
 
@@ -153,11 +154,12 @@ public class OIDCClientController : ControllerBase, IOIDCClientController
 
         var externalIdentity = new ExternalIdentity(
             Provider: "oidc",
-            Subject: sub ?? username,
+            Subject: sub,
             Username: username,
             Email: email,
-            Sid: sid,
+            SessionId: sid,
             IdpRefreshToken: callback_result.IdpRefreshToken,
+            IdpRefreshExpirationUtc: callback_result.IdpRefreshExpirationUtc,
             Claims: claimsDict
         );
 
@@ -185,18 +187,16 @@ public class OIDCClientController : ControllerBase, IOIDCClientController
         return Ok(response);
     }
 
-    /// <summary>
-    /// OIDC client Backchannel logout
-    /// </summary>
-    /// <param name="app_id"></param>
-    /// <param name="returnUrl"></param>
-    /// <param name="ct"></param>
-    /// <returns></returns>
-    /// <exception cref="NotImplementedException"></exception>
-    [Authorize(policy: nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy))]
-    [HttpPost("{app_id}/oidc-client/logout")]
+    [AllowAnonymous]
+    [HttpGet("{app_id}/oidc-client/front-logout")]
+    public Task<ActionResult> FrontChannelLogout(ApplicationOption app, string? state, CancellationToken ct)
+    {
+        throw new NotImplementedException();
+    }
 
-    public Task SignOutOidc(string app_id, string? returnUrl, CancellationToken ct)
+    [Authorize(Policy = nameof(MicroMPermissionsConstants.IdPClientPolicy))]
+    [HttpPost("{app_id}/oidc-client/back-logout")]
+    public Task<ActionResult> BackchannelLogout(ApplicationOption app, string logoutTokenJwt, CancellationToken ct)
     {
         throw new NotImplementedException();
     }
