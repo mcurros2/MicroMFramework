@@ -138,7 +138,6 @@ public static class WebAPIBaseExtensions
         services.AddSingleton<IAuthorizationCodeService, MemoryAuthorizationCodeService>();
         services.AddSingleton<IOauthTokenService, OauthTokenService>();
         services.AddSingleton<IPushedAuthorizationService, PushedAuthorizationService>();
-        services.AddSingleton<IOIDCSessionService, OIDCSessionService>();
         services.AddSingleton<IOIDCClientService, OIDCClientService>();
         services.AddSingleton<IStateAndNonceService, StateAndNonceService>();
 

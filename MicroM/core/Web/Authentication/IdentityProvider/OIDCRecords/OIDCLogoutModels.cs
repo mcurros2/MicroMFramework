@@ -19,8 +19,6 @@ public sealed record OIDCBackchannelLogoutResult(OIDCLogoutProcessingStatus Stat
 
 public sealed record OIDCFrontChannelLogoutInitiation(string EndSessionUrl, string? State);
 
-public sealed record OIDCSessionInvalidationResult(int SessionsRemoved, int DevicesAffected);
-
 public sealed record OIDCLogoutTokenParseResult(
     string Issuer,
     string Audience,

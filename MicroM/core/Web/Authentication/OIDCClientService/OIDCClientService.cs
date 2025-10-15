@@ -1,9 +1,15 @@
 ﻿using MicroM.Configuration;
 using MicroM.Core;
+using MicroM.DataDictionary.Entities;
+using MicroM.Extensions;
+using MicroM.Web.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Headers;
 using Microsoft.Extensions.Logging;
+using Microsoft.IdentityModel.JsonWebTokens;
+using Microsoft.IdentityModel.Tokens;
 using System.Collections.Concurrent;
+using System.Security.Claims;
 using System.Security.Cryptography.X509Certificates;
 using System.Text.Json;
 
@@ -15,7 +21,9 @@ public class OIDCClientService(
     IHttpClientFactory httpClientFactory,
     IStateAndNonceService state_and_nonce_service,
     IOIDCHttpClient oidcHttpClient,
-    ILogger<OIDCClientService> log
+    IOIDCReplayCacheService replay_cache,
+    ILogger<OIDCClientService> log,
+    IDeviceIdService deviceid_service
 ) : IOIDCClientService
 {
     private readonly JsonSerializerOptions _jsonOptionsUnsafe = new()
@@ -145,8 +153,6 @@ public class OIDCClientService(
         var forward = form_result.valid_form;
         // Remove local-only params
         forward.Remove(WellknownIdentityConstants.LocalDeviceId);
-
-        var clientId = forward[WellknownIdentityConstants.ClientId];
 
         X509Certificate2? cert = certificate_cache.GetCertificate(app);
 
@@ -288,18 +294,148 @@ public class OIDCClientService(
         return new(new(jwt_result.Principal, jwt_result.ExpiresUtc, idpRefreshToken, state_result.DeviceId, idpRefreshExpirationUtc), null);
     }
 
-    public Task<ResultWithStatus<OIDCFrontChannelLogoutInitiation, string>> BuildEndSessionRequest(ApplicationOption app, string idTokenHint, string? postLogoutRedirectUri, string? state, CancellationToken ct)
+    public async Task<ResultWithStatus<OIDCFrontChannelLogoutInitiation, string>> BuildEndSessionRequest(ApplicationOption app, string idTokenHint, string? postLogoutRedirectUri, string? state, CancellationToken ct)
     {
         throw new NotImplementedException();
     }
 
-    public Task<ResultWithStatus<bool, string>> HandleFrontChannelLogout(ApplicationOption app, string? state, CancellationToken ct)
+    public async Task<ResultWithStatus<bool, string>> HandleFrontChannelLogout(ApplicationOption app, string? state, CancellationToken ct)
     {
         throw new NotImplementedException();
     }
 
-    public Task<OIDCBackchannelLogoutResult> HandleBackchannelLogout(ApplicationOption app, string logoutTokenJwt, CancellationToken ct)
+    public async Task<OIDCBackchannelLogoutResult> HandleBackchannelLogout(ApplicationOption app, string logoutTokenJwt, CancellationToken ct)
     {
-        throw new NotImplementedException();
+        // 1) Discover IdP metadata (issuer + JWKS)
+        var (wk, wkErr) = await DiscoverWellKnown(app, ct);
+        if (wkErr != null || wk == null || string.IsNullOrWhiteSpace(wk.jwks_uri) || string.IsNullOrWhiteSpace(wk.issuer))
+        {
+            log.LogWarning("Backchannel logout: discovery failed for app {app}: {err}", app.ApplicationID, wkErr ?? "invalid metadata");
+            return new(OIDCLogoutProcessingStatus.InvalidIssuer, wkErr ?? "discovery_failed");
+        }
+
+        // 2) Validate JWT signature, issuer, audience (lifetime ignored; will validate iat/exp manually)
+        JsonWebToken? parsed = null;
+        try
+        {
+            var jwks = await JwksProvider.FetchJwksAsync(httpClientFactory, wk.jwks_uri!, ct);
+            var handler = new JsonWebTokenHandler();
+            var tvp = new TokenValidationParameters
+            {
+                ValidateIssuer = true,
+                ValidIssuer = wk.issuer,
+                ValidateAudience = true,
+                ValidAudience = app.ApplicationID,
+                ValidateLifetime = false, // iat checked manually
+                RequireSignedTokens = true,
+                IssuerSigningKeys = jwks.Keys
+            };
+
+            var validation = await handler.ValidateTokenAsync(logoutTokenJwt, tvp);
+            if (!validation.IsValid || validation.SecurityToken is not JsonWebToken jwt)
+            {
+                var ex = validation.Exception;
+                if (ex is SecurityTokenInvalidAudienceException) return new(OIDCLogoutProcessingStatus.InvalidAudience, "invalid_audience");
+                if (ex is SecurityTokenInvalidIssuerException) return new(OIDCLogoutProcessingStatus.InvalidIssuer, "invalid_issuer");
+                if (ex is SecurityTokenInvalidSignatureException) return new(OIDCLogoutProcessingStatus.InvalidSignature, "invalid_signature");
+                return new(OIDCLogoutProcessingStatus.InvalidSignature, ex?.Message ?? "token_validation_failed");
+            }
+            parsed = jwt;
+        }
+        catch (Exception ex)
+        {
+            log.LogWarning(ex, "Backchannel logout: token validation error for app {app}", app.ApplicationID);
+            return new(OIDCLogoutProcessingStatus.InvalidSignature, "token_validation_exception");
+        }
+
+        // 3) Extract required claims: jti, iat, events, sid/sub
+        string jti = parsed.Id;
+        if (jti.IsNullOrEmpty())
+        {
+            parsed.TryGetClaim(WellknownIdentityConstants.JWTID, out Claim jti_claim);
+            jti = parsed.Id ?? jti_claim?.Value ?? "";
+        }
+
+        if (string.IsNullOrWhiteSpace(jti)) return new(OIDCLogoutProcessingStatus.MissingEvent, "missing_jti");
+
+        long iatSecs = 0;
+        if (!(parsed.TryGetPayloadValue<long>(WellknownIdentityConstants.IssuedAt, out iatSecs) ||
+              long.TryParse(parsed?.Claims?.FirstOrDefault(c => c.Type == WellknownIdentityConstants.IssuedAt)?.Value, out iatSecs)))
+        {
+            return new(OIDCLogoutProcessingStatus.Expired, "missing_iat");
+        }
+        var iatUtc = DateTimeOffset.FromUnixTimeSeconds(iatSecs);
+
+        // events must contain backchannel logout event URI
+        bool hasEvent = false;
+        if (parsed.TryGetPayloadValue<object>(WellknownIdentityConstants.Events, out var evRaw) && evRaw is not null)
+        {
+            var evStr = evRaw.ToString() ?? string.Empty;
+            hasEvent = evStr.Contains(WellknownIdentityConstants.BackchannelLogoutEventUri, StringComparison.Ordinal);
+        }
+        else
+        {
+            var evClaim = parsed.Claims.FirstOrDefault(c => c.Type == WellknownIdentityConstants.Events)?.Value;
+            hasEvent = !string.IsNullOrEmpty(evClaim) && evClaim.Contains(WellknownIdentityConstants.BackchannelLogoutEventUri, StringComparison.Ordinal);
+        }
+        if (!hasEvent) return new(OIDCLogoutProcessingStatus.MissingEvent, "missing_backchannel_event");
+
+        string? sid = parsed.Claims.FirstOrDefault(c => c.Type == WellknownIdentityConstants.SessionIdentifier)?.Value;
+        string? sub = parsed.Claims.FirstOrDefault(c => c.Type == WellknownIdentityConstants.SubjectIdentifier)?.Value;
+        if (string.IsNullOrWhiteSpace(sid) && string.IsNullOrWhiteSpace(sub))
+            return new(OIDCLogoutProcessingStatus.MissingSidOrSub, "missing_sid_and_sub");
+
+        // 4) Replay check
+        var replay = replay_cache.TryStore(jti, iatUtc);
+        if (replay.Status == ReplayCacheStatus.Replay)
+        {
+            log.LogInformation("Backchannel logout replay for app {app}, jti {jti}", app.ApplicationID, jti);
+            return new(OIDCLogoutProcessingStatus.Replay, null);
+        }
+        if (replay.Status is ReplayCacheStatus.Stale or ReplayCacheStatus.Skew or ReplayCacheStatus.Invalid)
+        {
+            log.LogWarning("Backchannel logout rejected by replay cache for app {app}: {status} ({reason})", app.ApplicationID, replay.Status, replay.Reason);
+            return new(OIDCLogoutProcessingStatus.Expired, replay.Reason);
+        }
+
+        // 5) Delete all SUB sessions
+        using var dbc = app.CreateDatabaseClient(log, deviceid_service, null);
+        try
+        {
+            await dbc.Connect(ct);
+
+            if (sub.IsNullOrEmpty())
+            {
+                if (!sid.IsNullOrEmpty())
+                {
+                    // Determine sub in this app to purge
+                    sub = await ApplicationOidcActiveSessions.GetSUBFromSID(dbc, app.ApplicationID, sid!, ct);
+                    if (sub.IsNullOrEmpty())
+                    {
+                        log.LogInformation("Backchannel logout: no active session found for app {app} sid={sid}", app.ApplicationID, sid);
+                        return new(OIDCLogoutProcessingStatus.Success, null);
+                    }
+                }
+                else
+                {
+                    log.LogWarning("Backchannel logout: both sid and sub are missing for app {app}", app.ApplicationID);
+                    return new(OIDCLogoutProcessingStatus.Success, null);
+                }
+            }
+
+            await ApplicationOidcActiveSessions.DeleteSessionsBySUB(dbc, sub!, ct);
+
+            return new(OIDCLogoutProcessingStatus.Success, null);
+        }
+        catch (Exception ex)
+        {
+            log.LogError(ex, "Backchannel logout: session store error app={app} sid={sid} sub={sub}", app.ApplicationID, sid, sub);
+            return new(OIDCLogoutProcessingStatus.SessionStoreError, "session_store_error");
+        }
+        finally
+        {
+            if (dbc.ConnectionState == System.Data.ConnectionState.Open) await dbc.Disconnect();
+        }
+
     }
 }

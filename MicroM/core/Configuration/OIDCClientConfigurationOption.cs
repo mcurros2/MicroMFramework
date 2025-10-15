@@ -10,5 +10,6 @@ public class OIDCClientConfigurationOption
     public string CertificateUniqueID { get; set; } = "";
     public string APIKey { get; set; } = "";
     public string APISecret { get; set; } = "";
+    public string OIDCSubjectPepper { get; set; } = "";
     public List<string> URLAuthorizedRedirects { get; set; } = [];
 }

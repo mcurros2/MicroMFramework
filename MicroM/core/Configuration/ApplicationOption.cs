@@ -30,6 +30,7 @@ public class ApplicationOption
     public string? OIDCCertificateUniqueID { get; set; } = null;
     public byte[]? OIDCCertificateBlob { get; set; } = null;
     public string OIDCCertificatePassword { get; set; } = "";
+    public string? OIDCIdPsubjectPepper { get; set; } = null;
 
     public OIDCSigningAlg? OIDCTokenSigningAlg { get; set; } = OIDCSigningAlg.RS512;
     public OIDCCodeChallengeMethod? OIDCTokenCodeChallengeMethod { get; set; } = OIDCCodeChallengeMethod.S256;

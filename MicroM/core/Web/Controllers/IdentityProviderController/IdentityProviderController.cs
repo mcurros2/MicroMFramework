@@ -111,6 +111,12 @@ public class IdentityProviderController : ControllerBase, IIdentityProviderContr
             var app = app_config.GetAppConfiguration(app_id);
             if (app == null) return NotFound(APPLICATION_NOT_FOUND);
 
+            if (app.IdentityProviderRoleType != nameof(IdentityProviderRole.IDPServer))
+            {
+                _log.LogWarning("Application {app_id} is not configured as an Identity Provider", app_id);
+                return BadRequest("Application is not configured as an Identity Provider");
+            }
+
             if (!Request.HasFormContentType)
             {
                 return BadRequest(new { error = "invalid_request", error_description = "Request must be application/x-www-form-urlencoded" });
@@ -118,7 +124,7 @@ public class IdentityProviderController : ControllerBase, IIdentityProviderContr
 
             var form = await Request.ReadFormAsync(ct);
 
-            var (response, error) = idp.HandleToken(app, form, User);
+            var (response, error) = await idp.HandleToken(app, form, User);
 
             if (error != null || response == null)
             {

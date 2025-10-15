@@ -65,11 +65,11 @@ public static class PushedAuthorizationProvider
         {
             Issuer = clientId,
             Audience = audience,
-            Subject = new ClaimsIdentity(new[]
-            {
+            Subject = new ClaimsIdentity(
+            [
                 new Claim("sub", clientId),
                 new Claim("jti", Guid.NewGuid().ToString("N"))
-            }),
+            ]),
             NotBefore = now.UtcDateTime,
             Expires = now.AddMinutes(5).UtcDateTime,
             IssuedAt = now.UtcDateTime,

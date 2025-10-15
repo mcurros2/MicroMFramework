@@ -2,6 +2,7 @@
         @application_id Char(20)
         , @certificate_id Char(20)
         , @url_wellknown VarChar(2048)
+        , @oidc_idp_subject_pepper VarChar(255)
         , @lu DateTime
         , @webusr VarChar(255)
         , @result int output
@@ -26,6 +27,7 @@ begin try
             @application_id
             , @certificate_id
             , @url_wellknown
+            , convert(varchar(255), crypt_gen_random(64), 2) -- client secret pepper
             , @now
             , @now
             , @webusr

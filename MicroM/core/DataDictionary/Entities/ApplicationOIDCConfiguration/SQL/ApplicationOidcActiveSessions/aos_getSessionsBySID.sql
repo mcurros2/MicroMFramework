@@ -2,8 +2,9 @@
 
 declare @username varchar(255)
 
-select  @username = a.vc_username
-from	aos_oidc_active_sessions a
+select  top 1
+		@username = a.vc_username
+from	application_oidc_active_sessions a
 where	a.c_application_id = @application_id
 		and a.vc_oidc_session_id = @oidc_session_id
 
@@ -13,5 +14,5 @@ select 	c_application_id=rtrim(a.c_application_id),
 		a.vc_oidc_session_id,
 		a.vc_oidc_refreshtoken,
 		a.dt_refresh_expiration
-from	aos_oidc_active_sessions a
+from	application_oidc_active_sessions a
 where	a.vc_username = @username

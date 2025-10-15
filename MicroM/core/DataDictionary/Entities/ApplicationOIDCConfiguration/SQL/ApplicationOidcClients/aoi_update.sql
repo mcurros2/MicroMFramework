@@ -7,6 +7,7 @@
         , @url_sso_backchannel_logout VarChar(2048)
         , @url_client_jwks VarChar(2048)
         , @certificate_unique_id VarChar(2048)
+        , @oidc_subject_pepper VarChar(255)
         , @apikey varchar(2048)
         , @secret VarChar(2048)
         , @change_secret bit
@@ -93,6 +94,7 @@ begin try
             , @url_sso_backchannel_logout
             , @url_client_jwks
             , @certificate_unique_id
+            , convert(varchar(255), crypt_gen_random(64), 2) -- client secret pepper
             , @now
             , @now
             , @webusr

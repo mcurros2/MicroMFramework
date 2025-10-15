@@ -12,30 +12,20 @@ using Microsoft.Extensions.Options;
 
 namespace MicroM.Web.Authentication;
 
-public class MicroMAuthenticator : IAuthenticator
+public class MicroMAuthenticator(
+    ILogger<MicroMAuthenticator> logger,
+    IDeviceIdService deviceIdService,
+    IHttpContextAccessor httpContextAccessor,
+    IOptions<MicroMOptions> microm_config,
+    IEmailService emailService,
+    IMicroMEncryption encryptor) : IAuthenticator
 {
-    private readonly ILogger<MicroMAuthenticator> _log;
-    private readonly IDeviceIdService _deviceIdService;
-    private readonly IHttpContextAccessor _contextAccessor;
-    private readonly IOptions<MicroMOptions> _microm_config;
-    private readonly IEmailService _emailService;
-    private readonly IMicroMEncryption _encryptor;
-
-    public MicroMAuthenticator(
-        ILogger<MicroMAuthenticator> logger,
-        IDeviceIdService deviceIdService,
-        IHttpContextAccessor httpContextAccessor,
-        IOptions<MicroMOptions> microm_config,
-        IEmailService emailService,
-        IMicroMEncryption encryptor)
-    {
-        _log = logger;
-        _deviceIdService = deviceIdService;
-        _contextAccessor = httpContextAccessor;
-        _microm_config = microm_config;
-        _emailService = emailService;
-        _encryptor = encryptor;
-    }
+    private readonly ILogger<MicroMAuthenticator> _log = logger;
+    private readonly IDeviceIdService _deviceIdService = deviceIdService;
+    private readonly IHttpContextAccessor _contextAccessor = httpContextAccessor;
+    private readonly IOptions<MicroMOptions> _microm_config = microm_config;
+    private readonly IEmailService _emailService = emailService;
+    private readonly IMicroMEncryption _encryptor = encryptor;
 
     private string GetRefreshCookieName(ApplicationOption app_config)
     {
@@ -414,9 +404,10 @@ public class MicroMAuthenticator : IAuthenticator
                 // Persist active OIDC session link (DB upsert) using IdP session GUID
                 if (!string.IsNullOrWhiteSpace(identity.SessionId))
                 {
-                    await ApplicationOidcActiveSessions.UpdateSession(
+                    await ApplicationOidcActiveSessions.CreateOrUpdateExternalSignInSession(
                         app.ApplicationID,
                         identity.Username,
+                        login_data.user_id,
                         device_id,
                         identity.SessionId,
                         identity.Subject,
