@@ -1,6 +1,7 @@
 ﻿using MicroM.Configuration;
 using MicroM.Core;
 using MicroM.DataDictionary.CategoriesDefinitions;
+using MicroM.Extensions;
 using MicroM.Web.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
@@ -35,10 +36,7 @@ public class WebAPIJsonWebTokenHandler(
     /// Generate a JwtToken with encryption. Claims will be encrypted and cannot be used in the client. 
     /// Claims here are mean to be used from the backend and protected from tampering within the client.
     /// </summary>
-    /// <param name="claims"></param>
-    /// <param name="app"></param>
-    /// <returns></returns>
-    public TokenResult GenerateJwtTokenWEBApi(Dictionary<string, object> claims, ApplicationOption app)
+    public TokenResult GenerateJwtTokenWEBApi(Dictionary<string, object> claims, ApplicationOption app, string? audience = null)
     {
         var securityKey = CryptClass.GetSecurityKey(app.JWTKey, app.ApplicationName);
         var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
@@ -60,7 +58,7 @@ public class WebAPIJsonWebTokenHandler(
             SigningCredentials = credentials,
             EncryptingCredentials = encrypting_credentials,
             Claims = claims,
-            Audience = string.IsNullOrEmpty(app.JWTAudience) ? app.JWTIssuer : app.JWTAudience
+            Audience = !audience.IsNullOrEmpty() ? audience : (string.IsNullOrEmpty(app.JWTAudience) ? app.JWTIssuer : app.JWTAudience)
         };
 
         string token = CreateToken(sd);

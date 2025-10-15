@@ -45,7 +45,7 @@ public class IdentityProviderService(
         return jwks_service.HandleJwks(app, request_headers, response_headers);
     }
 
-    public ResultWithStatus<OIDCTokenResponse, ErrorResult> HandleToken(ApplicationOption app, IFormCollection form, ClaimsPrincipal client)
+    public async Task<ResultWithStatus<OIDCTokenResponse, ErrorResult>> HandleToken(ApplicationOption app, IFormCollection form, ClaimsPrincipal client)
     {
         var authenticated_client = client.FindFirstValue(ClaimTypes.NameIdentifier);
 
@@ -54,7 +54,7 @@ public class IdentityProviderService(
             return new(null, new("invalid_client", "Client authentication required"));
         }
 
-        return oauth_token_service.HandleTokenRequest(app, form, authenticated_client);
+        return await oauth_token_service.HandleTokenRequest(app, form, authenticated_client);
     }
 
     public ResultWithStatus<OIDCPARResponse, ErrorResult> HandlePAR(ApplicationOption app, IFormCollection form, ClaimsPrincipal client)

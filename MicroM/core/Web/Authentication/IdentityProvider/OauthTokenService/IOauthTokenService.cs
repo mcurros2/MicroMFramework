@@ -7,5 +7,5 @@ namespace MicroM.Web.Authentication.SSO;
 
 public interface IOauthTokenService
 {
-    ResultWithStatus<OIDCTokenResponse, ErrorResult> HandleTokenRequest(ApplicationOption app, IFormCollection form, string authenticated_client_id);
+    Task<ResultWithStatus<OIDCTokenResponse, ErrorResult>> HandleTokenRequest(ApplicationOption app, IFormCollection form, string authenticated_client_id);
 }

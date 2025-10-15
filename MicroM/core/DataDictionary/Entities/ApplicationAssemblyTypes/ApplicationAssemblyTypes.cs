@@ -13,9 +13,9 @@ public class ApplicationAssemblyTypesDef : EntityDefinition
     public readonly Column<int> i_order = new(column_flags: ColumnFlags.PK);
     public readonly Column<string> c_assemblytype_id = Column<string>.PK();
 
-    public ViewDefinition apt_brwStandard { get; private set; } = new(nameof(c_application_id), nameof(c_assembly_id), nameof(i_order), nameof(c_assemblytype_id));
+    public readonly ViewDefinition apt_brwStandard = new(nameof(c_application_id), nameof(c_assembly_id), nameof(i_order), nameof(c_assemblytype_id));
 
-    public APTGetCode APTGetCode { get; private set; } = new();
+    public readonly APTGetCode APTGetCode = new();
 }
 
 public class ApplicationAssemblyTypes : Entity<ApplicationAssemblyTypesDef>

@@ -18,6 +18,7 @@ select  [c_application_id] = rtrim(a.c_application_id)
         , a.vc_url_sso_backchannel_logout
         , a.vc_url_client_jwks
         , a.vc_certificate_unique_id
+        , a.vc_oidc_subject_pepper
         , b.vc_apikey
         , b.vc_secret
         , vc_url_authorized_redirects=@appurls /* fake list of c_client_app_url_id */

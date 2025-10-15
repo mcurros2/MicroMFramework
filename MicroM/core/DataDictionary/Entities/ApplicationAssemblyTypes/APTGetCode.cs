@@ -34,8 +34,8 @@ public record APTGeneratedReact
 
 public record APTGetCodeResult : EntityActionResult
 {
-    public APTGeneratedSQL SQL = new APTGeneratedSQL();
-    public APTGeneratedReact React = new APTGeneratedReact();
+    public APTGeneratedSQL SQL = new();
+    public APTGeneratedReact React = new();
     public List<string> CustomSQL = [];
 }
 

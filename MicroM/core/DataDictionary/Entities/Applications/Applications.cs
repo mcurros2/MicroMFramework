@@ -2,6 +2,7 @@
 using MicroM.Core;
 using MicroM.Data;
 using MicroM.DataDictionary.CategoriesDefinitions;
+using MicroM.Extensions;
 using MicroM.Web.Services;
 using System.Data;
 using System.Text.Json;
@@ -57,6 +58,7 @@ public class ApplicationsDef : EntityDefinition
     // Indentity provider embedded columns
     public readonly Column<string> c_identity_provider_role_id = Column<string>.EmbedCategory(nameof(IdentityProviderRole));
     public readonly Column<string?> vc_oidc_url_wellknown = Column<string?>.Text(size: 2048, nullable: true, fake: true);
+    public readonly Column<string?> vc_oidc_subject_pepper = Column<string?>.Text(nullable: true, fake: true, encrypted: true);
 
     // certificate embedded columns
     public readonly Column<string?> vc_certificate_unique_id = Column<string?>.Text(size: 2048, fake: true);
@@ -233,6 +235,7 @@ public class Applications : Entity<ApplicationsDef>
                     OIDCCertificateUniqueID = await fv.GetFieldValueAsync<string?>(nameof(app_result.OIDCCertificateUniqueID), ct),
                     OIDCCertificateBlob = await fv.GetFieldValueAsync<byte[]?>(nameof(app_result.OIDCCertificateBlob), ct),
                     OIDCCertificatePassword = await fv.GetFieldValueAsync<string>(nameof(app_result.OIDCCertificatePassword), ct),
+                    OIDCIdPsubjectPepper = await fv.GetFieldValueAsync<string?>(nameof(app_result.OIDCIdPsubjectPepper), ct),
                 };
 
                 var appurls = await fv.GetFieldValueAsync<string?>(nameof(app_result.FrontendURLS), ct);
@@ -245,6 +248,7 @@ public class Applications : Entity<ApplicationsDef>
                 {
                     app_result.SQLPassword = encryptor.Decrypt(app_result.SQLPassword);
                     app_result.OIDCCertificatePassword = encryptor.Decrypt(app_result.OIDCCertificatePassword);
+                    if (!app_result.OIDCIdPsubjectPepper.IsNullOrEmpty()) app_result.OIDCIdPsubjectPepper = encryptor.Decrypt(app_result.OIDCIdPsubjectPepper!);
                 }
 
                 return app_result;
@@ -263,6 +267,7 @@ public class Applications : Entity<ApplicationsDef>
                     CertificateUniqueID = await fv.GetFieldValueAsync<string>(nameof(client_result.CertificateUniqueID), ct),
                     APIKey = await fv.GetFieldValueAsync<string>(nameof(client_result.APIKey), ct),
                     APISecret = await fv.GetFieldValueAsync<string>(nameof(client_result.APISecret), ct),
+                    OIDCSubjectPepper = await fv.GetFieldValueAsync<string>(nameof(client_result.OIDCSubjectPepper), ct),
                 };
 
                 var redirect_urls = await fv.GetFieldValueAsync<string?>(nameof(client_result.URLAuthorizedRedirects), ct);
@@ -275,6 +280,7 @@ public class Applications : Entity<ApplicationsDef>
                 {
                     client_result.APIKey = encryptor.Decrypt(client_result.APIKey);
                     client_result.APISecret = encryptor.Decrypt(client_result.APISecret);
+                    client_result.OIDCSubjectPepper = encryptor.Decrypt(client_result.OIDCSubjectPepper);
                 }
 
                 return client_result;

@@ -1,9 +1,9 @@
 ﻿using MicroM.Configuration;
 using MicroM.Core;
 using MicroM.DataDictionary.CategoriesDefinitions;
+using MicroM.DataDictionary.Entities;
 using MicroM.Extensions;
 using MicroM.Web.Authentication;
-using MicroM.Web.Authentication.SSO;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Http;
@@ -17,7 +17,8 @@ namespace MicroM.Web.Services;
 public class AuthenticationService(
             ILogger<AuthenticationService> log,
             IMicroMAppConfiguration app_config,
-            IOIDCSessionService idp_session_service
+            IDeviceIdService deviceid_service,
+            IMicroMEncryption encryptor
     ) : IAuthenticationService
 {
     public async Task<(LoginResult? user_data, TokenResult? token_result)> HandleLogin(IAuthenticationProvider auth, WebAPIJsonWebTokenHandler jwt_handler, string app_id, UserLogin user_login, Dictionary<string, object> server_claims, CancellationToken ct)
@@ -31,6 +32,11 @@ public class AuthenticationService(
             return (null, null);
         }
 
+        if (app.IdentityProviderRoleType == nameof(IdentityProviderRole.IDPServer) && app.OIDCIdPsubjectPepper.IsNullOrEmpty())
+        {
+            log.LogError("LOGIN: APP_ID {app_id} User: {username} OIDCIdPsubjectPepper is not configured, cannot create OIDC session", app_id, user_login.Username);
+            return (null, null);
+        }
 
         TokenResult? token_result = null;
         AuthenticatorResult? authenticatorResult = null;
@@ -55,9 +61,27 @@ public class AuthenticationService(
                 {
                     if (app.IdentityProviderRoleType == nameof(IdentityProviderRole.IDPServer))
                     {
-                        var session_id = await idp_session_service.CreateSession(app, app.ApplicationID, authenticatorResult.LoginData.username, ct, user_login.LocalDeviceID, server_claims);
-                        oidc_session_id = session_id.ToString();
-                        authenticatorResult.ServerClaims[MicroMServerClaimTypes.MicroMOidcSessionID] = oidc_session_id;
+                        using var dbc = app.CreateDatabaseClient(log, deviceid_service, null);
+                        try
+                        {
+                            await dbc.Connect(ct);
+
+                            var device_id = authenticatorResult.ServerClaims[MicroMServerClaimTypes.MicroMUserDeviceID].ToString() ?? "";
+
+                            if (string.IsNullOrEmpty(device_id))
+                            {
+                                log.LogWarning("LOGIN: APP_ID {app_id} User: {username} empty device_id", app_id, authenticatorResult.LoginData.username);
+                            }
+
+                            string new_session_id = await ApplicationOidcActiveSessions.CreateIdPSession(dbc, app.ApplicationID, authenticatorResult.LoginData.username, authenticatorResult.LoginData.user_id, device_id, app.OIDCIdPsubjectPepper!, encryptor, ct);
+
+                            authenticatorResult.ServerClaims[MicroMServerClaimTypes.MicroMOidcSessionID] = new_session_id;
+
+                        }
+                        finally
+                        {
+                            await dbc.Disconnect();
+                        }
                     }
 
                     var merged_claims = authenticatorResult.ServerClaims.Concat(server_claims)
@@ -89,7 +113,6 @@ public class AuthenticationService(
 
         }
 
-
         return (result, token_result);
     }
 
@@ -100,11 +123,12 @@ public class AuthenticationService(
         var authenticator = auth.GetAuthenticator(app);
         if (authenticator != null)
         {
+            await authenticator.Logoff(app, user_name, ct);
+
             if (app.IdentityProviderRoleType == nameof(IdentityProviderRole.IDPServer))
             {
-                await idp_session_service.RemoveUserSessions(app, user_id, ct);
+                // TODO: trigger SLO to clients
             }
-            await authenticator.Logoff(app, user_name, ct);
         }
         else
         {

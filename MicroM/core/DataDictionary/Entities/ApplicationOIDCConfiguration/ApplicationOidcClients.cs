@@ -21,6 +21,9 @@ public class ApplicationOidcClientsDef : EntityDefinition
     public readonly Column<string?> vc_url_client_jwks = Column<string?>.Text(size: 2048);
     public readonly Column<string?> vc_certificate_unique_id = Column<string?>.Text(size: 2048);
 
+    // This is the pepper to use when creating the subject claim for tokens issued to this client
+    public readonly Column<string> vc_oidc_subject_pepper = Column<string>.Text(encrypted: true);
+
     // These are stored encrypted so the user can copy them in the control panel
     public readonly Column<string?> vc_apikey = Column<string?>.Text(size: 2048, encrypted: true, fake: true);
     public readonly Column<string?> vc_secret = Column<string?>.Text(size: 2048, encrypted: true, fake: true);
