@@ -1,4 +1,6 @@
-﻿create or alter proc aos_getSessionsBySUB @oidc_sub varchar(255) as
+﻿create or alter proc aos_getSessionByRefreshToken @application_id char(20), @oidc_refreshtoken varchar(2048) as
+
+declare	@now datetime = getdate()
 
 select 	c_application_id=rtrim(a.c_application_id),
 		c_user_id=rtrim(a.c_user_id),
@@ -9,4 +11,5 @@ select 	c_application_id=rtrim(a.c_application_id),
 		a.dt_refresh_expiration,
 		a.vc_oidc_sub
 from	application_oidc_active_sessions a
-where	a.vc_oidc_sub = @oidc_sub
+where	a.c_application_id = @application_id
+		and a.vc_oidc_refreshtoken = @oidc_refreshtoken

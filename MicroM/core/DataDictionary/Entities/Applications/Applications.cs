@@ -235,7 +235,7 @@ public class Applications : Entity<ApplicationsDef>
                     OIDCCertificateUniqueID = await fv.GetFieldValueAsync<string?>(nameof(app_result.OIDCCertificateUniqueID), ct),
                     OIDCCertificateBlob = await fv.GetFieldValueAsync<byte[]?>(nameof(app_result.OIDCCertificateBlob), ct),
                     OIDCCertificatePassword = await fv.GetFieldValueAsync<string>(nameof(app_result.OIDCCertificatePassword), ct),
-                    OIDCIdPsubjectPepper = await fv.GetFieldValueAsync<string?>(nameof(app_result.OIDCIdPsubjectPepper), ct),
+                    OIDCIdPSubjectPepper = await fv.GetFieldValueAsync<string?>(nameof(app_result.OIDCIdPSubjectPepper), ct),
                 };
 
                 var appurls = await fv.GetFieldValueAsync<string?>(nameof(app_result.FrontendURLS), ct);
@@ -248,7 +248,7 @@ public class Applications : Entity<ApplicationsDef>
                 {
                     app_result.SQLPassword = encryptor.Decrypt(app_result.SQLPassword);
                     app_result.OIDCCertificatePassword = encryptor.Decrypt(app_result.OIDCCertificatePassword);
-                    if (!app_result.OIDCIdPsubjectPepper.IsNullOrEmpty()) app_result.OIDCIdPsubjectPepper = encryptor.Decrypt(app_result.OIDCIdPsubjectPepper!);
+                    if (!app_result.OIDCIdPSubjectPepper.IsNullOrEmpty()) app_result.OIDCIdPSubjectPepper = encryptor.Decrypt(app_result.OIDCIdPSubjectPepper!);
                 }
 
                 return app_result;

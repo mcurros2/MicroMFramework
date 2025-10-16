@@ -26,7 +26,11 @@ public class WellknownIdentityConstants
     public const string NotBefore = "nbf";
     public const string Scope = "scope";
     public const string LogoutToken = "logout_token";
-    public const string oidc = "oidc";
+    public const string Oidc = "oidc";
+    public const string AuthorizationCode = "authorization_code";
+    public const string GrantType = "grant_type";
+    public const string Bearer = "Bearer";
+    public const string OpenID = "openid";
 
     public const string BackchannelLogoutEventUri = "http://schemas.openid.net/event/backchannel-logout";
 }

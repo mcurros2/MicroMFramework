@@ -11,8 +11,9 @@ namespace MicroM.DataDictionary.Entities;
 public record OidcSessionItem
 {
     public string c_application_id = "";
-    public string vc_username = "";
+    public string c_user_id = "";
     public string c_device_id = "";
+    public string vc_username = "";
     public string vc_oidc_session_id = "";
     public string? vc_oidc_sub;
     public string? vc_oidc_refreshtoken;
@@ -42,6 +43,8 @@ public class ApplicationOidcActiveSessionsDef : EntityDefinition
     public readonly ProcedureDefinition aos_getSessionsByUser = new(readonly_locks: true, nameof(vc_username));
     public readonly ProcedureDefinition aos_getSessionsBySUB = new(readonly_locks: true, nameof(vc_oidc_sub));
 
+    public readonly ProcedureDefinition aos_getSessionByRefreshToken = new(readonly_locks: true, nameof(c_application_id), nameof(vc_oidc_refreshtoken));
+
     public readonly ProcedureDefinition aos_getUsernameFromSIDorSUB = new(readonly_locks: true, nameof(c_application_id), nameof(vc_oidc_session_id), nameof(vc_oidc_sub));
     public readonly ProcedureDefinition aos_getSUBFromSID = new(readonly_locks: true, nameof(c_application_id), nameof(vc_oidc_session_id));
 
@@ -51,7 +54,9 @@ public class ApplicationOidcActiveSessionsDef : EntityDefinition
 
     public readonly EntityForeignKey<MicromUsers, ApplicationOidcActiveSessions> FKUsers = new();
 
-    public readonly EntityUniqueConstraint IDXApplicationSession = new(keys: [nameof(c_application_id), nameof(vc_oidc_session_id)]);
+    public readonly EntityUniqueConstraint UNApplicationSession = new(keys: [nameof(c_application_id), nameof(vc_oidc_session_id)]);
+    public readonly EntityUniqueConstraint UNRefreshToken = new(keys: [nameof(c_application_id), nameof(vc_oidc_refreshtoken)]);
+
     public readonly EntityIndex IDXUserSessions = new(keys: [nameof(vc_username)]);
     public readonly EntityIndex IDXSub = new(keys: [nameof(vc_oidc_sub)]);
 }
@@ -76,18 +81,18 @@ public class ApplicationOidcActiveSessions : Entity<ApplicationOidcActiveSession
     }
 
     /// <summary>
-    /// This method creates a new OIDC session record for a user in the Identity Provider (IdP) database.
+    /// This method creates or update an OIDC session record for a user in the Identity Provider (IdP) database.
     /// </summary>
-    public static async Task<string> CreateIdPSession(
+    public static async Task<string> CreateOrUpdateIdPSession(
         IEntityClient ec,
         string client_app_id,
         string? username,
         string idp_user_id,
         string device_id,
         string subject_pepper,
+        string session_id,
         IMicroMEncryption? encryptor,
         CancellationToken ct,
-        string? existing_session_id = null,
         string? idp_refresh_token = null,
         DateTime? refresh_expiration_utc = null
         )
@@ -99,8 +104,6 @@ public class ApplicationOidcActiveSessions : Entity<ApplicationOidcActiveSession
             await ec.Connect(ct);
 
             var new_session = new ApplicationOidcActiveSessions(ec, encryptor);
-
-            var session_id = string.IsNullOrWhiteSpace(existing_session_id) ? Guid.NewGuid().ToString() : existing_session_id;
 
             new_session.Def.c_application_id.Value = client_app_id;
             new_session.Def.c_user_id.Value = idp_user_id;
@@ -118,7 +121,7 @@ public class ApplicationOidcActiveSessions : Entity<ApplicationOidcActiveSession
 
             await new_session.UpdateData(ct);
 
-            return session_id;
+            return sub_hash;
         }
         finally
         {
@@ -170,15 +173,18 @@ public class ApplicationOidcActiveSessions : Entity<ApplicationOidcActiveSession
 
     internal async Task<OidcSessionItem> MapSessionRecord(IGetFieldValue fv, string[] headers, CancellationToken ct)
     {
-        var result = new OidcSessionItem();
-        // Column names exactly as table/proc output; use those for GetFieldValueAsync
-        result.c_application_id = await fv.GetFieldValueAsync<string>(nameof(Def.c_application_id), ct);
-        result.vc_username = await fv.GetFieldValueAsync<string>(nameof(Def.vc_username), ct);
-        result.c_device_id = await fv.GetFieldValueAsync<string>(nameof(Def.c_device_id), ct);
-        result.vc_oidc_session_id = await fv.GetFieldValueAsync<string>(nameof(Def.vc_oidc_session_id), ct);
-        result.vc_oidc_refreshtoken = await fv.GetFieldValueAsync<string?>(nameof(Def.vc_oidc_refreshtoken), ct);
-        result.dt_refresh_expiration = await fv.GetFieldValueAsync<DateTime?>(nameof(Def.dt_refresh_expiration), ct);
-        result.vc_oidc_sub = await fv.GetFieldValueAsync<string?>(nameof(Def.vc_oidc_sub), ct);
+        var result = new OidcSessionItem
+        {
+            // Column names exactly as table/proc output; use those for GetFieldValueAsync
+            c_application_id = await fv.GetFieldValueAsync<string>(nameof(Def.c_application_id), ct),
+            c_user_id = await fv.GetFieldValueAsync<string>(nameof(Def.c_user_id), ct),
+            c_device_id = await fv.GetFieldValueAsync<string>(nameof(Def.c_device_id), ct),
+            vc_username = await fv.GetFieldValueAsync<string>(nameof(Def.vc_username), ct),
+            vc_oidc_session_id = await fv.GetFieldValueAsync<string>(nameof(Def.vc_oidc_session_id), ct),
+            vc_oidc_refreshtoken = await fv.GetFieldValueAsync<string?>(nameof(Def.vc_oidc_refreshtoken), ct),
+            dt_refresh_expiration = await fv.GetFieldValueAsync<DateTime?>(nameof(Def.dt_refresh_expiration), ct),
+            vc_oidc_sub = await fv.GetFieldValueAsync<string?>(nameof(Def.vc_oidc_sub), ct)
+        };
 
         // Decrypt refresh token if provided & encryptor available
         if (!string.IsNullOrEmpty(result.vc_oidc_refreshtoken) && Encryptor != null)
@@ -210,7 +216,7 @@ public class ApplicationOidcActiveSessions : Entity<ApplicationOidcActiveSession
             entity.Def.c_application_id.Value = app_id;
             entity.Def.vc_oidc_session_id.Value = sid;
 
-            result = await entity.Data.ExecuteProc<OidcSessionItem>(ct, entity.Def.aos_getSessionsBySID, mapper: entity.MapSessionRecord);
+            result = await entity.Data.ExecuteProc(ct, entity.Def.aos_getSessionsBySID, mapper: entity.MapSessionRecord);
 
         }
         finally
@@ -231,7 +237,7 @@ public class ApplicationOidcActiveSessions : Entity<ApplicationOidcActiveSession
         {
             await ec.Connect(ct);
             entity.Def.vc_username.Value = username;
-            result = await entity.Data.ExecuteProc<OidcSessionItem>(ct, entity.Def.aos_getSessionsByUser, mapper: entity.MapSessionRecord);
+            result = await entity.Data.ExecuteProc(ct, entity.Def.aos_getSessionsByUser, mapper: entity.MapSessionRecord);
         }
         finally
         {
@@ -250,13 +256,36 @@ public class ApplicationOidcActiveSessions : Entity<ApplicationOidcActiveSession
         {
             await ec.Connect(ct);
             entity.Def.vc_oidc_sub.Value = sub;
-            result = await entity.Data.ExecuteProc<OidcSessionItem>(ct, entity.Def.aos_getSessionsBySUB, mapper: entity.MapSessionRecord);
+            result = await entity.Data.ExecuteProc(ct, entity.Def.aos_getSessionsBySUB, mapper: entity.MapSessionRecord);
         }
         finally
         {
             if (should_close) await ec.Disconnect();
         }
         return result;
+    }
+
+    public static async Task<OidcSessionItem?> GetSessionByRefreshToken(IEntityClient ec, string client_id, string refresh_token, CancellationToken ct, IMicroMEncryption? encryptor = null)
+    {
+        var entity = new ApplicationOidcActiveSessions(ec, encryptor);
+        List<OidcSessionItem>? result = [];
+
+        var should_close = !(ec.ConnectionState == ConnectionState.Open);
+        try
+        {
+            await ec.Connect(ct);
+            entity.Def.c_application_id.Value = client_id;
+
+            // IMPORTANT: column is encrypted at rest; pass encrypted value for lookup.
+            entity.Def.vc_oidc_refreshtoken.Value = encryptor != null ? encryptor.Encrypt(refresh_token) : refresh_token;
+
+            result = await entity.Data.ExecuteProc(ct, entity.Def.aos_getSessionByRefreshToken, mapper: entity.MapSessionRecord);
+        }
+        finally
+        {
+            if (should_close) await ec.Disconnect();
+        }
+        return result.Count > 0 ? result[0] : null;
     }
 
     public static async Task<string?> GetUsernameFromSIDorSUB(IEntityClient ec, string app_id, string? sid, string? sub, CancellationToken ct)

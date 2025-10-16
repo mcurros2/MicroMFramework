@@ -13,7 +13,7 @@ public interface IIdentityProviderService
 
     EtagCacheServiceCacheCheckResult? HandleJwks(ApplicationOption app_config, RequestHeaders request_headers, IHeaderDictionary response_headers);
 
-    Task<ResultWithStatus<OIDCTokenResponse, ErrorResult>> HandleToken(ApplicationOption app, IFormCollection form, ClaimsPrincipal client);
+    Task<ResultWithStatus<OIDCTokenResponse, ErrorResult>> HandleToken(ApplicationOption app, IFormCollection form, ClaimsPrincipal client, CancellationToken ct);
 
     ResultWithStatus<OIDCPARResponse, ErrorResult> HandlePAR(ApplicationOption app, IFormCollection form, ClaimsPrincipal client);
 

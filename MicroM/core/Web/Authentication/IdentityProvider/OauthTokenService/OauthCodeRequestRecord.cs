@@ -1,6 +1,6 @@
 ﻿namespace MicroM.Web.Authentication.SSO;
 
-public record OauthTokenServiceRequestRecord(
+public record OauthCodeRequestRecord(
     string grant_type,
     string code,
     string redirect_uri,
