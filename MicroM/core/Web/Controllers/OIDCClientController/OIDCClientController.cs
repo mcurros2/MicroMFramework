@@ -153,7 +153,7 @@ public class OIDCClientController : ControllerBase, IOIDCClientController
             .ToDictionary(g => g.Key, g => g.Last().Value, StringComparer.Ordinal);
 
         var externalIdentity = new ExternalIdentity(
-            Provider: WellknownIdentityConstants.oidc,
+            Provider: WellknownIdentityConstants.Oidc,
             Subject: sub,
             Username: username,
             Email: email,

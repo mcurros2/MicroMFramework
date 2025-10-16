@@ -124,7 +124,7 @@ public class IdentityProviderController : ControllerBase, IIdentityProviderContr
 
             var form = await Request.ReadFormAsync(ct);
 
-            var (response, error) = await idp.HandleToken(app, form, User);
+            var (response, error) = await idp.HandleToken(app, form, User, ct);
 
             if (error != null || response == null)
             {

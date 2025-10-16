@@ -4,7 +4,6 @@ using MicroM.DataDictionary.Entities;
 using MicroM.Web.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
-using System.Security.Cryptography;
 
 namespace MicroM.Web.Authentication.SSO;
 
@@ -16,61 +15,102 @@ public class OauthTokenService(
     ILogger<OauthTokenService> log) : IOauthTokenService
 {
 
-    private static ResultWithStatus<OauthTokenServiceRequestRecord, ErrorResult> GetRequestRecord(IFormCollection form)
+    private async Task<ResultWithStatus<OIDCTokenResponse, ErrorResult>> HandleRefreshTokenGrant(ApplicationOption app, IFormCollection form, string authenticated_client_app, CancellationToken ct)
     {
-        string? grant_type = form["grant_type"];
-        string? code = form["code"];
-        string? redirect_uri = form["redirect_uri"];
-        string? code_verifier = form["code_verifier"];
-        string? client_id = form["client_id"];
+        var (record, error) = OauthTokenServiceProvider.GetRefreshTokenRequestRecord(form);
 
-
-        if (string.IsNullOrEmpty(grant_type) || grant_type != "authorization_code")
+        if (record == null || error != null)
         {
-            return new(null, new("invalid_request", "Missing or invalid 'grant_type' parameter. Only authorization_code is supported."));
+            return new(null, error);
         }
 
-        if (string.IsNullOrEmpty(code_verifier))
+        if (!string.Equals(record.client_id, authenticated_client_app, StringComparison.OrdinalIgnoreCase))
         {
-            return new(null, new("invalid_request", "Missing or invalid 'code_verifier' parameter."));
+            return new(null, new("invalid_client", "client_id mismatch with authenticated client"));
         }
 
-        if (string.IsNullOrEmpty(code))
+        var registeredClients = app.OIDCClientConfiguration;
+        if (registeredClients == null || !registeredClients.TryGetValue(record.client_id, out var clientCfg))
         {
-            return new(null, new("invalid_request", "Missing or invalid 'code' parameter."));
+            return new(null, new("invalid_client", "Unknown client_id"));
         }
 
-        if (string.IsNullOrEmpty(redirect_uri))
+        var sub_pepper = clientCfg.OIDCSubjectPepper;
+        if (string.IsNullOrEmpty(sub_pepper))
         {
-            return new(null, new("invalid_request", "Missing or invalid 'redirect_uri' parameter."));
+            return new(null, new("client_not_configured", "Missing SUBP"));
         }
 
-        if (string.IsNullOrEmpty(client_id))
+        using var dbc = app.CreateDatabaseClient(log, deviceIdService, null);
+        try
         {
-            return new(null, new("invalid_request", "Missing or invalid 'client_id' parameter."));
-        }
+            await dbc.Connect(ct);
 
-        return
-            new(
-                new
-                (
-                grant_type: form["grant_type"].ToString(),
-                code: form["code"].ToString(),
-                redirect_uri: form["redirect_uri"].ToString(),
-                code_verifier: form["code_verifier"].ToString(),
-                client_id: form["client_id"].ToString()
-                ),
-                null
+            var session = await ApplicationOidcActiveSessions.GetSessionByRefreshToken(
+                ec: dbc,
+                client_id: record.client_id,
+                refresh_token: record.refresh_token,
+                ct: ct,
+                encryptor: encryptor);
+
+            if (session == null)
+            {
+                return new(null, new("invalid_grant", "Invalid refresh token"));
+            }
+
+            // Validate expiration
+            if (session.dt_refresh_expiration == null || session.dt_refresh_expiration <= DateTime.UtcNow)
+            {
+                return new(null, new("invalid_grant", "Refresh token expired"));
+            }
+
+            var (refresh_token, refresh_expiration, sub, upsert_error) = await OauthTokenServiceProvider.UpsertIdPSession
+            (
+                dbc,
+                log,
+                deviceIdService,
+                encryptor,
+                app,
+                record.client_id,
+                session.vc_oidc_session_id,
+                session.c_user_id,
+                sub_pepper,
+                ct
             );
+
+            var (idTokenResult, accessTokenResult, tokenError) = OauthTokenServiceProvider.GenerateAuthTokens(jwtHandler, app, session.vc_oidc_session_id, null, record.client_id, sub!);
+
+            if (idTokenResult?.Token == null || accessTokenResult?.Token == null)
+            {
+                return new(null, new("server_error", "Failed to generate tokens"));
+            }
+
+            var token_response = new OIDCTokenResponse(
+                token_type: WellknownIdentityConstants.Bearer,
+                expires_in: app.JWTTokenExpirationMinutes * 60,
+                access_token: accessTokenResult.Token,
+                refresh_token: refresh_token,
+                id_token: idTokenResult.Token,
+                scope: WellknownIdentityConstants.OpenID,
+                refresh_expiration_utc: refresh_expiration.ToString("o")
+            );
+
+            return new(token_response, null);
+        }
+        finally
+        {
+            await dbc.Disconnect();
+        }
     }
 
-    public async Task<ResultWithStatus<OIDCTokenResponse, ErrorResult>> HandleTokenRequest(ApplicationOption app, IFormCollection form, string authenticated_client_app)
+    private async Task<ResultWithStatus<OIDCTokenResponse, ErrorResult>> HandleAuthTokenRequest(ApplicationOption app, IFormCollection form, string authenticated_client_app, CancellationToken ct)
     {
-        var (request_record, error) = GetRequestRecord(form);
+        var (request_record, error) = OauthTokenServiceProvider.GetAuthCodeRequestRecord(form);
 
         if (error != null || request_record == null)
+        {
             return new(null, error);
-
+        }
 
         if (!string.Equals(request_record.client_id, authenticated_client_app, StringComparison.Ordinal))
         {
@@ -95,84 +135,67 @@ public class OauthTokenService(
             return new(null, new("invalid_grant", "Invalid or expired authorization code / PKCE mismatch"));
         }
 
+        // Ensure a non-null sid for both tokens and persistence
+        var sid = OauthTokenServiceProvider.EnsureSID(record.Sid);
+
         var sub_hash = ApplicationOidcActiveSessions.GetDerivedSub(authenticated_client_app, record.UserId, sub_pepper);
 
-        // Ensure sid (reuse from authorize or generate)
-        var sid = string.IsNullOrWhiteSpace(record.Sid) ? Guid.NewGuid().ToString() : record.Sid;
+        var (idTokenResult, accessTokenResult, tokenError) = OauthTokenServiceProvider.GenerateAuthTokens(jwtHandler, app, sid, record.Nonce, request_record.client_id, sub_hash);
 
-        var idClaims = new Dictionary<string, object>
+        if (tokenError != null)
         {
-            [WellknownIdentityConstants.SubjectIdentifier] = sub_hash,
-            [WellknownIdentityConstants.AuthorizedParty] = request_record.client_id,
-            [WellknownIdentityConstants.SessionIdentifier] = sid
-        };
-
-        if (!string.IsNullOrWhiteSpace(record.Nonce))
-        {
-            idClaims[WellknownIdentityConstants.Nonce] = record.Nonce;
+            return new(null, tokenError);
         }
-
-        var accessClaims = new Dictionary<string, object>
-        {
-            [WellknownIdentityConstants.SubjectIdentifier] = sub_hash,
-            [WellknownIdentityConstants.AuthorizedParty] = request_record.client_id,
-            [WellknownIdentityConstants.Scope] = "openid"
-        };
-
-        var idTokenResult = jwtHandler.GenerateJwtTokenWEBApi(idClaims, app, audience: request_record.client_id);
-        var accessTokenResult = jwtHandler.GenerateJwtTokenWEBApi(accessClaims, app);
-
-        if (idTokenResult?.Token == null || accessTokenResult?.Token == null)
-        {
-            return new(null, new("server_error", "Failed to generate tokens"));
-        }
-
-        // IdP OIDC refresh token (subject-wide, not per client-device)
-        var refreshToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
-        var refreshExpirationUtc = DateTimeOffset.UtcNow.AddHours(app.JWTRefreshExpirationHours);
 
         using var dbc = app.CreateDatabaseClient(log, deviceIdService, null);
-        try
-        {
-            await dbc.Connect(CancellationToken.None);
 
-            // Use a stable sentinel for device_id (token is backchannel; no browser device here)
-
-            var persistedSid = await ApplicationOidcActiveSessions.CreateIdPSession(
-                dbc,
-                client_app_id: request_record.client_id,
-                username: null,
-                idp_user_id: record.UserId,
-                device_id: WellknownIdentityConstants.oidc,
-                subject_pepper: sub_pepper,
-                encryptor: encryptor,
-                ct: CancellationToken.None,
-                existing_session_id: sid,
-                idp_refresh_token: refreshToken,
-                refresh_expiration_utc: refreshExpirationUtc.UtcDateTime
-            );
-        }
-        catch (Exception ex)
-        {
-            // Do not fail token issuance on persistence errors
-            log.LogError(ex, "IdP token: failed to persist client session (client_id={client}, user_id={user}, sid={sid})", request_record.client_id, record.UserId, sid);
-        }
-        finally
-        {
-            await dbc.Disconnect();
-        }
+        // This will log error but continue token issuance
+        var (refresh_token, refresh_expiration, sub, upsert_error) = await OauthTokenServiceProvider.UpsertIdPSession(
+            dbc,
+            log,
+            deviceIdService,
+            encryptor,
+            app,
+            client_id: request_record.client_id,
+            sid: sid,
+            user_id: record.UserId,
+            sub_pepper: sub_pepper,
+            ct);
 
         var token_response = new OIDCTokenResponse(
-            token_type: "Bearer",
+            token_type: WellknownIdentityConstants.Bearer,
             expires_in: app.JWTTokenExpirationMinutes * 60,
-            access_token: accessTokenResult.Token,
-            refresh_token: refreshToken,
-            id_token: idTokenResult.Token,
-            scope: "openid",
-            refresh_expiration_utc: refreshExpirationUtc.ToString("o")
+            access_token: accessTokenResult!.Token!,
+            refresh_token: refresh_token,
+            id_token: idTokenResult!.Token,
+            scope: WellknownIdentityConstants.OpenID,
+            refresh_expiration_utc: refresh_expiration.ToString("o")
             );
 
         return new(token_response, null);
     }
+
+    public async Task<ResultWithStatus<OIDCTokenResponse, ErrorResult>> HandleTokenRequest(ApplicationOption app, IFormCollection form, string authenticated_client_app, CancellationToken ct)
+    {
+        var (code_request, refresh_request, error) = OauthTokenServiceProvider.ParseTokenRequest(form);
+
+        if (error != null || (code_request == null && refresh_request == null))
+        {
+            return new(null, error);
+        }
+        if (code_request != null)
+        {
+            return await HandleAuthTokenRequest(app, form, authenticated_client_app, ct);
+        }
+        else if (refresh_request != null)
+        {
+            return await HandleRefreshTokenGrant(app, form, authenticated_client_app, ct);
+        }
+        else
+        {
+            return new(null, new("unsupported_grant_type", "Only authorization_code and refresh_token grants are supported"));
+        }
+    }
+
 
 }

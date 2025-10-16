@@ -63,6 +63,7 @@
   <ItemGroup>
     <None Remove="DataDictionary\Entities\ApplicationOIDCConfiguration\SQL\ApplicationOidcActiveSessions\aos_deleteAllSessions.sql" />
     <None Remove="DataDictionary\Entities\ApplicationOIDCConfiguration\SQL\ApplicationOidcActiveSessions\aos_deleteSessionsBySUB.sql" />
+    <None Remove="DataDictionary\Entities\ApplicationOIDCConfiguration\SQL\ApplicationOidcActiveSessions\aos_GetSessionByRefreshToken.sql" />
     <None Remove="DataDictionary\Entities\ApplicationOIDCConfiguration\SQL\ApplicationOidcActiveSessions\aos_getUsernameFromSIDorSUB.sql" />
     <None Remove="DataDictionary\Entities\Applications\app_GetOIDCClients.sql" />
     <None Remove="DataDictionary\Entities\EmailService\SQL\EmailServiceConfiguration\eqc_get.sql" />
@@ -91,6 +92,7 @@
   <ItemGroup>
     <EmbeddedResource Include="DataDictionary\Entities\ApplicationOIDCConfiguration\SQL\ApplicationOidcActiveSessions\aos_deleteAllSessions.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\ApplicationOIDCConfiguration\SQL\ApplicationOidcActiveSessions\aos_deleteSessionsBySUB.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\ApplicationOIDCConfiguration\SQL\ApplicationOidcActiveSessions\aos_getSessionByRefreshToken.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\ApplicationOIDCConfiguration\SQL\ApplicationOidcActiveSessions\aos_getSessionsBySUB.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\ApplicationOIDCConfiguration\SQL\ApplicationOidcActiveSessions\aos_getSessionsBySID.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\ApplicationOIDCConfiguration\SQL\ApplicationOidcActiveSessions\aos_getSessionsByUser.sql" />

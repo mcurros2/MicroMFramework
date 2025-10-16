@@ -4,6 +4,7 @@ using MicroM.DataDictionary.CategoriesDefinitions;
 using MicroM.DataDictionary.Entities;
 using MicroM.Extensions;
 using MicroM.Web.Authentication;
+using MicroM.Web.Authentication.SSO;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Http;
@@ -32,7 +33,7 @@ public class AuthenticationService(
             return (null, null);
         }
 
-        if (app.IdentityProviderRoleType == nameof(IdentityProviderRole.IDPServer) && app.OIDCIdPsubjectPepper.IsNullOrEmpty())
+        if (app.IdentityProviderRoleType == nameof(IdentityProviderRole.IDPServer) && app.OIDCIdPSubjectPepper.IsNullOrEmpty())
         {
             log.LogError("LOGIN: APP_ID {app_id} User: {username} OIDCIdPsubjectPepper is not configured, cannot create OIDC session", app_id, user_login.Username);
             return (null, null);
@@ -73,9 +74,11 @@ public class AuthenticationService(
                                 log.LogWarning("LOGIN: APP_ID {app_id} User: {username} empty device_id", app_id, authenticatorResult.LoginData.username);
                             }
 
-                            string new_session_id = await ApplicationOidcActiveSessions.CreateIdPSession(dbc, app.ApplicationID, authenticatorResult.LoginData.username, authenticatorResult.LoginData.user_id, device_id, app.OIDCIdPsubjectPepper!, encryptor, ct);
+                            var sid = OauthTokenServiceProvider.EnsureSID();
 
-                            authenticatorResult.ServerClaims[MicroMServerClaimTypes.MicroMOidcSessionID] = new_session_id;
+                            var sub_hash = await ApplicationOidcActiveSessions.CreateOrUpdateIdPSession(dbc, app.ApplicationID, authenticatorResult.LoginData.username, authenticatorResult.LoginData.user_id, device_id, app.OIDCIdPSubjectPepper!, sid, encryptor, ct);
+
+                            authenticatorResult.ServerClaims[MicroMServerClaimTypes.MicroMOidcSessionID] = sid;
 
                         }
                         finally

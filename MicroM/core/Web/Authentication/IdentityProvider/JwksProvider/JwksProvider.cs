@@ -146,7 +146,7 @@ public static class JwksProvider
             if (!result.IsValid || result.SecurityToken is not JsonWebToken parsed)
                 return new(null, $"Invalid id_token: {result.Exception?.Message}");
 
-            var identity = result.ClaimsIdentity ?? new ClaimsIdentity(parsed.Claims.Select(c => new Claim(c.Type, c.Value)), WellknownIdentityConstants.oidc);
+            var identity = result.ClaimsIdentity ?? new ClaimsIdentity(parsed.Claims.Select(c => new Claim(c.Type, c.Value)), WellknownIdentityConstants.Oidc);
             var principal = new ClaimsPrincipal(identity);
 
             DateTimeOffset? expUtc = null;
