@@ -163,14 +163,14 @@ public class MicroMAuthenticator(
 
         if (string.IsNullOrEmpty(user_id))
         {
-            _log.LogTrace("Refresh token: User id is null {refresh_token} user_id: {user_id}, device_id: {device_id}, ipaddress: {ipaddress}, user-agent: {user_agent}", refresh_token, user_id, device_id, ipaddress, user_agent);
+            _log.LogTrace("Refresh token: User id is null user_id: {user_id}, device_id: {device_id}, ipaddress: {ip}, user-agent: {ua}", user_id, device_id, ipaddress, user_agent);
             result.Status = LoginAttemptStatus.InvalidRefreshToken;
             return result;
         }
 
         if (string.IsNullOrEmpty(refresh_token))
         {
-            _log.LogTrace("Refresh token is null or empty token: {refresh_token} user_id: {user_id}, device_id: {device_id}, ipaddress: {ipaddress}, user-agent: {user_agent}", refresh_token, user_id, device_id, ipaddress, user_agent);
+            _log.LogTrace("Refresh token: User id is null user_id: {user_id}, device_id: {device_id}, ipaddress: {ip}, user-agent: {ua}", user_id, device_id, ipaddress, user_agent);
             result.Status = LoginAttemptStatus.InvalidRefreshToken;
             return result;
         }
@@ -201,7 +201,7 @@ public class MicroMAuthenticator(
             }
             else
             {
-                _log.LogTrace("Can't refresh token. User Data: {refresh_token} user_id: {user_id}, device_id: {device_id}, ipaddress: {ipaddress}, user-agent: {user_agent}, disabled: {disabled}, refresh_expired: {expired}, locked: {locked}", refresh_token, user_id, device_id, ipaddress, user_agent, login_data?.disabled, login_data?.refresh_expired, login_data?.locked);
+                _log.LogTrace("Can't refresh token. User Data: user_id: {user_id}, device_id: {device_id}, disabled: {disabled}, refresh_expired: {expired}, locked: {locked}", user_id, device_id, login_data?.disabled, login_data?.refresh_expired, login_data?.locked);
             }
 
         }

@@ -5,6 +5,7 @@ using MicroM.Extensions;
 using MicroM.Web.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Headers;
+using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
@@ -23,7 +24,8 @@ public class OIDCClientService(
     IOIDCHttpClient oidcHttpClient,
     IOIDCReplayCacheService replay_cache,
     ILogger<OIDCClientService> log,
-    IDeviceIdService deviceid_service
+    IDeviceIdService deviceid_service,
+    IMicroMEncryption encryptor
 ) : IOIDCClientService
 {
     private readonly JsonSerializerOptions _jsonOptionsUnsafe = new()
@@ -116,7 +118,7 @@ public class OIDCClientService(
         if (string.IsNullOrWhiteSpace(app.OIDCWellKnownURL))
         {
             log.LogWarning("OIDC SignIn requested for app {app} which has no IdP discovery URL configured", app.ApplicationID);
-            return new(400, "application/json", JsonSerializer.Serialize(new { error = "invalid_request", error_description = "IdP discovery URL not configured for this client app" }));
+            return new(400, false, "application/json", JsonSerializer.Serialize(new { error = "invalid_request", error_description = "IdP discovery URL not configured for this client app" }));
         }
 
         // Discover PAR endpoint
@@ -124,14 +126,14 @@ public class OIDCClientService(
         if (wellknown_error != null || wellknown_result == null)
         {
             log.LogWarning("Failed to discover IdP configuration for app {app}: {error}", app.ApplicationID, wellknown_error);
-            return new(502, "application/json", JsonSerializer.Serialize(new { error = "server_error", error_description = "IdP discovery failed" }));
+            return new(502, false, "application/json", JsonSerializer.Serialize(new { error = "server_error", error_description = "IdP discovery failed" }));
         }
 
         string? parEndpoint = wellknown_result.pushed_authorization_request_endpoint;
         if (string.IsNullOrEmpty(parEndpoint))
         {
             log.LogWarning("IdP for app {app} does not expose a pushed_authorization_request_endpoint", app.ApplicationID);
-            return new(400, "application/json", JsonSerializer.Serialize(new { error = "unsupported_operation", error_description = "IdP does not expose a pushed_authorization_request_endpoint" }));
+            return new(400, false, "application/json", JsonSerializer.Serialize(new { error = "unsupported_operation", error_description = "IdP does not expose a pushed_authorization_request_endpoint" }));
         }
 
         // State and Nonce validation (if present)
@@ -147,7 +149,7 @@ public class OIDCClientService(
         if (form_result.error != null || form_result.valid_form == null)
         {
             log.LogWarning("Invalid OIDC SignIn form for app {app}: {error}", app.ApplicationID, form_result.error);
-            return new(400, "application/json", JsonSerializer.Serialize(form_result.error));
+            return new(400, false, "application/json", JsonSerializer.Serialize(form_result.error));
         }
 
         var forward = form_result.valid_form;
@@ -161,14 +163,14 @@ public class OIDCClientService(
         if (authHeaderError != null)
         {
             log.LogWarning("Client authentication failed for app {app}: {error}", app.ApplicationID, authHeaderError);
-            return new(400, "application/json", JsonSerializer.Serialize(new { error = "invalid_client", error_description = authHeaderError }));
+            return new(400, false, "application/json", JsonSerializer.Serialize(new { error = "invalid_client", error_description = authHeaderError }));
         }
 
         // Build and send PAR request
         var parResult = await oidcHttpClient.PostPushedAuthorizationRequestAsync(parEndpoint, forward, authHeader, ct);
 
         // Store state and nonce associated with this client_id and request_uri
-        if (parResult.StatusCode is >= 200 and < 300)
+        if (parResult.IsSuccessStatusCode)
         {
             state_and_nonce_service.StoreStateCookie(app, app.JWTKey, stateContext.Data);
         }
@@ -242,7 +244,7 @@ public class OIDCClientService(
         try
         {
             var tokenResult = await oidcHttpClient.PostTokenAsync(tokenEndpoint, tokenForm, authorization: null, ct);
-            if (tokenResult.StatusCode < 200 || tokenResult.StatusCode >= 300)
+            if (!tokenResult.IsSuccessStatusCode)
             {
                 return new(null, $"Token exchange failed: {tokenResult.Body}");
             }
@@ -260,7 +262,7 @@ public class OIDCClientService(
                 idpRefreshToken = rt.GetString();
             }
 
-            if (doc.RootElement.TryGetProperty("refresh_expiration_utc", out var rexp))
+            if (doc.RootElement.TryGetProperty(WellknownIdentityConstants.RefreshExpirationUtc, out var rexp))
             {
                 var rexpStr = rexp.GetString();
                 if (!string.IsNullOrWhiteSpace(rexpStr) && DateTimeOffset.TryParse(rexpStr, out var parsed))
@@ -296,12 +298,45 @@ public class OIDCClientService(
 
     public async Task<ResultWithStatus<OIDCFrontChannelLogoutInitiation, string>> BuildEndSessionRequest(ApplicationOption app, string idTokenHint, string? postLogoutRedirectUri, string? state, CancellationToken ct)
     {
-        throw new NotImplementedException();
+        if (string.IsNullOrWhiteSpace(app.OIDCWellKnownURL))
+        {
+            return new(null, "IdP discovery URL not configured for this client app");
+        }
+
+        if (string.IsNullOrWhiteSpace(idTokenHint))
+        {
+            return new(null, "id_token_hint is required");
+        }
+
+        var (wk, err) = await DiscoverWellKnown(app, ct);
+        if (err != null || wk == null || string.IsNullOrWhiteSpace(wk.end_session_endpoint))
+        {
+            return new(null, err ?? "IdP does not advertise end_session_endpoint");
+        }
+
+        // Generate/keep state (optional but recommended for CSRF)
+        string effState = string.IsNullOrWhiteSpace(state) ? PushedAuthorizationProvider.GenerateBase64UrlCode(16) : state;
+
+        // Build end_session URL
+        var query = new Dictionary<string, string?>(StringComparer.Ordinal)
+        {
+            [WellknownIdentityConstants.IdTokenHint] = idTokenHint,
+            [WellknownIdentityConstants.State] = effState
+        };
+        if (!string.IsNullOrWhiteSpace(postLogoutRedirectUri))
+        {
+            query["post_logout_redirect_uri"] = postLogoutRedirectUri;
+        }
+
+        string url = QueryHelpers.AddQueryString(wk.end_session_endpoint!, query!);
+
+        return new(new OIDCFrontChannelLogoutInitiation(url, effState), null);
     }
 
     public async Task<ResultWithStatus<bool, string>> HandleFrontChannelLogout(ApplicationOption app, string? state, CancellationToken ct)
     {
-        throw new NotImplementedException();
+        // For now, just acknowledge and let the SPA clear UI state.
+        return await Task.FromResult(new ResultWithStatus<bool, string>(true, null));
     }
 
     public async Task<OIDCBackchannelLogoutResult> HandleBackchannelLogout(ApplicationOption app, string logoutTokenJwt, CancellationToken ct)
@@ -438,4 +473,171 @@ public class OIDCClientService(
         }
 
     }
+
+    private async Task<ResultWithStatus<OIDCClientCallbackResult, string>> RefreshBackchannelIdpTokens(
+        ApplicationOption app,
+        string idpRefreshToken,
+        CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(app.OIDCWellKnownURL))
+        {
+            return new(null, "IdP discovery URL not configured for this client app");
+        }
+
+        // Discover IdP metadata
+        var (wellknown, wellknown_error) = await DiscoverWellKnown(app, ct);
+        if (wellknown_error != null || wellknown == null)
+        {
+            return new(null, wellknown_error ?? "Discovery failed");
+        }
+
+        var issuer = wellknown.issuer;
+        var tokenEndpoint = wellknown.token_endpoint;
+        var jwksUri = wellknown.jwks_uri;
+        if (string.IsNullOrEmpty(issuer) || string.IsNullOrEmpty(tokenEndpoint) || string.IsNullOrEmpty(jwksUri))
+        {
+            return new(null, "Invalid IdP discovery document");
+        }
+
+        // Enforce token endpoint auth (prefer/require private_key_jwt)
+        var allowed = wellknown.token_endpoint_auth_methods_supported;
+        var allowPrivateKeyJwt = allowed == null || allowed.Count == 0 || allowed.Contains(OIDCTokenEndpointAuthMethod.private_key_jwt);
+        if (!allowPrivateKeyJwt)
+        {
+            return new(null, "IdP does not allow private_key_jwt for token endpoint");
+        }
+
+        // Build refresh token request with private_key_jwt
+        X509Certificate2? cert = certificate_cache.GetCertificate(app);
+        if (cert == null)
+        {
+            return new(null, "Client certificate not configured");
+        }
+
+        var refreshForm = PushedAuthorizationProvider.BuildRefreshTokenFormPrivateKeyJwt(
+            cert,
+            clientId: app.ApplicationID,
+            tokenEndpoint,
+            idpRefreshToken
+        );
+
+        // Call IdP token endpoint
+        string id_token;
+        string? newIdpRefreshToken = null;
+        DateTimeOffset? idpRefreshExpirationUtc = null;
+
+        try
+        {
+            var refreshResult = await oidcHttpClient.PostTokenAsync(tokenEndpoint, refreshForm, authorization: null, ct);
+            if (refreshResult.IsSuccessStatusCode)
+            {
+                return new(null, $"IdP refresh failed: {refreshResult.Body}");
+            }
+
+            using var doc = JsonDocument.Parse(refreshResult.Body);
+            id_token = doc.RootElement.TryGetProperty(WellknownIdentityConstants.IdToken, out var idt) ? idt.GetString() ?? "" : "";
+            if (string.IsNullOrEmpty(id_token))
+            {
+                return new(null, "IdP refresh response missing id_token");
+            }
+
+            if (doc.RootElement.TryGetProperty(WellknownIdentityConstants.RefreshToken, out var rt))
+            {
+                newIdpRefreshToken = rt.GetString();
+            }
+
+            if (doc.RootElement.TryGetProperty(WellknownIdentityConstants.RefreshExpirationUtc, out var rexp))
+            {
+                var rexpStr = rexp.GetString();
+                if (!string.IsNullOrWhiteSpace(rexpStr) && DateTimeOffset.TryParse(rexpStr, out var parsed))
+                {
+                    idpRefreshExpirationUtc = parsed.ToUniversalTime();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            return new(null, $"IdP refresh request error: {ex.Message}");
+        }
+
+        // Validate refreshed id_token
+        var (jwt_result, jwt_error) = await JwksProvider.ValidateIdTokenAsync(httpClientFactory, jwksUri, issuer, app.ApplicationID, id_token, ct);
+        if (jwt_error != null || jwt_result == null)
+        {
+            return new(null, jwt_error ?? "Invalid id_token");
+        }
+
+        // Return principal and the (rotated) IdP refresh token info
+        var effectiveRefreshToken = string.IsNullOrWhiteSpace(newIdpRefreshToken) ? idpRefreshToken : newIdpRefreshToken;
+
+        return new(new(jwt_result.Principal, jwt_result.ExpiresUtc, effectiveRefreshToken, DeviceId: null, idpRefreshExpirationUtc), null);
+
+
+    }
+
+    public async Task<bool> RefreshIdpToken(
+            ApplicationOption app,
+            string sid,
+            string device_id,
+            CancellationToken ct)
+    {
+
+        string app_id = app.ApplicationID;
+        using var dbc = app.CreateDatabaseClient(log, deviceid_service, null);
+
+        try
+        {
+            await dbc.Connect(ct);
+
+            // Load IdP refresh token for this sid (prefer current device row if present)
+            var session = await ApplicationOidcActiveSessions.GetSessionBySID(dbc, app.ApplicationID, sid, ct, encryptor);
+
+            if (session == null || string.IsNullOrWhiteSpace(session.vc_oidc_refreshtoken))
+            {
+                log.LogTrace("REFRESH_TOKEN: APP_ID {app_id} no IdP refresh token found for sid={sid}", app_id, sid);
+                return false;
+            }
+
+            if (session.dt_refresh_expiration == null || session.dt_refresh_expiration <= DateTime.UtcNow)
+            {
+                log.LogTrace("REFRESH_TOKEN: APP_ID {app_id} IdP refresh token expired for sid={sid}", app_id, sid);
+                return false;
+            }
+
+            // Call IdP to refresh using client credentials (private_key_jwt)
+            var (idpResult, idpError) = await RefreshBackchannelIdpTokens(app, session.vc_oidc_refreshtoken, ct);
+            if (idpError != null || idpResult == null || idpResult.Principal == null)
+            {
+                log.LogWarning("REFRESH_TOKEN: APP_ID {app_id} IdP refresh failed for sid={sid}: {err}", app_id, sid, idpError ?? "unknown");
+                return false;
+            }
+
+            await ApplicationOidcActiveSessions.CreateOrUpdateExternalSignInSession(
+                app_id,
+                session.vc_username,
+                session.c_user_id,
+                device_id,
+                sid,
+                session.vc_oidc_sub,
+                idpResult.IdpRefreshToken,
+                idpResult.IdpRefreshExpirationUtc?.UtcDateTime,
+                dbc,
+                encryptor,
+                ct
+            );
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            log.LogError(ex, "REFRESH_TOKEN: APP_ID {app_id} IdP fallback error for sid={sid}", app_id, sid);
+            return false;
+        }
+        finally
+        {
+            if (dbc.ConnectionState == System.Data.ConnectionState.Open) await dbc.Disconnect();
+        }
+    }
+
+
 }

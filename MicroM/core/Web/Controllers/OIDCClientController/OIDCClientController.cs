@@ -1,5 +1,4 @@
-﻿using MicroM.Configuration;
-using MicroM.Web.Authentication;
+﻿using MicroM.Web.Authentication;
 using MicroM.Web.Authentication.SSO;
 using MicroM.Web.Services;
 using MicroM.Web.Services.Security;
@@ -42,7 +41,7 @@ public class OIDCClientController : ControllerBase, IOIDCClientController
     /// </summary>
     [AllowAnonymous]
     [HttpPost("{app_id}/oidc-client/login")]
-    public async Task<ActionResult> SignInOidc([FromServices] IMicroMAppConfiguration app_config, [FromServices] IOIDCClientService clientService, string app_id, CancellationToken ct)
+    public async Task<ActionResult> SignInOidc(IMicroMAppConfiguration app_config, [FromServices] IOIDCClientService clientService, string app_id, CancellationToken ct)
     {
         if (!Request.HasFormContentType)
         {
@@ -53,7 +52,7 @@ public class OIDCClientController : ControllerBase, IOIDCClientController
         if (app == null) return NotFound("Application not found");
 
         var form = await Request.ReadFormAsync(ct);
-        var (status, contentType, body) = await clientService.HandleSignInOidc(app, Request.Headers, form, ct);
+        var (status, isSuccess, contentType, body) = await clientService.HandleSignInOidc(app, Request.Headers, form, ct);
 
         return new ContentResult
         {
@@ -189,15 +188,81 @@ public class OIDCClientController : ControllerBase, IOIDCClientController
 
     [AllowAnonymous]
     [HttpGet("{app_id}/oidc-client/front-logout")]
-    public Task<ActionResult> FrontChannelLogout(ApplicationOption app, string? state, CancellationToken ct)
+    public async Task<ActionResult> FrontChannelLogout(
+        [FromServices] IMicroMAppConfiguration app_config,
+        [FromServices] IOIDCClientService oidc_client,
+        [FromServices] ILogger<OIDCClientController> log,
+        [FromQuery] string? state,
+        string app_id,
+        CancellationToken ct)
     {
-        throw new NotImplementedException();
+
+        var appOpt = app_config.GetAppConfiguration(app_id);
+        if (appOpt == null)
+        {
+            return NotFound("Application not found");
+        }
+
+        var (ok, err) = await oidc_client.HandleFrontChannelLogout(appOpt, state, ct);
+        if (err != null || !ok)
+        {
+            log.LogWarning("Front-channel logout processing failed for app {app}: {err}", app_id, err ?? "unknown");
+            return BadRequest(new { error = "logout_failed", error_description = err ?? "unknown" });
+        }
+
+        return Ok(true);
     }
 
     [Authorize(Policy = nameof(MicroMPermissionsConstants.IdPClientPolicy))]
     [HttpPost("{app_id}/oidc-client/back-logout")]
-    public Task<ActionResult> BackchannelLogout(ApplicationOption app, string logoutTokenJwt, CancellationToken ct)
+    public async Task<ActionResult> BackchannelLogout(
+        [FromServices] IMicroMAppConfiguration app_config,
+        [FromServices] IOIDCClientService oidc_client,
+        [FromServices] ILogger<OIDCClientController> log,
+        string app_id,
+        CancellationToken ct)
     {
-        throw new NotImplementedException();
+        var appOpt = app_config.GetAppConfiguration(app_id);
+        if (appOpt == null)
+        {
+            return NotFound("Application not found");
+        }
+
+        // Must be form-urlencoded with logout_token per spec
+        if (!Request.HasFormContentType)
+        {
+            return BadRequest(new { error = "invalid_request", error_description = "Request must be application/x-www-form-urlencoded" });
+        }
+
+        var form = await Request.ReadFormAsync(ct);
+        var logoutToken = form["logout_token"].ToString();
+
+        if (string.IsNullOrWhiteSpace(logoutToken))
+        {
+            return BadRequest(new { error = "invalid_request", error_description = "logout_token is required" });
+        }
+
+        var result = await oidc_client.HandleBackchannelLogout(appOpt, logoutToken, ct);
+
+        // Return 200 for success and replay/idempotent outcomes; 400 for validation failures.
+        switch (result.Status)
+        {
+            case OIDCLogoutProcessingStatus.Success:
+            case OIDCLogoutProcessingStatus.Replay:
+            case OIDCLogoutProcessingStatus.AlreadyProcessed:
+                return Ok(true);
+
+            case OIDCLogoutProcessingStatus.InvalidSignature:
+            case OIDCLogoutProcessingStatus.InvalidAudience:
+            case OIDCLogoutProcessingStatus.InvalidIssuer:
+            case OIDCLogoutProcessingStatus.MissingEvent:
+            case OIDCLogoutProcessingStatus.MissingSidOrSub:
+            case OIDCLogoutProcessingStatus.Expired:
+            case OIDCLogoutProcessingStatus.UnknownSid:
+            case OIDCLogoutProcessingStatus.SessionStoreError:
+            default:
+                log.LogWarning("Backchannel logout failed for app {app}: {status} {err}", app_id, result.Status, result.Error ?? "");
+                return BadRequest(new { error = "logout_failed", error_description = result.Error ?? result.Status.ToString() });
+        }
     }
 }

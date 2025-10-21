@@ -1,9 +1,15 @@
 ﻿using MicroM.Configuration;
 using MicroM.Core;
+using MicroM.DataDictionary.CategoriesDefinitions;
+using MicroM.DataDictionary.Entities;
 using MicroM.Web.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Headers;
+using Microsoft.Extensions.Logging;
+using Microsoft.IdentityModel.JsonWebTokens;
+using Microsoft.IdentityModel.Tokens;
 using System.Security.Claims;
+using System.Security.Cryptography.X509Certificates;
 using System.Text.Json;
 
 namespace MicroM.Web.Authentication.SSO;
@@ -13,7 +19,10 @@ public class IdentityProviderService(
     IPushedAuthorizationService par_service,
     IAuthorizationCodeService code_service,
     IEtagCacheService etag_cache,
-    IJwksService jwks_service
+    IApplicationCertificateCacheService certificate_cache,
+    IJwksService jwks_service,
+    IOIDCHttpClient oidcHttpClient,
+    ILogger<IdentityProviderService> log
     ) : IIdentityProviderService
 {
     private JsonSerializerOptions _jsonSerializationOptions = new()
@@ -117,9 +126,114 @@ public class IdentityProviderService(
         return Task.FromResult<ResultWithStatus<OIDCAuthorizeRecord, ErrorResult>>(new(new(redirect_uri, null), null));
     }
 
-    public Task<bool> HandleEndSession(ApplicationOption app_config, string app_id, string user_id, CancellationToken ct)
+    public async Task<bool> HandleEndSession(ApplicationOption app, string issuer, string user_id, CancellationToken ct)
     {
-        throw new NotImplementedException();
+        // Only IdP servers may initiate SLO fan-out
+        if (!string.Equals(app.IdentityProviderRoleType, nameof(IdentityProviderRole.IDPServer), StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        // Load signing certificate
+        X509Certificate2? cert = certificate_cache.GetCertificate(app);
+        if (cert == null)
+        {
+            log.LogWarning("EndSession: No certificate configured for IdP app {app}", app.ApplicationID);
+            return false;
+        }
+
+        // Enumerate registered clients from configuration (server-side registry)
+        var clients = app.OIDCClientConfiguration;
+        if (clients == null || clients.Count == 0)
+        {
+            log.LogInformation("EndSession: No OIDC clients registered for app {app}", app.ApplicationID);
+            return true;
+        }
+
+        var signingCreds = new X509SigningCredentials(cert);
+        var handler = new JsonWebTokenHandler();
+
+        // Fan-out logout_token to each client and purge IdP sessions by pairwise sub
+        foreach (var kv in clients)
+        {
+            if (ct.IsCancellationRequested) break;
+
+            var cfg = kv.Value;
+            var clientAppId = cfg.ClientAPPID;
+            var backUrl = cfg.URLBackchannelLogout;
+            var pepper = cfg.OIDCSubjectPepper;
+
+            if (string.IsNullOrWhiteSpace(backUrl))
+            {
+                log.LogWarning("EndSession: No backchannel logout URL for client {client} in app {app}", clientAppId, app.ApplicationID);
+                continue;
+            }
+
+            if (string.IsNullOrWhiteSpace(pepper))
+            {
+                log.LogWarning("EndSession: Missing OIDCSubjectPepper for client {client} in app {app}", clientAppId, app.ApplicationID);
+                continue;
+            }
+
+            // Derive pairwise sub for this client
+            string sub = ApplicationOidcActiveSessions.GetDerivedSub(clientAppId, user_id, pepper);
+
+            // Build logout_token JWT
+            var now = DateTimeOffset.UtcNow;
+
+            var claims = new List<Claim>
+            {
+                new(WellknownIdentityConstants.SubjectIdentifier, sub),
+                new(WellknownIdentityConstants.Events, WellknownIdentityConstants.BackchannelLogoutEventJson, JsonClaimValueTypes.Json),
+                new(WellknownIdentityConstants.JWTID, Guid.NewGuid().ToString("N"))
+            };
+
+            var desc = new SecurityTokenDescriptor
+            {
+                Issuer = issuer, // must match IdP discovery issuer
+                Audience = clientAppId,
+                Subject = new ClaimsIdentity(claims),
+                NotBefore = now.UtcDateTime,
+                IssuedAt = now.UtcDateTime,
+                Expires = now.AddMinutes(5).UtcDateTime,
+                SigningCredentials = signingCreds
+            };
+
+            string logoutToken = handler.CreateToken(desc);
+
+            // POST to client back-channel endpoint
+            try
+            {
+                var form = new[] { new KeyValuePair<string, string>("logout_token", logoutToken) };
+                var res = await oidcHttpClient.PostFormUrlEncodedAsync(backUrl, form, ct);
+                if (!res.IsSuccessStatusCode)
+                {
+                    log.LogWarning("EndSession: Backchannel POST failed for client {client} status {status} body: {body}", clientAppId, res.StatusCode, res.Body);
+                }
+            }
+            catch (Exception ex)
+            {
+                log.LogWarning(ex, "EndSession: Backchannel POST exception for client {client}", clientAppId);
+            }
+
+            // Purge IdP sessions by sub for this client
+            using var dbc = app.CreateDatabaseClient(log, null, null);
+            try
+            {
+                await dbc.Connect(ct);
+                await ApplicationOidcActiveSessions.DeleteSessionsBySUB(dbc, sub, ct);
+            }
+            catch (Exception ex)
+            {
+                log.LogWarning(ex, "EndSession: Failed to purge sessions for client {client}", clientAppId);
+            }
+            finally
+            {
+                await dbc.Disconnect();
+            }
+        }
+
+        return true;
     }
 
     public Task<Dictionary<string, object?>> HandleUserInfo(ApplicationOption app_config, string app_id, string user_id, CancellationToken ct)

@@ -21,7 +21,7 @@ public interface IIdentityProviderService
 
     Task<Dictionary<string, object?>> HandleUserInfo(ApplicationOption app_config, string app_id, string user_id, CancellationToken ct);
 
-    Task<bool> HandleEndSession(ApplicationOption app_config, string app_id, string user_id, CancellationToken ct);
+    Task<bool> HandleEndSession(ApplicationOption app_config, string issuer, string user_id, CancellationToken ct);
 
 
 }

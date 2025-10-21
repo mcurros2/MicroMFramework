@@ -23,5 +23,5 @@ public interface IIdentityProviderController
 
     Task<Dictionary<string, object?>> Introspect(IAuthenticationProvider auth, IMicroMAppConfiguration app_config, string app_id, string token, CancellationToken ct);
 
-    Task<bool> EndSession(IAuthenticationProvider auth, IMicroMAppConfiguration app_config, string app_id, string userId, CancellationToken ct);
+    Task<ActionResult> EndSession(IIdentityProviderService idp, IMicroMAppConfiguration app_config, string app_id, string userId, CancellationToken ct);
 }

@@ -223,9 +223,38 @@ public class IdentityProviderController : ControllerBase, IIdentityProviderContr
 
     [Authorize(Policy = nameof(MicroMPermissionsConstants.IdPClientPolicy))]
     [HttpPost("{app_id}/oauth2/endsession")]
-    public Task<bool> EndSession([FromServices] IAuthenticationProvider auth, [FromServices] IMicroMAppConfiguration app_config, string app_id, [FromBody] string userId, CancellationToken ct)
+    public async Task<ActionResult> EndSession(
+        [FromServices] IIdentityProviderService idp,
+        [FromServices] IMicroMAppConfiguration app_config,
+        string app_id,
+        [FromBody] string userId,
+        CancellationToken ct)
     {
-        throw new NotImplementedException();
+        try
+        {
+            var app = app_config.GetAppConfiguration(app_id);
+            if (app == null) return NotFound(APPLICATION_NOT_FOUND);
+
+            if (app.IdentityProviderRoleType != nameof(IdentityProviderRole.IDPServer))
+            {
+                _log.LogWarning("Application {app_id} is not configured as an Identity Provider", app_id);
+                return BadRequest("Application is not configured as an Identity Provider");
+            }
+
+            // Compute issuer consistent with discovery
+            string requestBase = $"{Request.Scheme}://{Request.Host.Value}{_api_path}/{app_id}";
+            string issuer = $"{requestBase}/oidc";
+
+            var ok = await idp.HandleEndSession(app, issuer, userId, ct);
+
+            if (!ok) return BadRequest(new { error = "logout_failed" });
+
+            return Ok(true);
+        }
+        catch (Exception ex) when (ex is TaskCanceledException || ex is OperationCanceledException)
+        {
+            return Conflict(OPERATION_CANCELLED);
+        }
     }
 
     [Authorize(Policy = nameof(MicroMPermissionsConstants.IdPClientPolicy))]

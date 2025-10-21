@@ -161,7 +161,7 @@ public class AuthenticationService(
         }
     }
 
-    public async Task<(RefreshTokenResult? result, TokenResult? token_result)> HandleRefreshToken(IAuthenticationProvider auth, WebAPIJsonWebTokenHandler jwt_handler, string app_id, UserRefreshTokenRequest refreshRequest, CancellationToken ct)
+    public async Task<(RefreshTokenResult? result, TokenResult? token_result)> HandleRefreshToken(IAuthenticationProvider auth, WebAPIJsonWebTokenHandler jwt_handler, IOIDCClientService oidc_client, string app_id, UserRefreshTokenRequest refreshRequest, CancellationToken ct)
     {
         ApplicationOption? app = app_config.GetAppConfiguration(app_id);
         if (app == null)
@@ -172,49 +172,74 @@ public class AuthenticationService(
 
         // MMC: read the expired token to get the claims
         var claims = await jwt_handler.ValidateExpiredToken(app, refreshRequest.Bearer);
-        if (claims != null)
-        {
-            var user_id = claims.FindFirstValue(MicroMServerClaimTypes.MicroMUser_id);
-            if (user_id != null)
-            {
-                var authenticator = auth.GetAuthenticator(app);
-                if (authenticator != null)
-                {
-                    var device_id = claims.FindFirstValue(MicroMServerClaimTypes.MicroMUserDeviceID);
-                    if (device_id != null)
-                    {
-                        var refresh_result = await authenticator.AuthenticateRefresh(app, user_id, refreshRequest.RefreshToken, device_id, ct);
-
-                        if (refresh_result.Status.IsIn(LoginAttemptStatus.Updated, LoginAttemptStatus.RefreshTokenValid))
-                        {
-                            var dicClaim = claims.Claims.GroupBy(claim => claim.Type).ToDictionary(group => group.Key, group => (object)group.Last().Value);
-                            return (refresh_result, jwt_handler.GenerateJwtTokenWEBApi(dicClaim, app));
-                        }
-                        else
-                        {
-                            log.LogTrace("REFRESH_TOKEN: APP_ID {app_id} can't refresh token. Status: {status} Message {message} refresh-token: {token}", app_id, refresh_result.Status, refresh_result.Message, refreshRequest.RefreshToken);
-                        }
-
-                    }
-                    else
-                    {
-                        log.LogTrace("REFRESH_TOKEN: APP_ID {app_id} empty device_id. refresh-token: {token}", app_id, refreshRequest.RefreshToken);
-                    }
-                }
-                else
-                {
-                    log.LogError("REFRESH_TOKEN: Invalid authenticator specified: {authenticator} APP_ID {app_id}", app.AuthenticationType, app_id);
-                }
-            }
-            else
-            {
-                log.LogWarning("REFRESH_TOKEN: APP_ID {app_id} can't find userID in claims or expired token", app_id);
-            }
-        }
-        else
+        if (claims == null)
         {
             log.LogTrace("REFRESH_TOKEN: APP_ID {app_id} Invalid expired token", app_id);
+            return (null, null);
         }
+
+        var user_id = claims.FindFirstValue(MicroMServerClaimTypes.MicroMUser_id);
+        if (user_id == null)
+        {
+            log.LogWarning("REFRESH_TOKEN: APP_ID {app_id} can't find userID in claims or expired token", app_id);
+            return (null, null);
+        }
+
+        var authenticator = auth.GetAuthenticator(app);
+        if (authenticator == null)
+        {
+            log.LogError("REFRESH_TOKEN: Invalid authenticator specified: {authenticator} APP_ID {app_id}", app.AuthenticationType, app_id);
+            return (null, null);
+        }
+
+        var device_id = claims.FindFirstValue(MicroMServerClaimTypes.MicroMUserDeviceID);
+        if (device_id == null)
+        {
+            log.LogTrace("REFRESH_TOKEN: APP_ID {app_id} empty device_id.", app_id);
+            return (null, null);
+        }
+
+        // Local refresh token validation, if it works just returns
+        var refresh_result = await authenticator.AuthenticateRefresh(app, user_id, refreshRequest.RefreshToken, device_id, ct);
+
+        if (refresh_result.Status.IsIn(LoginAttemptStatus.Updated, LoginAttemptStatus.RefreshTokenValid))
+        {
+            var dicClaim = claims.Claims.GroupBy(claim => claim.Type).ToDictionary(group => group.Key, group => (object)group.Last().Value);
+            return (refresh_result, jwt_handler.GenerateJwtTokenWEBApi(dicClaim, app));
+        }
+
+        // If the app is an IDPClient try to refresh from the IDP server
+        if (app.IdentityProviderRoleType == nameof(IdentityProviderRole.IDPClient))
+        {
+
+            var sid = claims.FindFirstValue(MicroMServerClaimTypes.MicroMOidcSessionID);
+            if (string.IsNullOrWhiteSpace(sid))
+            {
+                log.LogTrace("REFRESH_TOKEN: APP_ID {app_id} no OIDC sid in claims; can't refresh IdP token", app_id);
+                return (null, null);
+            }
+
+            var oidc_result = await oidc_client.RefreshIdpToken(app, sid, device_id, ct);
+            if (oidc_result)
+            {
+                // Issue new local access token using same local server-claims (no local refresh rotation here)
+                var dic = claims.Claims.GroupBy(c => c.Type, StringComparer.Ordinal)
+                                       .ToDictionary(g => g.Key, g => (object)g.Last().Value, StringComparer.Ordinal);
+                var token = jwt_handler.GenerateJwtTokenWEBApi(dic, app);
+
+                // Return the current local refresh token (cookie remains unchanged)
+                var fallbackResult = new RefreshTokenResult
+                {
+                    Status = LoginAttemptStatus.RefreshTokenValid,
+                    RefreshToken = refreshRequest.RefreshToken
+                };
+
+                return (fallbackResult, token);
+            }
+        }
+
+        log.LogTrace("REFRESH_TOKEN: APP_ID {app_id} can't refresh token. Status: {status} Message {message}", app_id, refresh_result.Status, refresh_result.Message);
+
 
         return (null, null);
     }
