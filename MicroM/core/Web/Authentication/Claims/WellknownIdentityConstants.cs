@@ -6,6 +6,7 @@ public class WellknownIdentityConstants
     public const string NameIdentifier = "nameid";
     public const string SubjectIdentifier = "sub";
     public const string IdToken = "id_token";
+    public const string IdTokenHint = "id_token_hint";
     public const string RefreshToken = "refresh_token";
     public const string ClientId = "client_id";
     public const string Nonce = "nonce";
@@ -31,6 +32,11 @@ public class WellknownIdentityConstants
     public const string GrantType = "grant_type";
     public const string Bearer = "Bearer";
     public const string OpenID = "openid";
+    public const string ClientAssertion = "client_assertion";
+    public const string ClientAssertionType = "client_assertion_type";
+    public const string RefreshExpirationUtc = "refresh_expiration_utc";
 
     public const string BackchannelLogoutEventUri = "http://schemas.openid.net/event/backchannel-logout";
+    public const string BackchannelLogoutEventJson = $"{{\"{WellknownIdentityConstants.BackchannelLogoutEventUri}\":{{}}}}";
+
 }

@@ -88,6 +88,12 @@ public class OIDCHttpClient(IHttpClientFactory httpClientFactory, ILogger<OIDCHt
         CancellationToken ct)
         => PostFormAsync(ConfigurationDefaults.HTTPClientOidcName, tokenEndpoint, form, authorization, ct);
 
+    public Task<OIDCHttpClientPostResponse> PostFormUrlEncodedAsync(
+    string url,
+    IEnumerable<KeyValuePair<string, string>> form,
+    CancellationToken ct)
+    => PostFormAsync(ConfigurationDefaults.HTTPClientOidcName, url, form, authorization: null, ct);
+
     private async Task<OIDCHttpClientPostResponse> PostFormAsync(
         string namedClient,
         string url,
@@ -95,10 +101,10 @@ public class OIDCHttpClient(IHttpClientFactory httpClientFactory, ILogger<OIDCHt
         AuthenticationHeaderValue? authorization,
         CancellationToken ct)
     {
-        if (string.IsNullOrWhiteSpace(url)) return new(400, "application/json", "{\"error\":\"invalid_request\",\"error_description\":\"URL is empty\"}");
-        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri)) return new(400, "application/json", "{\"error\":\"invalid_request\",\"error_description\":\"URL is not an absolute URI\"}");
+        if (string.IsNullOrWhiteSpace(url)) return new(400, false, "application/json", "{\"error\":\"invalid_request\",\"error_description\":\"URL is empty\"}");
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri)) return new(400, false, "application/json", "{\"error\":\"invalid_request\",\"error_description\":\"URL is not an absolute URI\"}");
         if (!uri.Scheme.Equals(Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase) && !uri.IsLoopback)
-            return new(400, "application/json", "{\"error\":\"invalid_request\",\"error_description\":\"URL must be HTTPS (non-loopback)\"}");
+            return new(400, false, "application/json", "{\"error\":\"invalid_request\",\"error_description\":\"URL must be HTTPS (non-loopback)\"}");
 
         try
         {
@@ -115,13 +121,13 @@ public class OIDCHttpClient(IHttpClientFactory httpClientFactory, ILogger<OIDCHt
             using var resp = await client.SendAsync(req, ct);
             var body = await resp.Content.ReadAsStringAsync(ct);
             var ctype = resp.Content.Headers.ContentType?.ToString() ?? "application/json";
-            return new((int)resp.StatusCode, ctype, body);
+            return new((int)resp.StatusCode, resp.IsSuccessStatusCode, ctype, body);
         }
         catch (Exception ex)
         {
             log.LogWarning(ex, "POST form failed to {url}", url);
             var msg = new { error = "server_error", error_description = $"HTTP error: {ex.Message}" };
-            return new(502, "application/json", System.Text.Json.JsonSerializer.Serialize(msg));
+            return new(502, false, "application/json", System.Text.Json.JsonSerializer.Serialize(msg));
         }
     }
 }

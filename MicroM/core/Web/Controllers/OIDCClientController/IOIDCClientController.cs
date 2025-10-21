@@ -1,5 +1,4 @@
-﻿using MicroM.Configuration;
-using MicroM.Web.Authentication;
+﻿using MicroM.Web.Authentication;
 using MicroM.Web.Authentication.SSO;
 using MicroM.Web.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -25,12 +24,17 @@ public interface IOIDCClientController
         CancellationToken ct);
 
     Task<ActionResult> FrontChannelLogout(
-       ApplicationOption app,
+       IMicroMAppConfiguration app_config,
+       IOIDCClientService client_ervice,
+       ILogger<OIDCClientController> log,
        string? state,
+       string app_id,
        CancellationToken ct);
 
     Task<ActionResult> BackchannelLogout(
-        ApplicationOption app,
-        string logoutTokenJwt,
+        IMicroMAppConfiguration app_config,
+        IOIDCClientService client_ervice,
+        ILogger<OIDCClientController> log,
+        string app_id,
         CancellationToken ct);
 }

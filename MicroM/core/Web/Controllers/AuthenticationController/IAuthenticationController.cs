@@ -1,4 +1,5 @@
 ﻿using MicroM.Web.Authentication;
+using MicroM.Web.Authentication.SSO;
 using MicroM.Web.Services;
 using Microsoft.AspNetCore.Mvc;
 
@@ -13,5 +14,5 @@ public interface IAuthenticationController
     ActionResult IsLoggedIn();
     Task<ActionResult> RecoverPassword(IAuthenticationService api, IAuthenticationProvider auth, string app_id, UserRecoverPassword parms, CancellationToken ct);
     Task<ActionResult> RecoveryEmail(IAuthenticationService api, IAuthenticationProvider auth, string app_id, UserRecoveryEmail parms, CancellationToken ct);
-    Task<ActionResult> RefreshToken(IAuthenticationService api, IAuthenticationProvider auth, WebAPIJsonWebTokenHandler jwt_handler, string app_id, UserRefreshTokenRequest user_refresh, CancellationToken ct);
+    Task<ActionResult> RefreshToken(IAuthenticationService api, IAuthenticationProvider auth, WebAPIJsonWebTokenHandler jwt_handler, IOIDCClientService oidc_client, string app_id, UserRefreshTokenRequest user_refresh, CancellationToken ct);
 }

@@ -46,6 +46,13 @@ public interface IOIDCClientService
         string logoutTokenJwt,
         CancellationToken ct);
 
-
+    // IdP refresh_token grant for Strategy B fallback:
+    // Calls IdP /oauth2/token with grant_type=refresh_token (private_key_jwt), validates id_token,
+    // returns principal, expires, rotated IdP refresh token (or original if not rotated), and its UTC expiration.
+    Task<bool> RefreshIdpToken(
+        ApplicationOption app,
+        string sid,
+        string device_id,
+        CancellationToken ct);
 
 }

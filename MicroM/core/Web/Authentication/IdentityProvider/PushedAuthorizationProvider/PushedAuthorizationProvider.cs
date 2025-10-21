@@ -231,13 +231,32 @@ public static class PushedAuthorizationProvider
         var assertion = BuildClientAssertion(cert, clientId, tokenEndpoint);
         return new Dictionary<string, string>(StringComparer.Ordinal)
         {
-            ["grant_type"] = "authorization_code",
-            ["code"] = code,
-            ["redirect_uri"] = redirectUri,
-            ["code_verifier"] = codeVerifier,
-            ["client_id"] = clientId,
-            ["client_assertion_type"] = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
-            ["client_assertion"] = assertion
+            [WellknownIdentityConstants.GrantType] = WellknownIdentityConstants.AuthorizationCode,
+            [WellknownIdentityConstants.Code] = code,
+            [WellknownIdentityConstants.RedirectUri] = redirectUri,
+            [WellknownIdentityConstants.CodeVerifier] = codeVerifier,
+            [WellknownIdentityConstants.ClientId] = clientId,
+            [WellknownIdentityConstants.ClientAssertionType] = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
+            [WellknownIdentityConstants.ClientAssertion] = assertion
+        };
+    }
+
+    public static Dictionary<string, string> BuildRefreshTokenFormPrivateKeyJwt
+        (
+           X509Certificate2 cert,
+           string clientId,
+           string tokenEndpoint,
+           string refreshToken
+        )
+    {
+        var assertion = BuildClientAssertion(cert, clientId, tokenEndpoint);
+        return new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            [WellknownIdentityConstants.GrantType] = WellknownIdentityConstants.RefreshToken,
+            [WellknownIdentityConstants.RefreshToken] = refreshToken,
+            [WellknownIdentityConstants.ClientId] = clientId,
+            [WellknownIdentityConstants.ClientAssertionType] = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
+            [WellknownIdentityConstants.ClientAssertion] = assertion
         };
     }
 

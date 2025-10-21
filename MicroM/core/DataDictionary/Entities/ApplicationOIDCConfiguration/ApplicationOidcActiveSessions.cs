@@ -39,11 +39,14 @@ public class ApplicationOidcActiveSessionsDef : EntityDefinition
     public readonly ProcedureDefinition aos_deleteAllSessions = new();
     public readonly ProcedureDefinition aos_deleteSessionsBySUB = new(nameof(vc_oidc_sub));
 
-    public readonly ProcedureDefinition aos_getSessionsBySID = new(readonly_locks: true, nameof(c_application_id), nameof(vc_oidc_session_id));
+    // Get all sessions at the IdP for the user that has the given OIDC Session ID, use at the IdP side
+    public readonly ProcedureDefinition aos_getUserSessionsBySID = new(readonly_locks: true, nameof(c_application_id), nameof(vc_oidc_session_id));
+
     public readonly ProcedureDefinition aos_getSessionsByUser = new(readonly_locks: true, nameof(vc_username));
     public readonly ProcedureDefinition aos_getSessionsBySUB = new(readonly_locks: true, nameof(vc_oidc_sub));
 
     public readonly ProcedureDefinition aos_getSessionByRefreshToken = new(readonly_locks: true, nameof(c_application_id), nameof(vc_oidc_refreshtoken));
+    public readonly ProcedureDefinition aos_getSessionBySID = new(readonly_locks: true, nameof(c_application_id), nameof(vc_oidc_session_id));
 
     public readonly ProcedureDefinition aos_getUsernameFromSIDorSUB = new(readonly_locks: true, nameof(c_application_id), nameof(vc_oidc_session_id), nameof(vc_oidc_sub));
     public readonly ProcedureDefinition aos_getSUBFromSID = new(readonly_locks: true, nameof(c_application_id), nameof(vc_oidc_session_id));
@@ -216,7 +219,7 @@ public class ApplicationOidcActiveSessions : Entity<ApplicationOidcActiveSession
             entity.Def.c_application_id.Value = app_id;
             entity.Def.vc_oidc_session_id.Value = sid;
 
-            result = await entity.Data.ExecuteProc(ct, entity.Def.aos_getSessionsBySID, mapper: entity.MapSessionRecord);
+            result = await entity.Data.ExecuteProc(ct, entity.Def.aos_getUserSessionsBySID, mapper: entity.MapSessionRecord);
 
         }
         finally
@@ -280,6 +283,28 @@ public class ApplicationOidcActiveSessions : Entity<ApplicationOidcActiveSession
             entity.Def.vc_oidc_refreshtoken.Value = encryptor != null ? encryptor.Encrypt(refresh_token) : refresh_token;
 
             result = await entity.Data.ExecuteProc(ct, entity.Def.aos_getSessionByRefreshToken, mapper: entity.MapSessionRecord);
+        }
+        finally
+        {
+            if (should_close) await ec.Disconnect();
+        }
+        return result.Count > 0 ? result[0] : null;
+    }
+
+    public static async Task<OidcSessionItem?> GetSessionBySID(IEntityClient ec, string client_id, string sid, CancellationToken ct, IMicroMEncryption? encryptor = null)
+    {
+        var entity = new ApplicationOidcActiveSessions(ec, encryptor);
+        List<OidcSessionItem>? result = [];
+
+        var should_close = !(ec.ConnectionState == ConnectionState.Open);
+        try
+        {
+            await ec.Connect(ct);
+
+            entity.Def.c_application_id.Value = client_id;
+            entity.Def.vc_oidc_session_id.Value = sid;
+
+            result = await entity.Data.ExecuteProc(ct, entity.Def.aos_getSessionBySID, mapper: entity.MapSessionRecord);
         }
         finally
         {

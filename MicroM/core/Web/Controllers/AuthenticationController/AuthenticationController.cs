@@ -2,6 +2,7 @@
 using MicroM.Data;
 using MicroM.DataDictionary.CategoriesDefinitions;
 using MicroM.Web.Authentication;
+using MicroM.Web.Authentication.SSO;
 using MicroM.Web.Services;
 using MicroM.Web.Services.Security;
 using Microsoft.AspNetCore.Authentication;
@@ -178,11 +179,18 @@ public class AuthenticationController(IOptions<MicroMOptions> options) : Control
 
     [AllowAnonymous]
     [HttpPost("{app_id}/auth/refresh")]
-    public async Task<ActionResult> RefreshToken([FromServices] Services.IAuthenticationService aus, [FromServices] IAuthenticationProvider auth, [FromServices] WebAPIJsonWebTokenHandler jwt_handler, string app_id, [FromBody] UserRefreshTokenRequest user_refresh, CancellationToken ct)
+    public async Task<ActionResult> RefreshToken(
+        [FromServices] Services.IAuthenticationService aus,
+        [FromServices] IAuthenticationProvider auth,
+        [FromServices] WebAPIJsonWebTokenHandler jwt_handler,
+        [FromServices] IOIDCClientService oidc_client,
+        string app_id,
+        [FromBody] UserRefreshTokenRequest user_refresh,
+        CancellationToken ct)
     {
         try
         {
-            var (refresh_result, token_result) = await aus.HandleRefreshToken(auth, jwt_handler, app_id, user_refresh, ct);
+            var (refresh_result, token_result) = await aus.HandleRefreshToken(auth, jwt_handler, oidc_client, app_id, user_refresh, ct);
             if (refresh_result != null && refresh_result.RefreshToken != null && token_result != null)
             {
                 var result = await aus.SignInAsync(HttpContext, token_result, refresh_result.RefreshToken);

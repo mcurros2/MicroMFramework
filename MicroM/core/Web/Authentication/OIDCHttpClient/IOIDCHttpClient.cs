@@ -22,4 +22,10 @@ public interface IOIDCHttpClient
         IEnumerable<KeyValuePair<string, string>> form,
         AuthenticationHeaderValue? authorization,
         CancellationToken ct);
+
+    // Generic form POST to arbitrary URL (application/x-www-form-urlencoded)
+    Task<OIDCHttpClientPostResponse> PostFormUrlEncodedAsync(
+        string url,
+        IEnumerable<KeyValuePair<string, string>> form,
+        CancellationToken ct);
 }

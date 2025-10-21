@@ -1,4 +1,4 @@
-﻿create or alter proc aos_getSessionsBySID @application_id char(20), @oidc_session_id varchar(255) as
+﻿create or alter proc aos_getUserSessionsBySID @application_id char(20), @oidc_session_id varchar(255) as
 
 declare @username varchar(255)
 
