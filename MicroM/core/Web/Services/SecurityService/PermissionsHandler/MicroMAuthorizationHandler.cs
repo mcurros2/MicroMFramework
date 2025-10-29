@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Http;
 
 namespace MicroM.Web.Services.Security
 {
-    public class MicroMPermissionsHandler(ISecurityService securityService, IHttpContextAccessor http_context_accesor): AuthorizationHandler<MicroMPermissionsRequirement>
+    public class MicroMAuthorizationHandler(ISecurityService securityService, IHttpContextAccessor http_context_accesor): AuthorizationHandler<MicroMPermissionsRequirement>
     {
         protected override Task HandleRequirementAsync(AuthorizationHandlerContext context, MicroMPermissionsRequirement requirement)
         {

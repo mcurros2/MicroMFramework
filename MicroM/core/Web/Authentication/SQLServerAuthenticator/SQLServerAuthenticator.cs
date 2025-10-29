@@ -74,7 +74,7 @@ public class SQLServerAuthenticator : IAuthenticator
         }
 
         // This is a special case as we use the connection to authenticate the user.
-        using DatabaseClient dbc = app_config.CreateDatabaseClient(_log, null, null);
+        using DatabaseClient dbc = new(app_config.SQLServer, "master", user_login.Username, user_login.Password);
 
         try
         {

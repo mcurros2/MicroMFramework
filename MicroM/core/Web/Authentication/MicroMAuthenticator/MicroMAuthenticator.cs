@@ -156,7 +156,7 @@ public class MicroMAuthenticator(
         {
             if (cookie_token != refresh_token)
             {
-                _log.LogWarning("Refresh token from cookie is different from the one in the request:  cookie [{cookie_token}] request : [{refresh_token}] user_id: {user_id}, device_id: {device_id}, ipaddress: {ipaddress}, user-agent: {user_agent}. Taking cookie_token", cookie_token, refresh_token, user_id, device_id, ipaddress, user_agent);
+                _log.LogWarning("Refresh token from cookie is different from the one in the request:  user_id: {user_id}, device_id: {device_id}, ipaddress: {ipaddress}, user-agent: {user_agent}. Taking cookie_token", user_id, device_id, ipaddress, user_agent);
             }
             refresh_token = cookie_token;
         }
@@ -196,7 +196,7 @@ public class MicroMAuthenticator(
                 }
                 else
                 {
-                    _log.LogWarning("Refresh token proc returned null: {refresh_token} user_id: {user_id}, device_id: {device_id}, ipaddress: {ipaddress}, user-agent: {user_agent}", refresh_token, user_id, device_id, ipaddress, user_agent);
+                    _log.LogWarning("Refresh token proc returned null: user_id: {user_id}, device_id: {device_id}, ipaddress: {ipaddress}, user-agent: {user_agent}", user_id, device_id, ipaddress, user_agent);
                 }
             }
             else

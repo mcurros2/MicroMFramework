@@ -5,6 +5,7 @@ using MicroM.Web.Services.Security;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Logging;
 using System.Security.Claims;
 using IAuthenticationService = MicroM.Web.Services.IAuthenticationService;
@@ -20,6 +21,7 @@ public class OIDCClientController : ControllerBase, IOIDCClientController
     /// </summary>
     [AllowAnonymous]
     [HttpGet("{app_id}/oidc-client/jwks")]
+    [EnableRateLimiting(MicroMServicesConstants.RateLimitingOidcMetadataPolicy)]
     public ActionResult Jwks([FromServices] IMicroMAppConfiguration app_config, [FromServices] IOIDCClientService clientService, string app_id, CancellationToken ct)
     {
         var app = app_config.GetAppConfiguration(app_id);
@@ -188,6 +190,7 @@ public class OIDCClientController : ControllerBase, IOIDCClientController
 
     [AllowAnonymous]
     [HttpGet("{app_id}/oidc-client/front-logout")]
+    [EnableRateLimiting(MicroMServicesConstants.RateLimitingFrontchannelLogoutPolicy)]
     public async Task<ActionResult> FrontChannelLogout(
         [FromServices] IMicroMAppConfiguration app_config,
         [FromServices] IOIDCClientService oidc_client,
@@ -215,6 +218,8 @@ public class OIDCClientController : ControllerBase, IOIDCClientController
 
     [Authorize(Policy = nameof(MicroMPermissionsConstants.IdPClientPolicy))]
     [HttpPost("{app_id}/oidc-client/back-logout")]
+    [EnableRateLimiting(MicroMServicesConstants.RateLimitingBackchannelLogoutPolicy)]
+    [IgnoreAntiforgeryToken] // Backchannel is machine-to-machine; disable antiforgery enforcement
     public async Task<ActionResult> BackchannelLogout(
         [FromServices] IMicroMAppConfiguration app_config,
         [FromServices] IOIDCClientService oidc_client,

@@ -57,8 +57,12 @@ public class ApplicationsDef : EntityDefinition
 
     // Indentity provider embedded columns
     public readonly Column<string> c_identity_provider_role_id = Column<string>.EmbedCategory(nameof(IdentityProviderRole));
+
+    // if acting as a client, this is the URL to the OIDC well-known configuration
     public readonly Column<string?> vc_oidc_url_wellknown = Column<string?>.Text(size: 2048, nullable: true, fake: true);
-    public readonly Column<string?> vc_oidc_subject_pepper = Column<string?>.Text(nullable: true, fake: true, encrypted: true);
+
+    // if login in to IdP app this is the subject pepper to use when creating subject claim
+    public readonly Column<string?> vc_oidc_idp_subject_pepper = Column<string?>.Text(size: 2048, nullable: true, fake: true, encrypted: true);
 
     // certificate embedded columns
     public readonly Column<string?> vc_certificate_unique_id = Column<string?>.Text(size: 2048, fake: true);
@@ -124,6 +128,20 @@ public class Applications : Entity<ApplicationsDef>
             Def.vb_certificate_blob.Value = cert.certificate;
             Def.vc_certificate_password.Value = cert.password;
 
+            if (Def.c_identity_provider_role_id.Value == nameof(IdentityProviderRole.IDPServer))
+            {
+                Def.vc_oidc_idp_subject_pepper.Value = CryptClass.CreateRandomPassword();
+            }
+            else
+            {
+                Def.vc_oidc_idp_subject_pepper.Value = null;
+            }
+
+            if (Def.c_identity_provider_role_id.Value != nameof(IdentityProviderRole.IDPClient))
+            {
+                Def.vc_oidc_url_wellknown.Value = null;
+            }
+
             var result = await base.InsertData(ct, throw_dbstat_exception, options, server_claims, api);
             if (!result.Failed && api != null)
             {
@@ -159,6 +177,23 @@ public class Applications : Entity<ApplicationsDef>
             Def.vc_certificate_unique_id.Value = cert.guid.ToString();
             Def.vb_certificate_blob.Value = cert.certificate;
             Def.vc_certificate_password.Value = cert.password;
+
+            if (Def.c_identity_provider_role_id.Value == nameof(IdentityProviderRole.IDPServer))
+            {
+                if (Def.vc_oidc_idp_subject_pepper.Value.IsNullOrEmpty())
+                {
+                    Def.vc_oidc_idp_subject_pepper.Value = CryptClass.CreateRandomPassword();
+                }
+            }
+            else
+            {
+                Def.vc_oidc_idp_subject_pepper.Value = null;
+            }
+
+            if (Def.c_identity_provider_role_id.Value != nameof(IdentityProviderRole.IDPClient))
+            {
+                Def.vc_oidc_url_wellknown.Value = null;
+            }
 
             var result = await base.UpdateData(ct, throw_dbstat_exception, options, server_claims, api);
 
@@ -211,7 +246,7 @@ public class Applications : Entity<ApplicationsDef>
         try
         {
             await ec.Connect(ct);
-            result = await app.Data.ExecuteProc(ct, app.Def.app_GetConfiguration, set_parms_from_columns: false, mapper: async (IGetFieldValue fv, string[] headers, CancellationToken ct) =>
+            result = await app.Data.ExecuteProc(ct, app.Def.app_GetConfiguration, set_parms_from_columns: false, mapper: async (IValueReader fv, string[] headers, string[] typeInfo, CancellationToken ct) =>
             {
                 ApplicationOption app_result = new()
                 {
@@ -248,14 +283,14 @@ public class Applications : Entity<ApplicationsDef>
                 {
                     app_result.SQLPassword = encryptor.Decrypt(app_result.SQLPassword);
                     app_result.OIDCCertificatePassword = encryptor.Decrypt(app_result.OIDCCertificatePassword);
-                    if (!app_result.OIDCIdPSubjectPepper.IsNullOrEmpty()) app_result.OIDCIdPSubjectPepper = encryptor.Decrypt(app_result.OIDCIdPSubjectPepper!);
+                    app_result.OIDCIdPSubjectPepper = encryptor.Decrypt(app_result.OIDCIdPSubjectPepper!);
                 }
 
                 return app_result;
             });
 
             List<OIDCClientConfigurationOption> oidc_clients = [];
-            oidc_clients = await app.Data.ExecuteProc(ct, app.Def.app_GetOIDCClients, set_parms_from_columns: false, mapper: async (IGetFieldValue fv, string[] headers, CancellationToken ct) =>
+            oidc_clients = await app.Data.ExecuteProc(ct, app.Def.app_GetOIDCClients, set_parms_from_columns: false, mapper: async (IValueReader fv, string[] headers, string[] typeInfo, CancellationToken ct) =>
             {
                 OIDCClientConfigurationOption client_result = new()
                 {

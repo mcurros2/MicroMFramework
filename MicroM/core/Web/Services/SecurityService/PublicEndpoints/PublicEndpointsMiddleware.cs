@@ -1,70 +1,69 @@
 ﻿using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
 
-namespace MicroM.Web.Services.Security
+namespace MicroM.Web.Services.Security;
+
+public class PublicEndpointsMiddleware(RequestDelegate next, IMicroMAppConfiguration config, ILogger<PublicEndpointsMiddleware> log)
 {
-    public class PublicEndpointsMiddleware(RequestDelegate next, IMicroMAppConfiguration config)
+    private readonly RequestDelegate _next = next;
+    private readonly IMicroMAppConfiguration _config = config;
+
+    public async Task InvokeAsync(HttpContext context)
     {
-        private readonly RequestDelegate _next = next;
-        private readonly IMicroMAppConfiguration _config = config;
+        var endpoint = context.GetEndpoint();
+        CancellationToken ct = context.RequestAborted;
 
-        public async Task InvokeAsync(HttpContext context)
+        if (endpoint != null)
         {
-            var endpoint = context.GetEndpoint();
-            CancellationToken ct = context.RequestAborted;
+            var hasPublicRouteAttribute = endpoint.Metadata.GetMetadata<PublicEndpointAttribute>() != null;
 
-            if (endpoint != null)
+            if (hasPublicRouteAttribute)
             {
-                var hasPublicRouteAttribute = endpoint.Metadata.GetMetadata<PublicEndpointAttribute>() != null;
-
-                if (hasPublicRouteAttribute)
+                if (!context.Request.RouteValues.TryGetValue("app_id", out var appIdObj) || appIdObj == null)
                 {
-                    if (!context.Request.RouteValues.TryGetValue("app_id", out var appIdObj) || appIdObj == null)
-                    {
-                        context.Response.StatusCode = StatusCodes.Status403Forbidden;
-                        await context.Response.WriteAsync(".1", ct);
-                        return;
-                    }
-
-                    string app_id = (string)appIdObj;
-
-                    string? routePath = context.Request.Path.Value;
-
-                    if (string.IsNullOrEmpty(routePath) || string.IsNullOrEmpty(app_id))
-                    {
-                        context.Response.StatusCode = StatusCodes.Status403Forbidden;
-                        await context.Response.WriteAsync(".2", ct);
-                        return;
-                    }
-
-                    var allowed = _config.GetPublicAccessAllowedRoutes(app_id);
-
-                    if (allowed == null)
-                    {
-                        context.Response.StatusCode = StatusCodes.Status403Forbidden;
-                        await context.Response.WriteAsync(".3", ct);
-                        return;
-                    }
-
-                    if (allowed.AllowedRoutes == null)
-                    {
-                        context.Response.StatusCode = StatusCodes.Status403Forbidden;
-                        await context.Response.WriteAsync(".4", ct);
-                        return;
-                    }
-
-                    if (!allowed.AllowedRoutes.Contains(routePath, StringComparer.OrdinalIgnoreCase))
-                    {
-                        context.Response.StatusCode = StatusCodes.Status403Forbidden;
-                        await context.Response.WriteAsync("Invalid route", ct);
-                        return;
-                    }
-
+                    context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                    log.LogTrace("App ID missing in public route {app_id} {route}", appIdObj, context.Request.Path);
+                    return;
                 }
+
+                string app_id = (string)appIdObj;
+
+                string? routePath = context.Request.Path.Value;
+
+                if (string.IsNullOrEmpty(routePath) || string.IsNullOrEmpty(app_id))
+                {
+                    context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                    log.LogTrace("App ID missing or route empty in public route {app_id} {route}", app_id, routePath);
+                    return;
+                }
+
+                var allowed = _config.GetPublicAccessAllowedRoutes(app_id);
+
+                if (allowed == null)
+                {
+                    context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                    log.LogTrace("Public route not configured for app {app_id} {route}", app_id, routePath);
+                    return;
+                }
+
+                if (allowed.AllowedRoutes == null)
+                {
+                    context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                    log.LogTrace("Public route allowed routes null for app {app_id} {route}", app_id, routePath);
+                    return;
+                }
+
+                if (!allowed.AllowedRoutes.Contains(routePath, StringComparer.OrdinalIgnoreCase))
+                {
+                    context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                    log.LogTrace("Public route not allowed for app {app_id} {route}", app_id, routePath);
+                    return;
+                }
+
             }
-
-
-            await _next(context);
         }
-    }
 
+
+        await _next(context);
+    }
 }

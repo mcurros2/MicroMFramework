@@ -118,7 +118,7 @@ public class MicromUsers : Entity<MicromUsersDef>
         if (username != null) proc[nameof(MicromUsersDef.vc_username)].ValueObject = username;
         if (user_id != null) proc[nameof(MicromUsersDef.c_user_id)].ValueObject = user_id;
         if (device_id != null) proc[nameof(device_id)].ValueObject = device_id;
-        var result = await user.Data.ExecuteProcSingleRow<LoginData>(ct, proc, set_parms_from_columns: false, mode: IEntityClient.AutoMapperMode.ByNameLaxNotThrow);
+        var result = await user.Data.ExecuteProcSingleRow<LoginData>(ct, proc, set_parms_from_columns: false, mode: AutoMapperMode.ByNameLaxNotThrow);
 
         return result;
     }
@@ -215,7 +215,7 @@ public class MicromUsers : Entity<MicromUsersDef>
         proc[nameof(new_refresh_token)].ValueObject = new_refresh_token;
         proc[nameof(refresh_expiration_hours)].ValueObject = refresh_expiration_hours;
         proc[nameof(max_refresh_count)].ValueObject = max_refresh_count;
-        var result = await user.ExecuteProcSingleRow<RefreshTokenResult>(ct, proc, set_parms_from_columns: false, mode: IEntityClient.AutoMapperMode.ByNameLaxNotThrow);
+        var result = await user.ExecuteProcSingleRow<RefreshTokenResult>(ct, proc, set_parms_from_columns: false, mode: AutoMapperMode.ByNameLaxNotThrow);
 
         return result;
     }

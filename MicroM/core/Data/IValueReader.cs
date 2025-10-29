@@ -6,7 +6,7 @@ namespace MicroM.Data
     /// <summary>
     /// Provides access to the reader functions to get the underlying values
     /// </summary>
-    public interface IGetFieldValue
+    public interface IValueReader
     {
         public Task<T> GetFieldValueAsync<T>(int position, CancellationToken ct);
         public Task<T> GetFieldValueAsync<T>(string column_name, CancellationToken ct);
@@ -15,7 +15,7 @@ namespace MicroM.Data
 
     }
 
-    public class ValueReader(SqlDataReader reader) : IGetFieldValue
+    public class ValueReader(SqlDataReader reader) : IValueReader
     {
         internal DbDataReader _reader = reader;
 

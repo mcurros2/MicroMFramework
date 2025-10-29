@@ -55,7 +55,7 @@ namespace MicroM.Data
             bool autonum = false;
 
             var dbstats = await EntityClient.ExecuteSP<DBStatus>(proc_name, ct, parms: parms,
-                mapper: async (IGetFieldValue fv, string[] headers, CancellationToken ct) =>
+                mapper: async (IValueReader fv, string[] headers, string[] typeInfo, CancellationToken ct) =>
                 {
                     var status = new DBStatus((DBStatusCodes)await fv.GetFieldValueAsync<int>(0, ct), await fv.GetFieldValueAsync<string>(1, ct));
                     if (status.Status.IsIn(DBStatusCodes.Error, DBStatusCodes.RecordHasChanged)) failed = true;
@@ -161,7 +161,6 @@ namespace MicroM.Data
                 }
                 if (Encryptor != null) cols.Values.DecryptColumnData(Encryptor);
                 ret = true;
-
             }
 
             return ret;

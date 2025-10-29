@@ -7,6 +7,7 @@ using MicroM.Web.Services.Security;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using static MicroM.Web.Controllers.MicroMControllersMessages;
@@ -29,6 +30,7 @@ public class IdentityProviderController : ControllerBase, IIdentityProviderContr
 
     [AllowAnonymous]
     [HttpGet("{app_id}/oidc/.well-known/openid-configuration")]
+    [EnableRateLimiting(MicroMServicesConstants.RateLimitingOidcMetadataPolicy)]
     public ActionResult WellKnown([FromServices] IMicroMAppConfiguration app_config, [FromServices] IIdentityProviderService idp, string app_id, CancellationToken ct)
     {
         try
@@ -65,6 +67,7 @@ public class IdentityProviderController : ControllerBase, IIdentityProviderContr
 
     [AllowAnonymous]
     [HttpGet("{app_id}/oidc/jwks")]
+    [EnableRateLimiting(MicroMServicesConstants.RateLimitingOidcMetadataPolicy)]
     public ActionResult Jwks([FromServices] IMicroMAppConfiguration app_config, [FromServices] IIdentityProviderService idp, string app_id, CancellationToken ct)
     {
         try
@@ -104,6 +107,7 @@ public class IdentityProviderController : ControllerBase, IIdentityProviderContr
 
     [Authorize(Policy = nameof(MicroMPermissionsConstants.IdPClientPolicy))]
     [HttpPost("{app_id}/oauth2/token")]
+    [EnableRateLimiting(MicroMServicesConstants.RateLimitingOidcTokenPolicy)]
     public async Task<ActionResult> Token([FromServices] IMicroMAppConfiguration app_config, [FromServices] IIdentityProviderService idp, string app_id, CancellationToken ct)
     {
         try
@@ -141,6 +145,7 @@ public class IdentityProviderController : ControllerBase, IIdentityProviderContr
 
     [Authorize(Policy = nameof(MicroMPermissionsConstants.IdPClientPolicy))]
     [HttpPost("{app_id}/oauth2/par")]
+    [EnableRateLimiting(MicroMServicesConstants.RateLimitingOidcPARPolicy)]
     public async Task<ActionResult> PAR([FromServices] IMicroMAppConfiguration app_config, [FromServices] IIdentityProviderService idp, string app_id, CancellationToken ct)
     {
         try
@@ -172,6 +177,7 @@ public class IdentityProviderController : ControllerBase, IIdentityProviderContr
 
     [Authorize(Policy = nameof(MicroMPermissionsConstants.IdPClientPolicy))]
     [HttpGet("{app_id}/oauth2/authorize")]
+    [EnableRateLimiting(MicroMServicesConstants.RateLimitingOidcAuthorizePolicy)]
     public async Task<ActionResult> Authorize([FromServices] IMicroMAppConfiguration app_config, [FromServices] IIdentityProviderService idp, string app_id, CancellationToken ct)
     {
         try
@@ -223,6 +229,7 @@ public class IdentityProviderController : ControllerBase, IIdentityProviderContr
 
     [Authorize(Policy = nameof(MicroMPermissionsConstants.IdPClientPolicy))]
     [HttpPost("{app_id}/oauth2/endsession")]
+    [EnableRateLimiting(MicroMServicesConstants.RateLimitingOidcEndSessionPolicy)]
     public async Task<ActionResult> EndSession(
         [FromServices] IIdentityProviderService idp,
         [FromServices] IMicroMAppConfiguration app_config,
@@ -241,7 +248,6 @@ public class IdentityProviderController : ControllerBase, IIdentityProviderContr
                 return BadRequest("Application is not configured as an Identity Provider");
             }
 
-            // Compute issuer consistent with discovery
             string requestBase = $"{Request.Scheme}://{Request.Host.Value}{_api_path}/{app_id}";
             string issuer = $"{requestBase}/oidc";
 

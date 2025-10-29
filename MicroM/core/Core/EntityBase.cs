@@ -92,7 +92,7 @@ namespace MicroM.Core
             return await Data.ExecuteProc(ct, proc, row_limit, set_parms_from_columns);
         }
 
-        public virtual async Task<List<T>> ExecuteProc<T>(CancellationToken ct, ProcedureDefinition proc, int row_limit = 0, bool set_parms_from_columns = true, IEntityClient.AutoMapperMode mode = IEntityClient.AutoMapperMode.ByName, IEntityClient.MapResult<T>? mapper = null, MicroMOptions? options = null, Dictionary<string, object>? server_claims = null, IWebAPIServices? api = null, string? app_id = null) where T : class, new()
+        public virtual async Task<List<T>> ExecuteProc<T>(CancellationToken ct, ProcedureDefinition proc, int row_limit = 0, bool set_parms_from_columns = true, AutoMapperMode mode = AutoMapperMode.ByName, MapResult<T>? mapper = null, MicroMOptions? options = null, Dictionary<string, object>? server_claims = null, IWebAPIServices? api = null, string? app_id = null) where T : class, new()
         {
             return await Data.ExecuteProc<T>(ct, proc, row_limit, set_parms_from_columns, mode, mapper);
         }
@@ -102,7 +102,7 @@ namespace MicroM.Core
             return await Data.ExecuteProcSingleColumn<T>(ct, proc, row_limit, set_parms_from_columns);
         }
 
-        public virtual async Task<T?> ExecuteProcSingleRow<T>(CancellationToken ct, ProcedureDefinition proc, bool set_parms_from_columns = true, IEntityClient.AutoMapperMode mode = IEntityClient.AutoMapperMode.ByName, IEntityClient.MapResult<T>? mapper = null, MicroMOptions? options = null, Dictionary<string, object>? server_claims = null, IWebAPIServices? api = null, string? app_id = null) where T : class, new()
+        public virtual async Task<T?> ExecuteProcSingleRow<T>(CancellationToken ct, ProcedureDefinition proc, bool set_parms_from_columns = true, AutoMapperMode mode = AutoMapperMode.ByName, MapResult<T>? mapper = null, MicroMOptions? options = null, Dictionary<string, object>? server_claims = null, IWebAPIServices? api = null, string? app_id = null) where T : class, new()
         {
             return await Data.ExecuteProcSingleRow<T>(ct, proc, set_parms_from_columns, mode, mapper);
         }

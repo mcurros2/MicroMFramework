@@ -2,7 +2,7 @@
         @application_id Char(20)
         , @certificate_id Char(20)
         , @url_wellknown VarChar(2048)
-        , @oidc_idp_subject_pepper VarChar(255)
+        , @oidc_idp_subject_pepper VarChar(2048)
         , @lu DateTime
         , @webusr VarChar(255)
         , @result int output
@@ -27,7 +27,7 @@ begin try
             @application_id
             , @certificate_id
             , @url_wellknown
-            , convert(varchar(255), crypt_gen_random(64), 2) -- client secret pepper
+            , @oidc_idp_subject_pepper
             , @now
             , @now
             , @webusr
@@ -42,6 +42,8 @@ begin try
 
     update  [application_oidc_configuration]
     set     vc_url_wellknown = @url_wellknown
+            , c_certificate_id = @certificate_id
+            , vc_oidc_idp_subject_pepper = @oidc_idp_subject_pepper
             , vc_webluuser = @webusr
             , vc_luuser = @login
             , dt_lu = @now
