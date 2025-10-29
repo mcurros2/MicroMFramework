@@ -7,7 +7,7 @@
         , @url_sso_backchannel_logout VarChar(2048)
         , @url_client_jwks VarChar(2048)
         , @certificate_unique_id VarChar(2048)
-        , @oidc_subject_pepper VarChar(255)
+        , @oidc_subject_pepper VarChar(2048)
         , @apikey varchar(2048)
         , @secret VarChar(2048)
         , @change_secret bit
@@ -31,12 +31,12 @@ create table [#TempRedirectUrls] (c_client_app_url_id char(20) null, vc_url_auth
 IF @url_authorized_redirects IS NOT NULL
 BEGIN
     insert  [#TempRedirectUrls]
-    select  isnull(b.c_application_url_id, CONVERT(VARCHAR(20), CONVERT(BIGINT, CHECKSUM(a.vc_application_url)) & 0xFFFFFFFF))
+    select  isnull(b.c_client_app_url_id, CONVERT(VARCHAR(20), CONVERT(BIGINT, CHECKSUM(a.vc_url_authorized_redirect)) & 0xFFFFFFFF))
             , trim(a.vc_url_authorized_redirect)
     from    openjson(@url_authorized_redirects) WITH (vc_url_authorized_redirect varchar(2048) '$') a
-            left join application_oidc_clients_urls b
+            left join application_oidc_clients_authorized_urls b
             on(b.c_application_id=@application_id and b.c_client_app_id=@client_app_id
-            and b.vc_url_authorized_redirect=a.vc_url_authorized_redirect)
+            and b.vc_authorized_url=a.vc_url_authorized_redirect)
 END
 
 begin try
@@ -94,7 +94,7 @@ begin try
             , @url_sso_backchannel_logout
             , @url_client_jwks
             , @certificate_unique_id
-            , convert(varchar(255), crypt_gen_random(64), 2) -- client secret pepper
+            , @oidc_subject_pepper
             , @now
             , @now
             , @webusr
@@ -105,7 +105,7 @@ begin try
 
         if @url_authorized_redirects is not null
         begin
-            insert  application_oidc_clients_urls
+            insert  application_oidc_clients_authorized_urls
             select  @application_id
                     , @client_app_id
                     , c_client_app_url_id
@@ -163,12 +163,12 @@ begin try
         end
     end
 
-    delete  application_oidc_clients_urls
+    delete  application_oidc_clients_authorized_urls
     where   c_application_id = @application_id
             and c_client_app_id = @client_app_id
             and c_client_app_url_id not in (select c_client_app_url_id from [#TempRedirectUrls])
 
-    insert  application_oidc_clients_urls
+    insert  application_oidc_clients_authorized_urls
     select  @application_id
             , @client_app_id
             , c_client_app_url_id
@@ -183,7 +183,7 @@ begin try
     where   c_client_app_url_id not in 
             (   
                 select  x.c_client_app_url_id 
-                from    application_oidc_clients_urls x
+                from    application_oidc_clients_authorized_urls x
                 where   x.c_application_id=@application_id 
                         and x.c_client_app_id=@client_app_id
             )

@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Options;
 using System.Security.Claims;
 
@@ -29,6 +30,7 @@ public class AuthenticationController(IOptions<MicroMOptions> options) : Control
 
     [Authorize(policy: nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy))]
     [HttpGet("{app_id}/auth/isloggedin")]
+    [EnableRateLimiting(MicroMServicesConstants.RateLimitingAuthIsLoggedInPolicy)]
     public ActionResult IsLoggedIn()
     {
         return Ok();
@@ -37,6 +39,7 @@ public class AuthenticationController(IOptions<MicroMOptions> options) : Control
 
     [AllowAnonymous]
     [HttpPost("{app_id}/auth/login")]
+    [EnableRateLimiting(MicroMServicesConstants.RateLimitingAuthLoginPolicy)]
     public async Task<ActionResult> Login(
         [FromServices] Services.IAuthenticationService aus,
         [FromServices] IAuthenticationProvider auth,
@@ -89,6 +92,7 @@ public class AuthenticationController(IOptions<MicroMOptions> options) : Control
 
     [Authorize(policy: nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy))]
     [HttpPost("{app_id}/auth/logoff")]
+    [EnableRateLimiting(MicroMServicesConstants.RateLimitingAuthLogoffPolicy)]
     public async Task<ActionResult> Logoff([FromServices] IAuthenticationProvider auth, [FromServices] Services.IAuthenticationService aus, string app_id, CancellationToken ct)
     {
         try
@@ -113,6 +117,7 @@ public class AuthenticationController(IOptions<MicroMOptions> options) : Control
 
     [AllowAnonymous]
     [HttpPost("{app_id}/auth/recoverpassword")]
+    [EnableRateLimiting(MicroMServicesConstants.RateLimitingAuthRecoveryPolicy)]
     public async Task<ActionResult> RecoverPassword([FromServices] Services.IAuthenticationService aus, [FromServices] IAuthenticationProvider auth, string app_id, [FromBody] UserRecoverPassword parms, CancellationToken ct)
     {
         try
@@ -145,6 +150,7 @@ public class AuthenticationController(IOptions<MicroMOptions> options) : Control
 
     [AllowAnonymous]
     [HttpPost("{app_id}/auth/recoveryemail")]
+    [EnableRateLimiting(MicroMServicesConstants.RateLimitingAuthRecoveryPolicy)]
     public async Task<ActionResult> RecoveryEmail([FromServices] Services.IAuthenticationService aus, [FromServices] IAuthenticationProvider auth, string app_id, [FromBody] UserRecoveryEmail parms, CancellationToken ct)
     {
         try
@@ -179,6 +185,7 @@ public class AuthenticationController(IOptions<MicroMOptions> options) : Control
 
     [AllowAnonymous]
     [HttpPost("{app_id}/auth/refresh")]
+    [EnableRateLimiting(MicroMServicesConstants.RateLimitingRefreshPolicy)]
     public async Task<ActionResult> RefreshToken(
         [FromServices] Services.IAuthenticationService aus,
         [FromServices] IAuthenticationProvider auth,

@@ -25,6 +25,7 @@
 		, @assembly5 VarChar(2048)
 		, @identity_provider_role_id char(20)
 		, @oidc_url_wellknown VarChar(2048)
+        , @oidc_idp_subject_pepper varchar(2048)
         , @certificate_unique_id varchar(2048)
         , @certificate_blob varbinary(max)
         , @certificate_password varchar(2048)
@@ -150,7 +151,7 @@ begin try
 
         select @certificate_id = @imsg
 
-        exec aoc_iupdate @application_id, @certificate_id, @oidc_url_wellknown, null, @webusr, @result out, @msg out
+        exec aoc_iupdate @application_id, @certificate_id, @oidc_url_wellknown, @oidc_idp_subject_pepper, null, @webusr, @result out, @msg out
         if @result not in(0, 15)
         begin
             return
@@ -292,7 +293,7 @@ begin try
         select @certificate_id = @imsg
     end
 
-    exec aoc_iupdate @application_id, @certificate_id, @oidc_url_wellknown, null, @webusr, @result out, @msg out
+    exec aoc_iupdate @application_id, @certificate_id, @oidc_url_wellknown, @oidc_idp_subject_pepper, null, @webusr, @result out, @msg out
     if @result not in(0, 15)
     begin
         return

@@ -4,9 +4,7 @@ using MicroM.Web.Authentication;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
 using System.Data;
-using System.Data.Common;
 using System.Diagnostics;
-using System.Reflection;
 using System.Runtime.CompilerServices;
 using static MicroM.Data.IEntityClient;
 
@@ -432,158 +430,9 @@ namespace MicroM.Data
 
         #region "Execute query generic data result"
 
-        private async static IAsyncEnumerable<T> AutoMapperGetResultByPosition<T>(ValueReader vr, [EnumeratorCancellation] CancellationToken ct) where T : new()
-        {
 
-            var members = typeof(T).GetMembers(BindingFlags.Public | BindingFlags.Instance).Where(p => p.MemberType.IsIn(MemberTypes.Property, MemberTypes.Field) && p.GetCustomAttribute<CompilerGeneratedAttribute>() == null).OrderBy(p => p.MetadataToken);
 
-            if (await vr._reader.ReadAsync(ct))
-            {
-                do
-                {
-                    ct.ThrowIfCancellationRequested();
-                    T record = new();
-                    int x = 0;
-                    foreach (var member in members)
-                    {
-                        var val = await vr.GetFieldValueAsync<object>(x++, ct);
-                        if (val == null || val?.GetType() == typeof(DBNull)) val = null;
-
-                        if (member is PropertyInfo prop)
-                        {
-                            prop.SetValue(record, val);
-                        }
-                        else if (member is FieldInfo field)
-                        {
-                            field.SetValue(record, val);
-                        }
-                    }
-                    yield return record;
-                }
-                while (await vr._reader.ReadAsync(ct));
-            }
-        }
-
-        private async static IAsyncEnumerable<T> AutoMapperGetResultByName<T>(ValueReader vr, AutoMapperMode mode, [EnumeratorCancellation] CancellationToken ct) where T : new()
-        {
-            var members = typeof(T).GetMembers(BindingFlags.Public | BindingFlags.Instance).Where(p => p.MemberType.IsIn(MemberTypes.Property, MemberTypes.Field) && p.GetCustomAttribute<CompilerGeneratedAttribute>() == null);
-
-            if (await vr._reader.ReadAsync(ct))
-            {
-                var headers = GetHeadersHashSet(vr._reader, mode == AutoMapperMode.ByNameSpacesToUnderscore);
-                do
-                {
-                    ct.ThrowIfCancellationRequested();
-                    T record = new();
-                    List<string> headerErrors = [];
-                    foreach (var member in members)
-                    {
-                        if (!headers.Contains(member.Name))
-                        {
-                            headerErrors.Add(member.Name);
-                        }
-                        else
-                        {
-                            var val = await vr.GetFieldValueAsync<object>(member.Name, ct);
-                            if (val == null || val?.GetType() == typeof(DBNull)) val = null;
-                            if (member is PropertyInfo prop)
-                            {
-                                prop.SetValue(record, val);
-                            }
-                            else if (member is FieldInfo field)
-                            {
-                                field.SetValue(record, val);
-                            }
-                        }
-
-                    }
-                    if (headerErrors.Count > 0 && mode == AutoMapperMode.ByName) throw new MissingMemberException($"Missing expected columns: {string.Join(", ", headerErrors)}");
-
-                    yield return record;
-                }
-                while (await vr._reader.ReadAsync(ct));
-            }
-        }
-
-        //public delegate Task<T> MapResult<T>(IGetFieldValue record, string[] headers, CancellationToken ct);
-
-        // MMC: this method has these problems:
-        // It SHOULDN'T be returned from an API if expecting more than one row: it will serialize all column names for each record
-        // It adds very little value
-        private static async IAsyncEnumerable<T> GetResult<T>(ValueReader vr, MapResult<T> mapper, [EnumeratorCancellation] CancellationToken ct)
-        {
-            if (await vr._reader.ReadAsync(ct))
-            {
-                var result = GetHeaders(vr._reader);
-                do
-                {
-                    ct.ThrowIfCancellationRequested();
-                    T record = await mapper(vr, result.headers, ct);
-                    yield return record;
-                }
-                while (await vr._reader.ReadAsync(ct));
-            }
-        }
-
-        private static (string[] headers, string[] typeInfo) GetHeaders(DbDataReader reader, bool spaceToUnderscore = false)
-        {
-            string[] headers = new string[reader.FieldCount];
-            string[] typeInfo = new string[reader.FieldCount];
-            for (int x = 0; x < reader.FieldCount; x++)
-            {
-                string original_name = reader.GetName(x);
-                string type = reader.GetDataTypeName(x);
-                typeInfo[x] = type;
-
-                string resulting_name;
-
-                if (string.IsNullOrEmpty(original_name))
-                {
-                    resulting_name = $"Column{x}";
-                }
-                else
-                {
-                    resulting_name = spaceToUnderscore ? original_name.Replace(" ", "_") : original_name;
-                }
-
-                if (headers.Contains(resulting_name))
-                {
-                    throw new InvalidOperationException($"Duplicate column name when replacing spaces with underscores. Original: {original_name} Replaced: {resulting_name}");
-                }
-
-                headers[x] = resulting_name;
-            }
-
-            return (headers, typeInfo);
-        }
-
-        private static HashSet<string> GetHeadersHashSet(DbDataReader reader, bool spaceToUnderscore = false)
-        {
-            HashSet<string> headers = new(reader.FieldCount, StringComparer.OrdinalIgnoreCase);
-            for (int x = 0; x < reader.FieldCount; x++)
-            {
-                string original_name = reader.GetName(x);
-                string resulting_name;
-
-                if (string.IsNullOrEmpty(original_name))
-                {
-                    resulting_name = $"Column{x}";
-                }
-                else
-                {
-                    resulting_name = spaceToUnderscore ? original_name.Replace(" ", "_") : original_name;
-                }
-
-                if (headers.Contains(resulting_name))
-                {
-                    throw new InvalidOperationException($"Duplicate column name when replacing spaces with underscores. Original: {original_name} Replaced: {resulting_name}");
-                }
-
-                headers.Add(resulting_name);
-            }
-
-            return headers;
-        }
+        //public delegate Task<T> MapResult<T>(IValueReader record, string[] headers, CancellationToken ct);
 
         private async Task<T?> ExecuteSingleColumn<T>(CommandType cmd_type, string sql_text, CancellationToken ct, IEnumerable<ColumnBase>? parms = null)
         {
@@ -702,17 +551,17 @@ namespace MicroM.Data
                 ValueReader vr = new(reader);
                 if (mapper != null)
                 {
-                    await foreach (T result in GetResult<T>(vr, mapper, ct)) ret.Add(result);
+                    await foreach (T result in DataMappingProvider.GetResult<T>(vr, mapper, ct)) ret.Add(result);
                 }
                 else
                 {
                     if (mode == AutoMapperMode.ByPosition)
                     {
-                        await foreach (T result in AutoMapperGetResultByPosition<T>(vr, ct)) ret.Add(result);
+                        await foreach (T result in AutoMapper.AutoMapperGetResultByPosition<T>(vr, ct)) ret.Add(result);
                     }
                     else
                     {
-                        await foreach (T result in AutoMapperGetResultByName<T>(vr, mode, ct)) ret.Add(result);
+                        await foreach (T result in AutoMapper.AutoMapperGetResultByName<T>(vr, mode, ct)) ret.Add(result);
                     }
                 }
 
@@ -756,7 +605,7 @@ namespace MicroM.Data
 
                 if (field_count > 0)
                 {
-                    var (headers, typeInfo) = GetHeaders(reader);
+                    var (headers, typeInfo) = DataMappingProvider.GetHeaders(reader);
                     ret = new(headers, typeInfo);
                     yield return ret;
                 }

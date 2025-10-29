@@ -193,7 +193,7 @@ namespace MicroM.Web.Services
 
                 var fileStore = new FileStore(ec);
                 fileStore.Def.fst_getByGUID.Parms[nameof(fileStore.Def.vc_fileguid)].ValueObject = fileguid;
-                var fileDetails = await fileStore.ExecuteProcSingleRow<FileDetails>(ct, fileStore.Def.fst_getByGUID, set_parms_from_columns: false, mode: IEntityClient.AutoMapperMode.ByNameLaxNotThrow);
+                var fileDetails = await fileStore.ExecuteProcSingleRow<FileDetails>(ct, fileStore.Def.fst_getByGUID, set_parms_from_columns: false, mode: AutoMapperMode.ByNameLaxNotThrow);
                 if (fileDetails != null)
                 {
                     if (fileDetails.c_fileuploadstatus_id == nameof(FileUpload.Uploaded))

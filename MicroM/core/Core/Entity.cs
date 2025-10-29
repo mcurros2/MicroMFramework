@@ -3,7 +3,7 @@ using MicroM.Web.Services;
 
 namespace MicroM.Core
 {
-    
+
     public abstract class Entity<TDefinition> : EntityBase where TDefinition : EntityDefinition, new()
     {
         public new TDefinition Def

@@ -26,7 +26,14 @@ namespace MicroM.Web.Controllers
         {
             foreach (var controller in application.Controllers)
             {
-                if (controller.ControllerType.IsIn(typeof(AuthenticationController), typeof(EntitiesController), typeof(FileController), typeof(PublicController), typeof(IdentityProviderController)))
+                if (controller.ControllerType.IsIn(
+                    typeof(AuthenticationController),
+                    typeof(EntitiesController),
+                    typeof(FileController),
+                    typeof(PublicController),
+                    typeof(IdentityProviderController),
+                    typeof(OIDCClientController)
+                    ))
                 {
                     if (string.IsNullOrEmpty(_basePathString))
                     {

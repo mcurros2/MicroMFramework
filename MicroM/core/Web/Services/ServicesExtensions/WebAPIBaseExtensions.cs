@@ -18,6 +18,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.Net.Http.Headers;
 using System.Security.Claims;
+using System.Threading.RateLimiting;
 
 namespace MicroM.Web.Services;
 
@@ -144,6 +145,283 @@ public static class WebAPIBaseExtensions
         return services;
     }
 
+    public static IServiceCollection AddMicroMRateLimitingPolicies(this IServiceCollection services)
+    {
+        services.AddRateLimiter(static options =>
+        {
+            options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+            options.OnRejected = async (context, token) =>
+            {
+                if (context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter))
+                {
+                    context.HttpContext.Response.Headers.RetryAfter = ((int)retryAfter.TotalSeconds).ToString();
+                }
+                await context.HttpContext.Response.WriteAsync("Rate limit exceeded. Please try again later.", token);
+            };
+
+            // Partition helpers (avoid IP as primary)
+            static string AppId(HttpContext ctx) =>
+                ctx.Request.RouteValues.TryGetValue("app_id", out var app) ? app?.ToString() ?? "unknown" : "unknown";
+
+            static string ClientId(HttpContext ctx) =>
+                ctx.User?.FindFirst("client_id")?.Value
+                ?? ctx.Request.Query["client_id"].ToString()
+                ?? "unknown";
+
+            static string DeviceId(HttpContext ctx) =>
+                ctx.User?.FindFirst(MicroMServerClaimTypes.MicroMUserDeviceID)?.Value ?? "unknown";
+
+            static string UserId(HttpContext ctx) =>
+                ctx.User?.FindFirst(MicroMServerClaimTypes.MicroMUser_id)?.Value ?? "unknown";
+
+            static string UA(HttpContext ctx) => ctx.Request.Headers.UserAgent.ToString() ?? "ua-unknown";
+
+            // Global catch-all: per-app sliding window
+            options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
+            {
+                var key = $"global:app:{AppId(httpContext)}";
+                return RateLimitPartition.GetSlidingWindowLimiter(
+                    partitionKey: key,
+                    factory: _ => new SlidingWindowRateLimiterOptions
+                    {
+                        PermitLimit = 300, // per app per minute
+                        Window = TimeSpan.FromMinutes(1),
+                        SegmentsPerWindow = 3,
+                        QueueLimit = 0,
+                        QueueProcessingOrder = QueueProcessingOrder.OldestFirst
+                    });
+            });
+
+            // Authentication
+            options.AddPolicy(MicroMServicesConstants.RateLimitingRefreshPolicy, httpContext =>
+            {
+                var device = DeviceId(httpContext);
+                var key = !string.IsNullOrWhiteSpace(device)
+                    ? $"refresh:app:{AppId(httpContext)}:dev:{device}"
+                    : $"refresh:app:{AppId(httpContext)}:ua:{UA(httpContext)}";
+
+                return RateLimitPartition.GetSlidingWindowLimiter(
+                    partitionKey: key,
+                    factory: _ => new SlidingWindowRateLimiterOptions
+                    {
+                        PermitLimit = 10,
+                        Window = TimeSpan.FromMinutes(1),
+                        SegmentsPerWindow = 3,
+                        QueueLimit = 0,
+                        QueueProcessingOrder = QueueProcessingOrder.OldestFirst
+                    });
+            });
+
+            options.AddPolicy(MicroMServicesConstants.RateLimitingAuthLoginPolicy, httpContext =>
+            {
+                var key = $"login:app:{AppId(httpContext)}:ua:{UA(httpContext)}";
+                return RateLimitPartition.GetFixedWindowLimiter(
+                    partitionKey: key,
+                    factory: _ => new FixedWindowRateLimiterOptions
+                    {
+                        AutoReplenishment = true,
+                        PermitLimit = 8,
+                        Window = TimeSpan.FromMinutes(1),
+                        QueueLimit = 0,
+                        QueueProcessingOrder = QueueProcessingOrder.OldestFirst
+                    });
+            });
+
+            options.AddPolicy(MicroMServicesConstants.RateLimitingAuthRecoveryPolicy, httpContext =>
+            {
+                var key = $"recovery:app:{AppId(httpContext)}:ua:{UA(httpContext)}";
+                return RateLimitPartition.GetFixedWindowLimiter(
+                    partitionKey: key,
+                    factory: _ => new FixedWindowRateLimiterOptions
+                    {
+                        AutoReplenishment = true,
+                        PermitLimit = 5,
+                        Window = TimeSpan.FromMinutes(1),
+                        QueueLimit = 0,
+                        QueueProcessingOrder = QueueProcessingOrder.OldestFirst
+                    });
+            });
+
+            options.AddPolicy(MicroMServicesConstants.RateLimitingAuthIsLoggedInPolicy, httpContext =>
+            {
+                var user = UserId(httpContext);
+                var key = string.IsNullOrWhiteSpace(user) || user == "unknown"
+                    ? $"isloggedin:app:{AppId(httpContext)}"
+                    : $"isloggedin:app:{AppId(httpContext)}:usr:{user}";
+
+                return RateLimitPartition.GetFixedWindowLimiter(
+                    partitionKey: key,
+                    factory: _ => new FixedWindowRateLimiterOptions
+                    {
+                        AutoReplenishment = true,
+                        PermitLimit = 60,
+                        Window = TimeSpan.FromMinutes(1),
+                        QueueLimit = 0,
+                        QueueProcessingOrder = QueueProcessingOrder.OldestFirst
+                    });
+            });
+
+            options.AddPolicy(MicroMServicesConstants.RateLimitingAuthLogoffPolicy, httpContext =>
+            {
+                var user = UserId(httpContext);
+                var key = string.IsNullOrWhiteSpace(user) || user == "unknown"
+                    ? $"logoff:app:{AppId(httpContext)}"
+                    : $"logoff:app:{AppId(httpContext)}:usr:{user}";
+
+                return RateLimitPartition.GetFixedWindowLimiter(
+                    partitionKey: key,
+                    factory: _ => new FixedWindowRateLimiterOptions
+                    {
+                        AutoReplenishment = true,
+                        PermitLimit = 30,
+                        Window = TimeSpan.FromMinutes(1),
+                        QueueLimit = 0,
+                        QueueProcessingOrder = QueueProcessingOrder.OldestFirst
+                    });
+            });
+
+            // IdP OIDC
+            options.AddPolicy(MicroMServicesConstants.RateLimitingOidcPARPolicy, httpContext =>
+            {
+                var key = $"par:app:{AppId(httpContext)}:client:{ClientId(httpContext)}";
+                return RateLimitPartition.GetSlidingWindowLimiter(
+                    partitionKey: key,
+                    factory: _ => new SlidingWindowRateLimiterOptions
+                    {
+                        PermitLimit = 30,
+                        Window = TimeSpan.FromMinutes(1),
+                        SegmentsPerWindow = 3,
+                        QueueLimit = 0,
+                        QueueProcessingOrder = QueueProcessingOrder.OldestFirst
+                    });
+            });
+
+            options.AddPolicy(MicroMServicesConstants.RateLimitingOidcTokenPolicy, httpContext =>
+            {
+                var key = $"token:app:{AppId(httpContext)}:client:{ClientId(httpContext)}";
+                return RateLimitPartition.GetSlidingWindowLimiter(
+                    partitionKey: key,
+                    factory: _ => new SlidingWindowRateLimiterOptions
+                    {
+                        PermitLimit = 40,
+                        Window = TimeSpan.FromMinutes(1),
+                        SegmentsPerWindow = 3,
+                        QueueLimit = 0,
+                        QueueProcessingOrder = QueueProcessingOrder.OldestFirst
+                    });
+            });
+
+            options.AddPolicy(MicroMServicesConstants.RateLimitingOidcAuthorizePolicy, httpContext =>
+            {
+                var key = $"authz:app:{AppId(httpContext)}:client:{ClientId(httpContext)}:ua:{UA(httpContext)}";
+                return RateLimitPartition.GetFixedWindowLimiter(
+                    partitionKey: key,
+                    factory: _ => new FixedWindowRateLimiterOptions
+                    {
+                        AutoReplenishment = true,
+                        PermitLimit = 60,
+                        Window = TimeSpan.FromMinutes(1),
+                        QueueLimit = 0,
+                        QueueProcessingOrder = QueueProcessingOrder.OldestFirst
+                    });
+            });
+
+            options.AddPolicy(MicroMServicesConstants.RateLimitingOidcEndSessionPolicy, httpContext =>
+            {
+                var key = $"endsession:app:{AppId(httpContext)}:client:{ClientId(httpContext)}";
+                return RateLimitPartition.GetSlidingWindowLimiter(
+                    partitionKey: key,
+                    factory: _ => new SlidingWindowRateLimiterOptions
+                    {
+                        PermitLimit = 10,
+                        Window = TimeSpan.FromMinutes(1),
+                        SegmentsPerWindow = 3,
+                        QueueLimit = 0,
+                        QueueProcessingOrder = QueueProcessingOrder.OldestFirst
+                    });
+            });
+
+            options.AddPolicy(MicroMServicesConstants.RateLimitingOidcMetadataPolicy, httpContext =>
+            {
+                var key = $"meta:app:{AppId(httpContext)}";
+                return RateLimitPartition.GetFixedWindowLimiter(
+                    partitionKey: key,
+                    factory: _ => new FixedWindowRateLimiterOptions
+                    {
+                        AutoReplenishment = true,
+                        PermitLimit = 30,
+                        Window = TimeSpan.FromMinutes(1),
+                        QueueLimit = 0,
+                        QueueProcessingOrder = QueueProcessingOrder.OldestFirst
+                    });
+            });
+
+            // RP logout
+            options.AddPolicy(MicroMServicesConstants.RateLimitingBackchannelLogoutPolicy, httpContext =>
+            {
+                var key = $"backlogout:app:{AppId(httpContext)}";
+                return RateLimitPartition.GetFixedWindowLimiter(
+                    partitionKey: key,
+                    factory: _ => new FixedWindowRateLimiterOptions
+                    {
+                        AutoReplenishment = true,
+                        PermitLimit = 5,
+                        Window = TimeSpan.FromMinutes(1),
+                        QueueLimit = 0,
+                        QueueProcessingOrder = QueueProcessingOrder.OldestFirst
+                    });
+            });
+
+            options.AddPolicy(MicroMServicesConstants.RateLimitingFrontchannelLogoutPolicy, httpContext =>
+            {
+                var key = $"frontlogout:app:{AppId(httpContext)}:ua:{UA(httpContext)}";
+                return RateLimitPartition.GetFixedWindowLimiter(
+                    partitionKey: key,
+                    factory: _ => new FixedWindowRateLimiterOptions
+                    {
+                        AutoReplenishment = true,
+                        PermitLimit = 30,
+                        Window = TimeSpan.FromMinutes(1),
+                        QueueLimit = 0,
+                        QueueProcessingOrder = QueueProcessingOrder.OldestFirst
+                    });
+            });
+
+            // Public endpoints
+            options.AddPolicy(MicroMServicesConstants.RateLimitingPublicGetPolicy, httpContext =>
+            {
+                var key = $"public:get:app:{AppId(httpContext)}:ua:{UA(httpContext)}";
+                return RateLimitPartition.GetSlidingWindowLimiter(
+                    partitionKey: key,
+                    factory: _ => new SlidingWindowRateLimiterOptions
+                    {
+                        PermitLimit = 60,
+                        Window = TimeSpan.FromMinutes(1),
+                        SegmentsPerWindow = 3,
+                        QueueLimit = 0,
+                        QueueProcessingOrder = QueueProcessingOrder.OldestFirst
+                    });
+            });
+
+            options.AddPolicy(MicroMServicesConstants.RateLimitingPublicMutationPolicy, httpContext =>
+            {
+                var key = $"public:mut:app:{AppId(httpContext)}:ua:{UA(httpContext)}";
+                return RateLimitPartition.GetFixedWindowLimiter(
+                    partitionKey: key,
+                    factory: _ => new FixedWindowRateLimiterOptions
+                    {
+                        AutoReplenishment = true,
+                        PermitLimit = 10,
+                        Window = TimeSpan.FromMinutes(1),
+                        QueueLimit = 0,
+                        QueueProcessingOrder = QueueProcessingOrder.OldestFirst
+                    });
+            });
+        });
+        return services;
+    }
+
     public static IServiceCollection AddIdentityProviderService(this IServiceCollection services)
     {
         services.AddOIDCServices();
@@ -174,6 +452,9 @@ public static class WebAPIBaseExtensions
         services.AddAuthenticationService();
         services.AddEntitiesService();
 
+        // Register rate limiting policies
+        services.AddMicroMRateLimitingPolicies();
+
         services.AddIdentityProviderService();
         services.AddSingleton<IOIDCReplayCacheService, OIDCReplayCacheService>();
 
@@ -193,19 +474,11 @@ public static class WebAPIBaseExtensions
         services.AddTransient<MicroMRouteConvention>();
         services.ConfigureOptions<MicroMRouteConventionSetup>();
 
-        //JWT Authentication
-        const string JWT_COOKIE_POLICY = "JwtCookie";
-        const string JWT_COOKIE_POLICY_DISPLAYNAME = "Jwt/Cookie";
-        const string COOKIE_NAME = "microm-a";
-
-        const string IDP_CLIENT_SCHEME = "IdPClient";
-        const string IDP_CLIENT_SCHEME_DISPLAYNAME = "IdP Client auth";
-
         services.AddAuthentication(opt =>
         {
-            opt.DefaultAuthenticateScheme = JWT_COOKIE_POLICY;
-            opt.DefaultChallengeScheme = JWT_COOKIE_POLICY;
-            opt.DefaultScheme = JWT_COOKIE_POLICY;
+            opt.DefaultAuthenticateScheme = MicroMServicesConstants.JWTCookiePolicy;
+            opt.DefaultChallengeScheme = MicroMServicesConstants.JWTCookiePolicy;
+            opt.DefaultScheme = MicroMServicesConstants.JWTCookiePolicy;
         }
         ).AddJwtBearer(options =>
         {
@@ -220,14 +493,14 @@ public static class WebAPIBaseExtensions
         })
         .AddCookie(options =>
         {
-            options.Cookie.Name = COOKIE_NAME;
+            options.Cookie.Name = MicroMServicesConstants.AuthenticationCookieName;
             options.LoginPath = string.Empty;
             options.LogoutPath = string.Empty;
             options.AccessDeniedPath = string.Empty;
             options.Cookie.SameSite = Microsoft.AspNetCore.Http.SameSiteMode.Strict;
             options.Cookie.HttpOnly = true;
             options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
-        }).AddPolicyScheme(JWT_COOKIE_POLICY, JWT_COOKIE_POLICY_DISPLAYNAME, opt =>
+        }).AddPolicyScheme(MicroMServicesConstants.JWTCookiePolicy, MicroMServicesConstants.JWTCookiePolicyDisplayName, opt =>
         {
             // This will switch between JwtToken or cookie authentication
             opt.ForwardDefaultSelector = context =>
@@ -239,7 +512,7 @@ public static class WebAPIBaseExtensions
             };
         })
         // Add IdP client authentication handler
-        .AddScheme<AuthenticationSchemeOptions, IdPBackchannelAuthenticationHandler>(IDP_CLIENT_SCHEME, IDP_CLIENT_SCHEME_DISPLAYNAME, options => { });
+        .AddScheme<AuthenticationSchemeOptions, IdPBackchannelAuthenticationHandler>(MicroMServicesConstants.IdPClientScheme, MicroMServicesConstants.IdPClientSchemeDisplayName, options => { });
 
         // Configure cookies manager
         services.AddSingleton<IPostConfigureOptions<CookieAuthenticationOptions>, MicroMCookiesManagerSetup>();
@@ -253,7 +526,7 @@ public static class WebAPIBaseExtensions
         {
             options.AddPolicy(nameof(MicroMPermissionsConstants.IdPClientPolicy), policy =>
             {
-                policy.AddAuthenticationSchemes(IDP_CLIENT_SCHEME);
+                policy.AddAuthenticationSchemes(MicroMServicesConstants.IdPClientScheme);
                 policy.RequireAuthenticatedUser();
             });
         });
@@ -263,7 +536,7 @@ public static class WebAPIBaseExtensions
             options.DisableImplicitFromServicesParameters = true;
         });
 
-        services.AddSingleton<IAuthorizationHandler, MicroMPermissionsHandler>();
+        services.AddSingleton<IAuthorizationHandler, MicroMAuthorizationHandler>();
 
         services.AddControllers();
 
@@ -273,6 +546,10 @@ public static class WebAPIBaseExtensions
     public static IApplicationBuilder UseMicroMWebAPI(this IApplicationBuilder app)
     {
         app.UseAuthentication();
+
+        // Ensure rate-limiting middleware is active after auth (claims available) and before authorization
+        app.UseRateLimiter();
+
         app.UseAuthorization();
         app.UseMiddleware<PublicEndpointsMiddleware>();
 

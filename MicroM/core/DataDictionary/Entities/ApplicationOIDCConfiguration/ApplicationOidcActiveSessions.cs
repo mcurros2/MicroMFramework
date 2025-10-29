@@ -174,7 +174,7 @@ public class ApplicationOidcActiveSessions : Entity<ApplicationOidcActiveSession
         }
     }
 
-    internal async Task<OidcSessionItem> MapSessionRecord(IGetFieldValue fv, string[] headers, CancellationToken ct)
+    internal async Task<OidcSessionItem> MapSessionRecord(IValueReader fv, string[] headers, string[] typeInfo, CancellationToken ct)
     {
         var result = new OidcSessionItem
         {

@@ -22,7 +22,7 @@ public class ApplicationOidcClientsDef : EntityDefinition
     public readonly Column<string?> vc_certificate_unique_id = Column<string?>.Text(size: 2048);
 
     // This is the pepper to use when creating the subject claim for tokens issued to this client
-    public readonly Column<string> vc_oidc_subject_pepper = Column<string>.Text(encrypted: true);
+    public readonly Column<string> vc_oidc_subject_pepper = Column<string>.Text(size: 2048, encrypted: true);
 
     // These are stored encrypted so the user can copy them in the control panel
     public readonly Column<string?> vc_apikey = Column<string?>.Text(size: 2048, encrypted: true, fake: true);
@@ -47,8 +47,9 @@ public class ApplicationOidcClients : Entity<ApplicationOidcClientsDef>
 
     public override Task<DBStatusResult> InsertData(CancellationToken ct, bool throw_dbstat_exception = false, MicroMOptions? options = null, Dictionary<string, object>? server_claims = null, IWebAPIServices? api = null, string? app_id = null)
     {
-        this.Def.vc_apikey.Value = new Guid().ToString();
+        this.Def.vc_apikey.Value = Guid.NewGuid().ToString();
         this.Def.vc_secret.Value = CryptClass.CreateRandomPassword();
+        this.Def.vc_oidc_subject_pepper.Value = CryptClass.CreateRandomPassword();
 
         return base.InsertData(ct, throw_dbstat_exception, options, server_claims, api, app_id);
     }
@@ -57,7 +58,7 @@ public class ApplicationOidcClients : Entity<ApplicationOidcClientsDef>
     {
         if (this.Def.b_change_secret.Value == true)
         {
-            this.Def.vc_apikey.Value = new Guid().ToString();
+            this.Def.vc_apikey.Value = Guid.NewGuid().ToString();
             this.Def.vc_secret.Value = CryptClass.CreateRandomPassword();
         }
 

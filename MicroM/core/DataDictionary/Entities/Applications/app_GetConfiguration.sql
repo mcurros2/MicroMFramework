@@ -20,7 +20,7 @@ select	ApplicationID = rtrim(a.c_application_id)
 		, OIDCCertificateUniqueID=convert(varchar(2048),f.ui_certificate_guid_id)
 		, OIDCCertificateBlob = f.vb_certificate_blob
 		, OIDCCertificatePassword = f.vc_certificate_password
-		, OIDCIdPSubjectPepper=d.vc_oidc_subject_pepper
+		, OIDCIdPSubjectPepper=d.vc_oidc_idp_subject_pepper
 		, FrontendURLS=e.frontend_urls
 from	applications a
 		left join applications_cat b

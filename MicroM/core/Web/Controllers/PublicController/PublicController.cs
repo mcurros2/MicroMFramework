@@ -4,6 +4,7 @@ using MicroM.Web.Services;
 using MicroM.Web.Services.Security;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using static MicroM.Web.Controllers.MicroMControllersMessages;
 
 namespace MicroM.Web.Controllers;
@@ -23,6 +24,7 @@ public class PublicController : ControllerBase, IPublicController
     [AllowAnonymous]
     [PublicEndpoint]
     [HttpPost("{app_id}/public/{entityName}/action/{actionName}")]
+    [EnableRateLimiting(MicroMServicesConstants.RateLimitingPublicMutationPolicy)]
     public async Task<ObjectResult> PublicAction([FromServices] IMicroMAppConfiguration app_config, [FromServices] IEntitiesService ents, string app_id, string entityName, string actionName, [FromBody] DataWebAPIRequest parms, CancellationToken ct)
     {
         try
@@ -54,6 +56,7 @@ public class PublicController : ControllerBase, IPublicController
     [AllowAnonymous]
     [PublicEndpoint]
     [HttpPost("{app_id}/public/{entityName}/delete")]
+    [EnableRateLimiting(MicroMServicesConstants.RateLimitingPublicMutationPolicy)]
     public async Task<ObjectResult> PublicDelete([FromServices] IMicroMAppConfiguration app_config, [FromServices] IEntitiesService ents, string app_id, string entityName, [FromBody] DataWebAPIRequest parms, CancellationToken ct)
     {
         try
@@ -80,6 +83,7 @@ public class PublicController : ControllerBase, IPublicController
     [AllowAnonymous]
     [PublicEndpoint]
     [HttpPost("{app_id}/public/{entityName}/get")]
+    [EnableRateLimiting(MicroMServicesConstants.RateLimitingPublicGetPolicy)]
     public async Task<ObjectResult> PublicGet([FromServices] IMicroMAppConfiguration app_config, [FromServices] IEntitiesService ents, string app_id, string entityName, [FromBody] DataWebAPIRequest parms, CancellationToken ct)
     {
         try
@@ -109,6 +113,7 @@ public class PublicController : ControllerBase, IPublicController
     [AllowAnonymous]
     [PublicEndpoint]
     [HttpPost("{app_id}/public/{entityName}/insert")]
+    [EnableRateLimiting(MicroMServicesConstants.RateLimitingPublicMutationPolicy)]
     public async Task<ObjectResult> PublicInsert([FromServices] IMicroMAppConfiguration app_config, [FromServices] IEntitiesService ents, [FromBody] DataWebAPIRequest parms, string app_id, string entityName, CancellationToken ct)
     {
         try
@@ -137,6 +142,7 @@ public class PublicController : ControllerBase, IPublicController
     [AllowAnonymous]
     [PublicEndpoint]
     [HttpPost("{app_id}/public/{entityName}/lookup/{lookupName?}")]
+    [EnableRateLimiting(MicroMServicesConstants.RateLimitingPublicGetPolicy)]
     public async Task<ObjectResult> PublicLookup([FromServices] IMicroMAppConfiguration app_config, [FromServices] IEntitiesService ents, string app_id, string entityName, string? lookupName, [FromBody] DataWebAPIRequest parms, CancellationToken ct)
     {
         try
@@ -160,6 +166,7 @@ public class PublicController : ControllerBase, IPublicController
     [AllowAnonymous]
     [PublicEndpoint]
     [HttpPost("{app_id}/public/{entityName}/proc/{procName}")]
+    [EnableRateLimiting(MicroMServicesConstants.RateLimitingPublicMutationPolicy)]
     public async Task<ObjectResult> PublicProc([FromServices] IMicroMAppConfiguration app_config, [FromServices] IEntitiesService ents, string app_id, string entityName, string procName, [FromBody] DataWebAPIRequest parms, CancellationToken ct)
     {
         try
@@ -186,6 +193,7 @@ public class PublicController : ControllerBase, IPublicController
     [AllowAnonymous]
     [PublicEndpoint]
     [HttpPost("{app_id}/public/{entityName}/process/{procName}")]
+    [EnableRateLimiting(MicroMServicesConstants.RateLimitingPublicMutationPolicy)]
     public async Task<ObjectResult> PublicProcess([FromServices] IMicroMAppConfiguration app_config, [FromServices] IEntitiesService ents, string app_id, string entityName, string procName, [FromBody] DataWebAPIRequest parms, CancellationToken ct)
     {
         try
@@ -212,6 +220,7 @@ public class PublicController : ControllerBase, IPublicController
     [AllowAnonymous]
     [PublicEndpoint]
     [HttpPost("{app_id}/public/{entityName}/update")]
+    [EnableRateLimiting(MicroMServicesConstants.RateLimitingPublicMutationPolicy)]
     public async Task<ObjectResult> PublicUpdate([FromServices] IMicroMAppConfiguration app_config, [FromServices] IEntitiesService ents, string app_id, string entityName, [FromBody] DataWebAPIRequest parms, CancellationToken ct)
     {
         try
@@ -240,6 +249,7 @@ public class PublicController : ControllerBase, IPublicController
     [AllowAnonymous]
     [PublicEndpoint]
     [HttpPost("{app_id}/public/{entityName}/view/{viewName}")]
+    [EnableRateLimiting(MicroMServicesConstants.RateLimitingPublicGetPolicy)]
     public async Task<ObjectResult> PublicView([FromServices] IMicroMAppConfiguration app_config, [FromServices] IEntitiesService ents, string app_id, string entityName, string viewName, [FromBody] DataWebAPIRequest parms, CancellationToken ct)
     {
         try

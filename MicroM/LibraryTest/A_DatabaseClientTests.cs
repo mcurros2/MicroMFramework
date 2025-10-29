@@ -555,11 +555,11 @@ namespace LibraryTest
             await client.Connect(cts.Token);
 
             string query = "select\ta.name,\r\n\t\t[object_name]=object_name(a.object_id),\r\n\t\ta.system_type_id\r\nfrom\t\tsys.columns a";
-            //delegate Task<T> MapResult<T>(IGetFieldValue record) = 
+            //delegate Task<T> MapResult<T>(IValueReader record) = 
 
             List<(int status, GetColumnsResult)> test = new();
 
-            var result = await client.ExecuteSQL<GetColumnsResult>(query, cts.Token, mapper: async (IGetFieldValue fv, string[] headers, CancellationToken ct) =>
+            var result = await client.ExecuteSQL<GetColumnsResult>(query, cts.Token, mapper: async (IValueReader fv, string[] headers, string[] typeInfo, CancellationToken ct) =>
             {
                 GetColumnsResult result = new(
                     name: await fv.GetFieldValueAsync<string>(nameof(GetColumnsResult.name), ct),
@@ -590,7 +590,7 @@ namespace LibraryTest
             await client.Connect(cts.Token);
 
             string query = "select\ta.name,\r\n\t\t[object_name]=object_name(a.object_id),\r\n\t\ta.system_type_id\r\nfrom\t\tsys.columns a";
-            //delegate Task<T> MapResult<T>(IGetFieldValue record) = 
+            //delegate Task<T> MapResult<T>(IValueReader record) = 
 
             var result = await client.ExecuteSQL<GetColumnsResult>(query, cts.Token);
 
@@ -615,7 +615,7 @@ namespace LibraryTest
 
             string query = "select\ta.name,\r\n\t\t[object_name]=object_name(a.object_id),\r\n\t\ta.system_type_id\r\nfrom\t\tsys.columns a";
 
-            var result = await client.ExecuteSQL<GetColumnsResult>(query, cts.Token, IEntityClient.AutoMapperMode.ByPosition);
+            var result = await client.ExecuteSQL<GetColumnsResult>(query, cts.Token, AutoMapperMode.ByPosition);
 
             Console.WriteLine($"Rows: {result.Count}");
             foreach (var item in result)
@@ -638,7 +638,7 @@ namespace LibraryTest
 
             string query = "select\ta.name,\r\n\t\t[object_name]=object_name(a.object_id),\r\n\t\ta.system_type_id, *\r\nfrom\t\tsys.columns a";
 
-            var result = await client.ExecuteSQL<GetColumnsResult>(query, cts.Token, IEntityClient.AutoMapperMode.ByPosition);
+            var result = await client.ExecuteSQL<GetColumnsResult>(query, cts.Token, AutoMapperMode.ByPosition);
 
             Console.WriteLine($"Rows: {result.Count}");
             foreach (var item in result)

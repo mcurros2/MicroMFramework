@@ -41,7 +41,7 @@ namespace MicroM.Extensions
             for (int r = 0; r < result.records.Count; r++)
             {
                 var value = result.records[r][header_index]?.ToString() ?? "";
-                if(string.IsNullOrWhiteSpace(value)) continue;
+                if (string.IsNullOrWhiteSpace(value)) continue;
                 column_records.Add(value);
             }
 
@@ -77,11 +77,6 @@ namespace MicroM.Extensions
         /// <summary>
         /// Returns the column value for <paramref name="column_name"/> for record_index <paramref name="record"/>
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="result"></param>
-        /// <param name="column_name"></param>
-        /// <param name="record"></param>
-        /// <returns></returns>
         public static TColumn? Get<TColumn>(this DataResult result, string column_name, int record)
         {
             if (result == null) return default;
@@ -92,8 +87,33 @@ namespace MicroM.Extensions
             return default;
         }
 
+        private static readonly string[] _sensitiveParamMarkers = new[]
+{
+            "password", "pwd", "vc_password", "vc_pwhash",
+            "token", "access_token", "refresh", "vc_refreshtoken", "logout_token", "id_token", "authorization",
+            "recovery_code"
+        };
+
+        private static bool IsSensitiveParam(SqlParameter parm)
+        {
+            var name = parm.ParameterName ?? string.Empty;
+            foreach (var marker in _sensitiveParamMarkers)
+            {
+                if (name.Contains(marker, StringComparison.OrdinalIgnoreCase))
+                    return true;
+            }
+
+            return parm.SqlDbType is SqlDbType.Binary or SqlDbType.VarBinary or SqlDbType.Image;
+        }
+
         private static string TraceSQLParm(this SqlParameter parm)
         {
+            if (IsSensitiveParam(parm))
+            {
+                var len = parm.Value.ToString()?.Length ?? 0;
+                return $"{parm.ParameterName} = '[SENSITIVE len={len}]'";
+            }
+
             if (parm.SqlDbType.IsIn(SqlDbType.Char, SqlDbType.NChar, SqlDbType.VarChar, SqlDbType.NVarChar, SqlDbType.Text, SqlDbType.NText))
             {
                 return $"{parm.ParameterName} = '{parm.Value}'";

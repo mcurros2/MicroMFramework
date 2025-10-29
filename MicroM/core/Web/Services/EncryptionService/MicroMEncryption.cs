@@ -60,7 +60,16 @@ namespace MicroM.Web.Services
         public string Decrypt(string base64_encrypted)
         {
             if (string.IsNullOrEmpty(base64_encrypted)) return base64_encrypted;
-            return _encryptor?.Decrypt(base64_encrypted) ?? throw new InvalidOperationException("Certificate thumbprint not configured");
+            try
+            {
+                return _encryptor?.Decrypt(base64_encrypted) ?? throw new InvalidOperationException("Certificate thumbprint not configured");
+            }
+            catch
+            {
+                _log.LogWarning("MicroMEncryption: Failed to decrypt string: {encrypted}", base64_encrypted);
+                throw;
+            }
+
         }
 
         public string Encrypt(string plaintext)

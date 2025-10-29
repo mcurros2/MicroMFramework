@@ -17,8 +17,8 @@ public class ApplicationOidcConfigurationDef : EntityDefinition
     // if acting as a client, this is the URL to the OIDC well-known configuration
     public readonly Column<string?> vc_url_wellknown = Column<string?>.Text(size: 2048, nullable: true);
 
-    // if login in to IdP app this is subject pepper to use when creating subject claim
-    public readonly Column<string?> vc_oidc_idp_subject_pepper = Column<string?>.Text(encrypted: true);
+    // if login in to IdP app this is the subject pepper to use when creating subject claim
+    public readonly Column<string?> vc_oidc_idp_subject_pepper = Column<string?>.Text(size: 2048, encrypted: true, nullable: true);
 
     public readonly EntityForeignKey<MicromApplicationCertificates, ApplicationOidcConfiguration> FKApplicationCertificates = new();
 }
