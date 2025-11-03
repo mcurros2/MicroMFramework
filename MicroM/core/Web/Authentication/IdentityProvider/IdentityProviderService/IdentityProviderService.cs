@@ -129,7 +129,7 @@ public class IdentityProviderService(
     public async Task<bool> HandleEndSession(ApplicationOption app, string issuer, string user_id, CancellationToken ct)
     {
         // Only IdP servers may initiate SLO fan-out
-        if (!string.Equals(app.IdentityProviderRoleType, nameof(IdentityProviderRole.IDPServer), StringComparison.Ordinal))
+        if (app.IdentityProviderRoleType != nameof(IdentityProviderRole.IDPServer))
         {
             return false;
         }
@@ -208,7 +208,7 @@ public class IdentityProviderService(
                 var res = await oidcHttpClient.PostFormUrlEncodedAsync(backUrl, form, ct);
                 if (!res.IsSuccessStatusCode)
                 {
-                    log.LogWarning("EndSession: Backchannel POST failed for client {client} status {status} body: {body}", clientAppId, res.StatusCode, res.Body);
+                    log.LogWarning("EndSession: Backchannel POST failed for client {client} status {status} body: {body} error: {error}", clientAppId, res.StatusCode, res.Body, res.Error);
                 }
             }
             catch (Exception ex)

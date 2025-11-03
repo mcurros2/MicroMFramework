@@ -1,18 +1,27 @@
 ﻿using MicroM.Configuration;
-using MicroM.Core;
 using Microsoft.Extensions.Logging;
+using System.Net;
 using System.Net.Http.Headers;
+using System.Text.Json;
 
 namespace MicroM.Web.Authentication.SSO;
 
 public class OIDCHttpClient(IHttpClientFactory httpClientFactory, ILogger<OIDCHttpClient> log) : IOIDCHttpClient
 {
-    public async ValueTask<ResultWithStatus<string, string>> GetWellKnownJsonAsync(string wellKnownUrl, CancellationToken ct)
+    private static (Uri? uri, (string? error, string? error_description)) ValidateURL(string url, string title)
     {
-        if (string.IsNullOrWhiteSpace(wellKnownUrl)) return new(null, "wellKnownUrl is empty");
-        if (!Uri.TryCreate(wellKnownUrl, UriKind.Absolute, out var uri)) return new(null, "wellKnownUrl is not an absolute URI");
+        if (string.IsNullOrWhiteSpace(url)) return (null, (error: "invalid_request", error_description: $"{title} is empty"));
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri)) return (null, (error: "invalid_request", error_description: $"{title} is not an absolute URI"));
         if (!uri.Scheme.Equals(Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase) && !uri.IsLoopback)
-            return new(null, "wellKnownUrl must be HTTPS (non-loopback)");
+            return (null, (error: "invalid_request", error_description: $"{title} must be HTTPS (non-loopback)"));
+
+        return (uri, (null, null));
+    }
+
+    public async ValueTask<OIDCHttpClientPostResponse> GetWellKnownJsonAsync(string wellKnownUrl, CancellationToken ct)
+    {
+        var (uri, url_validate) = ValidateURL(wellKnownUrl, "wellKnownUrl");
+        if (url_validate.error != null) return new((int)HttpStatusCode.BadRequest, Error: JsonSerializer.Serialize(url_validate));
 
         try
         {
@@ -28,28 +37,28 @@ public class OIDCHttpClient(IHttpClientFactory httpClientFactory, ILogger<OIDCHt
             const int MAX_CONTENT_LENGTH = 32 * 1024;
             if (content.Length > MAX_CONTENT_LENGTH)
             {
-                return new(null, $"well-known content is too large. Max size allowed {MAX_CONTENT_LENGTH}");
+                return new((int)HttpStatusCode.RequestEntityTooLarge, Error: JsonSerializer.Serialize(new { error = "server_error", error_description = $"well-known content is too large. Max size allowed {MAX_CONTENT_LENGTH}" }));
             }
 
             if (!resp.IsSuccessStatusCode)
             {
-                return new(null, $"GET well-known failed: {(int)resp.StatusCode} {resp.ReasonPhrase}\n{content}");
+                return new((int)resp.StatusCode, Error: JsonSerializer.Serialize(new { error = "server_error", error_description = $"GET well-known failed: {(int)resp.StatusCode} {resp.ReasonPhrase}\n{content}" }));
             }
-            return new(content, null);
+            // get the content type header value from resp
+            string content_type = resp.Content.Headers.ContentType?.ToString() ?? "application/json";
+            return new((int)resp.StatusCode, true, content_type, content);
         }
         catch (Exception ex)
         {
             log.LogWarning(ex, "Error fetching well-known at {url}", wellKnownUrl);
-            return new(null, $"Error fetching well-known: {ex.Message}");
+            return new((int)HttpStatusCode.InternalServerError, Error: JsonSerializer.Serialize(new { error = "server_error", error_description = $"Error fetching well-known: {ex.Message}" }));
         }
     }
 
-    public async ValueTask<ResultWithStatus<string, string>> GetJwksJsonAsync(string jwksUri, CancellationToken ct)
+    public async ValueTask<OIDCHttpClientPostResponse> GetJwksJsonAsync(string jwksUri, CancellationToken ct)
     {
-        if (string.IsNullOrWhiteSpace(jwksUri)) return new(null, "jwksUri is empty");
-        if (!Uri.TryCreate(jwksUri, UriKind.Absolute, out var uri)) return new(null, "jwksUri is not an absolute URI");
-        if (!uri.Scheme.Equals(Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase) && !uri.IsLoopback)
-            return new(null, "jwksUri must be HTTPS (non-loopback)");
+        var (uri, url_validate) = ValidateURL(jwksUri, "jwksUri");
+        if (url_validate.error != null) return new((int)HttpStatusCode.BadRequest, Error: JsonSerializer.Serialize(url_validate));
 
         try
         {
@@ -63,14 +72,16 @@ public class OIDCHttpClient(IHttpClientFactory httpClientFactory, ILogger<OIDCHt
 
             if (!resp.IsSuccessStatusCode)
             {
-                return new(null, $"GET JWKS failed: {(int)resp.StatusCode} {resp.ReasonPhrase}\n{content}");
+                return new((int)resp.StatusCode, Error: JsonSerializer.Serialize(new { error = "server_error", error_description = $"GET JWKS failed: {(int)resp.StatusCode} {resp.ReasonPhrase}\n{content}" }));
             }
-            return new(content, null);
+
+            string content_type = resp.Content.Headers.ContentType?.ToString() ?? "application/json";
+            return new((int)resp.StatusCode, true, content_type, content);
         }
         catch (Exception ex)
         {
             log.LogWarning(ex, "Error fetching JWKS at {url}", jwksUri);
-            return new(null, $"Error fetching JWKS: {ex.Message}");
+            return new((int)HttpStatusCode.InternalServerError, Error: JsonSerializer.Serialize(new { error = "server_error", error_description = $"Error fetching well-known: {ex.Message}" }));
         }
     }
 
@@ -101,10 +112,8 @@ public class OIDCHttpClient(IHttpClientFactory httpClientFactory, ILogger<OIDCHt
         AuthenticationHeaderValue? authorization,
         CancellationToken ct)
     {
-        if (string.IsNullOrWhiteSpace(url)) return new(400, false, "application/json", "{\"error\":\"invalid_request\",\"error_description\":\"URL is empty\"}");
-        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri)) return new(400, false, "application/json", "{\"error\":\"invalid_request\",\"error_description\":\"URL is not an absolute URI\"}");
-        if (!uri.Scheme.Equals(Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase) && !uri.IsLoopback)
-            return new(400, false, "application/json", "{\"error\":\"invalid_request\",\"error_description\":\"URL must be HTTPS (non-loopback)\"}");
+        var (uri, url_validate) = ValidateURL(url, "url");
+        if (url_validate.error != null) return new((int)HttpStatusCode.BadRequest, Error: JsonSerializer.Serialize(url_validate));
 
         try
         {
@@ -127,7 +136,7 @@ public class OIDCHttpClient(IHttpClientFactory httpClientFactory, ILogger<OIDCHt
         {
             log.LogWarning(ex, "POST form failed to {url}", url);
             var msg = new { error = "server_error", error_description = $"HTTP error: {ex.Message}" };
-            return new(502, false, "application/json", System.Text.Json.JsonSerializer.Serialize(msg));
+            return new(502, false, "application/json", JsonSerializer.Serialize(msg));
         }
     }
 }

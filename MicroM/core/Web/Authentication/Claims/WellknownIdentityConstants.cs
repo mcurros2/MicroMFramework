@@ -36,7 +36,12 @@ public class WellknownIdentityConstants
     public const string ClientAssertionType = "client_assertion_type";
     public const string RefreshExpirationUtc = "refresh_expiration_utc";
 
+    public const string ResponseType = "response_type";
+    public const string CodeChallenge = "code_challenge";
+    public const string CodeChallengeMethod = "code_challenge_method";
+    public const string Token = "token";
+    public const string TokenTypeHint = "token_type_hint";
+
     public const string BackchannelLogoutEventUri = "http://schemas.openid.net/event/backchannel-logout";
     public const string BackchannelLogoutEventJson = $"{{\"{WellknownIdentityConstants.BackchannelLogoutEventUri}\":{{}}}}";
-
 }
