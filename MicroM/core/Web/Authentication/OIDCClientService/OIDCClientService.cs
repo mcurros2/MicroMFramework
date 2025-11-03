@@ -85,14 +85,14 @@ public class OIDCClientService(
                 ct: ct,
                 valueFactory: async (ct) =>
                 {
-                    var (wellknown, error) = await oidcHttpClient.GetWellKnownJsonAsync(app.OIDCWellKnownURL, ct);
+                    var result = await oidcHttpClient.GetWellKnownJsonAsync(app.OIDCWellKnownURL, ct);
 
-                    if (error != null || wellknown == null)
+                    if (!result.IsSuccessStatusCode)
                     {
-                        throw new Exception(error);
+                        throw new Exception(result.Error);
                     }
 
-                    return wellknown;
+                    return result.Body;
                 }
             );
 
@@ -176,7 +176,7 @@ public class OIDCClientService(
         }
         else
         {
-            log.LogWarning("PAR request failed for app {app}: {status} {body}", app.ApplicationID, parResult.StatusCode, parResult.Body);
+            log.LogWarning("PAR request failed for app {app}: {status} {body} {error}", app.ApplicationID, parResult.StatusCode, parResult.Body, parResult.Error);
         }
 
         return parResult;
@@ -246,7 +246,7 @@ public class OIDCClientService(
             var tokenResult = await oidcHttpClient.PostTokenAsync(tokenEndpoint, tokenForm, authorization: null, ct);
             if (!tokenResult.IsSuccessStatusCode)
             {
-                return new(null, $"Token exchange failed: {tokenResult.Body}");
+                return new(null, $"Token exchange failed: {tokenResult.Body}. Error: {tokenResult.Error}");
             }
 
             using var doc = JsonDocument.Parse(tokenResult.Body);
@@ -531,7 +531,7 @@ public class OIDCClientService(
             var refreshResult = await oidcHttpClient.PostTokenAsync(tokenEndpoint, refreshForm, authorization: null, ct);
             if (refreshResult.IsSuccessStatusCode)
             {
-                return new(null, $"IdP refresh failed: {refreshResult.Body}");
+                return new(null, $"IdP refresh failed: {refreshResult.Body}. Error: {refreshResult.Error}");
             }
 
             using var doc = JsonDocument.Parse(refreshResult.Body);

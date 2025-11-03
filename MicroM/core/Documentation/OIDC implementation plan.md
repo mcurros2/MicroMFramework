@@ -48,6 +48,7 @@ D — Logout (SLO)
 
 E — Security & hardening
 - State/nonce, PKCE S256, client authentication: COMPLETE
+  - Uses `Microsoft.IdentityModel.Tokens.Base64UrlEncoder` for base64url encoding (state, nonce, PKCE verifier/challenge).
 - Encrypted OIDC refresh tokens at rest: COMPLETE
 - Logging: PARTIAL
   - Sensitive token values removed from logs (values omitted). SQL parameter tracing now redacts sensitive parameter values by name/pattern.
@@ -60,27 +61,70 @@ E — Security & hardening
 - Metrics/counters: Using ASP.NET Core built-in meters and standard RateLimiter instrumentation; no custom `System.Diagnostics.Metrics` to add.
 
 Recent changes
-- Added generic `IOIDCHttpClient.PostFormUrlEncodedAsync` and used it for IdP backchannel fan-out.
-- `OIDCHttpClientPostResponse` extended with `IsSuccessStatusCode`; all callers adapted.
-- Implemented IdP endsession with correct issuer, signing, claims, and session purge.
-- Implemented client backchannel logout controller endpoint.
-- Rate limiting wiring and policies:
-  - Added `UseRateLimiter` to pipeline (after auth, before authorization).
-  - Implemented global per-app catch-all limiter via `options.GlobalLimiter`.
-  - Defined identity-scoped policies for `auth/refresh`, `oauth2/par`, `oauth2/token`, `oauth2/authorize`, `oauth2/endsession`, backchannel logout, public endpoints, metadata, and front-logout.
-  - Applied `[EnableRateLimiting]` to all relevant actions across controllers.
-  - Registered policies via `services.AddMicroMRateLimitingPolicies()`.
-- Logging scrub (initial):
-  - Removed refresh token values from logs in `MicroMAuthenticator`.
-  - Redacted sensitive SQL parameters in `TraceSQL` (passwords, tokens, refresh, recovery_code, authorization).
-- Tests:
-  - Added MSTest coverage for `OIDCReplayCacheService` (Added → Replay; expired `iat` → Stale; future `iat` beyond skew → Skew; too-long `jti` → Invalid).
+- Diagnostics (Client): Extended endpoint coverage and normalized parameter naming.
+  - Added client probes: token endpoint (invalid refresh_token error semantics), end_session_endpoint, userinfo_endpoint, revocation_endpoint, introspection_endpoint. Each uses `IOIDCHttpClient`.
+  - Optional IdP endpoints are “mandatory if advertised.” If present in discovery, probes must succeed with expected semantics; if not advertised, tests return “not advertised; skipped”.
+  - Kept existing client `TestWellKnownAndJWKSAsync` and `TestPARAsync`.
+- Diagnostics (Client): Implemented `TestAuthorizeUrlBuildAndRedirectUriAsync` (authorization_endpoint, response_types_supported=code, PKCE S256, scopes check).
+- Diagnostics (IdP & Client): Replaced literal OIDC parameter names with `WellknownIdentityConstants` across diagnostics (form keys/values: response_type, grant_type, client_id, redirect_uri, scope, code, code_verifier, code_challenge, code_challenge_method, token, token_type_hint, etc.).
+- Diagnostics (IdP): `TestClientRegistrationSanityAsync` enforces HTTPS-only for backchannel logout URL, JWKS URL, front-channel logout URL, and all redirect URIs.
+- Diagnostics (IdP): `TestWellKnownAndJWKSAsync` and `TestIssuerConsistencyAsync` derive `request_base` from configuration (`OIDCWellKnownURL` preferred, `JWTIssuer` fallback).
+- Diagnostics: Kept per-client results for all applicable tests; orchestrators aggregate.
+- General: Replaced any ad-hoc base64url conversions in diagnostics with `Base64UrlEncoder.Encode` (or `WebEncoders.Base64UrlEncode` when applicable).
+
+Tests
+- Added MSTest coverage for `OIDCReplayCacheService` (Added → Replay; expired `iat` → Stale; future `iat` beyond skew → Skew; too-long `jti` → Invalid).
+
+F — Diagnostics (Implementation Plan)
+- Scope note: diagnostics run strictly against backend configuration for each app/tenant.
+- Conventions:
+  - Use collection initializers (`[]`) when returning error lists.
+  - Always populate the `Result` string in `OIDCDiagnosticsResult`.
+  - Any failed assertion is returned as an error (no warnings).
+  - Use `Base64UrlEncoder` for state/nonce/PKCE in any OIDC diagnostic flows.
+  - Use `WellknownIdentityConstants` for all OIDC parameter names/values in diagnostics.
+  - Optional IdP endpoints are mandatory if advertised in discovery; otherwise tests should return “not advertised; skipped” (no errors).
+- Orchestrators:
+  - `IOIDCIdPDiagnostics.TestAllAsync` aggregates IdP-level checks and per-client checks.
+  - `IOIDCClientDiagnostics.TestAllAsync` aggregates client-level checks (client POV).
+
+Status (completed)
+- IdP diagnostics:
+  - TestWellKnownAndJWKSAsync — COMPLETE
+  - TestSigningMaterialAsync — COMPLETE
+  - TestIssuerConsistencyAsync — COMPLETE
+  - TestTokenGrantsAsync — COMPLETE (invalid authorization_code semantics per client)
+  - TestPARAsync — COMPLETE (server-side, per client)
+  - TestClientRegistrationSanityAsync — COMPLETE (HTTPS-only)
+  - TestEndSessionFanoutAsync — COMPLETE
+
+- OIDC Client diagnostics
+  - TestWellKnownAndJWKSAsync — COMPLETE (client POV via IOIDCHttpClient)
+  - TestPARAsync — COMPLETE (client minimal probe via IOIDCHttpClient; 200/400/401/403 treated as valid)
+  - TestAuthorizeUrlBuildAndRedirectUriAsync — COMPLETE
+  - TestIdpRefreshAsync — COMPLETE (token endpoint probe with invalid refresh_token; 400/401/403 treated as valid)
+  - TestEndSessionEndpointAsync — COMPLETE (mandatory if advertised)
+  - TestUserInfoEndpointAsync — COMPLETE (mandatory if advertised)
+  - TestRevocationEndpointAsync — COMPLETE (mandatory if advertised)
+  - TestIntrospectionEndpointAsync — COMPLETE (mandatory if advertised)
+
+Notes
+- Pairwise subject derivation is not part of diagnostics. Uniqueness across clients is inherent to `GetDerivedSub(clientId, userId, pepper)` and is validated in runtime flows (e.g., end-session fanout), not via diagnostics.
+- Backchannel endpoints are exercised by IdP `TestEndSessionFanoutAsync`. A dedicated client backchannel diagnostic can validate route presence and error semantics without duplicating logout_token validation already covered in services.
+
+Pending tasks
+- OIDC Client diagnostics (IDPClient apps)
+  - Implement `TestCallbackEndpointAsync`
+  - Implement `TestRefreshFallbackAsync`
+  - Implement `TestBackchannelReceiverAsync`
+
+- IdP diagnostics (IDPServer apps) — none pending
 
 Known gaps before release
 - Comprehensive tests for SLO, refresh paths, and rate-limit behaviors.
 - Final log review to ensure no secrets/tokens are emitted across all components (Authorization headers, logout_token/id_token, refresh, passwords).
 - Optional global per-node limiter if needed.
-- Optional observability plumbing: expose built-in ASP.NET Core meters via OpenTelemetry/Prometheus exporters (no code in auth/oidc services required).
+- TO BE CONSIDERED, DO NOT CHANGE CODE BECAUSE OF THIS: Optional observability plumbing: expose built-in ASP.NET Core meters via OpenTelemetry/Prometheus exporters (no code in auth/oidc services required).
 
 Priority next tasks
 1) Tests (MSTest)
@@ -108,8 +152,8 @@ Priority next tasks
    - Consider enabling a global per-node limiter if needed post-observation.
 
 Status TL;DR
-- IdP: grants and endsession fan-out complete with correct signing and claims.
-- Client: refresh flows complete; SLO front-channel and backchannel wired.
+- IdP: grants and endsession fan-out complete with correct signing and claims. IdP diagnostics complete, including PAR, registration sanity (HTTPS-only), and endsession fan-out check.
+- Client: discovery/JWKS, PAR, authorize metadata, token endpoint, and additional optional endpoints (when advertised) are covered. Remaining client diagnostics focus on callback, refresh fallback, and backchannel receiver.
 - Rate limiting: fully wired and applied; tests started with replay cache; remaining work focuses on broader test coverage and final log scrub.
 
 

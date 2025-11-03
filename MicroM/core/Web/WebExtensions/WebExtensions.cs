@@ -12,4 +12,12 @@ public static class WebExtensions
         return Convert.ToBase64String(hash);
     }
 
+    public static bool isValidHTTPSUrl(this string url)
+    {
+        if (Uri.TryCreate(url, UriKind.Absolute, out var uriResult))
+        {
+            return uriResult.Scheme == Uri.UriSchemeHttps;
+        }
+        return false;
+    }
 }

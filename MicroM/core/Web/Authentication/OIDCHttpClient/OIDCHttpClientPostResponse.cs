@@ -2,9 +2,10 @@
 
 public sealed record OIDCHttpClientPostResponse(
     int StatusCode,
-    bool IsSuccessStatusCode,
-    string ContentType,
-    string Body
+    bool IsSuccessStatusCode = false,
+    string ContentType = "",
+    string Body = "",
+    string? Error = null
 );
 
 

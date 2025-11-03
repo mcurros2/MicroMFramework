@@ -1,13 +1,12 @@
-﻿using MicroM.Core;
-using System.Net.Http.Headers;
+﻿using System.Net.Http.Headers;
 
 namespace MicroM.Web.Authentication.SSO;
 
 public interface IOIDCHttpClient
 {
-    ValueTask<ResultWithStatus<string, string>> GetWellKnownJsonAsync(string wellKnownUrl, CancellationToken ct);
+    ValueTask<OIDCHttpClientPostResponse> GetWellKnownJsonAsync(string wellKnownUrl, CancellationToken ct);
 
-    ValueTask<ResultWithStatus<string, string>> GetJwksJsonAsync(string jwksUri, CancellationToken ct);
+    ValueTask<OIDCHttpClientPostResponse> GetJwksJsonAsync(string jwksUri, CancellationToken ct);
 
     // POST PAR (application/x-www-form-urlencoded)
     Task<OIDCHttpClientPostResponse> PostPushedAuthorizationRequestAsync(
