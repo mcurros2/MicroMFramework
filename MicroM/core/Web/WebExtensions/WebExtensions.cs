@@ -1,5 +1,6 @@
 ﻿using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 
 namespace MicroM.Web.Extensions;
 
@@ -20,4 +21,10 @@ public static class WebExtensions
         }
         return false;
     }
+
+    public static string? ReadString(this JsonElement root, string name)
+    {
+        return root.TryGetProperty(name, out var prop) && prop.ValueKind == JsonValueKind.String ? prop.GetString() : null;
+    }
+
 }

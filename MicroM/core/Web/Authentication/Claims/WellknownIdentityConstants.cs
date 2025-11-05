@@ -41,7 +41,19 @@ public class WellknownIdentityConstants
     public const string CodeChallengeMethod = "code_challenge_method";
     public const string Token = "token";
     public const string TokenTypeHint = "token_type_hint";
+    public const string Keys = "keys";
 
     public const string BackchannelLogoutEventUri = "http://schemas.openid.net/event/backchannel-logout";
     public const string BackchannelLogoutEventJson = $"{{\"{WellknownIdentityConstants.BackchannelLogoutEventUri}\":{{}}}}";
+
+    public const string PushedAuthorizationRequestEndpoint = "pushed_authorization_request_endpoint";
+    public const string AuthorizationEndpoint = "authorization_endpoint";
+    public const string TokenEndpoint = "token_endpoint";
+    public const string DeviceAuthorizationEndpoint = "device_authorization_endpoint";
+    public const string EndSessionEndpoint = "end_session_endpoint";
+    public const string UserinfoEndpoint = "userinfo_endpoint";
+    public const string RevocationEndpoint = "revocation_endpoint";
+    public const string IntrospectionEndpoint = "introspection_endpoint";
+    public const string JwksUri = "jwks_uri";
+
 }
