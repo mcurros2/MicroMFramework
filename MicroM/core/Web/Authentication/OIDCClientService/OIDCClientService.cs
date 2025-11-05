@@ -529,7 +529,7 @@ public class OIDCClientService(
         try
         {
             var refreshResult = await oidcHttpClient.PostTokenAsync(tokenEndpoint, refreshForm, authorization: null, ct);
-            if (refreshResult.IsSuccessStatusCode)
+            if (!refreshResult.IsSuccessStatusCode)
             {
                 return new(null, $"IdP refresh failed: {refreshResult.Body}. Error: {refreshResult.Error}");
             }
