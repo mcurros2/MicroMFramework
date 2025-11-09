@@ -1,12 +1,11 @@
 ﻿using MicroM.Configuration;
 using MicroM.Core;
-using MicroM.Web.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.Net.Http.Headers;
 using System.Net.Http.Headers;
 using System.Security.Claims;
-using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 
@@ -14,29 +13,56 @@ namespace MicroM.Web.Authentication.SSO;
 
 public static class PushedAuthorizationProvider
 {
+    private static OIDCSigningAlg? SelectAssertionAlg(X509Certificate2 cert, List<OIDCSigningAlg>? supported)
+    {
+        if (supported == null || supported.Count == 0) return null; // fall back to default (RS256 or ES256)
+        if (cert.GetECDsaPrivateKey() != null)
+        {
+            if (supported.Contains(OIDCSigningAlg.ES512)) return OIDCSigningAlg.ES512;
+            if (supported.Contains(OIDCSigningAlg.ES384)) return OIDCSigningAlg.ES384;
+            if (supported.Contains(OIDCSigningAlg.ES256)) return OIDCSigningAlg.ES256;
+            return null;
+        }
+
+        OIDCSigningAlg[] preference = [OIDCSigningAlg.PS512, OIDCSigningAlg.PS256, OIDCSigningAlg.RS512, OIDCSigningAlg.RS384, OIDCSigningAlg.RS256];
+        foreach (var p in preference)
+        {
+            if (supported.Contains(p)) return p;
+        }
+
+        return null;
+    }
+
     public static ResultWithStatus<PushedAuthorizationRequest, ErrorResult> ValidateRequest(IFormCollection form)
     {
-        var responseType = form["response_type"].ToString();
-        var redirectUri = form["redirect_uri"].ToString();
-        var scope = form["scope"].ToString();
-        var state = form["state"].ToString();
-        var codeChallenge = form["code_challenge"].ToString();
-        var codeChallengeMethod = form["code_challenge_method"].ToString();
-        var clientId = form["client_id"].ToString();
-        if (string.IsNullOrEmpty(responseType) || !string.Equals(responseType, "code", StringComparison.OrdinalIgnoreCase))
-        {
+        var responseType = form[WellknownIdentityConstants.ResponseType].ToString();
+        var redirectUri = form[WellknownIdentityConstants.RedirectUri].ToString();
+        var scope = form[WellknownIdentityConstants.Scope].ToString();
+        var state = form[WellknownIdentityConstants.State].ToString();
+        var codeChallenge = form[WellknownIdentityConstants.CodeChallenge].ToString();
+        var codeChallengeMethod = form[WellknownIdentityConstants.CodeChallengeMethod].ToString();
+        var clientId = form[WellknownIdentityConstants.ClientId].ToString();
 
+        if (string.IsNullOrEmpty(responseType) || !string.Equals(responseType, WellknownIdentityConstants.Code, StringComparison.Ordinal))
             return new(null, new("invalid_request", "response_type must be 'code'"));
 
-        }
+        if (string.IsNullOrEmpty(clientId))
+            return new(null, new("invalid_request", "client_id is required"));
+
         if (string.IsNullOrEmpty(redirectUri))
-        {
             return new(null, new("invalid_request", "redirect_uri is required"));
-        }
+
         if (string.IsNullOrEmpty(scope))
-        {
             return new(null, new("invalid_request", "scope is required"));
-        }
+
+        // Enforce PKCE presence (RFC 7636) – S256
+        if (string.IsNullOrEmpty(codeChallenge) || string.IsNullOrEmpty(codeChallengeMethod))
+            return new(null, new("invalid_request", "PKCE code_challenge and code_challenge_method are required"));
+
+        if (!string.Equals(codeChallengeMethod, "S256", StringComparison.Ordinal) &&
+            !string.Equals(codeChallengeMethod, "plain", StringComparison.Ordinal))
+            return new(null, new("invalid_request", "Unsupported code_challenge_method"));
+
         var result = new PushedAuthorizationRequest(
             client_id: clientId,
             response_type: responseType,
@@ -49,16 +75,36 @@ public static class PushedAuthorizationProvider
         return new(result, null);
     }
 
-    public static string GenerateBase64UrlCode(int sizeBytes)
-    {
-        var bytes = RandomNumberGenerator.GetBytes(sizeBytes);
-        return Base64UrlEncoder.Encode(bytes);
-    }
-
-    public static string BuildClientAssertion(X509Certificate2 cert, string clientId, string audience)
+    public static string BuildClientAssertion(X509Certificate2 cert, string clientId, string audience, OIDCSigningAlg? signingAlg)
     {
         var now = DateTimeOffset.UtcNow;
-        var creds = new X509SigningCredentials(cert); // defaults to RS256 with RSA cert
+
+        // Choose algorithm based on override and certificate type
+        SigningCredentials creds;
+        if (cert.GetECDsaPrivateKey() != null)
+        {
+            var ecAlg = signingAlg switch
+            {
+                OIDCSigningAlg.ES512 => SecurityAlgorithms.EcdsaSha512,
+                OIDCSigningAlg.ES384 => SecurityAlgorithms.EcdsaSha384,
+                _ => SecurityAlgorithms.EcdsaSha256
+            };
+            creds = new SigningCredentials(new X509SecurityKey(cert), ecAlg);
+        }
+        else
+        {
+            // RSA or others
+            var rsaAlg = signingAlg switch
+            {
+                OIDCSigningAlg.PS512 => SecurityAlgorithms.RsaSsaPssSha512,
+                OIDCSigningAlg.PS256 => SecurityAlgorithms.RsaSsaPssSha256,
+                OIDCSigningAlg.RS512 => SecurityAlgorithms.RsaSha512,
+                OIDCSigningAlg.RS384 => SecurityAlgorithms.RsaSha384,
+                _ => SecurityAlgorithms.RsaSha256
+            };
+            creds = new SigningCredentials(new X509SecurityKey(cert), rsaAlg);
+        }
+
 
         var handler = new JsonWebTokenHandler();
         var desc = new SecurityTokenDescriptor
@@ -67,8 +113,8 @@ public static class PushedAuthorizationProvider
             Audience = audience,
             Subject = new ClaimsIdentity(
             [
-                new Claim("sub", clientId),
-                new Claim("jti", Guid.NewGuid().ToString("N"))
+                new Claim(WellknownIdentityConstants.SubjectIdentifier, clientId),
+                new Claim(WellknownIdentityConstants.JWTID, Guid.NewGuid().ToString("N"))
             ]),
             NotBefore = now.UtcDateTime,
             Expires = now.AddMinutes(5).UtcDateTime,
@@ -87,30 +133,51 @@ public static class PushedAuthorizationProvider
             forward[k] = form[k].ToString();
         }
 
-        forward.TryGetValue("response_type", out var response_type);
-        if (string.IsNullOrEmpty(response_type) || response_type != "code")
-        {
+        if (!forward.TryGetValue(WellknownIdentityConstants.ResponseType, out var response_type) ||
+             response_type != WellknownIdentityConstants.Code)
             return (null, new { error = "invalid_request", error_description = "response_type must be 'code'" });
-        }
 
-        // Validate required parameters
-        if (!forward.TryGetValue("client_id", out var clientId) || string.IsNullOrWhiteSpace(clientId) || clientId != client_app.ApplicationID)
-        {
+        if (!forward.TryGetValue(WellknownIdentityConstants.ClientId, out var clientId) ||
+            string.IsNullOrWhiteSpace(clientId) || clientId != client_app.ApplicationID)
             return (null, new { error = "invalid_request", error_description = "Invalid client_id" });
-        }
 
-        if (!forward.TryGetValue("redirect_uri", out var redirectUri) || string.IsNullOrWhiteSpace(redirectUri))
-        {
+        if (!forward.TryGetValue(WellknownIdentityConstants.RedirectUri, out var redirectUri) ||
+            string.IsNullOrWhiteSpace(redirectUri))
             return (null, new { error = "invalid_request", error_description = "redirect_uri is required" });
+
+        if (!forward.TryGetValue(WellknownIdentityConstants.Scope, out var scope) ||
+            string.IsNullOrWhiteSpace(scope))
+            return (null, new { error = "invalid_request", error_description = "scope is required" });
+
+        if (!forward.TryGetValue(WellknownIdentityConstants.CodeChallenge, out var codeChallenge) ||
+            string.IsNullOrWhiteSpace(codeChallenge))
+            return (null, new { error = "invalid_request", error_description = "code_challenge is required" });
+
+        if (!forward.TryGetValue(WellknownIdentityConstants.CodeChallengeMethod, out var codeChallengeMethod) ||
+            string.IsNullOrWhiteSpace(codeChallengeMethod))
+            return (null, new { error = "invalid_request", error_description = "code_challenge_method is required" });
+
+        if (!string.Equals(codeChallengeMethod, "S256", StringComparison.Ordinal) &&
+            !string.Equals(codeChallengeMethod, "plain", StringComparison.Ordinal))
+            return (null, new { error = "invalid_request", error_description = "Unsupported code_challenge_method" });
+
+        // Optional but recommended
+        forward.TryGetValue(WellknownIdentityConstants.State, out var state);
+        if (string.IsNullOrEmpty(state))
+            return (null, new { error = "invalid_request", error_description = "state is required" });
+
+        // nonce is optional for pure authorization_code, but often required when id_token expected later
+        forward.TryGetValue(WellknownIdentityConstants.Nonce, out var nonce);
+        if (string.IsNullOrEmpty(nonce))
+        {
+            // Keep result but flag missing nonce (can be extended to error if policy demands)
+            return (null, new { error = "invalid_request", error_description = "nonce is required" });
         }
 
         if (!IsRedirectUriAllowed(client_app, clientId, redirectUri))
-        {
             return (null, new { error = "invalid_request", error_description = "redirect_uri is not registered for this client" });
-        }
 
         return (forward, null);
-
     }
 
     public static bool IsRedirectUriAllowed(ApplicationOption app, string clientId, string redirectUri)
@@ -155,7 +222,8 @@ public static class PushedAuthorizationProvider
         X509Certificate2? cert,
         string par_endpoint,
         Dictionary<string, string> valid_form,
-        List<OIDCTokenEndpointAuthMethod>? supported_auth_methods
+        List<OIDCTokenEndpointAuthMethod>? supported_auth_methods,
+        List<OIDCSigningAlg>? supported_auth_algs
         )
     {
         bool allowBasic = supported_auth_methods == null || supported_auth_methods.Count == 0 || supported_auth_methods.Contains(OIDCTokenEndpointAuthMethod.client_secret_basic);
@@ -166,24 +234,23 @@ public static class PushedAuthorizationProvider
             return new(null, "No supported client authentication methods advertised by IdP.");
         }
 
-        //AuthenticationHeaderValue? authHeader = null;
-        var clientId = valid_form["client_id"];
+        var clientId = valid_form[WellknownIdentityConstants.ClientId];
         if (string.IsNullOrEmpty(clientId))
         {
             return new(null, "client_id is required");
         }
 
-        // private_key_jwt
         if (allowPrivateKeyJwt && cert != null)
         {
-            string clientAssertion = BuildClientAssertion(cert, clientId, par_endpoint);
-            valid_form["client_assertion_type"] = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer";
-            valid_form["client_assertion"] = clientAssertion;
+            var chosenAlg = SelectAssertionAlg(cert, supported_auth_algs);
+            string clientAssertion = BuildClientAssertion(cert, clientId, par_endpoint, chosenAlg);
+            valid_form[WellknownIdentityConstants.ClientAssertionType] = WellknownIdentityConstants.ClientAssertionTypeJwtBearer;
+            valid_form[WellknownIdentityConstants.ClientAssertion] = clientAssertion;
 
             // Remove weaker auth artifacts if present
-            valid_form.Remove("client_secret");
+            valid_form.Remove(WellknownIdentityConstants.ClientSecret);
 
-            // No Authorization header required for private_key_jwt
+            // WARNING, REVIEW THIS IS CORRECT: No Authorization header required for private_key_jwt
             return new(null, null);
         }
 
@@ -194,18 +261,18 @@ public static class PushedAuthorizationProvider
             {
                 var raw = $"{clientId}:{clientSecret}";
                 var basic = Convert.ToBase64String(Encoding.ASCII.GetBytes(raw));
-                var authHeader = new AuthenticationHeaderValue("Basic", basic);
-                valid_form.Remove("client_secret");
+                var authHeader = new AuthenticationHeaderValue(WellknownIdentityConstants.Basic, basic);
+                valid_form.Remove(WellknownIdentityConstants.ClientSecret);
                 return new(authHeader, null);
             }
 
             // Pass-through Basic header if present (only in Basic mode)
-            if (headers.TryGetValue("Authorization", out var authValues))
+            if (headers.TryGetValue(HeaderNames.Authorization, out var authValues))
             {
                 var incomingAuth = authValues.ToString();
                 if (!string.IsNullOrWhiteSpace(incomingAuth) &&
                     AuthenticationHeaderValue.TryParse(incomingAuth, out var parsed) &&
-                    string.Equals(parsed.Scheme, "Basic", StringComparison.OrdinalIgnoreCase))
+                    string.Equals(parsed.Scheme, WellknownIdentityConstants.Basic, StringComparison.OrdinalIgnoreCase))
                 {
                     return new(parsed, null);
                 }
@@ -214,7 +281,6 @@ public static class PushedAuthorizationProvider
             return new(null, "client_secret or Authorization: Basic header required for client_secret_basic");
         }
 
-        // If we get here, private_key_jwt was required but cert was not available
         return new(null, "Client authentication not allowed by IdP metadata (private_key_jwt required and no certificate is configured).");
     }
 
@@ -225,10 +291,12 @@ public static class PushedAuthorizationProvider
            string tokenEndpoint,
            string code,
            string redirectUri,
-           string codeVerifier
+           string codeVerifier,
+           List<OIDCSigningAlg>? supported_algs
         )
     {
-        var assertion = BuildClientAssertion(cert, clientId, tokenEndpoint);
+        var signingAlg = SelectAssertionAlg(cert, supported_algs);
+        var assertion = BuildClientAssertion(cert, clientId, tokenEndpoint, signingAlg);
         return new Dictionary<string, string>(StringComparer.Ordinal)
         {
             [WellknownIdentityConstants.GrantType] = WellknownIdentityConstants.AuthorizationCode,
@@ -236,7 +304,7 @@ public static class PushedAuthorizationProvider
             [WellknownIdentityConstants.RedirectUri] = redirectUri,
             [WellknownIdentityConstants.CodeVerifier] = codeVerifier,
             [WellknownIdentityConstants.ClientId] = clientId,
-            [WellknownIdentityConstants.ClientAssertionType] = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
+            [WellknownIdentityConstants.ClientAssertionType] = WellknownIdentityConstants.ClientAssertionTypeJwtBearer,
             [WellknownIdentityConstants.ClientAssertion] = assertion
         };
     }
@@ -246,16 +314,18 @@ public static class PushedAuthorizationProvider
            X509Certificate2 cert,
            string clientId,
            string tokenEndpoint,
-           string refreshToken
+           string refreshToken,
+           List<OIDCSigningAlg>? supported_algs
         )
     {
-        var assertion = BuildClientAssertion(cert, clientId, tokenEndpoint);
+        var signingAlg = SelectAssertionAlg(cert, supported_algs);
+        var assertion = BuildClientAssertion(cert, clientId, tokenEndpoint, signingAlg);
         return new Dictionary<string, string>(StringComparer.Ordinal)
         {
             [WellknownIdentityConstants.GrantType] = WellknownIdentityConstants.RefreshToken,
             [WellknownIdentityConstants.RefreshToken] = refreshToken,
             [WellknownIdentityConstants.ClientId] = clientId,
-            [WellknownIdentityConstants.ClientAssertionType] = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
+            [WellknownIdentityConstants.ClientAssertionType] = WellknownIdentityConstants.ClientAssertionTypeJwtBearer,
             [WellknownIdentityConstants.ClientAssertion] = assertion
         };
     }

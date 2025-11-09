@@ -6,7 +6,6 @@ using MicroM.Web.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using System.Data;
-using System.Security.Cryptography;
 
 namespace MicroM.Web.Authentication.SSO;
 
@@ -19,7 +18,7 @@ public static class OauthTokenServiceProvider
         {
             return existing_sid;
         }
-        return Convert.ToBase64String(RandomNumberGenerator.GetBytes(16));
+        return CryptClass.GenerateRandomBase64String(16);
     }
 
     public static ResultWithStatus<OauthCodeRequestRecord, ErrorResult> GetAuthCodeRequestRecord(IFormCollection form)
@@ -170,7 +169,7 @@ public static class OauthTokenServiceProvider
         CancellationToken ct)
     {
         // IdP OIDC refresh token (subject-wide, not per client-device)
-        var refreshToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
+        var refreshToken = CryptClass.GenerateRandomBase64String(32);
         var refreshExpirationUtc = DateTimeOffset.UtcNow.AddHours(app.OIDCRefreshTokenExpirationHours);
 
         ErrorResult? error = null;

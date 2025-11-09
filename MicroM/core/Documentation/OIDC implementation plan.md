@@ -14,12 +14,9 @@ A — Core features and persistence
   - Per-device local refresh via `usr_updateLoginAttempt`.
   - Links IdP sid/sub in `ApplicationOidcActiveSessions.CreateOrUpdateExternalSignInSession`.
 - Encrypted refresh-token lookup: COMPLETE
-  - OIDC refresh tokens stored encrypted; lookups pass encrypted value; mapper decrypts on read.
 - Audience for id_token: COMPLETE (aud = client_id).
 - UTC handling for IdP refresh expiration: COMPLETE
-  - Generated with `DateTimeOffset.UtcNow.AddHours(app.OIDCRefreshTokenExpirationHours)`, stored UTC, validated with `DateTime.UtcNow`.
 - Client refresh by SID: COMPLETE
-  - `ApplicationOidcActiveSessions.GetSessionBySID(app_id, sid)` returns a unique row with decrypted `vc_oidc_refreshtoken`.
 
 B — IdP grants
 - authorization_code grant: COMPLETE
@@ -27,133 +24,109 @@ B — IdP grants
 
 C — Client (RP) flows
 - OIDC client login (PAR → authorize → token → callback): COMPLETE
+  - private_key_jwt alg selection (runtime): COMPLETE (dynamic preference based on discovery + key type).
+  - Audience for assertions: PAR → PAR endpoint; Token/Refresh → token endpoint.
+  - client_assertion sent in form for private_key_jwt (no Authorization header).
 - Local per-device refresh (client DB): COMPLETE
-  - Device-bound table `MicromUsersDevices (c_user_id, c_device_id)` and proc `usd_refreshToken`.
-  - Cookie-first validation; rotation updates cookie.
 - IdP refresh support in client service: COMPLETE
-  - `IOIDCClientService.RefreshIdpToken(app, sid, device_id, ct)` + JWKS validation + encrypted rotation persisted.
 - Client refresh fallback wiring: COMPLETE
-  - `AuthenticationService.HandleRefreshToken` tries local first, then IdP refresh on failure for IDPClient apps.
 
 D — Logout (SLO)
 - Front-channel logout (client): COMPLETE
-  - Service: `OIDCClientService.BuildEndSessionRequest`, `HandleFrontChannelLogout`.
-  - Controller: `GET {app_id}/oidc-client/front-logout`.
 - Back-channel logout receiver (client): COMPLETE
-  - Service: `OIDCClientService.HandleBackchannelLogout` validates logout_token (iss, aud=client app_id, signature, iat/replay cache, events, sid/sub), resolves sub from sid if needed, and deletes sessions by sub.
-  - Controller: `POST {app_id}/oidc-client/back-logout` implemented (reads `logout_token`, maps response codes).
 - IdP endsession/backchannel fan-out: COMPLETE
-  - `IdentityProviderService.HandleEndSession` signs per-client `logout_token` (pairwise `sub`) and POSTs to each client’s backchannel URL; purges sessions by `sub`.
-  - Controller: `POST {app_id}/oauth2/endsession` implemented; issuer computed consistent with discovery.
 
 E — Security & hardening
-- State/nonce, PKCE S256, client authentication: COMPLETE
-  - Uses `Microsoft.IdentityModel.Tokens.Base64UrlEncoder` for base64url encoding (state, nonce, PKCE verifier/challenge).
+- State/nonce, PKCE, client authentication: COMPLETE
+  - Runtime state cookie is HMAC’ed, single-use.
+  - Nonce will be updated to base64url (see tasks).
+  - PKCE enforcement: currently accepts `S256` (preferred) and `plain`; plan updated to NOT enforce S256-only — acceptance will track discovery-advertised methods.
 - Encrypted OIDC refresh tokens at rest: COMPLETE
-- Logging: PARTIAL
-  - Sensitive token values removed from logs (values omitted). SQL parameter tracing now redacts sensitive parameter values by name/pattern.
-- Rate limiting: COMPLETE
-  - Middleware wired: COMPLETE (`UseRateLimiter` placed after authentication).
-  - Policies defined: COMPLETE (identity-scoped partitions: app_id, client_id, device_id, UA; global per-app catch-all).
-  - Endpoint attributes applied: COMPLETE across Authentication, IdP, OIDC Client, and Public controllers (gentle limits for metadata and public GETs; stricter for mutations).
-  - Service registration: COMPLETE (`AddMicroMRateLimitingPolicies` invoked in `AddMicroMApiServices`).
-  - Global per-node limiter: PENDING (optional; per-app catch-all in place).
-- Metrics/counters: Using ASP.NET Core built-in meters and standard RateLimiter instrumentation; no custom `System.Diagnostics.Metrics` to add.
+- Logging: PARTIAL (further scrub pending)
+- Rate limiting: COMPLETE (global per-node limiter optional/pending)
+- Metrics/counters: Using ASP.NET Core built-in meters.
 
 Recent changes
-- Diagnostics (Client): Extended endpoint coverage and normalized parameter naming.
-  - Added client probes: token endpoint (invalid refresh_token error semantics), end_session_endpoint, userinfo_endpoint, revocation_endpoint, introspection_endpoint. Each uses `IOIDCHttpClient`.
-  - Optional IdP endpoints are “mandatory if advertised.” If present in discovery, probes must succeed with expected semantics; if not advertised, tests return “not advertised; skipped”.
-  - Kept existing client `TestWellKnownAndJWKSAsync` and `TestPARAsync`.
-- Diagnostics (Client): Implemented `TestAuthorizeUrlBuildAndRedirectUriAsync` (authorization_endpoint, response_types_supported=code, PKCE S256, scopes check).
-- Diagnostics (IdP & Client): Replaced literal OIDC parameter names with `WellknownIdentityConstants` across diagnostics (form keys/values: response_type, grant_type, client_id, redirect_uri, scope, code, code_verifier, code_challenge, code_challenge_method, token, token_type_hint, etc.).
-- Diagnostics (IdP): `TestClientRegistrationSanityAsync` enforces HTTPS-only for backchannel logout URL, JWKS URL, front-channel logout URL, and all redirect URIs.
-- Diagnostics (IdP): `TestWellKnownAndJWKSAsync` and `TestIssuerConsistencyAsync` derive `request_base` from configuration (`OIDCWellKnownURL` preferred, `JWTIssuer` fallback).
-- Diagnostics: Kept per-client results for all applicable tests; orchestrators aggregate.
-- General: Replaced any ad-hoc base64url conversions in diagnostics with `Base64UrlEncoder.Encode` (or `WebEncoders.Base64UrlEncode` when applicable).
+- private_key_jwt alg selection enforced from discovery across PAR, token and refresh — COMPLETE (runtime).
+- Diagnostics model refactor — COMPLETE.
+- Client diagnostics (PAR, authorize metadata, token, optional endpoints) — COMPLETE.
+- IdP diagnostics (configuration + client endpoints) — COMPLETE.
 
-Tests
-- Added MSTest coverage for `OIDCReplayCacheService` (Added → Replay; expired `iat` → Stale; future `iat` beyond skew → Skew; too-long `jti` → Invalid).
+New plan updates
+- Do NOT force PKCE S256-only; allow any method explicitly advertised in discovery. Discovery will remain S256-only unless configuration adds `plain`.
+- Expand advertised signing algorithm lists to reflect actual certificate capabilities and selection logic (include ES256/384/512, PS256/384/512, RS256/384/512 as applicable).
+- Advertise `subject_types_supported` including `pairwise` (runtime uses pairwise derivation).
+- Align diagnostics “not advertised” outcomes to return “skipped” without errors.
+- Align Client PAR diagnostic alg selection with runtime logic (reuse `GetClientAuthorizationHeader`).
+- Ensure nonce generation uses base64url everywhere (runtime + diagnostics).
+- Optional inclusion of `sid` in `logout_token` when available.
+- Fallback to configuration key when `ClientAPPID` missing during end-session fan-out.
+- Clean up unused `device_authorization_endpoint` mapping (`idpRefreshURL`) or repurpose for future device flow.
+- Strengthen logging scrub (no secrets/tokens).
 
-F — Diagnostics (Implementation Plan)
-- Scope note: diagnostics run strictly against backend configuration for each app/tenant.
-- Conventions:
-  - Use collection initializers (`[]`) when returning error lists.
-  - Always populate the `Result` string in `OIDCDiagnosticsResult`.
-  - Any failed assertion is returned as an error (no warnings).
-  - Use `Base64UrlEncoder` for state/nonce/PKCE in any OIDC diagnostic flows.
-  - Use `WellknownIdentityConstants` for all OIDC parameter names/values in diagnostics.
-  - Optional IdP endpoints are mandatory if advertised in discovery; otherwise tests should return “not advertised; skipped” (no errors).
-- Orchestrators:
-  - `IOIDCIdPDiagnostics.TestAllAsync` aggregates IdP-level checks and per-client checks.
-  - `IOIDCClientDiagnostics.TestAllAsync` aggregates client-level checks (client POV).
+Diagnostics conventions (no change except skip behavior):
+- Any failed assertion is an error.
+- Optional endpoints: if not advertised → Result = “not advertised; skipped” (IsSuccess = true, no Errors).
+- Use `Base64UrlEncoder` (or equivalent) for state/nonce/PKCE (update nonce runtime).
+- Use `WellknownIdentityConstants` for all parameter names.
 
 Status (completed)
-- IdP diagnostics:
-  - TestWellKnownAndJWKSAsync — COMPLETE
-  - TestSigningMaterialAsync — COMPLETE
-  - TestIssuerConsistencyAsync — COMPLETE
-  - TestTokenGrantsAsync — COMPLETE (invalid authorization_code semantics per client)
-  - TestPARAsync — COMPLETE (server-side, per client)
-  - TestClientRegistrationSanityAsync — COMPLETE (HTTPS-only)
-  - TestEndSessionFanoutAsync — COMPLETE
+- IdP diagnostics: COMPLETE
+- OIDC Client diagnostics: COMPLETE (pending improvements listed below)
 
-- OIDC Client diagnostics
-  - TestWellKnownAndJWKSAsync — COMPLETE (client POV via IOIDCHttpClient)
-  - TestPARAsync — COMPLETE (client minimal probe via IOIDCHttpClient; 200/400/401/403 treated as valid)
-  - TestAuthorizeUrlBuildAndRedirectUriAsync — COMPLETE
-  - TestIdpRefreshAsync — COMPLETE (token endpoint probe with invalid refresh_token; 400/401/403 treated as valid)
-  - TestEndSessionEndpointAsync — COMPLETE (mandatory if advertised)
-  - TestUserInfoEndpointAsync — COMPLETE (mandatory if advertised)
-  - TestRevocationEndpointAsync — COMPLETE (mandatory if advertised)
-  - TestIntrospectionEndpointAsync — COMPLETE (mandatory if advertised)
-
-Notes
-- Pairwise subject derivation is not part of diagnostics. Uniqueness across clients is inherent to `GetDerivedSub(clientId, userId, pepper)` and is validated in runtime flows (e.g., end-session fanout), not via diagnostics.
-- Backchannel endpoints are exercised by IdP `TestEndSessionFanoutAsync`. A dedicated client backchannel diagnostic can validate route presence and error semantics without duplicating logout_token validation already covered in services.
-
-Pending tasks
-- OIDC Client diagnostics (IDPClient apps)
-  - Implement `TestCallbackEndpointAsync`
-  - Implement `TestRefreshFallbackAsync`
-  - Implement `TestBackchannelReceiverAsync`
-
-- IdP diagnostics (IDPServer apps) — none pending
+Pending tasks (NEW + existing)
+- Implement remaining client diagnostics:
+  - `TestCallbackEndpointAsync`
+  - `TestRefreshFallbackAsync`
+  - `TestBackchannelReceiverAsync`
 
 Known gaps before release
-- Comprehensive tests for SLO, refresh paths, and rate-limit behaviors.
-- Final log review to ensure no secrets/tokens are emitted across all components (Authorization headers, logout_token/id_token, refresh, passwords).
-- Optional global per-node limiter if needed.
-- TO BE CONSIDERED, DO NOT CHANGE CODE BECAUSE OF THIS: Optional observability plumbing: expose built-in ASP.NET Core meters via OpenTelemetry/Prometheus exporters (no code in auth/oidc services required).
+- Comprehensive tests for SLO, refresh fallback, and rate-limit behaviors.
+- Final log scrub for secrets/tokens.
+- Optional global per-node limiter.
 
-Priority next tasks
-1) Tests (MSTest)
-   - Backchannel:
-     - Valid `logout_token` invalidates sessions by `sub` (and by `sid` when present).
-     - Validate issuer/audience/signature/events; reject malformed or expired `iat`.
-     - Rate-limit behavior: repeated backchannel posts trip the policy; 429 surfaced.
-   - Front-channel:
-     - End-session URL build (state/post_logout_redirect_uri) and callback handling paths.
-     - Rate-limit behavior on authorize/front-logout for the same `client_id + UA`.
-   - IdP endsession fan-out:
-     - Signs per-client pairwise `sub`, correct `aud`, `iss`; delivers to multiple backchannels.
-     - Partial failure handling doesn’t block local session purge; outcomes verified via logs.
-   - Auth flows:
-     - Login and refresh (local + IdP fallback), SID/SUB continuity, session purge on logout.
-     - Rate-limit behavior on login/refresh/recovery endpoints per partition keys.
+Priority next tasks (ordered, atomic; separated by IdP vs Client)
 
-2) Safeguards and telemetry
-   - Logging scrub: continue audit for any credential/token leakage; ensure error handlers don’t echo token-bearing payloads.
+IdP tasks
+1. Discovery: Add `"pairwise"` to `subject_types_supported`.
+2. Discovery: Expand `token_endpoint_auth_signing_alg_values_supported`, `revocation_endpoint_auth_signing_alg_values_supported`, `introspection_endpoint_auth_signing_alg_values_supported`, and `id_token_signing_alg_values_supported` to include all algorithms supported by the certificate & policy (ES256/384/512, RS256/384/512, PS256/384/512). Deduplicate / order preferred first.
+3. PKCE policy: Reflect allowed methods in discovery only (currently S256). If configuration enables `plain`, add it; otherwise reject `plain` at validation.
+4. `PushedAuthorizationProvider.SelectAssertionAlg`: Add support for PS384 (present but not yet explicitly preferred), ensure deterministic preference sequence across RSA/ECDSA. Document algorithm preference.
+5. `ValidateRequest` / `ValidateSignInForm`: Restrict accepted `code_challenge_method` to only those advertised; if discovery does not list `plain`, return error for `plain`.
+6. EndSession: Add `sid` claim when available; implement fallback for empty `ClientAPPID` using dictionary key.
+7. Logging scrub: Redact tokens (id_token, refresh_token, logout_token, client_assertion) and Authorization headers in all IdP paths.
+8. Tests: Add MSTest suite for modified discovery (subject_types, alg lists), and end-session fan-out with `sid`.
 
-3) Optional robustness
-   - In `HandleEndSession`, if `ClientAPPID` is empty, fall back to the configuration key to ensure valid `aud`/`sub` derivation.
-   - Optionally include `sid` in `logout_token` when available (spec allows `sid` or `sub`).
-   - Consider client-provided stable device header for AllowAnonymous endpoints to improve partition quality (reduces reliance on UA).
-   - Consider enabling a global per-node limiter if needed post-observation.
+Client tasks
+1. State/Nonce: Change nonce generation to base64url-safe method (align with diagnostics). Ensure both state and nonce use the same helper (update `StateAndNonceService`).
+2. PAR diagnostic (`ClientPARCheck`): Reuse `GetClientAuthorizationHeader` to select algorithm based on discovery + cert. Include selected alg in diagnostic Result.
+3. Diagnostics skip behavior: Update all client diagnostics to return success “not advertised; skipped” instead of error when endpoint missing (EndSession/UserInfo/Revocation/Introspection/PAR if not required).
+4. Clean up `ClientDiagnosticsContext.idpRefreshURL`: Remove or rename (keep for future device flow). Ensure unused value not misleading in results.
+5. Callback diagnostic (`TestCallbackEndpointAsync`): Implement by simulating token exchange with a mock/invalid code to verify error semantics + state cookie path.
+6. Refresh fallback diagnostic (`TestRefreshFallbackAsync`): Simulate local refresh failure then IdP refresh success/failure paths.
+7. Backchannel receiver diagnostic (`TestBackchannelReceiverAsync`): Issue a signed synthetic logout_token (valid + replay + expired) and validate client responses.
+8. Nonce validation test: Add test confirming base64url nonce flows through id_token and fails when mismatched.
+9. Logging scrub: Redact token values, assertions, refresh tokens, logout_token in client logs.
+10. Tests: Rate limiter scenarios (authorize, front-logout, backchannel posts, refresh fallback).
+
+Shared tasks
+1. Update documentation (this file) with new tasks and policy (DONE).
+2. Expand unit/integration tests for algorithm selection across PAR, token, refresh (client + IdP).
+3. Introduce structured logging enrichment for diagnostic results (correlate app_id + diagnostic_id).
+4. Optional: Introduce configuration switch to enable `plain` PKCE (default off) controlling both discovery advertisement and validation logic.
+5. Optional: Implement global per-node rate limiter if post-observation indicates need.
+
+Release readiness criteria (updated)
+- All discovery fields accurately reflect runtime capabilities (subject types + algs + PKCE methods).
+- Optional endpoints produce “skipped” diagnostics with zero errors when not advertised.
+- Nonce/state both base64url and validated through callback/id_token.
+- Logging scrub passes manual inspection (no secrets or token values).
+- Algorithm selection deterministic and consistent between diagnostics and runtime.
+- Test coverage: SLO fan-out + backchannel variations + refresh fallback + rate limiting partitions.
 
 Status TL;DR
-- IdP: grants and endsession fan-out complete with correct signing and claims. IdP diagnostics complete, including PAR, registration sanity (HTTPS-only), and endsession fan-out check.
-- Client: discovery/JWKS, PAR, authorize metadata, token endpoint, and additional optional endpoints (when advertised) are covered. Remaining client diagnostics focus on callback, refresh fallback, and backchannel receiver.
-- Rate limiting: fully wired and applied; tests started with replay cache; remaining work focuses on broader test coverage and final log scrub.
+- IdP: Stable; pending advertisement refinements (pairwise + expanded alg lists), PKCE policy alignment, end-session robustness, logging scrub.
+- Client: Core flows stable; diagnostics need skip behavior correction, improved PAR alg selection parity, additional callback/refresh/backchannel tests, nonce normalization.
+- Rate limiting: Implemented; targeted tests pending.
 
 

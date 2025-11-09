@@ -37,12 +37,65 @@ internal class ClientWellKnownAndJwksCheck() : IDiagnosticCheck<ClientDiagnostic
             jwksJson = jwksResponse.Body;
             using var jwksDoc = JsonDocument.Parse(jwksJson);
             if (!jwksDoc.RootElement.TryGetProperty(WellknownIdentityConstants.Keys, out var keysEl) || keysEl.ValueKind != JsonValueKind.Array || keysEl.GetArrayLength() <= 0)
-                return [new(DiagnosticId, Result: $"Well known: {wellKnownJson}\n\n JWKS: {jwksJson}", Errors: [new("jwks_empty", "JWKS contains no keys")])];
+                return [new(DiagnosticId, Result: $"{{Well known: {wellKnownJson}\n\n JWKS: {jwksJson}}}", Errors: [new("jwks_empty", "JWKS contains no keys")])];
+
+            // Cross-check JWKS keys vs advertised signing algs (optional robustness)
+            HashSet<string> advertisedAlgs = new();
+            if (root.TryGetProperty(WellknownIdentityConstants.IdTokenSigningAlgValuesSupported, out var algsEl) && algsEl.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var algEl in algsEl.EnumerateArray())
+                {
+                    if (algEl.ValueKind == JsonValueKind.String && !string.IsNullOrWhiteSpace(algEl.GetString()))
+                        advertisedAlgs.Add(algEl.GetString()!);
+                }
+            }
+
+            bool hasRsaKey = false;
+            HashSet<string> ecAlgsFound = new();
+            foreach (var keyEl in keysEl.EnumerateArray())
+            {
+                if (keyEl.ValueKind != JsonValueKind.Object) continue;
+                if (keyEl.TryGetProperty("kty", out var ktyEl) && ktyEl.ValueKind == JsonValueKind.String)
+                {
+                    var kty = ktyEl.GetString();
+                    if (string.Equals(kty, "RSA", StringComparison.OrdinalIgnoreCase))
+                    {
+                        hasRsaKey = true;
+                    }
+                    else if (string.Equals(kty, "EC", StringComparison.OrdinalIgnoreCase))
+                    {
+                        if (keyEl.TryGetProperty("alg", out var algEl) && algEl.ValueKind == JsonValueKind.String)
+                        {
+                            var alg = algEl.GetString();
+                            if (!string.IsNullOrWhiteSpace(alg))
+                                ecAlgsFound.Add(alg);
+                        }
+                    }
+                }
+            }
+
+            // Validate: if any ES* alg advertised, corresponding EC key must be present
+            var advertisedEcAlgs = advertisedAlgs.Where(a => a.StartsWith("ES", StringComparison.OrdinalIgnoreCase)).ToList();
+            if (advertisedEcAlgs.Count > 0 && !advertisedEcAlgs.Any(a => ecAlgsFound.Contains(a)))
+            {
+                return [new(DiagnosticId,
+                    Result: $"{{Well known: {wellKnownJson}\n\n JWKS: {jwksJson}}}",
+                    Errors: [new("jwks_ec_alg_missing", $"Advertised EC signing alg(s) [{string.Join(", ", advertisedEcAlgs)}] but none found in JWKS.")])];
+            }
+
+            // Validate: if RS256/RS512 advertised, ensure at least one RSA key (alg omitted intentionally in RSA JWKs)
+            var advertisedRsaAlgs = advertisedAlgs.Where(a => a.StartsWith("RS", StringComparison.OrdinalIgnoreCase)).ToList();
+            if (advertisedRsaAlgs.Count > 0 && !hasRsaKey)
+            {
+                return [new(DiagnosticId,
+                    Result: $"{{Well known: {wellKnownJson}\n\n JWKS: {jwksJson}}}",
+                    Errors: [new("jwks_rsa_missing", $"Advertised RSA signing alg(s) [{string.Join(", ", advertisedRsaAlgs)}] but no RSA key found in JWKS.")])];
+            }
 
             return [
                 new(DiagnosticId, IsSuccess: true, Result: wellKnownJson),
                 new(DiagnosticId, IsSuccess: true, Result: jwksJson),
-                ];
+            ];
         }
         catch (OperationCanceledException)
         {

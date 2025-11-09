@@ -243,6 +243,14 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
                         if (assembly_path.Equals(GetCoreAssemblyPath(), StringComparison.OrdinalIgnoreCase))
                         {
                             types = DataDictionarySchema.GetCoreEntitiesTypes();
+                            if (_options.CreateConfigEntitiesCodeGen)
+                            {
+                                var configuration_types = ConfigurationDatabaseSchema.GetCoreConfigurationEntitiesTypes();
+                                foreach (var type in configuration_types)
+                                {
+                                    types.TryAdd(type.Key, type.Value);
+                                }
+                            }
                         }
                         else
                         {

@@ -2,12 +2,36 @@
 using MicroM.Data;
 using MicroM.DataDictionary.CategoriesDefinitions;
 using MicroM.DataDictionary.Entities;
+using MicroM.Extensions;
 using static MicroM.Database.DataDictionarySchema;
 
 namespace MicroM.Database;
 
 public static class ConfigurationDatabaseSchema
 {
+
+    public static Dictionary<string, Type> GetCoreConfigurationEntitiesTypes()
+    {
+        Dictionary<string, Type> result = [];
+        result.TryAddType<EntitiesAssemblies>();
+        result.TryAddType<EntitiesAssembliesTypes>();
+        result.TryAddType<Applications>();
+
+        result.TryAddType<ApplicationsCat>();
+        result.TryAddType<ApplicationsAssemblies>();
+
+        result.TryAddType<ApplicationAssemblyTypes>();
+
+        result.TryAddType<ApplicationsUrls>();
+        result.TryAddType<ApplicationOidcConfiguration>();
+
+        result.TryAddType<MicromApplicationApiKeys>();
+        result.TryAddType<MicromApplicationCertificates>();
+        result.TryAddType<ApplicationOidcClients>();
+        result.TryAddType<ApplicationOidcClientsAuthorizedUrls>();
+
+        return result;
+    }
 
     public static CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>> GetConfigurationEntitiesTypes(IEntityClient ec)
     {

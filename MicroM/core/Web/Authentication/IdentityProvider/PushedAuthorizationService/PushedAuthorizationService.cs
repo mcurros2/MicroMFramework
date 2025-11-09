@@ -1,6 +1,5 @@
 ﻿using MicroM.Configuration;
 using MicroM.Core;
-using MicroM.Web.Services;
 using Microsoft.AspNetCore.Http;
 using System.Collections.Concurrent;
 
@@ -45,7 +44,7 @@ public class PushedAuthorizationService : IPushedAuthorizationService
             }
         }
 
-        var requestUri = $"urn:ietf:params:oauth:request_uri:{PushedAuthorizationProvider.GenerateBase64UrlCode(32)}";
+        var requestUri = $"urn:ietf:params:oauth:request_uri:{CryptClass.GenerateBase64UrlRandomCode(32)}";
         var expiresAt = DateTime.UtcNow.AddSeconds(DEFAULT_EXPIRES_IN);
 
         _store[requestUri] = new ParEntry(request, expiresAt);

@@ -6,6 +6,7 @@ using MicroM.DataDictionary.StatusDefinitions;
 using MicroM.Extensions;
 using MicroM.ImportData;
 using MicroM.Web.Authentication;
+using MicroM.Web.Authentication.SSO;
 using MicroM.Web.Services.Security;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -31,10 +32,11 @@ public class EntitiesService : IEntitiesService
             IEmailService emailService,
             ISecurityService securityService,
             IDeviceIdService deviceIdService,
-            IAuthenticationService authenticationService
+            IAuthenticationService authenticationService,
+            IOIDCHttpClient oidcHttpClient
             )
     {
-        _api = new(logger, encryptor, app_config, queue, upload, emailService, securityService, deviceIdService, this, authenticationService);
+        _api = new(logger, encryptor, app_config, queue, upload, emailService, securityService, deviceIdService, this, authenticationService, oidcHttpClient);
 
         ArgumentNullException.ThrowIfNull(options);
 

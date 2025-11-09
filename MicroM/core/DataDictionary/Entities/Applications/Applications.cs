@@ -74,6 +74,7 @@ public class ApplicationsDef : EntityDefinition
     public readonly ProcedureDefinition app_GetConfiguration = new(readonly_locks: true);
     public readonly ProcedureDefinition app_GetOIDCClients = new(readonly_locks: true);
 
+    public readonly APPOIDCDiagnostics APPOIDCDiagnostics = new();
 }
 
 public class Applications : Entity<ApplicationsDef>

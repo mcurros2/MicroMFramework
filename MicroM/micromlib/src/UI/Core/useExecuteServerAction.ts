@@ -2,16 +2,16 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Entity, EntityDefinition, areValuesObjectsEqual } from "../../Entity";
 import { OperationStatus, ValuesObject, toMicroMError } from "../../client";
 
-export type useExecuteActionReturnType<TReturn extends EntityDefinition | ValuesObject> = {
+export type useExecuteServerActionReturnType<TReturn extends ValuesObject> = {
     status: OperationStatus<TReturn>
     execute: (values?: ValuesObject) => Promise<OperationStatus<TReturn> | undefined>
 }
 
-export function useExecuteServerAction<T extends EntityDefinition, TReturn extends EntityDefinition | ValuesObject>(
+export function useExecuteServerAction<T extends EntityDefinition, TReturn extends ValuesObject>(
     entity: Entity<T>,
     actionName: string
-): useExecuteActionReturnType<TReturn> {
-    const [status, setStatus] = useState<OperationStatus<TReturn>>({ loading: true });
+): useExecuteServerActionReturnType<TReturn> {
+    const [status, setStatus] = useState<OperationStatus<TReturn>>({ loading: false });
     const cancellation = useRef<AbortController>(new AbortController());
     const done = useRef<boolean>(false);
     const prevValues = useRef<ValuesObject | undefined>();
@@ -38,7 +38,7 @@ export function useExecuteServerAction<T extends EntityDefinition, TReturn exten
 
             try {
                 const action = entity.def.serverActions[actionName];
-                if (!action || !action.valuesMapper) {
+                if (!action) {
                     throw new Error('Action or valuesMapper missing.');
                 }
 
@@ -47,8 +47,7 @@ export function useExecuteServerAction<T extends EntityDefinition, TReturn exten
                 const data = await entity.API.executeServerAction<ValuesObject>(action, values, cancellation.current.signal);
                 done.current = true;
 
-                const new_values = action.valuesMapper(data);
-                setStatus({ data: new_values as TReturn, operationType: 'action' });
+                setStatus({ data: data as TReturn, operationType: 'action' });
 
                 // Update previous values
                 prevValues.current = values;

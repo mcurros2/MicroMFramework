@@ -19,6 +19,8 @@
         public string? MicroMAPIBaseRootPath { get; set; } = "microm";
 
         public string? DefaultSQLDatabaseCollation { get; set; } = null;
+
+        public bool CreateConfigEntitiesCodeGen { get; set; } = false;
     }
 
 }

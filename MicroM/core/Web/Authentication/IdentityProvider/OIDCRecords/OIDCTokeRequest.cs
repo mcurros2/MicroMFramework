@@ -11,7 +11,7 @@ public sealed record OIDCTokenRequest
     string? refresh_token = null,
     string? scope = null,
     string? assertion = null,
-    string? client_assertion_type = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
+    string? client_assertion_type = WellknownIdentityConstants.ClientAssertionTypeJwtBearer,
     string? client_assertion = null
-    );
+);
 

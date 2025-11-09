@@ -202,6 +202,13 @@ public class CryptClass
         return Convert.ToBase64String(bytes);
     }
 
+    public static string GenerateBase64UrlRandomCode(int sizeBytes)
+    {
+        var bytes = RandomNumberGenerator.GetBytes(sizeBytes);
+        return Base64UrlEncoder.Encode(bytes);
+    }
+
+
     public static string CreateRandomPassword(int length = 50, int minSymbols = 5, int minNumbers = 5, int minUppercase = 5, int minLowercase = 5)
     {
         ReadOnlySpan<char> symbols = "!@#$%^&*()_-+=[]{};:>|./?";

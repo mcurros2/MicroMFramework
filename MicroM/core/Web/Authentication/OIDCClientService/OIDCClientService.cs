@@ -158,7 +158,14 @@ public class OIDCClientService(
 
         X509Certificate2? cert = certificate_cache.GetCertificate(app);
 
-        var (authHeader, authHeaderError) = PushedAuthorizationProvider.GetClientAuthorizationHeader(requestHeaders, cert, parEndpoint, forward, wellknown_result.token_endpoint_auth_methods_supported);
+        var (authHeader, authHeaderError) = PushedAuthorizationProvider.GetClientAuthorizationHeader(
+            requestHeaders,
+            cert,
+            parEndpoint,
+            forward,
+            wellknown_result.token_endpoint_auth_methods_supported,
+            wellknown_result.token_endpoint_auth_signing_alg_values_supported
+            );
 
         if (authHeaderError != null)
         {
@@ -233,7 +240,8 @@ public class OIDCClientService(
             tokenEndpoint,
             code,
             redirectUri,
-            codeVerifier
+            codeVerifier,
+            wellknown.token_endpoint_auth_signing_alg_values_supported
         );
 
         // Exchange authorization code for tokens
@@ -315,7 +323,7 @@ public class OIDCClientService(
         }
 
         // Generate/keep state (optional but recommended for CSRF)
-        string effState = string.IsNullOrWhiteSpace(state) ? PushedAuthorizationProvider.GenerateBase64UrlCode(16) : state;
+        string effState = string.IsNullOrWhiteSpace(state) ? CryptClass.GenerateBase64UrlRandomCode(32) : state;
 
         // Build end_session URL
         var query = new Dictionary<string, string?>(StringComparer.Ordinal)
@@ -518,7 +526,8 @@ public class OIDCClientService(
             cert,
             clientId: app.ApplicationID,
             tokenEndpoint,
-            idpRefreshToken
+            idpRefreshToken,
+            wellknown.token_endpoint_auth_signing_alg_values_supported
         );
 
         // Call IdP token endpoint

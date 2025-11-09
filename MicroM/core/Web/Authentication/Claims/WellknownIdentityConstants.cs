@@ -19,11 +19,13 @@ public class WellknownIdentityConstants
     public const string LocalDeviceId = "local_device_id";
     public const string AuthorizedParty = "azp";
     public const string Audience = "aud";
-    public const string Issuer = "iss";
+    public const string Issuer = "issuer";
+    public const string IssuerClaim = "iss";
     public const string IssuedAt = "iat";
     public const string Events = "events";
     public const string JWTID = "jti";
     public const string Expiration = "exp";
+    public const string ExpiresIn = "expires_in";
     public const string NotBefore = "nbf";
     public const string Scope = "scope";
     public const string LogoutToken = "logout_token";
@@ -35,6 +37,7 @@ public class WellknownIdentityConstants
     public const string ClientAssertion = "client_assertion";
     public const string ClientAssertionType = "client_assertion_type";
     public const string RefreshExpirationUtc = "refresh_expiration_utc";
+    public const string ClientSecret = "client_secret";
 
     public const string ResponseType = "response_type";
     public const string CodeChallenge = "code_challenge";
@@ -55,5 +58,8 @@ public class WellknownIdentityConstants
     public const string RevocationEndpoint = "revocation_endpoint";
     public const string IntrospectionEndpoint = "introspection_endpoint";
     public const string JwksUri = "jwks_uri";
+    public const string IdTokenSigningAlgValuesSupported = "id_token_signing_alg_values_supported";
 
+    public const string ClientAssertionTypeJwtBearer = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer";
+    public const string Basic = "Basic";
 }

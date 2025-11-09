@@ -2,7 +2,10 @@
 
 public class OIDCClientConfigurationOption
 {
+    // IdP app_id
     public string ApplicationID { get; set; } = "";
+
+    // Client app_id c onfigured in the IdP
     public string ClientAPPID { get; set; } = "";
     public string URLFrontChannelLogout { get; set; } = "";
     public string URLBackchannelLogout { get; set; } = "";

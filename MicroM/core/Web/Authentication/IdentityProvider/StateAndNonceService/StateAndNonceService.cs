@@ -2,10 +2,8 @@
 using MicroM.Core;
 using MicroM.Web.Services;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
-using System.Security.Cryptography;
 
 namespace MicroM.Web.Authentication.SSO;
 
@@ -27,10 +25,10 @@ public class StateAndNonceService
     public StateAndNonceContext EnsureStateAndNonce(IFormCollection original, string? providedState, string? providedNonce, string? providedDeviceId)
     {
         string state = string.IsNullOrWhiteSpace(providedState)
-            ? WebEncoders.Base64UrlEncode(RandomNumberGenerator.GetBytes(32))
+            ? CryptClass.GenerateBase64UrlRandomCode(32)
             : providedState;
         string nonce = string.IsNullOrWhiteSpace(providedNonce)
-            ? WebEncoders.Base64UrlEncode(RandomNumberGenerator.GetBytes(32))
+            ? CryptClass.GenerateRandomBase64String(32)
             : providedNonce;
         string? deviceId = !string.IsNullOrWhiteSpace(providedDeviceId)
             ? providedDeviceId
