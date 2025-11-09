@@ -1,4 +1,5 @@
 ﻿using MicroM.Web.Authentication;
+using MicroM.Web.Authentication.SSO;
 using MicroM.Web.Services.Security;
 using Microsoft.Extensions.Logging;
 
@@ -14,7 +15,8 @@ public class WebAPIServices(
     ISecurityService securityService_service,
     IDeviceIdService deviceIdService_service,
     IEntitiesService entitiesService_service,
-    IAuthenticationService authenticationService_service
+    IAuthenticationService authenticationService_service,
+    IOIDCHttpClient oidcHttpClient_service
     ) : IWebAPIServices
 {
     public ILogger log => log_service;
@@ -27,4 +29,5 @@ public class WebAPIServices(
     public IDeviceIdService deviceIdService => deviceIdService_service;
     public IEntitiesService entitiesService => entitiesService_service;
     public IAuthenticationService authenticationService => authenticationService_service;
+    public IOIDCHttpClient oidcHttpClient => oidcHttpClient_service;
 }

@@ -128,7 +128,6 @@ export class MicroMClient {
                 this.#saveAllRecordedAccess();
             }
 
-            //TODO: explicar por que no envía el token con esta solicitud? 
             const response = await fetch(`${this.#API_URL}/${this.#APP_ID}/auth/logoff`, {
                 method: 'POST',
                 headers: { "Content-Type": "application/json; charset=utf-8", "Authorization": `Bearer ${this.#TOKEN?.access_token || ''}` },

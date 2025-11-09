@@ -111,12 +111,12 @@ public class IdPBackchannelAuthenticationHandler : AuthenticationHandler<Authent
                     // ignore seek failures - buffering should normally allow seek
                 }
 
-                var clientAssertion = form["client_assertion"].ToString();
-                var clientAssertionType = form["client_assertion_type"].ToString();
-                var clientIdFromForm = form["client_id"].ToString();
+                var clientAssertion = form[WellknownIdentityConstants.ClientAssertion].ToString();
+                var clientAssertionType = form[WellknownIdentityConstants.ClientAssertionType].ToString();
+                var clientIdFromForm = form[WellknownIdentityConstants.ClientId].ToString();
 
                 if (!string.IsNullOrEmpty(clientAssertion) &&
-                    clientAssertionType == "urn:ietf:params:oauth:client-assertion-type:jwt-bearer")
+                    clientAssertionType == WellknownIdentityConstants.ClientAssertionTypeJwtBearer)
                 {
                     var clientId = !string.IsNullOrEmpty(clientIdFromForm) ? clientIdFromForm : GetClientIdFromJwt(clientAssertion);
 

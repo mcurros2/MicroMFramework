@@ -26,16 +26,27 @@ public class ApplicationOption
     public string? AuthenticationType { get; set; } = nameof(AuthenticationTypes.MicroMAuthentication);
 
     public string? IdentityProviderRoleType { get; set; } = nameof(IdentityProviderRole.IDPDisabled);
+
+    // Used only for IDPClient role
     public string? OIDCWellKnownURL { get; set; } = null;
+
+    // Used at the IdP API tenant (wellknown and jwks endpoint) and
+    // at the IDClient API tenant (for token signing) it should configured at the IdP when configurikng authorized OIDC applications
     public string? OIDCCertificateUniqueID { get; set; } = null;
     public byte[]? OIDCCertificateBlob { get; set; } = null;
     public string OIDCCertificatePassword { get; set; } = "";
+
+    // Used only for IDPServer role
     public string? OIDCIdPSubjectPepper { get; set; } = null;
 
+    // Used by IdPServer and advertised in wellknown
     public OIDCSigningAlg? OIDCTokenSigningAlg { get; set; } = OIDCSigningAlg.RS512;
     public OIDCCodeChallengeMethod? OIDCTokenCodeChallengeMethod { get; set; } = OIDCCodeChallengeMethod.S256;
+
+    // Used only for IDPServer role
     public int OIDCRefreshTokenExpirationHours { get; set; } = 24 * 90;
 
+    // Used only for IDPServer role, authorized OIDC clients
     public Dictionary<string, OIDCClientConfigurationOption>? OIDCClientConfiguration { get; set; } = null;
 
     public List<string> FrontendURLS { get; set; } = [];

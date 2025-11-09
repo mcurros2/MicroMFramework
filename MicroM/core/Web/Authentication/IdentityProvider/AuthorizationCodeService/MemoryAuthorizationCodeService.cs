@@ -1,4 +1,5 @@
 ﻿using MicroM.Configuration;
+using MicroM.Core;
 using Microsoft.IdentityModel.Tokens;
 using System.Collections.Concurrent;
 using System.Security.Cryptography;
@@ -13,7 +14,7 @@ public class MemoryAuthorizationCodeService : IAuthorizationCodeService
     // Store by key: {appId}_{clientId}_{code}
     public AuthorizationCodeRecord CreateAndStoreAuthorizationCode(ApplicationOption app, string clientId, AuthorizationCodeRecord record)
     {
-        record = record with { Code = GenerateCode() };
+        record = record with { Code = CryptClass.GenerateBase64UrlRandomCode(32) };
         var key = $"{app.ApplicationID}_{clientId}_{record.Code}";
         _codeStore.TryAdd(key, record);
         return record;
@@ -58,9 +59,4 @@ public class MemoryAuthorizationCodeService : IAuthorizationCodeService
 
     public void ClearAllAuthorizationCodes() => _codeStore.Clear();
 
-    private static string GenerateCode(int length = 32)
-    {
-        var bytes = RandomNumberGenerator.GetBytes(length);
-        return Base64UrlEncoder.Encode(bytes);
-    }
 }

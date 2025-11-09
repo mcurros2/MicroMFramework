@@ -57,6 +57,41 @@ internal sealed class IdpClientJwksCheck : IDiagnosticCheck<IdPDiagnosticsContex
                     continue;
                 }
 
+                // If client has a configured key id, ensure JWKS contains a matching kid
+                var configuredKid = client.CertificateUniqueID; // expected in client configuration
+                if (!string.IsNullOrWhiteSpace(configuredKid))
+                {
+                    bool kidFound = false;
+                    foreach (var keyEl in keysEl.EnumerateArray())
+                    {
+                        if (keyEl.ValueKind != System.Text.Json.JsonValueKind.Object) continue;
+                        if (keyEl.TryGetProperty("kid", out var kidEl) && kidEl.ValueKind == System.Text.Json.JsonValueKind.String)
+                        {
+                            var kid = kidEl.GetString();
+                            if (!string.IsNullOrWhiteSpace(kid) && string.Equals(kid, configuredKid, StringComparison.Ordinal))
+                            {
+                                kidFound = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (!kidFound)
+                    {
+                        results.Add(new(DiagnosticId, Result: $"Client: {clientId}\nJWKS: {jwksUrl}", Errors: [new("jwks_kid_missing", $"Configured key id not found in client JWKS: kid='{configuredKid}'")]));
+                        continue;
+                    }
+                }
+                else
+                {
+                    // No configured kid, warn if multiple keys are present
+                    if (keysEl.GetArrayLength() > 1)
+                    {
+                        results.Add(new(DiagnosticId, IsSuccess: true, Result: $"Status: OK (client JWKS reachable)\nWarning: Multiple keys present in JWKS but no configured key id to select\nClient: {clientId}\nJWKS: {jwksUrl}"));
+                        continue;
+                    }
+                }
+
                 results.Add(new(DiagnosticId, IsSuccess: true, Result: $"Status: OK (client JWKS reachable)\nClient: {clientId}\nJWKS: {jwksUrl}"));
             }
             catch (OperationCanceledException)
