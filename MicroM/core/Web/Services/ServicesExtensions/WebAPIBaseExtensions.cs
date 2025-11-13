@@ -1,5 +1,6 @@
 ﻿using MicroM.Configuration;
 using MicroM.Web.Authentication;
+using MicroM.Web.Authentication.JWTFetchCacheService;
 using MicroM.Web.Authentication.SSO;
 using MicroM.Web.Controllers;
 using MicroM.Web.Extensions;
@@ -135,6 +136,7 @@ public static class WebAPIBaseExtensions
     {
         services.AddSingleton<IApplicationCertificateCacheService, ApplicationCertificateCacheService>();
         services.AddSingleton<IEtagCacheService, EtagCacheService>();
+        services.AddSingleton<IJWKSFetchCacheService, JWKSFetchCacheService>();
         services.AddSingleton<IJwksService, JwksService>();
         services.AddSingleton<IAuthorizationCodeService, MemoryAuthorizationCodeService>();
         services.AddSingleton<IOauthTokenService, OauthTokenService>();

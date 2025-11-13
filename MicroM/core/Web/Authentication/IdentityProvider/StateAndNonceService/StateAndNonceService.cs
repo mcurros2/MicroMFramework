@@ -27,9 +27,12 @@ public class StateAndNonceService
         string state = string.IsNullOrWhiteSpace(providedState)
             ? CryptClass.GenerateBase64UrlRandomCode(32)
             : providedState;
+
+        // Changed: nonce now base64url random
         string nonce = string.IsNullOrWhiteSpace(providedNonce)
-            ? CryptClass.GenerateRandomBase64String(32)
+            ? CryptClass.GenerateBase64UrlRandomCode(32)
             : providedNonce;
+
         string? deviceId = !string.IsNullOrWhiteSpace(providedDeviceId)
             ? providedDeviceId
             : (original.TryGetValue(WellknownIdentityConstants.LocalDeviceId, out var ldid) ? ldid.ToString() : null);

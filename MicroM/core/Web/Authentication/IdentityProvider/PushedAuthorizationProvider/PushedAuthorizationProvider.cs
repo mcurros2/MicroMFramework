@@ -13,9 +13,9 @@ namespace MicroM.Web.Authentication.SSO;
 
 public static class PushedAuthorizationProvider
 {
-    private static OIDCSigningAlg? SelectAssertionAlg(X509Certificate2 cert, List<OIDCSigningAlg>? supported)
+    public static OIDCSigningAlg? SelectAssertionAlg(X509Certificate2 cert, List<OIDCSigningAlg>? supported)
     {
-        if (supported == null || supported.Count == 0) return null; // fall back to default (RS256 or ES256)
+        if (supported == null || supported.Count == 0) return null;
         if (cert.GetECDsaPrivateKey() != null)
         {
             if (supported.Contains(OIDCSigningAlg.ES512)) return OIDCSigningAlg.ES512;
@@ -24,7 +24,7 @@ public static class PushedAuthorizationProvider
             return null;
         }
 
-        OIDCSigningAlg[] preference = [OIDCSigningAlg.PS512, OIDCSigningAlg.PS256, OIDCSigningAlg.RS512, OIDCSigningAlg.RS384, OIDCSigningAlg.RS256];
+        OIDCSigningAlg[] preference = [OIDCSigningAlg.PS512, OIDCSigningAlg.PS384, OIDCSigningAlg.PS256, OIDCSigningAlg.RS512, OIDCSigningAlg.RS384, OIDCSigningAlg.RS256];
         foreach (var p in preference)
         {
             if (supported.Contains(p)) return p;
@@ -33,7 +33,7 @@ public static class PushedAuthorizationProvider
         return null;
     }
 
-    public static ResultWithStatus<PushedAuthorizationRequest, ErrorResult> ValidateRequest(IFormCollection form)
+    public static ResultWithStatus<PushedAuthorizationRequest, ErrorResult> ValidateRequest(ApplicationOption app, IFormCollection form)
     {
         var responseType = form[WellknownIdentityConstants.ResponseType].ToString();
         var redirectUri = form[WellknownIdentityConstants.RedirectUri].ToString();
@@ -55,12 +55,12 @@ public static class PushedAuthorizationProvider
         if (string.IsNullOrEmpty(scope))
             return new(null, new("invalid_request", "scope is required"));
 
-        // Enforce PKCE presence (RFC 7636) – S256
         if (string.IsNullOrEmpty(codeChallenge) || string.IsNullOrEmpty(codeChallengeMethod))
             return new(null, new("invalid_request", "PKCE code_challenge and code_challenge_method are required"));
 
+        bool allowPlain = app.OIDCAllowPkcePlain;
         if (!string.Equals(codeChallengeMethod, "S256", StringComparison.Ordinal) &&
-            !string.Equals(codeChallengeMethod, "plain", StringComparison.Ordinal))
+            !(allowPlain && string.Equals(codeChallengeMethod, "plain", StringComparison.Ordinal)))
             return new(null, new("invalid_request", "Unsupported code_challenge_method"));
 
         var result = new PushedAuthorizationRequest(
@@ -97,6 +97,7 @@ public static class PushedAuthorizationProvider
             var rsaAlg = signingAlg switch
             {
                 OIDCSigningAlg.PS512 => SecurityAlgorithms.RsaSsaPssSha512,
+                OIDCSigningAlg.PS384 => SecurityAlgorithms.RsaSsaPssSha384,
                 OIDCSigningAlg.PS256 => SecurityAlgorithms.RsaSsaPssSha256,
                 OIDCSigningAlg.RS512 => SecurityAlgorithms.RsaSha512,
                 OIDCSigningAlg.RS384 => SecurityAlgorithms.RsaSha384,
@@ -157,22 +158,18 @@ public static class PushedAuthorizationProvider
             string.IsNullOrWhiteSpace(codeChallengeMethod))
             return (null, new { error = "invalid_request", error_description = "code_challenge_method is required" });
 
+        bool allowPlain = client_app.OIDCAllowPkcePlain;
         if (!string.Equals(codeChallengeMethod, "S256", StringComparison.Ordinal) &&
-            !string.Equals(codeChallengeMethod, "plain", StringComparison.Ordinal))
+            !(allowPlain && string.Equals(codeChallengeMethod, "plain", StringComparison.Ordinal)))
             return (null, new { error = "invalid_request", error_description = "Unsupported code_challenge_method" });
 
-        // Optional but recommended
         forward.TryGetValue(WellknownIdentityConstants.State, out var state);
         if (string.IsNullOrEmpty(state))
             return (null, new { error = "invalid_request", error_description = "state is required" });
 
-        // nonce is optional for pure authorization_code, but often required when id_token expected later
         forward.TryGetValue(WellknownIdentityConstants.Nonce, out var nonce);
         if (string.IsNullOrEmpty(nonce))
-        {
-            // Keep result but flag missing nonce (can be extended to error if policy demands)
             return (null, new { error = "invalid_request", error_description = "nonce is required" });
-        }
 
         if (!IsRedirectUriAllowed(client_app, clientId, redirectUri))
             return (null, new { error = "invalid_request", error_description = "redirect_uri is not registered for this client" });

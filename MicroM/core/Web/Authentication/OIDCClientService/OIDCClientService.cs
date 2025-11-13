@@ -285,7 +285,9 @@ public class OIDCClientService(
         }
 
         // Validate id_token via IdP JWKS
-        var (jwt_result, jwt_error) = await JwksProvider.ValidateIdTokenAsync(httpClientFactory, jwksUri, issuer, clientId, id_token, ct);
+        // NEW: pass client private key to allow JWE decryption when the id_token is encrypted
+        var clientDecryptCert = certificate_cache.GetCertificate(app);
+        var (jwt_result, jwt_error) = await JwksProvider.ValidateIdTokenAsync(httpClientFactory, jwksUri, issuer, clientId, id_token, clientDecryptCert, ct);
         if (jwt_error != null || jwt_result == null)
         {
             return new(null, jwt_error ?? "Invalid id_token");
@@ -472,7 +474,7 @@ public class OIDCClientService(
         }
         catch (Exception ex)
         {
-            log.LogError(ex, "Backchannel logout: session store error app={app} sid={sid} sub={sub}", app.ApplicationID, sid, sub);
+            log.LogWarning(ex, "Backchannel logout: session store error app={app} sid={sid} sub={sub}", app.ApplicationID, sid, sub);
             return new(OIDCLogoutProcessingStatus.SessionStoreError, "session_store_error");
         }
         finally
@@ -570,7 +572,9 @@ public class OIDCClientService(
         }
 
         // Validate refreshed id_token
-        var (jwt_result, jwt_error) = await JwksProvider.ValidateIdTokenAsync(httpClientFactory, jwksUri, issuer, app.ApplicationID, id_token, ct);
+        // NEW: pass client private key to allow decryption of JWE id_token
+        var clientDecryptCert = certificate_cache.GetCertificate(app);
+        var (jwt_result, jwt_error) = await JwksProvider.ValidateIdTokenAsync(httpClientFactory, jwksUri, issuer, app.ApplicationID, id_token, clientDecryptCert, ct);
         if (jwt_error != null || jwt_result == null)
         {
             return new(null, jwt_error ?? "Invalid id_token");

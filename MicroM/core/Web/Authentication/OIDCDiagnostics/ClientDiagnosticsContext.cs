@@ -24,4 +24,5 @@ internal class ClientDiagnosticsContext(
     public string? introspectionURL = null;
     public string? endSessionURL = null;
     public string? idpRefreshURL = null;
+    public List<OIDCSigningAlg>? tokenEndpointSigningAlgValuesSupported = null;
 }

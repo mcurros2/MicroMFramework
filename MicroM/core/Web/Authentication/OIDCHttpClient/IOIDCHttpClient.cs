@@ -4,9 +4,9 @@ namespace MicroM.Web.Authentication.SSO;
 
 public interface IOIDCHttpClient
 {
-    ValueTask<OIDCHttpClientPostResponse> GetWellKnownJsonAsync(string wellKnownUrl, CancellationToken ct);
-
-    ValueTask<OIDCHttpClientPostResponse> GetJwksJsonAsync(string jwksUri, CancellationToken ct);
+    // Existing
+    ValueTask<OIDCHttpClientPostResponse> GetWellKnownJsonAsync(string wellKnownUrl, CancellationToken ct, string? ifNoneMatch = null);
+    ValueTask<OIDCHttpClientPostResponse> GetJwksJsonAsync(string jwksUri, CancellationToken ct, string? ifNoneMatch = null);
 
     // POST PAR (application/x-www-form-urlencoded)
     Task<OIDCHttpClientPostResponse> PostPushedAuthorizationRequestAsync(

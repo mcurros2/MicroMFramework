@@ -1,5 +1,6 @@
 ﻿using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
+using System.Globalization;
 
 namespace MicroM.Excel;
 
@@ -61,10 +62,10 @@ public static class ExcelReader
             return null;
 
         if (cell.DataType == null)
-            return double.TryParse(value, out double numericValue) ? numericValue : value;
+            return double.TryParse(value, CultureInfo.InvariantCulture, out double numericValue) ? numericValue : value;
 
         if (cell.DataType == CellValues.SharedString)
-            return int.TryParse(value, out int index) && sst != null && index >= 0 && index < sst.Count()
+            return int.TryParse(value, CultureInfo.InvariantCulture, out int index) && sst != null && index >= 0 && index < sst.Count()
                 ? sst.ElementAt(index).InnerText
                 : value;
 
@@ -72,10 +73,10 @@ public static class ExcelReader
             return value == "1";
 
         if (cell.DataType == CellValues.Number)
-            return double.TryParse(value, out double numericValue) ? numericValue : value;
+            return double.TryParse(value, CultureInfo.InvariantCulture, out double numericValue) ? numericValue : value;
 
         if (cell.DataType == CellValues.Date)
-            return DateTime.TryParse(value, out DateTime dateValue) ? dateValue : value;
+            return DateTime.TryParse(value, CultureInfo.InvariantCulture, out DateTime dateValue) ? dateValue : value;
 
         // Default to string
         return value;

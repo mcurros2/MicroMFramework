@@ -58,7 +58,28 @@ public class WellknownIdentityConstants
     public const string RevocationEndpoint = "revocation_endpoint";
     public const string IntrospectionEndpoint = "introspection_endpoint";
     public const string JwksUri = "jwks_uri";
+
     public const string IdTokenSigningAlgValuesSupported = "id_token_signing_alg_values_supported";
+    public const string TokenEndpointAuthSigningAlgValuesSupported = "token_endpoint_auth_signing_alg_values_supported";
+    public const string RevocationEndpointAuthSigningAlgValuesSupported = "revocation_endpoint_auth_signing_alg_values_supported";
+    public const string IntrospectionEndpointAuthSigningAlgValuesSupported = "introspection_endpoint_auth_signing_alg_values_supported";
+    public const string UserinfoEndpointSigningAlgValuesSupported = "userinfo_signing_alg_values_supported";
+    public const string RequestObjectSigningAlgValuesSupported = "request_object_signing_alg_values_supported";
+
+    public const string IdTokenEncryptionAlgValuesSupported = "id_token_encryption_alg_values_supported";
+    public const string IdTokenEncryptionEncValuesSupported = "id_token_encryption_enc_values_supported";
+    public const string UserinfoEncryptionAlgValuesSupported = "userinfo_encryption_alg_values_supported";
+    public const string UserinfoEncryptionEncValuesSupported = "userinfo_encryption_enc_values_supported";
+    public const string RequestObjectEncryptionAlgValuesSupported = "request_object_encryption_alg_values_supported";
+    public const string RequestObjectEncryptionEncValuesSupported = "request_object_encryption_enc_values_supported";
+    public const string AuthorizationEncryptionAlgValuesSupported = "authorization_encryption_alg_values_supported";
+    public const string AuthorizationEncryptionEncValuesSupported = "authorization_encryption_enc_values_supported";
+    public const string PushedAuthorizationRequestEncryptionAlgValuesSupported = "pushed_authorization_request_encryption_alg_values_supported";
+    public const string PushedAuthorizationRequestEncryptionEncValuesSupported = "pushed_authorization_request_encryption_enc_values_supported";
+
+
+
+
 
     public const string ClientAssertionTypeJwtBearer = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer";
     public const string Basic = "Basic";

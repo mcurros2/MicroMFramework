@@ -18,7 +18,7 @@ public class OIDCHttpClient(IHttpClientFactory httpClientFactory, ILogger<OIDCHt
         return (uri, (null, null));
     }
 
-    public async ValueTask<OIDCHttpClientPostResponse> GetWellKnownJsonAsync(string wellKnownUrl, CancellationToken ct)
+    public async ValueTask<OIDCHttpClientPostResponse> GetWellKnownJsonAsync(string wellKnownUrl, CancellationToken ct, string? ifNoneMatch = null)
     {
         var (uri, url_validate) = ValidateURL(wellKnownUrl, "wellKnownUrl");
         if (url_validate.error != null) return new((int)HttpStatusCode.BadRequest, Error: JsonSerializer.Serialize(url_validate));
@@ -29,8 +29,20 @@ public class OIDCHttpClient(IHttpClientFactory httpClientFactory, ILogger<OIDCHt
             using var req = new HttpRequestMessage(HttpMethod.Get, uri);
             req.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
             req.Headers.AcceptCharset.Add(new StringWithQualityHeaderValue("utf-8"));
+            if (!string.IsNullOrWhiteSpace(ifNoneMatch))
+            {
+                req.Headers.IfNoneMatch.Add(new EntityTagHeaderValue($"\"{ifNoneMatch}\""));
+            }
 
             using var resp = await client.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, ct);
+
+            // 304 Not Modified → return metadata with NotModified = true
+            if (resp.StatusCode == HttpStatusCode.NotModified)
+            {
+                var etag = resp.Headers.ETag?.Tag?.Trim('"');
+                return new((int)resp.StatusCode, IsSuccessStatusCode: false, ContentType: "application/json", Body: "", Error: null, ETag: etag, NotModified: true);
+            }
+
             var content = await resp.Content.ReadAsStringAsync(ct);
 
             // check content length doesn't exceed 32KB
@@ -44,9 +56,10 @@ public class OIDCHttpClient(IHttpClientFactory httpClientFactory, ILogger<OIDCHt
             {
                 return new((int)resp.StatusCode, Error: JsonSerializer.Serialize(new { error = "server_error", error_description = $"GET well-known failed: {(int)resp.StatusCode} {resp.ReasonPhrase}\n{content}" }));
             }
-            // get the content type header value from resp
+
             string content_type = resp.Content.Headers.ContentType?.ToString() ?? "application/json";
-            return new((int)resp.StatusCode, true, content_type, content);
+            var responseEtag = resp.Headers.ETag?.Tag?.Trim('"');
+            return new((int)resp.StatusCode, true, content_type, content, ETag: responseEtag);
         }
         catch (Exception ex)
         {
@@ -55,7 +68,7 @@ public class OIDCHttpClient(IHttpClientFactory httpClientFactory, ILogger<OIDCHt
         }
     }
 
-    public async ValueTask<OIDCHttpClientPostResponse> GetJwksJsonAsync(string jwksUri, CancellationToken ct)
+    public async ValueTask<OIDCHttpClientPostResponse> GetJwksJsonAsync(string jwksUri, CancellationToken ct, string? ifNoneMatch = null)
     {
         var (uri, url_validate) = ValidateURL(jwksUri, "jwksUri");
         if (url_validate.error != null) return new((int)HttpStatusCode.BadRequest, Error: JsonSerializer.Serialize(url_validate));
@@ -66,9 +79,28 @@ public class OIDCHttpClient(IHttpClientFactory httpClientFactory, ILogger<OIDCHt
             using var req = new HttpRequestMessage(HttpMethod.Get, uri);
             req.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
             req.Headers.AcceptCharset.Add(new StringWithQualityHeaderValue("utf-8"));
+            if (!string.IsNullOrWhiteSpace(ifNoneMatch))
+            {
+                req.Headers.IfNoneMatch.Add(new EntityTagHeaderValue($"\"{ifNoneMatch}\""));
+            }
 
             using var resp = await client.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, ct);
+
+
+            // 304 Not Modified → return metadata with NotModified = true
+            if (resp.StatusCode == HttpStatusCode.NotModified)
+            {
+                var etag = resp.Headers.ETag?.Tag?.Trim('"');
+                return new((int)resp.StatusCode, ContentType: "application/json", ETag: etag, NotModified: true);
+            }
+
             var content = await resp.Content.ReadAsStringAsync(ct);
+            // check content length doesn't exceed 64KB
+            const int MAX_CONTENT_LENGTH = 64 * 1024;
+            if (content.Length > MAX_CONTENT_LENGTH)
+            {
+                return new((int)HttpStatusCode.RequestEntityTooLarge, Error: JsonSerializer.Serialize(new { error = "server_error", error_description = $"JWKS content is too large. Max size allowed {MAX_CONTENT_LENGTH}" }));
+            }
 
             if (!resp.IsSuccessStatusCode)
             {
@@ -76,12 +108,13 @@ public class OIDCHttpClient(IHttpClientFactory httpClientFactory, ILogger<OIDCHt
             }
 
             string content_type = resp.Content.Headers.ContentType?.ToString() ?? "application/json";
-            return new((int)resp.StatusCode, true, content_type, content);
+            var responseEtag = resp.Headers.ETag?.Tag?.Trim('"');
+            return new((int)resp.StatusCode, true, content_type, content, ETag: responseEtag);
         }
         catch (Exception ex)
         {
             log.LogWarning(ex, "Error fetching JWKS at {url}", jwksUri);
-            return new((int)HttpStatusCode.InternalServerError, Error: JsonSerializer.Serialize(new { error = "server_error", error_description = $"Error fetching well-known: {ex.Message}" }));
+            return new((int)HttpStatusCode.InternalServerError, Error: JsonSerializer.Serialize(new { error = "server_error", error_description = $"Error fetching JWKS: {ex.Message}" }));
         }
     }
 
@@ -120,7 +153,7 @@ public class OIDCHttpClient(IHttpClientFactory httpClientFactory, ILogger<OIDCHt
             using var client = httpClientFactory.CreateClient(namedClient);
             using var req = new HttpRequestMessage(HttpMethod.Post, uri)
             {
-                Content = new FormUrlEncodedContent(form ?? Array.Empty<KeyValuePair<string, string>>())
+                Content = new FormUrlEncodedContent(form ?? [])
             };
 
             if (authorization != null) req.Headers.Authorization = authorization;

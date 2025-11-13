@@ -42,7 +42,8 @@ public class IdentityProviderService(
             cache_duration_seconds: ConfigurationDefaults.EtagCacheDurationSeconds,
             () =>
             {
-                var wellKnown = WellKnownProvider.CreateWellKnown(app, request_base);
+                X509Certificate2? cert = certificate_cache.GetCertificate(app);
+                var wellKnown = WellKnownProvider.CreateWellKnown(app, request_base, cert);
                 return JsonSerializer.Serialize(wellKnown, _jsonSerializationOptions);
             });
 

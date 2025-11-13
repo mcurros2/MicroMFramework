@@ -43,6 +43,9 @@ public class ApplicationOption
     public OIDCSigningAlg? OIDCTokenSigningAlg { get; set; } = OIDCSigningAlg.RS512;
     public OIDCCodeChallengeMethod? OIDCTokenCodeChallengeMethod { get; set; } = OIDCCodeChallengeMethod.S256;
 
+    // Allow advertising & accepting PKCE 'plain' (default false → only S256)
+    public bool OIDCAllowPkcePlain { get; set; } = false;
+
     // Used only for IDPServer role
     public int OIDCRefreshTokenExpirationHours { get; set; } = 24 * 90;
 

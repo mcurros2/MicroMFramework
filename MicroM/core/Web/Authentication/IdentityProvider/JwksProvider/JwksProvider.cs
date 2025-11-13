@@ -125,6 +125,18 @@ public static class JwksProvider
         string idToken,
         CancellationToken ct)
     {
+        return await ValidateIdTokenAsync(httpClientFactory, jwksUri, issuer, audience, idToken, clientDecryptionCertificate: null, ct);
+    }
+
+    public static async Task<ResultWithStatus<JWTTokenResult, string>> ValidateIdTokenAsync(
+        IHttpClientFactory httpClientFactory,
+        string jwksUri,
+        string issuer,
+        string audience,
+        string idToken,
+        X509Certificate2? clientDecryptionCertificate,
+        CancellationToken ct)
+    {
         try
         {
             var jwks = await FetchJwksAsync(httpClientFactory, jwksUri, ct);
@@ -141,6 +153,30 @@ public static class JwksProvider
                 IssuerSigningKeys = jwks.Keys,
                 ClockSkew = TimeSpan.FromMinutes(1)
             };
+
+            // Enable JWE decryption when id_token is encrypted and the client has the private key
+            if (clientDecryptionCertificate != null)
+            {
+                SecurityKey? decryptKey = null;
+
+                if (clientDecryptionCertificate.GetRSAPrivateKey() != null)
+                {
+                    decryptKey = new X509SecurityKey(clientDecryptionCertificate);
+                }
+                else
+                {
+                    var ecdsa = clientDecryptionCertificate.GetECDsaPrivateKey();
+                    if (ecdsa != null)
+                    {
+                        decryptKey = new ECDsaSecurityKey(ecdsa);
+                    }
+                }
+
+                if (decryptKey != null)
+                {
+                    parms.TokenDecryptionKey = decryptKey;
+                }
+            }
 
             var result = await handler.ValidateTokenAsync(idToken, parms);
             if (!result.IsValid || result.SecurityToken is not JsonWebToken parsed)
