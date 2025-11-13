@@ -11,13 +11,34 @@ public class EtagCache
 
     public EtagContent GetOrAdd(string key, Func<string> valueFactory)
     {
-        return _cache.GetOrAdd(key, k =>
-        {
-            var content = valueFactory();
-            var etag = content.ETag();
-            return new EtagContent { Content = content, Etag = etag };
-        });
+        return GetOrAdd(key, valueFactory, ttl: null);
     }
+
+    public EtagContent GetOrAdd(string key, Func<string> valueFactory, TimeSpan? ttl)
+    {
+        if (_cache.TryGetValue(key, out var existing))
+        {
+            if (ttl == null || !existing.IsExpired(DateTimeOffset.UtcNow))
+            {
+                return existing;
+            }
+        }
+
+        var content = valueFactory();
+        var now = DateTimeOffset.UtcNow;
+        var etag = content.ETag();
+        var refreshed = new EtagContent
+        {
+            Content = content,
+            Etag = etag,
+            CachedUtc = now,
+            ExpiresUtc = ttl.HasValue ? now.Add(ttl.Value) : null
+        };
+
+        _cache.AddOrUpdate(key, refreshed, (k, old) => refreshed);
+        return _cache[key];
+    }
+
     public EtagContent? Get(string key)
     {
         if (_cache.TryGetValue(key, out var value))
@@ -41,17 +62,24 @@ public class EtagCache
     }
 
     public async ValueTask<EtagContent> GetOrAddAsync(
-    string key,
-    Func<CancellationToken, ValueTask<string>> valueFactory,
-    bool serveStaleOnError,
-    CancellationToken ct,
-    int maxRetries = 2
+        string key,
+        Func<CancellationToken, ValueTask<string>> valueFactory,
+        bool serveStaleOnError,
+        CancellationToken ct,
+        int maxRetries = 2,
+        TimeSpan? ttl = null
     )
     {
         if (_cache.TryGetValue(key, out var hit))
-            return hit;
+        {
+            if (ttl == null || !hit.IsExpired(DateTimeOffset.UtcNow))
+                return hit;
 
-        var task = _inflight.GetOrAdd(key, _ => CreateAndAddAsync(key, valueFactory, ct, maxRetries));
+            // Expired -> drop and refresh
+            _cache.TryRemove(key, out _);
+        }
+
+        var task = _inflight.GetOrAdd(key, _ => CreateAndAddAsync(key, valueFactory, ct, maxRetries, ttl));
         try
         {
             return await task.ConfigureAwait(false);
@@ -70,10 +98,11 @@ public class EtagCache
     }
 
     private async Task<EtagContent> CreateAndAddAsync(
-    string key,
-    Func<CancellationToken, ValueTask<string>> valueFactory,
-    CancellationToken ct,
-    int maxRetries = 2)
+        string key,
+        Func<CancellationToken, ValueTask<string>> valueFactory,
+        CancellationToken ct,
+        int maxRetries = 2,
+        TimeSpan? ttl = null)
     {
         Exception? last = null;
 
@@ -86,8 +115,15 @@ public class EtagCache
             try
             {
                 var content = await valueFactory(ct).ConfigureAwait(false);
+                var now = DateTimeOffset.UtcNow;
                 var etag = content.ETag();
-                var result = new EtagContent { Content = content, Etag = etag };
+                var result = new EtagContent
+                {
+                    Content = content,
+                    Etag = etag,
+                    CachedUtc = now,
+                    ExpiresUtc = ttl.HasValue ? now.Add(ttl.Value) : null
+                };
                 _cache.TryAdd(key, result);
                 return _cache[key];
             }
@@ -105,5 +141,4 @@ public class EtagCache
 
         throw last!;
     }
-
 }

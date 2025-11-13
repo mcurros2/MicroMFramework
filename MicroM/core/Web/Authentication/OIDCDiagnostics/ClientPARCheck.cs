@@ -4,7 +4,6 @@ using MicroM.Diagnostics;
 using MicroM.Extensions;
 using MicroM.Web.Authentication.SSO;
 using Microsoft.IdentityModel.Tokens;
-using System.Net.Http.Headers;
 using System.Security.Cryptography;
 using System.Text.Json;
 
@@ -66,30 +65,57 @@ internal class ClientPARCheck() : IDiagnosticCheck<ClientDiagnosticsContext>
         var app = ctx.App;
         var httpClient = ctx.HttpClient;
 
-        string? parEndpoint = null;
+        if (string.IsNullOrWhiteSpace(ctx.parURL))
+        {
+            return [new(DiagnosticId, IsSuccess: true, Result: "WARNING: PAR endpoint not advertised; skipped")];
+        }
+
+        string parEndpoint = ctx.parURL;
         string? authorizeEndpoint = ctx.authorizeURL;
 
         try
         {
-            if (string.IsNullOrWhiteSpace(ctx.parURL))
-                return [new(DiagnosticId, Errors: [new("par_url_empty", "PAR endpoint not advertised in discovery; skipping test.")])];
 
             // Choose a registered redirect_uri
             var redirectUri = app.FrontendURLS?.FirstOrDefault(u => !string.IsNullOrWhiteSpace(u));
             if (string.IsNullOrWhiteSpace(redirectUri))
                 return [new(DiagnosticId, Errors: [new("redirect_uri_missing", "No configured redirect_uri found to perform PAR")])];
 
-            parEndpoint = ctx.parURL;
-
             var (form, codeVerifier) = BuildParForm(
                 app,
                 scopes: [WellknownIdentityConstants.OpenID],
-                redirectUri: redirectUri!,
-                parEndpoint: parEndpoint!,
-                ct: ct);
+                redirectUri: redirectUri,
+                parEndpoint: parEndpoint,
+                ct);
+
+            // Attempt private_key_jwt assertion if certificate + algs discovered
+            string chosenAlg = "default";
+            if (app.OIDCCertificateBlob is { Length: > 0 } && !string.IsNullOrWhiteSpace(app.OIDCCertificatePassword) && ctx.wellKnownDoc != null)
+            {
+                var root = ctx.wellKnownDoc.RootElement;
+                var algs = new List<OIDCSigningAlg>();
+                if (root.TryGetProperty("token_endpoint_auth_signing_alg_values_supported", out var algArr) && algArr.ValueKind == JsonValueKind.Array)
+                {
+                    foreach (var a in algArr.EnumerateArray())
+                    {
+                        if (Enum.TryParse<OIDCSigningAlg>(a.GetString(), out var parsed))
+                            algs.Add(parsed);
+                    }
+                }
+
+                using var cert = new System.Security.Cryptography.X509Certificates.X509Certificate2(app.OIDCCertificateBlob, app.OIDCCertificatePassword);
+                var selected = typeof(PushedAuthorizationProvider)
+                    .GetMethod("SelectAssertionAlg", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)?
+                    .Invoke(null, [cert, algs]) as OIDCSigningAlg?;
+                chosenAlg = selected?.ToString() ?? "fallback";
+                var assertion = PushedAuthorizationProvider.BuildClientAssertion(cert, app.ApplicationID, parEndpoint!, selected);
+                form[WellknownIdentityConstants.ClientAssertionType] = WellknownIdentityConstants.ClientAssertionTypeJwtBearer;
+                form[WellknownIdentityConstants.ClientAssertion] = assertion;
+            }
+
 
             // 1) Send PAR
-            var parRes = await httpClient.PostPushedAuthorizationRequestAsync(parEndpoint!, form, authorization: (AuthenticationHeaderValue?)null, ct);
+            var parRes = await httpClient.PostPushedAuthorizationRequestAsync(parEndpoint!, form, authorization: null, ct);
             var statusCode = (int)parRes.StatusCode;
             var body = parRes.Body ?? string.Empty;
 

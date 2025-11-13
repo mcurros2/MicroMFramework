@@ -33,7 +33,7 @@ public class OIDCClientController : ControllerBase, IOIDCClientController
         var result = clientService.HandleClientJwks(app, reqHeaders, resHeaders.Headers);
         if (result == null) return NotFound();
 
-        if (result.is_cached) return StatusCode(StatusCodes.Status304NotModified);
+        if (result.not_modified) return StatusCode(StatusCodes.Status304NotModified);
         return Content(result.etag_content.Content, "application/json");
     }
 

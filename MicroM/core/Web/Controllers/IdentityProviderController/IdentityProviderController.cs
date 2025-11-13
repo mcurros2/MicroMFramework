@@ -51,7 +51,7 @@ public class IdentityProviderController : ControllerBase, IIdentityProviderContr
 
             var result = idp.HandleWellKnown(app, requestBase, request_headers, response_headers.Headers);
 
-            if (result.is_cached)
+            if (result.not_modified)
             {
                 return StatusCode(StatusCodes.Status304NotModified);
             }
@@ -91,7 +91,7 @@ public class IdentityProviderController : ControllerBase, IIdentityProviderContr
                 return NotFound();
             }
 
-            if (result.is_cached)
+            if (result.not_modified)
             {
                 return StatusCode(StatusCodes.Status304NotModified);
             }

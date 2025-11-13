@@ -81,6 +81,9 @@ public class OIDCClientDiagnostics(
             ctx.revocationURL = wellKnown.RootElement.ReadString(WellknownIdentityConstants.RevocationEndpoint);
             ctx.introspectionURL = wellKnown.RootElement.ReadString(WellknownIdentityConstants.IntrospectionEndpoint);
 
+            string? algsSupported = wellKnown.RootElement.ReadString(WellknownIdentityConstants.IdTokenSigningAlgValuesSupported);
+            ctx.tokenEndpointSigningAlgValuesSupported = wellKnown.RootElement.ReadString(WellknownIdentityConstants.TokenEndpointAuthSigningAlgValuesSupported);
+
             var par_result = await PARTest.RunCheckAsync(ctx, ct);
             results[PARTest.DiagnosticId] = par_result;
 

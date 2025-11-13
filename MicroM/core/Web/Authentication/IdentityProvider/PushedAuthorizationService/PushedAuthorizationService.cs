@@ -16,7 +16,7 @@ public class PushedAuthorizationService : IPushedAuthorizationService
 
     public ResultWithStatus<OIDCPARResponse, ErrorResult> CreatePushedRequest(ApplicationOption app, IFormCollection form, string authenticated_client_id)
     {
-        var (request, error) = PushedAuthorizationProvider.ValidateRequest(form);
+        var (request, error) = PushedAuthorizationProvider.ValidateRequest(app, form);
 
         if (request == null || error != null)
         {
@@ -35,13 +35,10 @@ public class PushedAuthorizationService : IPushedAuthorizationService
             return new(null, new("invalid_request", "Client has no registered redirect URIs"));
         }
 
-        if (clientCfg.URLAuthorizedRedirects != null && clientCfg.URLAuthorizedRedirects.Count > 0)
+        var matched = clientCfg.URLAuthorizedRedirects.Any(registered => RedirectUriMatches(registered, request.redirect_uri));
+        if (!matched)
         {
-            var matched = clientCfg.URLAuthorizedRedirects.Any(registered => RedirectUriMatches(registered, request.redirect_uri));
-            if (!matched)
-            {
-                return new(null, new("invalid_request", "redirect_uri not registered for client"));
-            }
+            return new(null, new("invalid_request", "redirect_uri not registered for client"));
         }
 
         var requestUri = $"urn:ietf:params:oauth:request_uri:{CryptClass.GenerateBase64UrlRandomCode(32)}";

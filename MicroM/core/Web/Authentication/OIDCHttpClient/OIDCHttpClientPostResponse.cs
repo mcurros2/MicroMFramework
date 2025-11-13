@@ -5,7 +5,9 @@ public sealed record OIDCHttpClientPostResponse(
     bool IsSuccessStatusCode = false,
     string ContentType = "",
     string Body = "",
-    string? Error = null
+    string? Error = null,
+    string? ETag = null,
+    bool NotModified = false
 );
 
 

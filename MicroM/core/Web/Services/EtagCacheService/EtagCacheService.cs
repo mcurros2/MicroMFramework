@@ -1,10 +1,8 @@
-﻿using DocumentFormat.OpenXml;
-using MicroM.Web.Services;
-using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Headers;
 using Microsoft.Net.Http.Headers;
 
-namespace MicroM.Web.Authentication.SSO;
+namespace MicroM.Web.Services;
 
 public record EtagCacheServiceCacheCheckResult(
     bool is_cached,
@@ -20,16 +18,18 @@ public class EtagCacheService : IEtagCacheService
 
     public EtagContent? Get(string key) => _etagCache.Get(key);
 
-    public EtagContent GetOrAdd(string key, Func<string> valueFactory) => _etagCache.GetOrAdd(key, valueFactory);
+    public EtagContent GetOrAdd(string key, Func<string> valueFactory, TimeSpan? ttl = null) => _etagCache.GetOrAdd(key, valueFactory, ttl);
+
 
     public async ValueTask<EtagContent> GetOrAddAsync(
         string key,
         Func<CancellationToken, ValueTask<string>> valueFactory,
         bool serveStaleOnError,
         CancellationToken ct,
-        int maxRetries = 2)
+        int maxRetries = 2,
+        TimeSpan? ttl = null)
     {
-        return await _etagCache.GetOrAddAsync(key, valueFactory, serveStaleOnError, ct, maxRetries);
+        return await _etagCache.GetOrAddAsync(key, valueFactory, serveStaleOnError, ct, maxRetries, ttl);
     }
 
     private static ResponseHeaders GetResponseHeaders(EtagContent content, IHeaderDictionary response_headers, double cache_duration_seconds)
@@ -69,7 +69,8 @@ public class EtagCacheService : IEtagCacheService
         double cache_duration_seconds,
         Func<string> valueFactory)
     {
-        var content = GetOrAdd(key, valueFactory);
+        var ttl = TimeSpan.FromSeconds(cache_duration_seconds);
+        var content = GetOrAdd(key, valueFactory, ttl);
 
         var in_cache = IsEtagInCache(content, request_headers);
         var result_headers = GetResponseHeaders(content, response_headers, cache_duration_seconds);
@@ -91,5 +92,5 @@ public class EtagCacheService : IEtagCacheService
         return null;
     }
 
-
+    public void Remove(string key) => _etagCache.Remove(key);
 }

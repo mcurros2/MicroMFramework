@@ -2,12 +2,14 @@
 using MicroM.Core;
 using MicroM.DataDictionary.CategoriesDefinitions;
 using MicroM.Extensions;
+using MicroM.Web.Authentication.SSO;
 using MicroM.Web.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
 using System.Security.Claims;
+using System.Security.Cryptography.X509Certificates;
 
 namespace MicroM.Web.Authentication;
 
@@ -156,5 +158,144 @@ public class WebAPIJsonWebTokenHandler(
         SetContextTokenValidationParameters(validationParameters);
 
         return base.ValidateTokenAsync(token, validationParameters);
+    }
+
+    // OIDC IdP support (signing always; encryption when certificate allows)
+    private static SigningCredentials? GetOidcSigningCredentials(ApplicationOption app, X509Certificate2 cert)
+    {
+        // Prefer configured signing alg when available; fallback by key type
+        var preferred = app.OIDCTokenSigningAlg;
+
+        if (cert.GetRSAPrivateKey() != null)
+        {
+            var key = new X509SecurityKey(cert);
+            return preferred switch
+            {
+                OIDCSigningAlg.PS512 => new SigningCredentials(key, SecurityAlgorithms.RsaSsaPssSha512),
+                OIDCSigningAlg.PS384 => new SigningCredentials(key, SecurityAlgorithms.RsaSsaPssSha384),
+                OIDCSigningAlg.PS256 => new SigningCredentials(key, SecurityAlgorithms.RsaSsaPssSha256),
+                OIDCSigningAlg.RS512 => new SigningCredentials(key, SecurityAlgorithms.RsaSha512),
+                OIDCSigningAlg.RS384 => new SigningCredentials(key, SecurityAlgorithms.RsaSha384),
+                OIDCSigningAlg.RS256 => new SigningCredentials(key, SecurityAlgorithms.RsaSha256),
+                _ => new SigningCredentials(key, SecurityAlgorithms.RsaSha512)
+            };
+        }
+
+        if (cert.GetECDsaPrivateKey() != null)
+        {
+            var key = new X509SecurityKey(cert);
+            return preferred switch
+            {
+                OIDCSigningAlg.ES512 => new SigningCredentials(key, SecurityAlgorithms.EcdsaSha512),
+                OIDCSigningAlg.ES384 => new SigningCredentials(key, SecurityAlgorithms.EcdsaSha384),
+                OIDCSigningAlg.ES256 => new SigningCredentials(key, SecurityAlgorithms.EcdsaSha256),
+                _ => new SigningCredentials(key, SecurityAlgorithms.EcdsaSha512)
+            };
+        }
+
+        return null;
+    }
+
+    // Select asymmetric JWE based on certificate capabilities (RSA or EC). Client ultimately decides via advertised metadata.
+    private static EncryptingCredentials? GetOidcEncryptingCredentials(X509Certificate2 cert)
+    {
+        // NOTE: RSA_OAEP_256 removed (unsupported). Ordered preference now:
+        // RSA: RSA_OAEP > RSA1_5
+        // EC:  ECDH_ES_A256KW > ECDH_ES (direct)
+        // Content encryption preference: A256GCM > A256CBC-HS512
+
+        string[] candidateKeyAlgs;
+        if (cert.GetRSAPublicKey() != null)
+        {
+            candidateKeyAlgs =
+            [
+                SecurityAlgorithms.RsaOAEP,
+                SecurityAlgorithms.RsaPKCS1
+            ];
+        }
+        else if (cert.GetECDsaPublicKey() != null)
+        {
+            candidateKeyAlgs =
+            [
+                SecurityAlgorithms.EcdhEsA256kw,
+                SecurityAlgorithms.EcdhEs
+            ];
+        }
+        else
+        {
+            return null;
+        }
+
+        string[] contentAlgs =
+        [
+            SecurityAlgorithms.Aes256Gcm,
+            SecurityAlgorithms.Aes256CbcHmacSha512
+        ];
+
+        SecurityKey? keySecurityKey = null;
+        if (cert.GetRSAPublicKey() != null)
+        {
+            keySecurityKey = new X509SecurityKey(cert);
+        }
+        else
+        {
+            var ecdsa = cert.GetECDsaPublicKey();
+            if (ecdsa != null)
+            {
+                keySecurityKey = new ECDsaSecurityKey(ecdsa);
+            }
+        }
+
+        if (keySecurityKey == null) return null;
+
+        foreach (var keyAlg in candidateKeyAlgs)
+        {
+            foreach (var encAlg in contentAlgs)
+            {
+                try
+                {
+                    return new EncryptingCredentials(keySecurityKey, keyAlg, encAlg);
+                }
+                catch
+                {
+                }
+            }
+        }
+
+        return null;
+    }
+
+    // Creates a signed id_token; if encryption is possible with the current certificate, returns JWE (sign-then-encrypt).
+    public TokenResult GenerateOidcIdToken(Dictionary<string, object> claims, ApplicationOption app, string audience, string? nonce = null)
+    {
+        if (nonce != null && !claims.ContainsKey(WellknownIdentityConstants.Nonce))
+            claims[WellknownIdentityConstants.Nonce] = nonce;
+
+        foreach (var kv in claims.ToArray())
+        {
+            if (kv.Value == null || kv.Value == DBNull.Value)
+                claims[kv.Key] = "";
+        }
+
+        if (app.OIDCCertificateBlob == null || app.OIDCCertificateBlob.Length == 0)
+            throw new InvalidOperationException("OIDC certificate blob not configured for id_token.");
+
+        using var cert = new X509Certificate2(app.OIDCCertificateBlob, app.OIDCCertificatePassword, X509KeyStorageFlags.EphemeralKeySet | X509KeyStorageFlags.Exportable);
+
+        var signing = GetOidcSigningCredentials(app, cert) ?? throw new InvalidOperationException("Unable to resolve signing credentials for id_token.");
+        var encrypting = GetOidcEncryptingCredentials(cert); // Optional — depends on certificate
+
+        var sd = new SecurityTokenDescriptor
+        {
+            Issuer = app.JWTIssuer,
+            Audience = audience,
+            Expires = DateTime.UtcNow.AddMinutes(app.JWTTokenExpirationMinutes),
+            SigningCredentials = signing,
+            EncryptingCredentials = encrypting,
+            Claims = claims
+        };
+
+        var token = CreateToken(sd);
+        return new TokenResult { Token = token, SD = sd };
     }
 }
