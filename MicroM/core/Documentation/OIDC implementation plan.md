@@ -26,7 +26,7 @@ C — Client (RP) flows
 - OIDC client login (PAR → authorize → token → callback): COMPLETE
 - Local per-device refresh (client DB): COMPLETE
 - IdP refresh support in client service: COMPLETE
-- Client refresh fallback wiring: COMPLETE
+- Client refresh fallback wiring: COMPLETE (diagnostic added)
 
 D — Logout (SLO)
 - Front-channel logout (client): COMPLETE
@@ -36,118 +36,119 @@ D — Logout (SLO)
 E — Security & hardening
 - State/nonce, PKCE, client authentication: COMPLETE
   - Runtime state cookie is HMAC’ed, single-use.
-  - Nonce will be updated to base64url (see tasks).
-  - PKCE enforcement: currently accepts `S256` (preferred) and `plain`; plan updated to NOT enforce S256-only — acceptance will track discovery-advertised methods.
+  - PKCE enforcement accepts `S256` and `plain` per discovery; acceptance tracks discovery-advertised methods.
 - Encrypted OIDC refresh tokens at rest: COMPLETE
-- Logging: PARTIAL (scrub pending)
+- Logging: PARTIAL (scrub infrastructure implemented; remaining: deeper encryption/JWKS path audit)
 - Rate limiting: COMPLETE
 - Metrics/counters: Using ASP.NET Core built-in meters.
 
 F — Encrypted Tokens (scope)
-Goal: Support optional JWE encryption of id_token (and later userinfo / request objects) using asymmetric crypto based on client/IdP certificates. No symmetric/shared-secret encryption for OIDC. Note: `app.JWTKey` is only for local API JWT use, not for OIDC.
+Goal: Optional JWE encryption of id_token (and later userinfo / request objects) using asymmetric crypto (no shared-secret OIDC encryption). `app.JWTKey` only for local API JWT.
+Status:
+- Discovery advertises asymmetric-only alg/enc: COMPLETE
+- Removed unsupported RSA_OAEP_256: COMPLETE
+- EC preference: ECDH_ES_A256KW > ECDH_ES: COMPLETE
+- RSA preference: RSA_OAEP > RSA1_5: COMPLETE
+- Subject types `[public, pairwise]`: COMPLETE
+- IdP id_token issuance (always signed; encrypts when supported): COMPLETE
+- Client decrypt path: COMPLETE
 
-Current status (UPDATED):
-- Discovery advertises asymmetric-only `id_token_encryption_alg_values_supported` and `id_token_encryption_enc_values_supported`.
-- Removed unsupported RSA_OAEP_256 from advertisement (library / .NET 8 does not provide `RsaOaep256` constant).
-- EC key encryption order: ECDH_ES_A256KW > ECDH_ES.
-- RSA key encryption order: RSA_OAEP > RSA1_5.
-- Subject types advertisement implemented directly as constant `[public, pairwise]`: COMPLETED.
-- IdP id_token issuance implemented: always signed; encrypts (JWE) when certificate supports RSA-OAEP or ECDH-ES(+A256KW). COMPLETED.
-- Client decrypt path: COMPLETED.
+Planned phases (retain all)
+1. IdP JWE wrapping: COMPLETE
+2. Client decryption path: COMPLETE
+3. Diagnostics (encryption negotiation & absence of RSA_OAEP_256): PARTIAL
+4. UserInfo / request object encryption (optional): PENDING
+5. Policy flags removed (capability-driven): COMPLETE
 
-Planned phases (adjusted) — do not remove
-1. Phase 1 (IdP): Implement JWE wrapping (auto by cert). COMPLETED
-2. Phase 2 (Client): Add decryption path; handle signed or signed+encrypted. COMPLETED
-3. Phase 3 (Diagnostics): Verify encryption negotiation (incl. absence of RSA_OAEP_256). PENDING
-4. Phase 4 (UserInfo / request object) encryption (optional). PENDING
-5. Phase 5: Policy flags dropped (selection fully capability-driven). COMPLETED
+Key selection rules (implemented)
+- Key Encryption alg: RSA-OAEP > RSA1_5; ECDH-ES+A256KW > ECDH-ES; exclude RSA_OAEP_256 & all symmetric (dir/AxxxKW/PBES2-*).
+- Content Encryption enc: A256GCM > A256CBC-HS512 > A192GCM > A192CBC-HS384 > A128GCM > A128CBC-HS256.
 
-Key selection rules (implemented; asymmetric only):
-- Key Encryption (alg):
-  - RSA: RSA-OAEP > RSA1_5 (RSA_OAEP_256 removed as unsupported).
-  - EC: ECDH-ES+A256KW > ECDH-ES.
-  - Symmetric algorithms (dir, AxxxKW/GCMKW, PBES2-*) NOT supported.
-- Content Encryption (enc) preference: A256GCM > A256CBC-HS512 > A192GCM > A192CBC-HS384 > A128GCM > A128CBC-HS256 (IdP currently emits first supported; discovery lists full ordered set).
-
-G — JWKS caching and conditional fetches (UPDATED)
-Status: COMPLETE
-- Shared JWKS cache service: COMPLETED
-  - `IJWKSFetchCacheService` + `JWKSFetchCacheService` cache per `jwks_uri` (raw JSON, parsed `OIDCJwksResponse`, materialized `kid → SecurityKey`).
-  - TTL-based refresh via `ConfigurationDefaults.JwksCacheDurationSeconds` (prevents indefinite staleness).
-  - Rotation handling: on `kid` miss, force-refresh once and retry.
-  - Manual invalidation supported.
-- ETag cache TTL: COMPLETED
-  - `IEtagCacheService` and `EtagCacheService` support TTL for sync/async; entries track `CachedUtc`/`ExpiresUtc` and honor serve-stale-on-error.
-- HTTP client conditional GET: COMPLETED
-  - `OIDCHttpClient.GetWellKnownJsonAsync` and `GetJwksJsonAsync` accept optional `ifNoneMatch`, send `If-None-Match`, capture `ETag`, and handle `304 Not Modified` (`NotModified=true`).
-  - Size guards: well-known (32KB), JWKS (64KB).
-- Wiring: COMPLETED
-  - `JWKSFetchCacheService` now sends the last server ETag (tracked per `jwks_uri`) in `If-None-Match` and reuses cached body on `304`. Falls back to unconditional fetch if body is missing (rare).
-
-New tasks (UPDATED)
-- Diagnostics:
-  - Review impact of encryption and signing on existing diagnostics. — PENDING 
-  - Add `ClientIdTokenEncryptionCheck`. — PENDING
-  - Add `IdpEncryptionCapabilityCheck` (validate advertised alg list excludes RSA_OAEP_256). — PENDING
-  - Add `JwksCacheEffectivenessCheck` (initial fetch, reuse/304, rotation fallback). — PENDING
-- Tests:
-  - RSA cert → RSA_OAEP + A256GCM. — PENDING
-  - EC cert → ECDH_ES_A256KW + A256GCM. — PENDING
-  - Fallback to signed-only when no asymmetric enc capability. — PENDING
-  - JWKS cache: TTL refresh, kid-miss forced refresh, and 304 path coverage. — PENDING
-- Logging scrub: Ensure encrypted tokens/JWKS bodies never logged. — PENDING
-- IdP integration: Use shared JWKS cache for private_key_jwt validation against client JWKS URLs. — PENDING
+G — JWKS caching & conditional fetches
+- Shared JWKS cache + TTL + kid-miss forced refresh: COMPLETE
+- ETag conditional GET + 304 reuse: COMPLETE
+- IdP private_key_jwt validation uses shared JWKS cache: COMPLETE
 
 Recent changes (UPDATED)
 - private_key_jwt alg selection parity: COMPLETE
-- Discovery asymmetric encryption only: COMPLETE
-- Subject types constant: COMPLETED
-- IdP id_token sign/encrypt (capability-based, no config flag): COMPLETED
-- Removed unsupported RSA_OAEP_256 from code + discovery: COMPLETED
-- Updated encryption selection logic to iterate supported alg/enc sets: COMPLETED
-- Client decryption path implemented (uses client cert during validation): COMPLETED
-- JWKS shared cache service with TTL and kid-miss refresh: COMPLETED
-- ETag cache service gained TTL support: COMPLETED
-- OIDCHttpClient supports ETag (If-None-Match) + 304 handling; size guards: COMPLETED
-- JWKS cache now uses server ETag for outbound `If-None-Match` and reuses cached body on `304`: COMPLETED
+- Asymmetric-only encryption advertisement: COMPLETE
+- RSA_OAEP_256 removed: COMPLETE
+- Encryption alg/enc iteration logic: COMPLETE
+- Client decryption path: COMPLETE
+- JWKS shared cache (TTL + rotation fallback): COMPLETE
+- ETag service TTL: COMPLETE
+- Conditional GET (well-known/JWKS) + size guards: COMPLETE
+- JWKS conditional reuse on 304: COMPLETE
+- Backchannel handler JWKS cache usage: COMPLETE
+- Client encryption metadata diagnostic: COMPLETE
+- Refresh diagnostic (JWS/JWE alg/enc reporting): COMPLETE
+- JWKS cache effectiveness diagnostic: COMPLETE
+- Unified SKIPPED behavior (authorize, end_session, userinfo, revocation, introspection, PAR): COMPLETE
+- PAR diagnostic state/nonce base64url format reporting: COMPLETE
+- Refresh fallback diagnostic: COMPLETE
+- IdP client JWKS structured markers (incl. revalidation + timing): COMPLETE
+- IdP client front/back-channel endpoint structured markers + timing: COMPLETE
+- Diagnostics body scrubbing implemented (ScrubForDiagnostics) across client & IdP endpoint checks and PAR; raw canonical well-known/JWKS preserved: COMPLETE
+- Removed logging of raw code_verifier and sensitive token artifacts in diagnostics: COMPLETE
 
 Diagnostics conventions
-(No change; encryption and JWKS checks skip when not negotiated/advertised.)
+- Client diagnostics probe IdP endpoints; IdP diagnostics probe registered client endpoints.
+- Well-known/JWKS check: Result[0] raw discovery JSON; Result[1] raw JWKS JSON; summaries appended ≥ index 2.
+- No logging of raw tokens, refresh tokens, client_assertion, logout_token, full JWKS body outside canonical slot.
+- Absent endpoints → “SKIPPED: not advertised”.
+- State/nonce values reported only by format/length (base64url).
+- Structured markers (client_id, urls, status, duration_ms, counts) standard for IdP-side client endpoint checks.
 
-Pending tasks (consolidated)
+Next tasks — Phase 3 (Diagnostics / UX)
+- Client-side diagnostics: Backchannel receiver probe NOT APPLICABLE
+- IdP-side diagnostics: Structured markers completed; only timing refinement optional (NOT APPLICABLE now)
+- Shared:
+  - Logging scrub (complete pass on encryption & JWKS internal handlers): PENDING
+  - Structured JWKS UI markers (cache hit/miss, forced refresh, ETag sent/received): PENDING
+  - UI help text for “Signed vs Signed+Encrypted”: PENDING
+
+Pending tasks (retain all)
 - IdP
-  1. PKCE policy alignment. — PENDING
-  2. EndSession: Add sid claim when available. — PENDING
-  3. Logging scrub (include encryption/JWKS paths). — PENDING
-  4. Tests for discovery alg ordering + encryption (no RSA_OAEP_256). — PENDING
-  5. Client JWKS usage via shared cache for private_key_jwt. — PENDING
+  1. PKCE policy alignment. PENDING
+  2. EndSession: include `sid` claim when available. PENDING
+  3. Logging scrub (encryption/JWKS deeper paths). PENDING
+  4. Optional tests for alg ordering + encryption. PENDING
+  5. Client endpoint diagnostics structured markers: COMPLETE
 - Client
-  1. Nonce/state base64url normalization. — PENDING
-  2. PAR diagnostic reuse for alg selection. — PENDING
-  3. Diagnostics skip behavior fix. — PENDING
-  4. Encryption diagnostics (Phase 3). — PENDING
-  5. Refresh fallback diagnostic. — PENDING
-  6. Backchannel receiver diagnostic. — PENDING
-  7. Logging scrub (include encrypted id_token handling). — PENDING
-  8. Tests: encryption scenarios + rate limiting. — PENDING
+  1. Logging scrub (encrypted id_token handling). PENDING
+  2. Backchannel receiver diagnostic (client suite) NOT APPLICABLE
 - Shared
-  1. Structured logging enrichment (JWKS: cache hit/miss, forced refresh, etag sent/received). — PENDING
-  2. Optional PKCE plain enable switch. — PENDING
-  3. Add docs for client decryption (no RSA_OAEP_256) and JWKS cache usage. — PENDING
-  4. UserInfo encryption (Phase 4, optional). — PENDING
-  5. Request object encryption (Phase 4, optional). — PENDING
-  6. Performance benchmark for encryption and JWKS cache overhead. — PENDING
+  1. Structured JWKS logging enrichment (hit/miss, forced refresh, ETag events). PENDING
+  2. Optional PKCE plain enable switch. PENDING
+  3. Docs: client decryption (no RSA_OAEP_256) & JWKS cache usage. PENDING
+  4. UserInfo encryption (Phase 4). PENDING
+  5. Request object encryption (Phase 4). PENDING
+  6. Performance benchmark (encryption & JWKS cache overhead). PENDING
 
 Release readiness (updated)
-- Discovery matches real capabilities (no unsupported RSA_OAEP_256).
+- Discovery matches capabilities (no unsupported RSA_OAEP_256).
 - IdP issues signed id_tokens; encrypts when possible.
-- Client decryption implemented; diagnostics still pending.
-- JWKS caching implemented with TTL + rotation fallback; and now also leverages HTTP 304 via server ETags.
-- No secrets/tokens appear in logs (scrub pending).
-- Deterministic alg/enc order implemented and to be verified by diagnostics.
+- Diagnostics confirm signing/encryption usage & endpoint reachability.
+- JWKS caching (TTL + rotation + 304) validated.
+- Deterministic alg/enc order implemented.
+- Scrub layer added; final logging audit pending.
 
 Status TL;DR
-- JWE for id_token implemented; RSA_OAEP_256 removed.
-- JWKS caching service uses TTL, kid-miss force-refresh and server ETags for conditional GET; next: diagnostics + tests + IdP private_key_jwt JWKS integration.
+- Core & encryption flows complete.
+- Diagnostics comprehensive (structured markers + scrub).
+- Remaining focus: finalize logging scrub, JWKS UI markers, documentation, optional encryption extensions.
+
+H — Signing & encryption end-to-end alignment
+- IdP key selection (RSA/ECDH) & client decryption: COMPLETE
+- Discovery accuracy & client_assertion alg enforcement: COMPLETE
+
+Actions (IdP)
+- Encrypt id_token with client’s public key; prefer RSA-OAEP or ECDH-ES+A256KW; enc=A256GCM. COMPLETE
+
+Actions (Client)
+- Decrypt JWE id_token enforcing allowed alg/enc sets. COMPLETE
+
+Actions (Shared/JWKS)
+- JWKS correctness (kty, crv/x/y, kid, x5c) validated. COMPLETE
 
 

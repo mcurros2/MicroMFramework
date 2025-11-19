@@ -28,6 +28,9 @@ public class OIDCClientDiagnostics(
     private readonly ClientUserInfoEndpointCheck userInfoEndpointCheck = new();
     private readonly ClientRevocationEndpointCheck revocationEndpointCheck = new();
     private readonly ClientIntrospectionEndpointCheck introspectionEndpointCheck = new();
+    private readonly ClientJwksCacheEffectivenessCheck jwksCacheEffectivenessCheck = new();
+    private readonly ClientEncryptionMetadataCheck EncMetadataCheck = new();
+    private readonly ClientRefreshFallbackDiagnostic RefreshFallbackCheck = new();
 
     public async Task<Dictionary<string, List<DiagnosticResult>>> RunAllDiagnosticsAsync(string app_id, CancellationToken ct)
     {
@@ -80,9 +83,27 @@ public class OIDCClientDiagnostics(
             ctx.userInfoURL = wellKnown.RootElement.ReadString(WellknownIdentityConstants.UserinfoEndpoint);
             ctx.revocationURL = wellKnown.RootElement.ReadString(WellknownIdentityConstants.RevocationEndpoint);
             ctx.introspectionURL = wellKnown.RootElement.ReadString(WellknownIdentityConstants.IntrospectionEndpoint);
+            ctx.jwksUri = wellKnown.RootElement.ReadString(WellknownIdentityConstants.JwksUri);
 
-            string? algsSupported = wellKnown.RootElement.ReadString(WellknownIdentityConstants.IdTokenSigningAlgValuesSupported);
-            ctx.tokenEndpointSigningAlgValuesSupported = wellKnown.RootElement.ReadString(WellknownIdentityConstants.TokenEndpointAuthSigningAlgValuesSupported);
+            // Populate token_endpoint_auth_signing_alg_values_supported into the context for reuse
+            if (wellKnown.RootElement.TryGetProperty(WellknownIdentityConstants.TokenEndpointAuthSigningAlgValuesSupported, out var algArr)
+                && algArr.ValueKind == JsonValueKind.Array)
+            {
+                var list = new List<OIDCSigningAlg>();
+                foreach (var a in algArr.EnumerateArray())
+                {
+                    if (a.ValueKind == JsonValueKind.String &&
+                        Enum.TryParse<OIDCSigningAlg>(a.GetString(), out var parsed))
+                    {
+                        list.Add(parsed);
+                    }
+                }
+                if (list.Count > 0)
+                    ctx.tokenEndpointAuthSigningAlgs = list;
+            }
+
+            var enc_result = await EncMetadataCheck.RunCheckAsync(ctx, ct);
+            results[EncMetadataCheck.DiagnosticId] = enc_result;
 
             var par_result = await PARTest.RunCheckAsync(ctx, ct);
             results[PARTest.DiagnosticId] = par_result;
@@ -92,6 +113,9 @@ public class OIDCClientDiagnostics(
 
             var idp_refresh_result = await IdpRefreshTest.RunCheckAsync(ctx, ct);
             results[IdpRefreshTest.DiagnosticId] = idp_refresh_result;
+
+            var refresh_fallback_result = await RefreshFallbackCheck.RunCheckAsync(ctx, ct);
+            results[RefreshFallbackCheck.DiagnosticId] = refresh_fallback_result;
 
             var end_session_result = await EndSessionTest.RunCheckAsync(ctx, ct);
             results[EndSessionTest.DiagnosticId] = end_session_result;
@@ -104,6 +128,10 @@ public class OIDCClientDiagnostics(
 
             var introspection_result = await introspectionEndpointCheck.RunCheckAsync(ctx, ct);
             results[introspectionEndpointCheck.DiagnosticId] = introspection_result;
+
+            var jwks_cache_result = await jwksCacheEffectivenessCheck.RunCheckAsync(ctx, ct);
+            results[jwksCacheEffectivenessCheck.DiagnosticId] = jwks_cache_result;
+
         }
 
         return results;

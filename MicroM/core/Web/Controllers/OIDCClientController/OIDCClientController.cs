@@ -54,13 +54,13 @@ public class OIDCClientController : ControllerBase, IOIDCClientController
         if (app == null) return NotFound("Application not found");
 
         var form = await Request.ReadFormAsync(ct);
-        var (status, isSuccess, contentType, body, error) = await clientService.HandleSignInOidc(app, Request.Headers, form, ct);
+        var result = await clientService.HandleSignInOidc(app, Request.Headers, form, ct);
 
         return new ContentResult
         {
-            StatusCode = status,
-            ContentType = contentType,
-            Content = body
+            StatusCode = result.StatusCode,
+            ContentType = result.ContentType,
+            Content = result.Body
         };
     }
 

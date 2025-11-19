@@ -27,4 +27,9 @@ public static class WebExtensions
         return root.TryGetProperty(name, out var prop) && prop.ValueKind == JsonValueKind.String ? prop.GetString() : null;
     }
 
+    public static JsonElement? ReadArray(this JsonElement root, string name)
+    {
+        return root.TryGetProperty(name, out var prop) && prop.ValueKind == JsonValueKind.Array ? prop : null;
+    }
+
 }

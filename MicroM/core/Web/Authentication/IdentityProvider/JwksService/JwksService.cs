@@ -47,13 +47,24 @@ public class JwksService(
 
     private OIDCJwksResponse CreateJwksResponse(ApplicationOption app)
     {
-        OIDCJwksKeyResponse? key = null;
         X509Certificate2? cert = certificate_cache.GetCertificate(app);
 
-        if (cert != null) key = JwksProvider.GetRSAKey(app, cert);
+        if (cert == null)
+        {
+            log.LogWarning("JWKS requested for app {app} but certificate_cache returned null certificate", app.ApplicationID);
+            return new(keys: []);
+        }
 
-        return new(keys: key != null ? [key] : []);
+        var keys = new List<OIDCJwksKeyResponse>(capacity: 2);
+
+        // Add RSA key when certificate has RSA public key
+        var rsaKey = JwksProvider.GetRSAKey(app, cert);
+        if (rsaKey != null) keys.Add(rsaKey);
+
+        // Add EC key when certificate has ECDSA public key
+        var ecKey = JwksProvider.GetECDKey(app, cert);
+        if (ecKey != null) keys.Add(ecKey);
+
+        return new(keys: keys);
     }
-
-
 }

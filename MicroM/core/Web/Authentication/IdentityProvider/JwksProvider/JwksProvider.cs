@@ -5,6 +5,8 @@ using Microsoft.IdentityModel.Tokens;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
+using System.Text;
+using System.Text.Json;
 
 namespace MicroM.Web.Authentication.SSO;
 
@@ -30,9 +32,7 @@ public static class JwksProvider
                 kid: kid,
                 kty: OIDCKeyType.RSA,
                 use: OIDCKeyUse.sig,
-                // MMC: omited alg here to allow both RS256 and RS512 with the same certificate
-                // Setting alg here would make clients compare the alg with well knwon
-                //alg = app.OIDCTokenSigningAlg,
+                // omitting alg to allow RS*/PS* selection at runtime
                 n: Base64UrlEncoder.Encode(par.Modulus),
                 e: Base64UrlEncoder.Encode(par.Exponent),
                 x5c: x5c,
@@ -117,6 +117,30 @@ public static class JwksProvider
         return new JsonWebKeySet(jwksJson);
     }
 
+    private static (bool isJwe, string? alg, string? enc, string? parseError) TryReadProtectedHeader(string jwt)
+    {
+        try
+        {
+            // JWS: 3 parts; JWE: 5 parts
+            var parts = jwt.Split('.');
+            if (parts.Length != 5)
+                return (false, null, null, null);
+
+            var headerB64 = parts[0];
+            var headerJson = Encoding.UTF8.GetString(Base64UrlEncoder.DecodeBytes(headerB64));
+            using var doc = JsonDocument.Parse(headerJson);
+            var root = doc.RootElement;
+
+            string? alg = root.TryGetProperty(JwtHeaderParameterNames.Alg, out var algEl) && algEl.ValueKind == JsonValueKind.String ? algEl.GetString() : null;
+            string? enc = root.TryGetProperty(JwtHeaderParameterNames.Enc, out var encEl) && encEl.ValueKind == JsonValueKind.String ? encEl.GetString() : null;
+            return (true, alg, enc, null);
+        }
+        catch (Exception ex)
+        {
+            return (true, null, null, ex.Message);
+        }
+    }
+
     public static async Task<ResultWithStatus<JWTTokenResult, string>> ValidateIdTokenAsync(
         IHttpClientFactory httpClientFactory,
         string jwksUri,
@@ -139,6 +163,38 @@ public static class JwksProvider
     {
         try
         {
+            // Enforce allowed JWE alg/enc when encrypted
+            var (isJwe, alg, enc, parseError) = TryReadProtectedHeader(idToken);
+            if (isJwe)
+            {
+                if (parseError != null)
+                {
+                    return new(null, $"id_token header parse error: {parseError}");
+                }
+
+                // Allowed key mgmt algs
+                var allowedAlgs = new HashSet<string>(StringComparer.Ordinal)
+                {
+                    SecurityAlgorithms.RsaOAEP,
+                    SecurityAlgorithms.EcdhEsA256kw,
+                    SecurityAlgorithms.EcdhEs
+                };
+                // Allowed content enc
+                var allowedEnc = new HashSet<string>(StringComparer.Ordinal)
+                {
+                    SecurityAlgorithms.Aes256Gcm
+                };
+
+                if (string.IsNullOrWhiteSpace(alg) || !allowedAlgs.Contains(alg))
+                {
+                    return new(null, $"unsupported_encryption_alg: {alg ?? "<null>"}");
+                }
+                if (string.IsNullOrWhiteSpace(enc) || !allowedEnc.Contains(enc))
+                {
+                    return new(null, $"unsupported_encryption_enc: {enc ?? "<null>"}");
+                }
+            }
+
             var jwks = await FetchJwksAsync(httpClientFactory, jwksUri, ct);
 
             var handler = new JsonWebTokenHandler();

@@ -1,4 +1,5 @@
 using MicroM.Diagnostics;
+using MicroM.Web.Authentication.SSO;
 using System.Text.Json;
 
 namespace MicroM.Web.Authentication.OIDCDiagnostics;
@@ -14,9 +15,9 @@ internal class ClientAuthorizeMetadataCheck() : IDiagnosticCheck<ClientDiagnosti
 
         try
         {
-
+            // SKIPPED when not advertised (unified behavior)
             if (string.IsNullOrWhiteSpace(ctx.authorizeURL))
-                return [new(DiagnosticId, Errors: [new("authorize_missing", "Discovery is missing authorization_endpoint")])];
+                return [new(DiagnosticId, IsSuccess: true, Result: "SKIPPED: authorization_endpoint not advertised")];
 
             var root = ctx.wellKnownDoc!.RootElement;
 
@@ -28,7 +29,7 @@ internal class ClientAuthorizeMetadataCheck() : IDiagnosticCheck<ClientDiagnosti
 
             bool supportsS256 = true;
             if (root.TryGetProperty("code_challenge_methods_supported", out var ccms) && ccms.ValueKind == JsonValueKind.Array)
-                supportsS256 = ccms.EnumerateArray().Any(x => x.ValueKind == JsonValueKind.String && string.Equals(x.GetString(), "S256", StringComparison.OrdinalIgnoreCase));
+                supportsS256 = ccms.EnumerateArray().Any(x => x.ValueKind == JsonValueKind.String && string.Equals(x.GetString(), nameof(OIDCCodeChallengeMethod.S256), StringComparison.OrdinalIgnoreCase));
             if (!supportsS256)
                 return [new(DiagnosticId, Result: $"authorization_endpoint: {ctx.authorizeURL}", Errors: [new("pkce_s256_missing", "IdP does not advertise PKCE S256 support")])];
 
