@@ -11,6 +11,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.Security.Claims;
 using System.Security.Cryptography.X509Certificates;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace MicroM.Web.Authentication.SSO;
 
@@ -28,7 +29,7 @@ public class IdentityProviderService(
     private JsonSerializerOptions _jsonSerializationOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
     };
 
     public EtagCacheServiceCacheCheckResult HandleWellKnown(ApplicationOption app, string request_base, RequestHeaders request_headers, IHeaderDictionary response_headers)
@@ -179,6 +180,28 @@ public class IdentityProviderService(
             // Derive pairwise sub for this client
             string sub = ApplicationOidcActiveSessions.GetDerivedSub(clientAppId, user_id, pepper);
 
+            // Lookup existing session(s) by pairwise sub BEFORE purge to obtain a sid to include in logout_token if available.
+            string? existingSid = null;
+            try
+            {
+                using var lookupDbc = app.CreateDatabaseClient(log, null, null);
+                var sessions = await ApplicationOidcActiveSessions.GetSessionsBySubject(lookupDbc, sub, ct);
+                if (sessions != null && sessions.Count == 1)
+                {
+                    existingSid = sessions[0].vc_oidc_session_id;
+                }
+                else
+                {
+                    log.LogWarning("EndSession: No active sessions found for sub {sub} in client {client}", sub, clientAppId);
+                    continue;
+                }
+            }
+            catch (Exception ex)
+            {
+                // Non-fatal; continue without sid
+                log.LogDebug(ex, "EndSession: sid lookup failed for client {client}", clientAppId);
+            }
+
             // Build logout_token JWT
             var now = DateTimeOffset.UtcNow;
 
@@ -188,6 +211,12 @@ public class IdentityProviderService(
                 new(WellknownIdentityConstants.Events, WellknownIdentityConstants.BackchannelLogoutEventJson, JsonClaimValueTypes.Json),
                 new(WellknownIdentityConstants.JWTID, Guid.NewGuid().ToString("N"))
             };
+
+            // Include sid claim when an existing session id was found
+            if (!string.IsNullOrWhiteSpace(existingSid))
+            {
+                claims.Add(new Claim(WellknownIdentityConstants.SessionIdentifier, existingSid));
+            }
 
             var desc = new SecurityTokenDescriptor
             {
@@ -241,6 +270,4 @@ public class IdentityProviderService(
     {
         throw new NotImplementedException();
     }
-
-
 }
