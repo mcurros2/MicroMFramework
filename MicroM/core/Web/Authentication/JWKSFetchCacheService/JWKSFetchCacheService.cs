@@ -7,8 +7,7 @@ using System.Text.Json;
 
 namespace MicroM.Web.Authentication.SSO;
 
-// Caches JWKS per jwks_uri. Stores server & local ETag, raw JSON, parsed OIDC model and materialized SecurityKey map.
-// Adds structured logging markers for cache hit/miss, forced refresh, ETag sent/received, and 304 Not Modified path.
+// Caches JWKS per jwks_uri. Adds trace log lines with cache metrics (hit/miss, etags, key counts).
 public class JWKSFetchCacheService(
     IOIDCHttpClient oidcHttpClient,
     IEtagCacheService etagCache,
@@ -16,9 +15,9 @@ public class JWKSFetchCacheService(
     ) : IJWKSFetchCacheService
 {
     private readonly ConcurrentDictionary<string, JwksCacheResult> _jwksResults = new(StringComparer.OrdinalIgnoreCase);
-    private readonly ConcurrentDictionary<string, string> _serverEtags = new(StringComparer.OrdinalIgnoreCase); // last server ETag
+    private readonly ConcurrentDictionary<string, string> _serverEtags = new(StringComparer.OrdinalIgnoreCase);
     private static readonly JsonSerializerOptions _jsonOptions = new() { PropertyNameCaseInsensitive = true };
-    private static TimeSpan DefaultTTL = TimeSpan.FromSeconds(ConfigurationDefaults.JwksCacheDurationSeconds);
+    private static readonly TimeSpan DefaultTTL = TimeSpan.FromSeconds(ConfigurationDefaults.JwksCacheDurationSeconds);
     private static string ToEtagKey(string jwksUri) => $"jwks:{jwksUri}";
 
     public async Task<SecurityKey?> GetKeyByKidAsync(string jwksUri, string kid, CancellationToken ct)
@@ -26,17 +25,16 @@ public class JWKSFetchCacheService(
         ArgumentException.ThrowIfNullOrWhiteSpace(jwksUri);
         ArgumentException.ThrowIfNullOrWhiteSpace(kid);
 
-        var jwks = await GetAsync(jwksUri, ct).ConfigureAwait(false);
-        if (jwks.Keys.TryGetValue(kid, out var key)) return key;
+        var current = await GetAsync(jwksUri, ct).ConfigureAwait(false);
+        if (current.Keys.TryGetValue(kid, out var key)) return key;
 
-        // kid miss fallback - force a refresh once to tolerate rotations
         var refreshed = await GetAsync(jwksUri, ct, forceRefresh: true).ConfigureAwait(false);
-        var found = refreshed.Keys.TryGetValue(kid, out var keyAfterRefresh) ? "true" : "false";
+        var found = refreshed.Keys.TryGetValue(kid, out var newKey);
 
-        logger.LogTrace("JWKS_CACHE_KEY_LOOKUP jwks_uri={jwksUri} kid={kid} kid_found_after_refresh={kidFound} forced_refresh=true server_etag={serverETag} local_etag={localETag} keys_count={keysCount}",
-            jwksUri, kid, found, refreshed.ServerETag ?? "n/a", refreshed.ETag ?? "n/a", refreshed.Keys.Count);
+        logger.LogTrace("JWKS_KEY_LOOKUP jwks_uri={jwksUri} kid={kid} found_after_refresh={found} keys_before={before} keys_after={after} server_etag={serverETag} local_etag={localETag}",
+            jwksUri, kid, found, current.Keys.Count, refreshed.Keys.Count, refreshed.ServerETag ?? "n/a", refreshed.ETag ?? "n/a");
 
-        return keyAfterRefresh;
+        return newKey;
     }
 
     public void Invalidate(string jwksUri)
@@ -45,7 +43,7 @@ public class JWKSFetchCacheService(
         etagCache.Remove(ToEtagKey(jwksUri));
         _jwksResults.TryRemove(jwksUri, out _);
         _serverEtags.TryRemove(jwksUri, out _);
-        logger.LogTrace("JWKS_CACHE_INVALIDATE jwks_uri={jwksUri}", jwksUri);
+        logger.LogTrace("JWKS_INVALIDATE jwks_uri={jwksUri}", jwksUri);
     }
 
     public async Task<JwksCacheResult> GetAsync(string jwksUri, CancellationToken ct, bool forceRefresh = false)
@@ -53,8 +51,7 @@ public class JWKSFetchCacheService(
         ct.ThrowIfCancellationRequested();
         if (string.IsNullOrWhiteSpace(jwksUri)) throw new ArgumentException("jwksUri required", nameof(jwksUri));
 
-        string? serverEtagPrev = null;
-        _serverEtags.TryGetValue(jwksUri, out serverEtagPrev);
+        _serverEtags.TryGetValue(jwksUri, out var serverEtagPrev);
 
         if (forceRefresh)
         {
@@ -62,15 +59,14 @@ public class JWKSFetchCacheService(
             _serverEtags.TryRemove(jwksUri, out _);
         }
 
-        // Flags captured from HTTP fetch lambda
         bool serverNotModified = false;
         string? sentIfNoneMatch = null;
 
         var etagContent = await etagCache.GetOrAddAsync(
             ToEtagKey(jwksUri),
-            async (token) =>
+            async token =>
             {
-                var previousContent = etagCache.Get(ToEtagKey(jwksUri));
+                var prevContent = etagCache.Get(ToEtagKey(jwksUri));
                 _serverEtags.TryGetValue(jwksUri, out var prevServerEtag);
                 sentIfNoneMatch = prevServerEtag;
 
@@ -79,21 +75,16 @@ public class JWKSFetchCacheService(
                 if (resp.NotModified)
                 {
                     serverNotModified = true;
-
                     if (!string.IsNullOrWhiteSpace(resp.ETag))
                         _serverEtags[jwksUri] = resp.ETag;
 
-                    if (previousContent != null && !string.IsNullOrEmpty(previousContent.Content))
-                        return previousContent.Content;
+                    if (prevContent?.Content is { Length: > 0 })
+                        return prevContent.Content;
 
-                    // Fallback unconditional fetch (rare path)
-                    var fresh = await oidcHttpClient.GetJwksJsonAsync(jwksUri, token, ifNoneMatch: null).ConfigureAwait(false);
-                    if (!fresh.IsSuccessStatusCode)
-                        throw new InvalidOperationException(fresh.Error ?? $"GET JWKS failed: {fresh.StatusCode}");
-
+                    var fresh = await oidcHttpClient.GetJwksJsonAsync(jwksUri, token, null).ConfigureAwait(false);
+                    if (!fresh.IsSuccessStatusCode) throw new InvalidOperationException(fresh.Error ?? $"GET JWKS failed: {fresh.StatusCode}");
                     if (!string.IsNullOrWhiteSpace(fresh.ETag))
                         _serverEtags[jwksUri] = fresh.ETag;
-
                     return fresh.Body ?? "";
                 }
 
@@ -110,13 +101,12 @@ public class JWKSFetchCacheService(
             ct: ct
         ).ConfigureAwait(false);
 
-        var localContentEtag = etagContent.Etag;
+        var localEtag = etagContent.Etag;
         var rawJson = etagContent.Content ?? "";
 
-        // Cache hit if parsed result exists with same local ETag
         var cacheHit = _jwksResults.TryGetValue(jwksUri, out var existing) &&
                        !string.IsNullOrEmpty(existing.ETag) &&
-                       string.Equals(existing.ETag, localContentEtag, StringComparison.Ordinal);
+                       string.Equals(existing.ETag, localEtag, StringComparison.Ordinal);
 
         if (cacheHit)
         {
@@ -130,20 +120,20 @@ public class JWKSFetchCacheService(
                 SentIfNoneMatch = sentIfNoneMatch
             };
 
-            logger.LogTrace("JWKS_CACHE_EVENT jwks_uri={jwksUri} cache_hit=true force_refresh={forceRefresh} server_etag_prev={serverEtagPrev} server_etag_new={serverETagNew} local_etag={localETag} not_modified={notModified} sent_if_none_match={sentIfNoneMatch} keys_count={keysCount}",
+            logger.LogTrace("JWKS_CACHE_EVENT jwks_uri={jwksUri} hit=true force_refresh={forceRefresh} server_etag_prev={serverEtagPrev} server_etag_curr={serverEtagCurr} local_etag={localETag} not_modified={notModified} sent_if_none_match={sentIfNoneMatch} keys={keysCount} fetched_utc={fetchedUtc:o}",
                 jwksUri,
                 forceRefresh,
                 serverEtagPrev ?? "n/a",
                 reused.ServerETag ?? "n/a",
-                localContentEtag ?? "n/a",
+                localEtag ?? "n/a",
                 serverNotModified,
                 sentIfNoneMatch ?? "n/a",
-                reused.Keys.Count);
+                reused.Keys.Count,
+                reused.FetchedUtc);
 
             return reused;
         }
 
-        // Parse JWKS
         OIDCJwksResponse? parsed = null;
         try
         {
@@ -151,17 +141,15 @@ public class JWKSFetchCacheService(
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "JWKS_PARSE_FAILED jwks_uri={jwksUri}", jwksUri);
+            logger.LogWarning(ex, "JWKS_PARSE_FAILED jwks_uri={jwksUri} local_etag={etag}", jwksUri, localEtag ?? "n/a");
         }
 
-        // Materialize keys
-        IReadOnlyDictionary<string, SecurityKey> keys = BuildSecurityKeyMap(rawJson);
-
-        var serverEtagNew = _serverEtags.TryGetValue(jwksUri, out var se2) ? se2 : null;
+        var keys = BuildSecurityKeyMap(rawJson);
+        _serverEtags.TryGetValue(jwksUri, out var serverEtagNew);
 
         var result = new JwksCacheResult(
             JwksUri: jwksUri,
-            ETag: localContentEtag,
+            ETag: localEtag,
             RawJson: rawJson,
             Parsed: parsed,
             Keys: keys,
@@ -175,18 +163,38 @@ public class JWKSFetchCacheService(
 
         _jwksResults[jwksUri] = result;
 
-        logger.LogTrace("JWKS_CACHE_EVENT jwks_uri={jwksUri} cache_hit=false force_refresh={forceRefresh} server_etag_prev={serverEtagPrev} server_etag_new={serverEtagNew} local_etag={localETag} not_modified={notModified} sent_if_none_match={sentIfNoneMatch} keys_count={keysCount} parsed={parsed}",
+        logger.LogTrace("JWKS_CACHE_EVENT jwks_uri={jwksUri} hit=false force_refresh={forceRefresh} server_etag_prev={serverEtagPrev} server_etag_curr={serverEtagCurr} local_etag={localETag} not_modified={notModified} sent_if_none_match={sentIfNoneMatch} keys={keysCount} parsed={parsed} fetched_utc={fetchedUtc:o}",
             jwksUri,
             forceRefresh,
             serverEtagPrev ?? "n/a",
             serverEtagNew ?? "n/a",
-            localContentEtag ?? "n/a",
+            localEtag ?? "n/a",
             serverNotModified,
             sentIfNoneMatch ?? "n/a",
             keys.Count,
-            parsed != null);
+            parsed != null,
+            result.FetchedUtc);
 
         return result;
+    }
+
+    public IEnumerable<JwksCacheMetric> GetCacheMetrics()
+    {
+        foreach (var kv in _jwksResults)
+        {
+            var r = kv.Value;
+            yield return new JwksCacheMetric(
+                jwks_uri: r.JwksUri,
+                server_etag: r.ServerETag,
+                local_etag: r.ETag,
+                server_not_modified_last: r.ServerNotModified,
+                was_refreshed_last: r.WasRefreshed,
+                from_cache_last: r.FromCache,
+                sent_if_none_match_last: r.SentIfNoneMatch,
+                keys_count: r.Keys.Count,
+                last_fetched_utc: r.FetchedUtc
+            );
+        }
     }
 
     private static Dictionary<string, SecurityKey> BuildSecurityKeyMap(string rawJson)
@@ -200,9 +208,7 @@ public class JWKSFetchCacheService(
                       ?? jwk.X5t
                       ?? $"key-{dict.Count}";
             if (!dict.ContainsKey(kid))
-            {
                 dict[kid] = jwk;
-            }
         }
         return dict;
     }

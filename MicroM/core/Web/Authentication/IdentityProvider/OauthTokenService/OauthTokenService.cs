@@ -88,7 +88,7 @@ public class OauthTokenService(
             var (idTokenResult, accessTokenResult, tokenError) =
                 await OauthTokenServiceProvider.GenerateAuthTokens(jwtHandler, app, session.vc_oidc_session_id, null, record.client_id, sub!);
 
-            if (idTokenResult?.Token == null || accessTokenResult?.Token == null || tokenError != null || refresh_token == null)
+            if (idTokenResult?.Token == null || accessTokenResult?.Token == null || tokenError != null)
             {
                 log.LogError("OIDC_TOKEN_REFRESH_GENERATE_FAILED client_id={clientId} sid={sid} error={error}", record.client_id, SidMarker(session.vc_oidc_session_id), tokenError?.Error ?? "token_generation_failed");
                 return new(null, new("server_error", "Failed to generate tokens"));
@@ -159,6 +159,15 @@ public class OauthTokenService(
             return new(null, new("invalid_grant", "Invalid or expired authorization code / PKCE mismatch"));
         }
 
+        // PKCE policy alignment: reject 'plain' if not enabled globally
+        var methodStr = record.CodeChallengeMethod;
+
+        if (string.Equals(methodStr, nameof(OIDCCodeChallengeMethod.plain), StringComparison.OrdinalIgnoreCase) && !app.OIDCAllowPkcePlain)
+        {
+            log.LogWarning("OIDC_TOKEN_CODE_PKCE_POLICY_VIOLATION client_id={clientId} method={method} allowed_plain={allowedPlain}", request_record.client_id, methodStr ?? "unknown", app.OIDCAllowPkcePlain);
+            return new(null, new("invalid_grant", "PKCE method not permitted"));
+        }
+
         var sid = OauthTokenServiceProvider.EnsureSID(record.Sid);
         var sub_hash = ApplicationOidcActiveSessions.GetDerivedSub(authenticated_client_app, record.UserId, sub_pepper);
 
@@ -203,7 +212,7 @@ public class OauthTokenService(
             refresh_expiration,
             idTokenResult.Token.Length,
             accessTokenResult.Token.Length,
-            refresh_token.Length,
+            refresh_token?.Length,
             upsert_error?.Error ?? "none");
 
         return new(token_response, null);
