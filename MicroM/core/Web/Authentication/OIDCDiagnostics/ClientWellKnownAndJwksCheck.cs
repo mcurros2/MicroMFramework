@@ -1,4 +1,5 @@
 ﻿using MicroM.Diagnostics;
+using MicroM.Web.Authentication.SSO;
 using System.Text.Json;
 
 namespace MicroM.Web.Authentication.OIDCDiagnostics;
@@ -66,14 +67,14 @@ internal class ClientWellKnownAndJwksCheck() : IDiagnosticCheck<ClientDiagnostic
             foreach (var keyEl in keysEl.EnumerateArray())
             {
                 if (keyEl.ValueKind != JsonValueKind.Object) continue;
-                if (keyEl.TryGetProperty("kty", out var ktyEl) && ktyEl.ValueKind == JsonValueKind.String)
+                if (keyEl.TryGetProperty(WellknownIdentityConstants.Kty, out var ktyEl) && ktyEl.ValueKind == JsonValueKind.String)
                 {
                     var kty = ktyEl.GetString();
-                    if (string.Equals(kty, "RSA", StringComparison.OrdinalIgnoreCase))
+                    if (string.Equals(kty, nameof(OIDCKeyType.RSA), StringComparison.OrdinalIgnoreCase))
                     {
                         hasRsaKey = true;
                     }
-                    else if (string.Equals(kty, "EC", StringComparison.OrdinalIgnoreCase))
+                    else if (string.Equals(kty, nameof(OIDCKeyType.EC), StringComparison.OrdinalIgnoreCase))
                     {
                         if (keyEl.TryGetProperty("alg", out var algEl) && algEl.ValueKind == JsonValueKind.String)
                         {

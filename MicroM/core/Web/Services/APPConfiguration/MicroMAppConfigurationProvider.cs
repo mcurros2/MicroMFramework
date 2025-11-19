@@ -24,7 +24,6 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
     private static readonly Dictionary<string, ApplicationOption> _ApplicationsCache = new(StringComparer.OrdinalIgnoreCase);
     private static readonly Dictionary<string, Type> _EntityTypesCache = new(StringComparer.OrdinalIgnoreCase);
     private static readonly Dictionary<string, PublicEndpointSecurityRecord> _PublicAccessCache = new(StringComparer.OrdinalIgnoreCase);
-
     private static readonly HashSet<string> _globalAllowedURLS = new(StringComparer.OrdinalIgnoreCase);
     private readonly ConcurrentDictionary<string, HashSet<string>> _appAllowedURLS = new(StringComparer.OrdinalIgnoreCase);
 
@@ -36,6 +35,7 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
     private readonly string _jwtkey;
     private readonly IEtagCacheService _etag_cache;
     private readonly IApplicationCertificateCacheService _certificate_cache;
+    private readonly IAudienceCryptoCacheService _audience_crypto_cache;
     private readonly PathString _basePathString;
 
     private static string NormalizeURL(string url)
@@ -52,6 +52,7 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
         IBackgroundTaskQueue queue,
         IApplicationCertificateCacheService certificate_cache,
         IEtagCacheService etag_cache,
+        IAudienceCryptoCacheService audience_crypto_cache,
         IConfiguration config)
     {
         ThrowIfNull(options);
@@ -66,18 +67,12 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
         _config = config;
         _etag_cache = etag_cache;
         _certificate_cache = certificate_cache;
+        _audience_crypto_cache = audience_crypto_cache;
 
         var raw = options?.Value.MicroMAPIBaseRootPath ?? string.Empty;
         var trimmed = raw.Trim().Trim('/');
 
-        if (string.IsNullOrEmpty(trimmed))
-        {
-            _basePathString = PathString.Empty;
-        }
-        else
-        {
-            _basePathString = new PathString("/" + trimmed);
-        }
+        _basePathString = string.IsNullOrEmpty(trimmed) ? PathString.Empty : new PathString("/" + trimmed);
 
         _log.LogTrace("initialized");
     }
@@ -429,8 +424,8 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
     {
         bool result = false;
 
-        var aquired = await _refreshSemaphore.WaitAsync(0, ct);
-        if (aquired)
+        var acquired = await _refreshSemaphore.WaitAsync(0, ct);
+        if (acquired)
         {
             _log.LogTrace("RefreshConfiguration Called");
 
@@ -457,13 +452,14 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
     private static readonly SemaphoreSlim _reloadSemaphore = new(1, 1);
     private async Task ReloadConfiguration(CancellationToken ct)
     {
-        var aquired = await _reloadSemaphore.WaitAsync(0, ct);
-        if (aquired)
+        var acquired = await _reloadSemaphore.WaitAsync(0, ct);
+        if (acquired)
         {
             try
             {
                 _etag_cache.ClearCache();
                 _certificate_cache.ClearCache();
+                _audience_crypto_cache.Clear();
                 _ApplicationsCache.Clear();
                 await RefreshConfiguration(null, ct);
             }
@@ -485,10 +481,7 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
         return null;
     }
 
-    public List<string> GetAppIDs()
-    {
-        return [.. _ApplicationsCache.Keys];
-    }
+    public List<string> GetAppIDs() => [.. _ApplicationsCache.Keys];
 
     public PublicEndpointSecurityRecord? GetPublicAccessAllowedRoutes(string app_id)
     {

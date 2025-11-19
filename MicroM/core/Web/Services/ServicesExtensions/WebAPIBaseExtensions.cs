@@ -142,6 +142,7 @@ public static class WebAPIBaseExtensions
         services.AddSingleton<IPushedAuthorizationService, PushedAuthorizationService>();
         services.AddSingleton<IOIDCClientService, OIDCClientService>();
         services.AddSingleton<IStateAndNonceService, StateAndNonceService>();
+        services.AddSingleton<IOIDCReplayCacheService, OIDCReplayCacheService>();
 
         return services;
     }
@@ -457,8 +458,8 @@ public static class WebAPIBaseExtensions
         services.AddMicroMRateLimitingPolicies();
 
         services.AddIdentityProviderService();
-        services.AddSingleton<IOIDCReplayCacheService, OIDCReplayCacheService>();
 
+        services.AddSingleton<IAudienceCryptoCacheService, AudienceCryptoCacheService>();
 
         services.AddSingleton<WebAPIJsonWebTokenHandler>();
         services.AddSingleton<IPostConfigureOptions<JwtBearerOptions>, WebAPIJwtPostConfigurationOptions>();

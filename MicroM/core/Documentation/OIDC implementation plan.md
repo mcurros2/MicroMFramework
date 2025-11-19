@@ -38,9 +38,11 @@ E — Security & hardening
   - Runtime state cookie is HMAC’ed, single-use.
   - PKCE enforcement accepts `S256` and `plain` per discovery; acceptance tracks discovery-advertised methods.
 - Encrypted OIDC refresh tokens at rest: COMPLETE
-- Logging: PARTIAL (scrub infrastructure implemented; remaining: deeper encryption/JWKS path audit)
-- Rate limiting: COMPLETE
-- Metrics/counters: Using ASP.NET Core built-in meters.
+- Logging: PARTIAL
+  - Diagnostics scrubbing implemented (no raw tokens/JWKS bodies outside canonical slots).
+  - IdP token service (`OauthTokenService`) logging scrub: COMPLETE
+    - Structured markers with `sid` truncation (`SidMarker`), token fields masked by length only, no raw secrets.
+  - Remaining: deeper encryption/JWKS internal path audit.
 
 F — Encrypted Tokens (scope)
 Goal: Optional JWE encryption of id_token (and later userinfo / request objects) using asymmetric crypto (no shared-secret OIDC encryption). `app.JWTKey` only for local API JWT.
@@ -88,8 +90,12 @@ Recent changes (UPDATED)
 - Refresh fallback diagnostic: COMPLETE
 - IdP client JWKS structured markers (incl. revalidation + timing): COMPLETE
 - IdP client front/back-channel endpoint structured markers + timing: COMPLETE
-- Diagnostics body scrubbing implemented (ScrubForDiagnostics) across client & IdP endpoint checks and PAR; raw canonical well-known/JWKS preserved: COMPLETE
+- Diagnostics body scrubbing (ScrubForDiagnostics) across client & IdP checks and PAR; raw canonical well-known/JWKS preserved: COMPLETE
 - Removed logging of raw code_verifier and sensitive token artifacts in diagnostics: COMPLETE
+- JWKS cache service enriched with structured result markers and logs (ServerETag, ServerNotModified/304, SentIfNoneMatch, cache hit/miss, forced refresh): COMPLETE
+- Client JWKS cache effectiveness diagnostic structured summary (first_http_status, first_etag, keys_count, kids_sample, revalidate_http_status, not_modified, result) with no JWKS body leakage: COMPLETE
+- IdP token service (`OauthTokenService`) logging scrubbed and structured (mask tokens, truncate `sid`): COMPLETE
+- Centralized diagnostics scrub helper (`DiagnosticsLoggingScrub`) introduced for sid truncation & token masking (shared usage): COMPLETE
 
 Diagnostics conventions
 - Client diagnostics probe IdP endpoints; IdP diagnostics probe registered client endpoints.
@@ -98,27 +104,28 @@ Diagnostics conventions
 - Absent endpoints → “SKIPPED: not advertised”.
 - State/nonce values reported only by format/length (base64url).
 - Structured markers (client_id, urls, status, duration_ms, counts) standard for IdP-side client endpoint checks.
+- JWKS cache results expose ServerETag, NotModified, SentIfNoneMatch; client effectiveness diagnostic emits concise structured lines.
 
 Next tasks — Phase 3 (Diagnostics / UX)
 - Client-side diagnostics: Backchannel receiver probe NOT APPLICABLE
-- IdP-side diagnostics: Structured markers completed; only timing refinement optional (NOT APPLICABLE now)
+- IdP-side diagnostics: Structured markers completed; timing refinement optional (NOT APPLICABLE now)
 - Shared:
   - Logging scrub (complete pass on encryption & JWKS internal handlers): PENDING
-  - Structured JWKS UI markers (cache hit/miss, forced refresh, ETag sent/received): PENDING
+  - Surface structured JWKS cache markers (hit/miss, forced refresh, sent_if_none_match, server_etag) directly in UI dashboards: PENDING
   - UI help text for “Signed vs Signed+Encrypted”: PENDING
 
 Pending tasks (retain all)
 - IdP
   1. PKCE policy alignment. PENDING
   2. EndSession: include `sid` claim when available. PENDING
-  3. Logging scrub (encryption/JWKS deeper paths). PENDING
+  3. Logging scrub (encryption/JWKS deeper paths; OauthTokenService DONE). PENDING
   4. Optional tests for alg ordering + encryption. PENDING
   5. Client endpoint diagnostics structured markers: COMPLETE
 - Client
   1. Logging scrub (encrypted id_token handling). PENDING
   2. Backchannel receiver diagnostic (client suite) NOT APPLICABLE
 - Shared
-  1. Structured JWKS logging enrichment (hit/miss, forced refresh, ETag events). PENDING
+  1. Structured JWKS logging enrichment (hit/miss, forced refresh, ETag events) – backend COMPLETE, UI surfacing PENDING
   2. Optional PKCE plain enable switch. PENDING
   3. Docs: client decryption (no RSA_OAEP_256) & JWKS cache usage. PENDING
   4. UserInfo encryption (Phase 4). PENDING
@@ -129,14 +136,16 @@ Release readiness (updated)
 - Discovery matches capabilities (no unsupported RSA_OAEP_256).
 - IdP issues signed id_tokens; encrypts when possible.
 - Diagnostics confirm signing/encryption usage & endpoint reachability.
-- JWKS caching (TTL + rotation + 304) validated.
+- JWKS caching (TTL + rotation + 304) validated; structured cache markers available.
 - Deterministic alg/enc order implemented.
-- Scrub layer added; final logging audit pending.
+- Scrub layer added in diagnostics and IdP token service; final logging audit & UI marker surfacing pending.
 
 Status TL;DR
 - Core & encryption flows complete.
 - Diagnostics comprehensive (structured markers + scrub).
-- Remaining focus: finalize logging scrub, JWKS UI markers, documentation, optional encryption extensions.
+- Client JWKS effectiveness check structured; JWKS cache service exposes marker set.
+- IdP token service logging masked (no secrets).
+- Remaining: finalize deeper logging scrub, UI surfacing of JWKS markers, documentation, optional encryption extensions.
 
 H — Signing & encryption end-to-end alignment
 - IdP key selection (RSA/ECDH) & client decryption: COMPLETE
