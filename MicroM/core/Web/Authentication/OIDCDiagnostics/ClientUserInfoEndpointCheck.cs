@@ -1,5 +1,6 @@
 using MicroM.Diagnostics;
 using MicroM.Extensions;
+using MicroM.Web.Extensions;
 using System.Text.Json;
 
 namespace MicroM.Web.Authentication.OIDCDiagnostics;
@@ -18,15 +19,15 @@ internal class ClientUserInfoEndpointCheck() : IDiagnosticCheck<ClientDiagnostic
 
         try
         {
-
+            // Unified SKIPPED behavior
             if (string.IsNullOrWhiteSpace(ctx.userInfoURL))
-                return [new(DiagnosticId, Errors: [new("user_info_url_missing", "userinfo_endpoint not advertised in discovery; skipping probe.")])];
+                return [new(DiagnosticId, IsSuccess: true, Result: "SKIPPED: userinfo_endpoint not advertised")];
 
             userInfoUrl = ctx.userInfoURL;
 
             var resp = await httpClient.PostFormUrlEncodedAsync(userInfoUrl, Array.Empty<KeyValuePair<string, string>>(), ct);
             var status = resp.StatusCode;
-            var body = resp.Body ?? string.Empty;
+            var body = (resp.Body ?? string.Empty).ScrubForDiagnostics();
 
             if (resp.IsSuccessStatusCode || (int)status is 400 or 401 or 403 or 405)
                 return [new(DiagnosticId, IsSuccess: true, Result: $"Status: OK (endpoint reachable)\nEndpoint: {userInfoUrl}\nHTTP {status}\nBody: {body.Truncate(2048)}\nError: {resp.Error}")];

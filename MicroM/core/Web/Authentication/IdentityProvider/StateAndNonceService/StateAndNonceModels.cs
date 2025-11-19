@@ -29,11 +29,12 @@ public sealed record StateAndNonceHashed
 
     private static string ComputeHmacBase64Url(string keyMaterial, string data)
     {
-        using var h = new HMACSHA256(Encoding.UTF8.GetBytes(keyMaterial));
-        var hash = h.ComputeHash(Encoding.UTF8.GetBytes(data));
+        var hash = HMACSHA256.HashData(
+            Encoding.UTF8.GetBytes(keyMaterial),
+            Encoding.UTF8.GetBytes(data));
+
         return WebEncoders.Base64UrlEncode(hash);
     }
-
 
     public static string Encode(string hmacKey, StateAndNonceData data)
     {

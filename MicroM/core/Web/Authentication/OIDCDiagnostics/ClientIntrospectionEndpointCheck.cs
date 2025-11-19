@@ -1,5 +1,6 @@
 using MicroM.Diagnostics;
 using MicroM.Extensions;
+using MicroM.Web.Extensions;
 using System.Text.Json;
 
 namespace MicroM.Web.Authentication.OIDCDiagnostics;
@@ -18,9 +19,9 @@ internal class ClientIntrospectionEndpointCheck() : IDiagnosticCheck<ClientDiagn
 
         try
         {
-
+            // Unified SKIPPED behavior
             if (string.IsNullOrWhiteSpace(ctx.introspectionURL))
-                return [new(DiagnosticId, Errors: [new("instrospection_url_missing", "introspection_endpoint not advertised in discovery; skipping probe.")])];
+                return [new(DiagnosticId, IsSuccess: true, Result: "SKIPPED: introspection_endpoint not advertised")];
 
             introspectionUrl = ctx.introspectionURL;
 
@@ -32,7 +33,7 @@ internal class ClientIntrospectionEndpointCheck() : IDiagnosticCheck<ClientDiagn
 
             var resp = await httpClient.PostFormUrlEncodedAsync(introspectionUrl, form, ct);
             var status = resp.StatusCode;
-            var body = resp.Body ?? string.Empty;
+            var body = (resp.Body ?? string.Empty).ScrubForDiagnostics();
 
             if (resp.IsSuccessStatusCode || (int)status is 400 or 401 or 403)
                 return [new(DiagnosticId, Result: $"Status: OK (endpoint reachable)\nEndpoint: {introspectionUrl}\nHTTP {status}\nBody: {body.Truncate(2048)}\nError: {resp.Error}")];

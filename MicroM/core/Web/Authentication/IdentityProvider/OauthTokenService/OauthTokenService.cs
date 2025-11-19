@@ -78,7 +78,7 @@ public class OauthTokenService(
                 ct
             );
 
-            var (idTokenResult, accessTokenResult, tokenError) = OauthTokenServiceProvider.GenerateAuthTokens(jwtHandler, app, session.vc_oidc_session_id, null, record.client_id, sub!);
+            var (idTokenResult, accessTokenResult, tokenError) = await OauthTokenServiceProvider.GenerateAuthTokens(jwtHandler, app, session.vc_oidc_session_id, null, record.client_id, sub!);
 
             if (idTokenResult?.Token == null || accessTokenResult?.Token == null)
             {
@@ -140,7 +140,7 @@ public class OauthTokenService(
 
         var sub_hash = ApplicationOidcActiveSessions.GetDerivedSub(authenticated_client_app, record.UserId, sub_pepper);
 
-        var (idTokenResult, accessTokenResult, tokenError) = OauthTokenServiceProvider.GenerateAuthTokens(jwtHandler, app, sid, record.Nonce, request_record.client_id, sub_hash);
+        var (idTokenResult, accessTokenResult, tokenError) = await OauthTokenServiceProvider.GenerateAuthTokens(jwtHandler, app, sid, record.Nonce, request_record.client_id, sub_hash);
 
         if (tokenError != null)
         {

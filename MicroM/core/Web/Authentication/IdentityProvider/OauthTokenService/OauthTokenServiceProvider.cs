@@ -101,7 +101,7 @@ public static class OauthTokenServiceProvider
             );
     }
 
-    public static (TokenResult? id_token, TokenResult? access_token, ErrorResult? error)
+    public async static Task<(TokenResult? id_token, TokenResult? access_token, ErrorResult? error)>
         GenerateAuthTokens(
             WebAPIJsonWebTokenHandler jwtHandler,
             ApplicationOption app,
@@ -150,9 +150,9 @@ public static class OauthTokenServiceProvider
         TokenResult? idTokenResult;
         try
         {
-            idTokenResult = jwtHandler.GenerateOidcIdToken(idClaims, app, audience: client_id, nonce: nonce);
+            idTokenResult = await jwtHandler.GenerateOidcIdToken(idClaims, app, audience: client_id, nonce: nonce);
         }
-        catch (Exception ex)
+        catch
         {
             // NEW: Fallback path (graceful degradation) - log at warning level externally.
             idTokenResult = jwtHandler.GenerateJwtTokenWEBApi(idClaims, app, audience: client_id);

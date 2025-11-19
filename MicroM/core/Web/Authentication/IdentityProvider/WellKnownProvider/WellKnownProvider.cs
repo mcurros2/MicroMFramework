@@ -34,59 +34,36 @@ public static class WellKnownProvider
         var ordered = list
             .OrderBy(a => a switch
             {
-                OIDCSigningAlg.ES512 => 0,
+                OIDCSigningAlg.ES256 => 0,
                 OIDCSigningAlg.ES384 => 1,
-                OIDCSigningAlg.ES256 => 2,
-                OIDCSigningAlg.PS512 => 3,
+                OIDCSigningAlg.ES512 => 2,
+                OIDCSigningAlg.PS256 => 3,
                 OIDCSigningAlg.PS384 => 4,
-                OIDCSigningAlg.PS256 => 5,
-                OIDCSigningAlg.RS512 => 6,
+                OIDCSigningAlg.PS512 => 5,
+                OIDCSigningAlg.RS256 => 6,
                 OIDCSigningAlg.RS384 => 7,
-                OIDCSigningAlg.RS256 => 8,
-                OIDCSigningAlg.HS512 => 9,
-                OIDCSigningAlg.HS384 => 10,
-                OIDCSigningAlg.HS256 => 11,
-                OIDCSigningAlg.none => 12,
-                _ => 50
+                OIDCSigningAlg.RS512 => 8,
+                OIDCSigningAlg.HS256 => 20,
+                OIDCSigningAlg.HS384 => 21,
+                OIDCSigningAlg.HS512 => 22,
+                OIDCSigningAlg.none => 50,
+                _ => 99
             })
             .ToList();
 
         return ordered;
     }
 
-    private static List<OIDCKeyEncryptionAlgorithm> BuildEncryptionAlgList(ApplicationOption app, X509Certificate2? cert)
-    {
-        var list = new HashSet<OIDCKeyEncryptionAlgorithm>();
-
-        // Only asymmetric encryption is supported for OIDC (no shared-secret/dir/AES-KW).
-        if (cert != null)
+    // OP-supported encryption key algorithms for id_token (independent of IdP cert)
+    private static List<OIDCKeyEncryptionAlgorithm> BuildSupportedIdTokenKeyAlgs()
+        => new()
         {
-            if (cert.GetRSAPublicKey() != null)
-            {
-                // NOTE: Removed RSA_OAEP_256; not supported by current Microsoft.IdentityModel.Tokens version (.NET 8 target).
-                list.Add(OIDCKeyEncryptionAlgorithm.RSA_OAEP);
-                list.Add(OIDCKeyEncryptionAlgorithm.RSA1_5);
-            }
-            if (cert.GetECDsaPublicKey() != null)
-            {
-                list.Add(OIDCKeyEncryptionAlgorithm.ECDH_ES_A256KW);
-                list.Add(OIDCKeyEncryptionAlgorithm.ECDH_ES);
-            }
-        }
-
-        var ordered = list
-            .OrderBy(a => a switch
-            {
-                OIDCKeyEncryptionAlgorithm.RSA_OAEP => 0,
-                OIDCKeyEncryptionAlgorithm.ECDH_ES_A256KW => 1,
-                OIDCKeyEncryptionAlgorithm.ECDH_ES => 2,
-                OIDCKeyEncryptionAlgorithm.RSA1_5 => 6,
-                _ => 50
-            })
-            .ToList();
-
-        return ordered;
-    }
+            OIDCKeyEncryptionAlgorithm.RSA_OAEP,
+            OIDCKeyEncryptionAlgorithm.ECDH_ES_A256KW,
+            OIDCKeyEncryptionAlgorithm.ECDH_ES,
+            // RSA1_5 allowed for legacy interop; keep last
+            OIDCKeyEncryptionAlgorithm.RSA1_5
+        };
 
     private static List<OIDCEncryptionAlg> BuildEncryptionEcnList(ApplicationOption app) =>
     [
@@ -105,12 +82,22 @@ public static class WellKnownProvider
         return list;
     }
 
+    // Accepted algorithms for private_key_jwt client_assertion (token/revocation/introspection endpoints)
+    private static List<OIDCSigningAlg> BuildAcceptedClientAssertionAlgs()
+        => new()
+        {
+            OIDCSigningAlg.RS256, OIDCSigningAlg.RS384, OIDCSigningAlg.RS512,
+            OIDCSigningAlg.PS256, OIDCSigningAlg.PS384, OIDCSigningAlg.PS512,
+            OIDCSigningAlg.ES256, OIDCSigningAlg.ES384, OIDCSigningAlg.ES512
+        };
+
     public static OIDCWellKnownResponse CreateWellKnown(ApplicationOption app, string request_base, X509Certificate2? cert)
     {
         var signingAlgs = BuildSigningAlgList(app, cert);
         var pkceMethods = BuildPkceList(app);
-        var keyEncAlgs = BuildEncryptionAlgList(app, cert);
+        var idTokenKeyAlgs = BuildSupportedIdTokenKeyAlgs();
         var contentEncs = BuildEncryptionEcnList(app);
+        var clientAssertionAlgs = BuildAcceptedClientAssertionAlgs();
 
         return new OIDCWellKnownResponse
         (
@@ -128,13 +115,17 @@ public static class WellKnownProvider
             response_modes_supported: [OIDCResponseMode.query, OIDCResponseMode.form_post],
             subject_types_supported: [OIDCSubjectType.@public, OIDCSubjectType.pairwise],
 
-            id_token_encryption_alg_values_supported: keyEncAlgs.Count > 0 ? keyEncAlgs : null,
+            // Encryption support is Client capability-based, not tied to IdP cert
+            id_token_encryption_alg_values_supported: idTokenKeyAlgs,
             id_token_encryption_enc_values_supported: contentEncs,
 
             id_token_signing_alg_values_supported: signingAlgs,
-            token_endpoint_auth_signing_alg_values_supported: signingAlgs,
-            revocation_endpoint_auth_signing_alg_values_supported: signingAlgs,
-            introspection_endpoint_auth_signing_alg_values_supported: signingAlgs,
+
+            // Accepted algs for private_key_jwt client_assertion
+            token_endpoint_auth_signing_alg_values_supported: clientAssertionAlgs,
+            revocation_endpoint_auth_signing_alg_values_supported: clientAssertionAlgs,
+            introspection_endpoint_auth_signing_alg_values_supported: clientAssertionAlgs,
+
             userinfo_signing_alg_values_supported: signingAlgs,
 
             code_challenge_methods_supported: pkceMethods,

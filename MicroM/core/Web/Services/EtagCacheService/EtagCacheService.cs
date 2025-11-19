@@ -5,7 +5,7 @@ using Microsoft.Net.Http.Headers;
 namespace MicroM.Web.Services;
 
 public record EtagCacheServiceCacheCheckResult(
-    bool is_cached,
+    bool not_modified,
     EtagContent etag_content,
     ResponseHeaders result_headers
     );

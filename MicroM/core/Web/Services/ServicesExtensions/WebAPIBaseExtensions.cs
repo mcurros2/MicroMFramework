@@ -1,6 +1,5 @@
 ﻿using MicroM.Configuration;
 using MicroM.Web.Authentication;
-using MicroM.Web.Authentication.JWTFetchCacheService;
 using MicroM.Web.Authentication.SSO;
 using MicroM.Web.Controllers;
 using MicroM.Web.Extensions;

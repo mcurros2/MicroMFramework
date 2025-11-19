@@ -16,7 +16,11 @@ namespace MicroM.Web.Authentication;
 public record TokenResult { public string? Token { get; init; } public SecurityTokenDescriptor? SD { get; init; } }
 
 public class WebAPIJsonWebTokenHandler(
-    IMicroMAppConfiguration app_config, IHttpContextAccessor http_context, ILogger<WebAPIJsonWebTokenHandler> logger
+    IMicroMAppConfiguration app_config,
+    IHttpContextAccessor http_context,
+    IApplicationCertificateCacheService cert_cache,
+    IJWKSFetchCacheService jwks_cache,
+    ILogger<WebAPIJsonWebTokenHandler> logger
     ) : JsonWebTokenHandler
 {
     private static TokenValidationParameters GetValidationParameters(ApplicationOption app)
@@ -177,7 +181,8 @@ public class WebAPIJsonWebTokenHandler(
                 OIDCSigningAlg.RS512 => new SigningCredentials(key, SecurityAlgorithms.RsaSha512),
                 OIDCSigningAlg.RS384 => new SigningCredentials(key, SecurityAlgorithms.RsaSha384),
                 OIDCSigningAlg.RS256 => new SigningCredentials(key, SecurityAlgorithms.RsaSha256),
-                _ => new SigningCredentials(key, SecurityAlgorithms.RsaSha512)
+                // DEFAULT: RS256
+                _ => new SigningCredentials(key, SecurityAlgorithms.RsaSha256)
             };
         }
 
@@ -189,8 +194,91 @@ public class WebAPIJsonWebTokenHandler(
                 OIDCSigningAlg.ES512 => new SigningCredentials(key, SecurityAlgorithms.EcdsaSha512),
                 OIDCSigningAlg.ES384 => new SigningCredentials(key, SecurityAlgorithms.EcdsaSha384),
                 OIDCSigningAlg.ES256 => new SigningCredentials(key, SecurityAlgorithms.EcdsaSha256),
-                _ => new SigningCredentials(key, SecurityAlgorithms.EcdsaSha512)
+                // DEFAULT: ES256
+                _ => new SigningCredentials(key, SecurityAlgorithms.EcdsaSha256)
             };
+        }
+
+        return null;
+    }
+
+    // Build EncryptingCredentials for the audience (client) based on local client certificate or remote client JWKS
+    private async Task<EncryptingCredentials?> ResolveEncryptingCredentialsForAudience(ApplicationOption idpApp, string audience)
+    {
+        try
+        {
+            // Must have client registration to resolve its keying material
+            if (idpApp.OIDCClientConfiguration == null ||
+                !idpApp.OIDCClientConfiguration.TryGetValue(audience, out var clientCfg))
+            {
+                return null;
+            }
+
+            // 1) Local client certificate path
+            if (!string.IsNullOrWhiteSpace(clientCfg.CertificateUniqueID))
+            {
+                var clientApp = app_config.GetAppConfiguration(audience);
+                if (clientApp != null)
+                {
+                    var clientCert = cert_cache.GetCertificate(clientApp);
+                    if (clientCert != null)
+                    {
+                        // Prefer RSA-OAEP for RSA; ECDH-ES(+A256KW) for EC
+                        return GetOidcEncryptingCredentials(clientCert);
+                    }
+                }
+            }
+
+            // 2) Remote client JWKS path
+            if (!string.IsNullOrWhiteSpace(clientCfg.URLClientJWKS))
+            {
+                var jwks = await jwks_cache.GetAsync(clientCfg.URLClientJWKS, CancellationToken.None);
+
+                // Prefer RSA first
+                foreach (var key in jwks.Keys.Values)
+                {
+                    try
+                    {
+                        if (key is JsonWebKey jwkRsa && string.Equals(jwkRsa.Kty, "RSA", StringComparison.OrdinalIgnoreCase))
+                        {
+                            return new EncryptingCredentials(jwkRsa, SecurityAlgorithms.RsaOAEP, SecurityAlgorithms.Aes256Gcm);
+                        }
+                        if (key is RsaSecurityKey rsaKey)
+                        {
+                            return new EncryptingCredentials(rsaKey, SecurityAlgorithms.RsaOAEP, SecurityAlgorithms.Aes256Gcm);
+                        }
+                        if (key is X509SecurityKey x509Key && x509Key.PublicKey is not null && x509Key.PublicKey.GetType().Name.Contains("RSA", StringComparison.OrdinalIgnoreCase))
+                        {
+                            return new EncryptingCredentials(x509Key, SecurityAlgorithms.RsaOAEP, SecurityAlgorithms.Aes256Gcm);
+                        }
+                    }
+                    catch { /* try next key */ }
+                }
+
+                // Then try EC (ECDH-ES + A256KW preferred)
+                foreach (var key in jwks.Keys.Values)
+                {
+                    try
+                    {
+                        if (key is JsonWebKey jwkEc && string.Equals(jwkEc.Kty, "EC", StringComparison.OrdinalIgnoreCase))
+                        {
+                            // Try ECDH-ES with key wrapping first
+                            try { return new EncryptingCredentials(jwkEc, SecurityAlgorithms.EcdhEsA256kw, SecurityAlgorithms.Aes256Gcm); } catch { }
+                            try { return new EncryptingCredentials(jwkEc, SecurityAlgorithms.EcdhEs, SecurityAlgorithms.Aes256Gcm); } catch { }
+                        }
+                        if (key is ECDsaSecurityKey ecKey)
+                        {
+                            try { return new EncryptingCredentials(ecKey, SecurityAlgorithms.EcdhEsA256kw, SecurityAlgorithms.Aes256Gcm); } catch { }
+                            try { return new EncryptingCredentials(ecKey, SecurityAlgorithms.EcdhEs, SecurityAlgorithms.Aes256Gcm); } catch { }
+                        }
+                    }
+                    catch { /* try next key */ }
+                }
+            }
+        }
+        catch
+        {
+            // swallow and fall back to signed-only
         }
 
         return null;
@@ -265,8 +353,8 @@ public class WebAPIJsonWebTokenHandler(
         return null;
     }
 
-    // Creates a signed id_token; if encryption is possible with the current certificate, returns JWE (sign-then-encrypt).
-    public TokenResult GenerateOidcIdToken(Dictionary<string, object> claims, ApplicationOption app, string audience, string? nonce = null)
+    // Creates a signed id_token; if encryption to the audience is possible, returns JWE (sign-then-encrypt).
+    public async Task<TokenResult> GenerateOidcIdToken(Dictionary<string, object> claims, ApplicationOption app, string audience, string? nonce = null)
     {
         if (nonce != null && !claims.ContainsKey(WellknownIdentityConstants.Nonce))
             claims[WellknownIdentityConstants.Nonce] = nonce;
@@ -280,10 +368,12 @@ public class WebAPIJsonWebTokenHandler(
         if (app.OIDCCertificateBlob == null || app.OIDCCertificateBlob.Length == 0)
             throw new InvalidOperationException("OIDC certificate blob not configured for id_token.");
 
-        using var cert = new X509Certificate2(app.OIDCCertificateBlob, app.OIDCCertificatePassword, X509KeyStorageFlags.EphemeralKeySet | X509KeyStorageFlags.Exportable);
+        using var idpCert = new X509Certificate2(app.OIDCCertificateBlob, app.OIDCCertificatePassword, X509KeyStorageFlags.EphemeralKeySet | X509KeyStorageFlags.Exportable);
 
-        var signing = GetOidcSigningCredentials(app, cert) ?? throw new InvalidOperationException("Unable to resolve signing credentials for id_token.");
-        var encrypting = GetOidcEncryptingCredentials(cert); // Optional — depends on certificate
+        var signing = GetOidcSigningCredentials(app, idpCert) ?? throw new InvalidOperationException("Unable to resolve signing credentials for id_token.");
+
+        // NEW: resolve encrypting credentials based on the audience (client)
+        var encrypting = await ResolveEncryptingCredentialsForAudience(app, audience);
 
         var sd = new SecurityTokenDescriptor
         {

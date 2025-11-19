@@ -26,6 +26,14 @@ public class IdPBackchannelAuthenticationHandler : AuthenticationHandler<Authent
     private readonly IApplicationCertificateCacheService _appCertCache;
     private readonly IJWKSFetchCacheService _jwksFetchCache;
 
+    // Accepted algs for private_key_jwt (aligns with discovery token_endpoint_auth_signing_alg_values_supported)
+    private static readonly HashSet<string> AcceptedClientAssertionAlgs = new(StringComparer.Ordinal)
+    {
+        nameof(OIDCSigningAlg.RS256), nameof(OIDCSigningAlg.RS384), nameof(OIDCSigningAlg.RS512),
+        nameof(OIDCSigningAlg.PS256), nameof(OIDCSigningAlg.PS384), nameof(OIDCSigningAlg.PS512),
+        nameof(OIDCSigningAlg.ES256), nameof(OIDCSigningAlg.ES384), nameof(OIDCSigningAlg.ES512)
+    };
+
     public IdPBackchannelAuthenticationHandler(
         IOptionsMonitor<AuthenticationSchemeOptions> options,
         ILoggerFactory logger,
@@ -56,11 +64,11 @@ public class IdPBackchannelAuthenticationHandler : AuthenticationHandler<Authent
         }
 
         string auth = Request.Headers.Authorization.FirstOrDefault() ?? "";
-        if (!string.IsNullOrEmpty(auth) && auth.StartsWith("Basic ", StringComparison.OrdinalIgnoreCase))
+        if (!string.IsNullOrEmpty(auth) && auth.StartsWith($"{WellknownIdentityConstants.Basic} ", StringComparison.OrdinalIgnoreCase))
         {
             try
             {
-                var token = auth.Substring("Basic ".Length).Trim();
+                var token = auth.Substring($"{WellknownIdentityConstants.Basic} ".Length).Trim();
                 var credBytes = Convert.FromBase64String(token);
                 var cred = Encoding.UTF8.GetString(credBytes);
                 var parts = cred.Split(':', 2);
@@ -101,10 +109,7 @@ public class IdPBackchannelAuthenticationHandler : AuthenticationHandler<Authent
                 {
                     if (Request.Body.CanSeek) Request.Body.Seek(0, SeekOrigin.Begin);
                 }
-                catch
-                {
-                    // ignore seek failures - buffering should normally allow seek
-                }
+                catch { }
 
                 var clientAssertion = form[WellknownIdentityConstants.ClientAssertion].ToString();
                 var clientAssertionType = form[WellknownIdentityConstants.ClientAssertionType].ToString();
@@ -120,6 +125,27 @@ public class IdPBackchannelAuthenticationHandler : AuthenticationHandler<Authent
                         return AuthenticateResult.Fail("client_id not provided and not present in client_assertion");
                     }
 
+                    // Enforce client_assertion header.alg against accepted set
+                    string? headerAlg = null;
+                    try
+                    {
+                        var parsed = new JsonWebTokenHandler().ReadJsonWebToken(clientAssertion);
+                        if (!parsed.TryGetHeaderValue<string>(nameof(OIDCJwksKeyResponse.alg), out headerAlg))
+                        {
+                            headerAlg = parsed?.Alg;
+                        }
+                    }
+                    catch
+                    {
+                        // ignore; signature validation will fail later if malformed
+                    }
+
+                    if (string.IsNullOrWhiteSpace(headerAlg) || !AcceptedClientAssertionAlgs.Contains(headerAlg))
+                    {
+                        _log.LogWarning("Unsupported client_assertion alg {alg} for client {clientId}", headerAlg ?? "<null>", clientId);
+                        return AuthenticateResult.Fail("unsupported_client_assertion_alg");
+                    }
+
                     // Look up client configuration
                     if (app.OIDCClientConfiguration == null || !app.OIDCClientConfiguration.TryGetValue(clientId, out var clientCfg))
                     {
@@ -127,12 +153,9 @@ public class IdPBackchannelAuthenticationHandler : AuthenticationHandler<Authent
                         return AuthenticateResult.Fail("Unknown client_id");
                     }
 
-                    // Try local certificate first if client is hosted in the same server:
-                    // When CertificateUniqueID is configured for this client, and there's an ApplicationOption for the client with a matching OIDCCertificateUniqueID,
-                    // validate using the locally cached certificate (no network).
+                    // Try local certificate first
                     SecurityKey[]? signingKeys = null;
 
-                    // Local
                     if (!string.IsNullOrEmpty(clientCfg.CertificateUniqueID))
                     {
                         var clientApp = _appConfig.GetAppConfiguration(clientId);
@@ -176,7 +199,7 @@ public class IdPBackchannelAuthenticationHandler : AuthenticationHandler<Authent
                         try
                         {
                             var jwksResult = await _jwksFetchCache.GetAsync(clientCfg.URLClientJWKS, Context.RequestAborted);
-                            signingKeys = jwksResult.Keys.Values.ToArray();
+                            signingKeys = [.. jwksResult.Keys.Values];
                         }
                         catch (Exception ex)
                         {

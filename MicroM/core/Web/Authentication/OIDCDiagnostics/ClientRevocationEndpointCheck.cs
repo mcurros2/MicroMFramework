@@ -1,5 +1,6 @@
 using MicroM.Diagnostics;
 using MicroM.Extensions;
+using MicroM.Web.Extensions;
 using System.Text.Json;
 
 namespace MicroM.Web.Authentication.OIDCDiagnostics;
@@ -18,8 +19,9 @@ internal class ClientRevocationEndpointCheck() : IDiagnosticCheck<ClientDiagnost
 
         try
         {
+            // Unified SKIPPED behavior
             if (string.IsNullOrWhiteSpace(ctx.revocationURL))
-                return [new(DiagnosticId, Errors: [new("revocation_url_missing", "revocation_endpoint not advertised in discovery; skipping probe.")])];
+                return [new(DiagnosticId, IsSuccess: true, Result: "SKIPPED: revocation_endpoint not advertised")];
 
             revocationUrl = ctx.revocationURL;
 
@@ -32,7 +34,7 @@ internal class ClientRevocationEndpointCheck() : IDiagnosticCheck<ClientDiagnost
 
             var resp = await httpClient.PostFormUrlEncodedAsync(revocationUrl, form, ct);
             var status = resp.StatusCode;
-            var body = resp.Body ?? string.Empty;
+            var body = (resp.Body ?? string.Empty).ScrubForDiagnostics();
 
             if (resp.IsSuccessStatusCode || (int)status is 400 or 401 or 403)
                 return [new(DiagnosticId, IsSuccess: true, Result: $"Status: OK (endpoint reachable)\nEndpoint: {revocationUrl}\nHTTP {status}\nBody: {body.Truncate(2048)}\nError: {resp.Error}")];
