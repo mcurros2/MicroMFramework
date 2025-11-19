@@ -77,9 +77,7 @@ public class WellknownIdentityConstants
     public const string PushedAuthorizationRequestEncryptionAlgValuesSupported = "pushed_authorization_request_encryption_alg_values_supported";
     public const string PushedAuthorizationRequestEncryptionEncValuesSupported = "pushed_authorization_request_encryption_enc_values_supported";
 
-
-
-
+    public const string Kty = "kty";
 
     public const string ClientAssertionTypeJwtBearer = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer";
     public const string Basic = "Basic";

@@ -54,4 +54,8 @@ public static class StringExtensions
         return string.IsNullOrEmpty(value);
     }
 
+    public static string Mask(this string? value)
+    {
+        return string.IsNullOrEmpty(value) ? "empty" : $"<{value.Length} chars>";
+    }
 }

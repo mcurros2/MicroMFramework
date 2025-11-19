@@ -1,5 +1,5 @@
 using MicroM.Diagnostics;
-using MicroM.Extensions;
+using MicroM.Web.Extensions;
 using System.Text.Json;
 
 namespace MicroM.Web.Authentication.OIDCDiagnostics;
@@ -14,95 +14,86 @@ internal class ClientJwksCacheEffectivenessCheck : IDiagnosticCheck<ClientDiagno
         var http = ctx.HttpClient;
 
         if (string.IsNullOrWhiteSpace(app.OIDCWellKnownURL))
-        {
             return [new(DiagnosticId, IsSuccess: true, Result: "SKIPPED: well-known URL not configured/advertised")];
-        }
 
-        // Fetch discovery
+        // 1) Fetch discovery
         var wk = await http.GetWellKnownJsonAsync(app.OIDCWellKnownURL!, ct);
         if (!wk.IsSuccessStatusCode || string.IsNullOrWhiteSpace(wk.Body))
-        {
             return [new(DiagnosticId, Errors: [new("wellknown_http_error", wk.Error ?? "Failed to fetch discovery")])];
-        }
 
         string? jwksUri;
         try
         {
             using var doc = JsonDocument.Parse(wk.Body);
-            var root = doc.RootElement;
-            jwksUri = root.TryGetProperty(WellknownIdentityConstants.JwksUri, out var jwksProp) ? jwksProp.GetString() : null;
+            jwksUri = doc.RootElement.ReadString(WellknownIdentityConstants.JwksUri);
         }
         catch (JsonException ex)
         {
-            return [new(DiagnosticId, Result: wk.Body, Errors: [new("wellknown_json_error", ex.Message)])];
+            // Do not include raw body here to avoid noise
+            return [new(DiagnosticId, Errors: [new("wellknown_json_error", ex.Message)])];
         }
 
         if (string.IsNullOrWhiteSpace(jwksUri))
-        {
-            return [new(DiagnosticId, Result: wk.Body, Errors: [new("jwks_uri_missing", "Discovery does not contain jwks_uri")])];
-        }
+            return [new(DiagnosticId, Errors: [new("jwks_uri_missing", "Discovery does not contain jwks_uri")])];
 
-        // First JWKS fetch
+        // 2) First JWKS fetch
         var jwks1 = await http.GetJwksJsonAsync(jwksUri, ct);
         if (!jwks1.IsSuccessStatusCode || string.IsNullOrWhiteSpace(jwks1.Body))
-        {
-            return [new(DiagnosticId, Result: "JWKS first fetch failed", Errors: [new("jwks_http_error", jwks1.Error ?? "Failed to fetch JWKS")])];
-        }
+            return [new(DiagnosticId, Result: $"JWKS URL: {jwksUri}\nFirst fetch HTTP: {jwks1.StatusCode}", Errors: [new("jwks_http_error", jwks1.Error ?? "Failed to fetch JWKS")])];
 
-        // Parse JWKS for keys metadata
+        // Parse JWKS for keys metadata (no JWKS body leaked in results)
         int keysCount = 0;
         List<string> kids = [];
         try
         {
             using var jwksDoc = JsonDocument.Parse(jwks1.Body);
-            if (jwksDoc.RootElement.TryGetProperty(WellknownIdentityConstants.Keys, out var keysEl) && keysEl.ValueKind == JsonValueKind.Array)
+            var keysEl = jwksDoc.RootElement.ReadArray(WellknownIdentityConstants.Keys);
+            if (keysEl is null || keysEl.Value.GetArrayLength() <= 0)
+                return [new(DiagnosticId, Result: $"JWKS URL: {jwksUri}", Errors: [new("jwks_empty", "JWKS contains no keys")])];
+
+            keysCount = keysEl.Value.GetArrayLength();
+            foreach (var k in keysEl.Value.EnumerateArray())
             {
-                keysCount = keysEl.GetArrayLength();
-                foreach (var k in keysEl.EnumerateArray())
-                {
-                    if (k.ValueKind == JsonValueKind.Object &&
-                        k.TryGetProperty("kid", out var kidEl) &&
-                        kidEl.ValueKind == JsonValueKind.String)
-                    {
-                        if (kids.Count < 5) kids.Add(kidEl.GetString()!);
-                    }
-                }
-            }
-            if (keysCount <= 0)
-            {
-                return [new(DiagnosticId, Result: jwks1.Body, Errors: [new("jwks_empty", "JWKS contains no keys")])];
+                var kid = k.ReadString("kid");
+                if (!string.IsNullOrWhiteSpace(kid) && kids.Count < 5)
+                    kids.Add(kid);
             }
         }
         catch (JsonException ex)
         {
-            return [new(DiagnosticId, Result: jwks1.Body.Truncate(1024), Errors: [new("jwks_json_error", ex.Message)])];
+            return [new(DiagnosticId, Result: $"JWKS URL: {jwksUri}", Errors: [new("jwks_json_error", ex.Message)])];
         }
 
         var etag1 = jwks1.ETag ?? "<none>";
 
-        // Second JWKS fetch with If-None-Match
+        // 3) Second JWKS fetch with If-None-Match to exercise 304 path
         var jwks2 = await http.GetJwksJsonAsync(jwksUri, ct, ifNoneMatch: jwks1.ETag);
-        var jwks2Status = jwks2.StatusCode;
         var notModified = jwks2.NotModified;
 
-        // Build user-readable summary (no JWKS body included)
+        // Structured summary (no JWKS body included)
         var lines = new List<string>
         {
             $"JWKS URL: {jwksUri}",
-            $"First fetch: HTTP {jwks1.StatusCode}, ETag received: {etag1}, Keys: {keysCount}, Sample kids: [{string.Join(", ", kids)}]"
+            $"first_http_status: {jwks1.StatusCode}",
+            $"first_etag: {etag1}",
+            $"keys_count: {keysCount}",
+            $"kids_sample: [{string.Join(", ", kids)}]"
         };
 
         if (string.IsNullOrWhiteSpace(jwks1.ETag))
         {
-            lines.Add("Revalidate: Server did not provide ETag; 304 path cannot be tested (acceptable).");
+            lines.Add("revalidate_http_status: n/a");
+            lines.Add("not_modified: false");
+            lines.Add("result: Server did not provide ETag; 304 path cannot be tested (acceptable).");
             return [new(DiagnosticId, IsSuccess: true, Result: string.Join('\n', lines))];
         }
 
-        lines.Add($"Revalidate: If-None-Match={etag1} -> HTTP {jwks2Status}, NotModified={notModified}");
+        lines.Add($"revalidate_http_status: {jwks2.StatusCode}");
+        lines.Add($"not_modified: {notModified.ToString().ToLowerInvariant()}");
 
         if (notModified)
         {
-            lines.Add("Result: Cache effectiveness OK (304 observed).");
+            lines.Add("result: Cache effectiveness OK (304 observed).");
             return [new(DiagnosticId, IsSuccess: true, Result: string.Join('\n', lines))];
         }
 
@@ -111,11 +102,11 @@ internal class ClientJwksCacheEffectivenessCheck : IDiagnosticCheck<ClientDiagno
             return [new(DiagnosticId, Result: string.Join('\n', lines), Errors: [new("jwks_http_error_second", jwks2.Error ?? "Second JWKS fetch failed")])];
         }
 
-        // If no 304, at least verify content is unchanged
+        // If server did not return 304, check if content is unchanged
         var unchanged = string.Equals(jwks1.Body, jwks2.Body, StringComparison.Ordinal);
         lines.Add(unchanged
-            ? "Result: No 304, but content unchanged; server may not support ETag fully."
-            : "Result: JWKS content changed without 304; this could indicate rotation or missing ETag support.");
+            ? "result: No 304, but content unchanged; server may not support ETag fully."
+            : "result: JWKS content changed without 304; this could indicate rotation or missing ETag support.");
 
         return [new(DiagnosticId, IsSuccess: unchanged, Result: string.Join('\n', lines),
                     Errors: unchanged ? null : [new("jwks_changed_no_304", "Content changed without 304 Not Modified")])];
