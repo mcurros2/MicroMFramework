@@ -7,7 +7,8 @@ namespace MicroM.Web.Authentication.SSO;
 
 public class PushedAuthorizationService : IPushedAuthorizationService
 {
-    private record ParEntry(PushedAuthorizationRequest Request, DateTime ExpiresAt);
+    // Phase 4: retain raw request object to allow authorize-time reconciliation & signature enforcement
+    private record ParEntry(PushedAuthorizationRequest Request, string? RawRequestObject, DateTime ExpiresAt, OIDCSigningAlg? RequestObjectAlg);
 
     private readonly ConcurrentDictionary<string, ParEntry> _store = new();
 
@@ -16,7 +17,10 @@ public class PushedAuthorizationService : IPushedAuthorizationService
 
     public ResultWithStatus<OIDCPARResponse, ErrorResult> CreatePushedRequest(ApplicationOption app, IFormCollection form, string authenticated_client_id)
     {
-        var (request, error) = PushedAuthorizationProvider.ValidateRequest(app, form);
+        string? rawRequestJwt = null;
+        OIDCSigningAlg? requestObjAlg = null;
+
+        var ((request, request_obj_alg), error) = PushedAuthorizationProvider.ValidateRequest(app, form);
 
         if (request == null || error != null)
         {
@@ -44,7 +48,7 @@ public class PushedAuthorizationService : IPushedAuthorizationService
         var requestUri = $"urn:ietf:params:oauth:request_uri:{CryptClass.GenerateBase64UrlRandomCode(32)}";
         var expiresAt = DateTime.UtcNow.AddSeconds(DEFAULT_EXPIRES_IN);
 
-        _store[requestUri] = new ParEntry(request, expiresAt);
+        _store[requestUri] = new ParEntry(request, rawRequestJwt, expiresAt, requestObjAlg);
 
         var response = new OIDCPARResponse(request_uri: requestUri, expires_in: DEFAULT_EXPIRES_IN);
 
@@ -65,6 +69,16 @@ public class PushedAuthorizationService : IPushedAuthorizationService
         }
 
         return entry.Request;
+    }
+
+    // Phase 4 helper: retrieve full entry (including raw request object) for authorize reconciliation
+    public (PushedAuthorizationRequest? request, string? rawObject, OIDCSigningAlg? alg) ConsumeFullEntry(string requestUri)
+    {
+        if (string.IsNullOrEmpty(requestUri)) return (null, null, null);
+        if (!_store.TryGetValue(requestUri, out var entry)) return (null, null, null);
+        _store.TryRemove(requestUri, out _);
+        if (entry.ExpiresAt < DateTime.UtcNow) return (null, null, null);
+        return (entry.Request, entry.RawRequestObject, entry.RequestObjectAlg);
     }
 
     public void RemoveRequest(string requestUri)

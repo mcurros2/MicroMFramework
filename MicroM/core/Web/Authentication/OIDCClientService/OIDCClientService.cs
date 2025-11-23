@@ -19,13 +19,13 @@ namespace MicroM.Web.Authentication.SSO;
 public class OIDCClientService(
     IEtagCacheService etag_cache,
     IApplicationCertificateCacheService certificate_cache,
-    IHttpClientFactory httpClientFactory,
     IStateAndNonceService state_and_nonce_service,
     IOIDCHttpClient oidcHttpClient,
     IOIDCReplayCacheService replay_cache,
     ILogger<OIDCClientService> log,
     IDeviceIdService deviceid_service,
-    IMicroMEncryption encryptor
+    IMicroMEncryption encryptor,
+    IJWKSFetchCacheService jwks_cache
 ) : IOIDCClientService
 {
     private readonly JsonSerializerOptions _jsonOptionsUnsafe = new()
@@ -36,6 +36,14 @@ public class OIDCClientService(
     };
 
     private readonly ConcurrentDictionary<string, OIDCWellKnownResponse> _wellKnownCache = new();
+
+    // Scrub helper: never log raw tokens, only length & segment count
+    private static string DescribeToken(string? token)
+    {
+        if (string.IsNullOrWhiteSpace(token)) return "empty";
+        var segs = token.Split('.');
+        return $"segments={segs.Length} len={token.Length}";
+    }
 
     public EtagCacheServiceCacheCheckResult? HandleClientJwks(ApplicationOption app, RequestHeaders request_headers, IHeaderDictionary response_headers)
     {
@@ -265,6 +273,9 @@ public class OIDCClientService(
                 return new(null, "Token response missing id_token");
             }
 
+            // Scrubbed log (no raw token)
+            log.LogTrace("CLIENT_ID_TOKEN_RECEIVED app_id={appId} {meta}", app.ApplicationID, DescribeToken(id_token));
+
             if (doc.RootElement.TryGetProperty(WellknownIdentityConstants.RefreshToken, out var rt))
             {
                 idpRefreshToken = rt.GetString();
@@ -285,9 +296,19 @@ public class OIDCClientService(
         }
 
         // Validate id_token via IdP JWKS
-        // NEW: pass client private key to allow JWE decryption when the id_token is encrypted
         var clientDecryptCert = certificate_cache.GetCertificate(app);
-        var (jwt_result, jwt_error) = await JwksProvider.ValidateIdTokenAsync(httpClientFactory, jwksUri, issuer, clientId, id_token, clientDecryptCert, ct);
+        var jwksResult = await jwks_cache.GetAsync(jwksUri, ct);
+        var signingKeys = jwksResult.Keys.Values;
+
+        var header = JwksProvider.TryReadProtectedHeader(id_token);
+        if (header.Kid != null && !jwksResult.Keys.ContainsKey(header.Kid))
+        {
+            var forced = await jwks_cache.GetAsync(jwksUri, ct, forceRefresh: true);
+            signingKeys = forced.Keys.Values;
+        }
+
+        var (jwt_result, jwt_error) = await JwksProvider.ValidateIdTokenWithKeysAsync(signingKeys, issuer, clientId, id_token, clientDecryptCert, header, ct);
+
         if (jwt_error != null || jwt_result == null)
         {
             return new(null, jwt_error ?? "Invalid id_token");
@@ -363,7 +384,7 @@ public class OIDCClientService(
         JsonWebToken? parsed = null;
         try
         {
-            var jwks = await JwksProvider.FetchJwksAsync(httpClientFactory, wk.jwks_uri!, ct);
+            var jwks = await jwks_cache.GetAsync(wk.jwks_uri!, ct);
             var handler = new JsonWebTokenHandler();
             var tvp = new TokenValidationParameters
             {
@@ -373,7 +394,7 @@ public class OIDCClientService(
                 ValidAudience = app.ApplicationID,
                 ValidateLifetime = false, // iat checked manually
                 RequireSignedTokens = true,
-                IssuerSigningKeys = jwks.Keys
+                IssuerSigningKeys = jwks.Keys.Values
             };
 
             var validation = await handler.ValidateTokenAsync(logoutTokenJwt, tvp);
@@ -457,7 +478,7 @@ public class OIDCClientService(
                     sub = await ApplicationOidcActiveSessions.GetSUBFromSID(dbc, app.ApplicationID, sid!, ct);
                     if (sub.IsNullOrEmpty())
                     {
-                        log.LogInformation("Backchannel logout: no active session found for app {app} sid={sid}", app.ApplicationID, sid);
+                        log.LogWarning("Backchannel logout: no active session found for app {app} sid={sid}", app.ApplicationID, sid);
                         return new(OIDCLogoutProcessingStatus.Success, null);
                     }
                 }
@@ -474,7 +495,7 @@ public class OIDCClientService(
         }
         catch (Exception ex)
         {
-            log.LogWarning(ex, "Backchannel logout: session store error app={app} sid={sid} sub={sub}", app.ApplicationID, sid, sub);
+            log.LogError(ex, "Backchannel logout: session store error app={app} sid={sid} sub={sub}", app.ApplicationID, sid, sub);
             return new(OIDCLogoutProcessingStatus.SessionStoreError, "session_store_error");
         }
         finally
@@ -552,6 +573,9 @@ public class OIDCClientService(
                 return new(null, "IdP refresh response missing id_token");
             }
 
+            // Scrubbed log (no raw token)
+            log.LogTrace("CLIENT_ID_TOKEN_REFRESH_RECEIVED app_id={appId} {meta}", app.ApplicationID, DescribeToken(id_token));
+
             if (doc.RootElement.TryGetProperty(WellknownIdentityConstants.RefreshToken, out var rt))
             {
                 newIdpRefreshToken = rt.GetString();
@@ -572,9 +596,19 @@ public class OIDCClientService(
         }
 
         // Validate refreshed id_token
-        // NEW: pass client private key to allow decryption of JWE id_token
         var clientDecryptCert = certificate_cache.GetCertificate(app);
-        var (jwt_result, jwt_error) = await JwksProvider.ValidateIdTokenAsync(httpClientFactory, jwksUri, issuer, app.ApplicationID, id_token, clientDecryptCert, ct);
+        var jwksResult = await jwks_cache.GetAsync(jwksUri, ct);
+        var signingKeys = jwksResult.Keys.Values;
+
+        var header = JwksProvider.TryReadProtectedHeader(id_token);
+        if (header.Kid != null && !jwksResult.Keys.ContainsKey(header.Kid))
+        {
+            var forced = await jwks_cache.GetAsync(jwksUri, ct, forceRefresh: true);
+            signingKeys = forced.Keys.Values;
+        }
+
+        var (jwt_result, jwt_error) = await JwksProvider.ValidateIdTokenWithKeysAsync(signingKeys, issuer, app.ApplicationID, id_token, clientDecryptCert, header, ct);
+
         if (jwt_error != null || jwt_result == null)
         {
             return new(null, jwt_error ?? "Invalid id_token");

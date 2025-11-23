@@ -51,7 +51,7 @@ public class JwksService(
 
         if (cert == null)
         {
-            log.LogWarning("JWKS requested for app {app} but certificate_cache returned null certificate", app.ApplicationID);
+            log.LogError("JWKS requested for app {app} but certificate_cache returned null certificate", app.ApplicationID);
             return new(keys: []);
         }
 

@@ -32,7 +32,7 @@ public class MicromApplicationCertificates : Entity<MicromApplicationCertificate
     public static (Guid guid, byte[] certificate, string password) CreateNewApplicationCertificate(string application_id)
     {
         var certificate_guid = Guid.NewGuid();
-        var new_certificate = CryptClass.CreateSelfSignedCertificate(distinguished_name: application_id);
+        using var new_certificate = CryptClass.CreateSelfSignedCertificate(distinguished_name: application_id);
         var certificate_password = CryptClass.CreateRandomPassword(length: 32);
         var pem = new_certificate.Export(System.Security.Cryptography.X509Certificates.X509ContentType.Pfx, certificate_password);
         return (certificate_guid, pem, certificate_password);

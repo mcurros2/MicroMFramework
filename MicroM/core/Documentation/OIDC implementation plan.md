@@ -8,147 +8,134 @@ A — Core features and persistence
 - PAR + PKCE + Authorization Code: COMPLETE
 - Pairwise sub derivation (per client pepper): COMPLETE
 - IdP-side client session persistence: COMPLETE
-  - `/oauth2/token` persists per-client session with sid, sub, IdP refresh token, UTC expiration via `ApplicationOidcActiveSessions.CreateOrUpdateIdPSession`.
-  - Uses stable sentinel device_id `oidc` (subject-wide refresh).
+  - `/oauth2/token` persists per-client session with sid, sub, IdP refresh token, UTC expiration.
+  - Sentinel device_id `oidc` for subject-wide refresh.
 - Client-side session persistence on callback: COMPLETE
-  - Per-device local refresh via `usr_updateLoginAttempt`.
-  - Links IdP sid/sub in `ApplicationOidcActiveSessions.CreateOrUpdateExternalSignInSession`.
 - Encrypted refresh-token lookup: COMPLETE
-- Audience for id_token: COMPLETE (aud = client_id).
+- Audience (aud = client_id): COMPLETE
 - UTC handling for IdP refresh expiration: COMPLETE
 - Client refresh by SID: COMPLETE
 
 B — IdP grants
-- authorization_code grant: COMPLETE
-- refresh_token grant: COMPLETE
+- authorization_code: COMPLETE
+- refresh_token: COMPLETE
 
 C — Client (RP) flows
-- OIDC client login (PAR → authorize → token → callback): COMPLETE
-- Local per-device refresh (client DB): COMPLETE
-- IdP refresh support in client service: COMPLETE
-- Client refresh fallback wiring: COMPLETE (diagnostic added)
+- Login flow (PAR → authorize → token → callback): COMPLETE
+- Local per-device refresh: COMPLETE
+- IdP refresh support: COMPLETE
+- Refresh fallback diagnostic: COMPLETE
 
 D — Logout (SLO)
-- Front-channel logout (client): COMPLETE
-- Back-channel logout receiver (client): COMPLETE
-- IdP endsession/backchannel fan-out: COMPLETE
-  - Includes `sid` claim in `logout_token` when a deterministic session id is available (single or sentinel); omits when ambiguous.
+- Front-channel logout: COMPLETE
+- Back-channel logout receiver: COMPLETE
+- EndSession fan-out with deterministic sid inclusion: COMPLETE
 
 E — Security & hardening
 - State/nonce, PKCE, client authentication: COMPLETE
-  - Runtime state cookie is HMAC’ed, single-use.
-  - PKCE enforcement accepts `S256` and (optionally) `plain`; rejects `plain` unless `OIDCAllowPkcePlain` enabled.
-- Encrypted OIDC refresh tokens at rest: COMPLETE
-- Logging: COMPLETE
-  - IdP token service (`OauthTokenService`) logging scrub: COMPLETE (tokens logged by length only; `sid` truncated).
-  - JWKS/internal handlers logging (JWKSFetchCacheService, JwksService, WellKnownProvider): COMPLETE (no raw JWKS body, only counts/ETags).
-  - Simplified approach: direct formatted log strings (no generic marker helper).
+- PKCE ‘plain’ gated by `OIDCAllowPkcePlain`: COMPLETE
+- Encrypted IdP refresh tokens at rest: COMPLETE
+- Logging scrub (tokens, assertions, logout_token metadata only): COMPLETE
 
-F — Encrypted Tokens (scope)
-Goal: Optional JWE encryption of id_token (and later userinfo / request objects) using asymmetric crypto. `app.JWTKey` only for local API JWT.
-Status:
-- Discovery advertises asymmetric-only alg/enc: COMPLETE
-- Removed unsupported RSA_OAEP_256: COMPLETE
-- EC preference: ECDH_ES_A256KW > ECDH_ES: COMPLETE
-- RSA preference: RSA_OAEP > RSA1_5: COMPLETE
-- Subject types `[public, pairwise]`: COMPLETE
-- IdP id_token issuance (signed; encrypts when supported): COMPLETE
-- Client decrypt path: COMPLETE
+F — Encrypted Tokens
+- Signed id_token always; optional JWE when client key supports: COMPLETE
+- Client decryption path: COMPLETE
+- Encryption negotiation diagnostics: PARTIAL
 
-Planned phases (retain all)
+Phases
 1. IdP JWE wrapping: COMPLETE
 2. Client decryption path: COMPLETE
-3. Diagnostics (encryption negotiation & absence of RSA_OAEP_256): PARTIAL
-4. UserInfo / request object encryption (optional): PENDING
+3. Diagnostics (negotiation specifics): PARTIAL
+4. UserInfo / request object encryption: IN PROGRESS
+   - Request object: PARTIAL (signed, basic alg enforcement; encryption supported only with RSA_OAEP; request_uri flow integrated; ECDH disabled)
+   - UserInfo encryption: PENDING
 5. Policy flags removed (capability-driven): COMPLETE
 
-Key selection rules (implemented)
-- Key Encryption alg: RSA-OAEP > RSA1_5; ECDH-ES+A256KW > ECDH-ES; exclude RSA_OAEP_256 & all symmetric.
-- Content Encryption enc: A256GCM > A256CBC-HS512 > A192GCM > A192CBC-HS384 > A128GCM > A128CBC-HS256.
+Updated cryptographic policy (Refactor: WellKnownProvider & JwksProvider)
+- ECDH key agreement: REMOVED (not supported for now).
+- RSA key encryption algorithms advertised: RSA-OAEP ONLY (RSA1_5 disabled).
+- Content encryption algorithms reduced to GCM only (A256GCM, A192GCM, A128GCM) — CBC-HS* disabled.
+- Request object signing / client assertion acceptance: RS*, PS*, ES* independent of IdP cert.
+- IdP signing algorithms (id_token/userinfo) depend on IdP cert key type (RSA vs EC). Current: RSA only.
+- `request_uri_parameter_supported`: FALSE (PAR mandatory).
+- ECDH_ES / ECDH_ES+A256KW removed from metadata.
+- RSA_OAEP_256 excluded (unchanged rationale: interop + marginal benefit).
+- UserInfo encryption not yet advertised (pending implementation).
+
+Key selection rules (updated)
+- ID Token signing: Based on IdP cert (RSA: RS/PS; EC: ES).
+- ID Token encryption (to client): RSA-OAEP only (current policy).
+- Request Object encryption (to IdP): RSA-OAEP only (ECDH future enhancement gate).
+- Content encryption preference: A256GCM > A192GCM > A128GCM.
 
 G — JWKS caching & conditional fetches
-- Shared JWKS cache + TTL + kid-miss forced refresh: COMPLETE
-- ETag conditional GET + 304 reuse: COMPLETE
-- IdP private_key_jwt validation uses shared JWKS cache: COMPLETE
+- Shared JWKS cache + ETag reuse: COMPLETE
+  - Integrated `IJWKSFetchCacheService` in OIDCClientService (authorization, refresh, backchannel logout).
+  - Conditional GET with If-None-Match; 304 reuse implemented.
+  - Kid-miss forced refresh logic in id_token validation path.
+  - Unified protected header parsing for JWS (3-part) and JWE (5-part) to expose `kid` and enforce signing algorithms (reject HS*, none).
+  - Metrics emitted: hit/miss/forced_refresh/not_modified, key count, ETag transitions.
+  - Legacy direct fetch path deprecated (still present but unused by client flows).
 
 Recent changes (UPDATED)
-- private_key_jwt alg selection parity: COMPLETE
-- Asymmetric-only encryption advertisement: COMPLETE
-- RSA_OAEP_256 removed: COMPLETE
-- Encryption alg/enc iteration logic: COMPLETE
-- Client decryption path: COMPLETE
-- JWKS shared cache (TTL + rotation fallback): COMPLETE
-- ETag service TTL: COMPLETE
-- Conditional GET (well-known/JWKS) + size guards: COMPLETE
-- JWKS conditional reuse on 304: COMPLETE
-- Backchannel handler JWKS cache usage: COMPLETE
-- Client encryption metadata diagnostic: COMPLETE
-- Refresh diagnostic (JWS/JWE alg/enc reporting): COMPLETE
-- JWKS cache effectiveness diagnostic: COMPLETE
-- Unified SKIPPED behavior (authorize, end_session, userinfo, revocation, introspection, PAR): COMPLETE
-- PAR diagnostic state/nonce base64url format reporting: COMPLETE
-- Refresh fallback diagnostic: COMPLETE
-- IdP client JWKS structured markers (incl. revalidation + timing): COMPLETE
-- IdP client front/back-channel endpoint structured markers + timing: COMPLETE
-- Diagnostics body scrubbing (ScrubForDiagnostics) preserved canonical well-known/JWKS: COMPLETE
-- Removed logging of raw code_verifier & sensitive token artifacts: COMPLETE
-- JWKS cache service structured logs (ServerETag, NotModified, SentIfNoneMatch, hit/miss, forced_refresh): COMPLETE
-- Client JWKS cache effectiveness diagnostic summary: COMPLETE
-- IdP token service logging scrub (length-only masking): COMPLETE
-- JWKS cache metrics surfaced in trace logs (hit/miss, forced_refresh, sent_if_none_match, server_etag, keys_count, timestamps): COMPLETE
-- PKCE policy alignment enforcement (reject unauthorized `plain`): COMPLETE
-- EndSession includes `sid` when deterministically resolvable: COMPLETE
+- WellKnownProvider refactor (split IdP signing vs accepted client signing lists).
+- Removal of ECDH and CBC-HS* from metadata.
+- Disabled RSA1_5 advertisement.
+- Unified client signing capability list (RS*/PS*/ES*).
+- `request_uri_parameter_supported` set to false (PAR mandated).
+- Centralized request object alg validation in PushedAuthorizationProvider.
+- JWKS cache integration (cache-first id_token & logout validation).
+- Added JWS/JWE protected header parsing + signing alg enforcement.
+- Kid-based forced refresh on JWKS cache miss implemented.
 
 Diagnostics conventions
-- Client diagnostics probe IdP endpoints; IdP diagnostics probe client endpoints.
-- Well-known/JWKS check: Result[0]=discovery JSON; Result[1]=JWKS JSON; summaries ≥ index 2.
-- No logging of raw tokens, refresh tokens, client_assertion, logout_token, or full JWKS body outside canonical slots.
-- Absent endpoints → “SKIPPED: not advertised”.
-- State/nonce values reported by format/length only.
-- JWKS cache diagnostics expose ServerETag, NotModified, SentIfNoneMatch.
+- No raw tokens/assertions/logout_token.
+- State/nonce metadata only.
+- JWKS diagnostics expose ServerETag / NotModified / SentIfNoneMatch.
+- Signing/encryption errors return structured codes (unsupported_encryption_alg, unsupported_signing_alg, kid-miss forced refresh path).
 
-Next tasks — Phase 3 (Diagnostics / UX)
-- Client-side diagnostics: Backchannel receiver probe NOT APPLICABLE
-- IdP-side diagnostics: timing refinement optional (NOT APPLICABLE now)
-- Shared: (none outstanding for metrics surfacing)
+Pending tasks
+- UserInfo endpoint (signed + optional encrypted) + advertise userinfo_encryption_*.
+- Request object FULL encryption (evaluate ECDH enablement or retain RSA-only; implement JWE decrypt path).
+- Deeper encryption negotiation diagnostics (candidate ordering / chosen / reason codes).
+- Performance counters (sign/encrypt/decrypt timings, payload sizes, JWKS cache latency benefits).
+- Revocation & introspection endpoints.
+- Request object policy enhancements (nonce requirement rules, restricted claims set).
+- Documentation: updated crypto policy (ECDH removed, CBC-HS removed, RSA1_5 exclusion, signing alg enforcement).
+- Test suite: negative alg cases (ECDH attempt, RSA1_5, HS*, none; kid-miss refresh behavior).
+- UserInfo scope-based claim filtering & optional JWE.
+- Structured selection logging for id_token vs request object vs userinfo (negotiation trace).
 
-Pending tasks (retain all)
-- IdP
-  1. Optional tests for alg ordering + encryption. PENDING
-- Client
-  1. Logging scrub (encrypted id_token handling). PENDING
-  2. Backchannel receiver diagnostic (client suite) NOT APPLICABLE
-- Shared
-  1. Optional PKCE plain enable switch. PENDING
-  2. Docs: client decryption (no RSA_OAEP_256) & JWKS cache usage. PENDING
-  3. UserInfo encryption (Phase 4). PENDING
-  4. Request object encryption (Phase 4). PENDING
-  5. Performance benchmark (encryption & JWKS cache overhead). PENDING
-
-Release readiness (updated)
-- Discovery matches capabilities (no unsupported RSA_OAEP_256).
-- IdP issues signed id_tokens; encrypts when possible.
-- Diagnostics confirm signing/encryption and endpoint reachability.
-- JWKS caching validated; metrics visible.
-- Deterministic alg/enc ordering implemented.
-- PKCE + EndSession sid alignment complete; documentation & performance benchmarking remain.
+Release readiness
+- Core flows and JWKS caching COMPLETE.
+- Blocking items for Phase 4 completion: UserInfo, extended diagnostics, revocation/introspection, documentation, tests, performance telemetry.
 
 Status TL;DR
-- Core & encryption flows COMPLETE.
-- PKCE and EndSession sid inclusion COMPLETE (deterministic sid selection).
-- Remaining: docs, optional encryption extensions (userinfo/request objects), tests, performance benchmarks, encrypted id_token client logging scrub.
+- Foundations COMPLETE.
+- JWKS caching & ETag reuse now COMPLETE (cache-first, forced refresh, metrics).
+- Outstanding: UserInfo encryption, request object encryption extension, diagnostics depth, perf counters, revocation/introspection, docs, tests.
 
-H — Signing & encryption end-to-end alignment
-- IdP key selection (RSA/ECDH) & client decryption: COMPLETE
-- Discovery accuracy & client_assertion alg enforcement: COMPLETE
+H — Signing & encryption alignment
+- IdP signing based on cert: COMPLETE
+- client_assertion & request object signing enforcement (asymmetric only): COMPLETE
+- id_token JWS signing alg enforcement (no HS*/none): COMPLETE
+- UserInfo encryption/signing metadata: PENDING
 
-Actions (IdP)
-- Encrypt id_token with client’s public key (RSA-OAEP or ECDH-ES+A256KW; enc=A256GCM). COMPLETE
+Next focus (adjusted)
+1. Implement UserInfo (signed + optional RSA-OAEP/GCM encryption) & advertise metadata.
+2. Request object encryption/decryption completion (decide on ECDH introduction; implement JWE decrypt path).
+3. Encryption negotiation diagnostics (candidate sets, selection reasons, exclusion flags).
+4. Performance telemetry (crypto timings, payload size deltas, JWKS cache hit ratio, forced refresh counts).
+5. Revocation & introspection endpoints.
+6. Documentation update (crypto reductions, signing alg enforcement, kid-miss forced refresh behavior).
+7. Negative/interop test suite (alg rejection, kid-miss refresh scenarios, request object invalid cases).
+8. Decision gate for future ECDH enablement.
 
-Actions (Client)
-- Decrypt JWE id_token enforcing allowed alg/enc sets. COMPLETE
-
-Actions (Shared/JWKS)
-- JWKS correctness (kty, crv/x/y, kid, x5c) validated. COMPLETE
+Acceptance criteria for updated policy
+- Well-known reflects reduced algorithm surface (no ECDH, no CBC-HS*, no RSA1_5, no HS*/none in signing sets).
+- UserInfo implemented & advertised when complete.
+- Diagnostics show candidate encryption/signing sets, exclusions (e.g. ECDH disabled), selection reason codes.
+- JWKS cache metrics accessible (hit/miss/not_modified/forced_refresh/key_count).
+- Tests assert rejection of ECDH, CBC-HS*, RSA1_5, HS*, none; verify kid-miss triggers forced refresh exactly once.
 
 
