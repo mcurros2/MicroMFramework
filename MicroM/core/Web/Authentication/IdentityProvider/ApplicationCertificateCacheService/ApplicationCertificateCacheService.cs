@@ -19,7 +19,7 @@ public class ApplicationCertificateCacheService(ILogger<ApplicationCertificateCa
 
         return _certificateCache.GetOrAdd($"{app.ApplicationID}_{app.OIDCCertificateUniqueID ?? "default"}", key =>
         {
-            var cert = new X509Certificate2(app.OIDCCertificateBlob, app.OIDCCertificatePassword, X509KeyStorageFlags.EphemeralKeySet);
+            var cert = new X509Certificate2(app.OIDCCertificateBlob, app.OIDCCertificatePassword, X509KeyStorageFlags.EphemeralKeySet | X509KeyStorageFlags.Exportable);
             return cert;
         });
     }

@@ -1,5 +1,6 @@
 ﻿using MicroM.Configuration;
 using Microsoft.IdentityModel.Tokens;
+using System.Net;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
@@ -58,15 +59,30 @@ public class CryptClass
 
     }
 
-    public static X509Certificate2 CreateSelfSignedCertificate(string distinguished_name = ConfigurationDefaults.CertificateSubjectName, int expires_years = 50)
+    public static X509Certificate2 CreateSelfSignedCertificate(string distinguished_name = ConfigurationDefaults.CertificateSubjectName, int expires_years = 50, string[]? san_dns_names = null)
     {
-        using var rsa = RSA.Create(2048);
+        san_dns_names ??= [Environment.MachineName, "localhost"];
 
-        var request = new CertificateRequest($"cn={distinguished_name}", rsa, HashAlgorithmName.SHA512, RSASignaturePadding.Pkcs1);
+        using var rsa = RSA.Create(4096);
+
+        var request = new CertificateRequest($"CN={distinguished_name}", rsa, HashAlgorithmName.SHA512, RSASignaturePadding.Pkcs1);
+
+        var sanBuilder = new SubjectAlternativeNameBuilder();
+
+        foreach (var dns in san_dns_names)
+        {
+            if (!string.IsNullOrWhiteSpace(dns))
+                sanBuilder.AddDnsName(dns);
+        }
+
+        sanBuilder.AddIpAddress(IPAddress.Loopback);     // 127.0.0.1
+        sanBuilder.AddIpAddress(IPAddress.IPv6Loopback); // ::1
+
+        request.CertificateExtensions.Add(sanBuilder.Build());
 
         request.CertificateExtensions.Add
             (
-            new X509KeyUsageExtension(X509KeyUsageFlags.DigitalSignature | X509KeyUsageFlags.KeyEncipherment | X509KeyUsageFlags.DataEncipherment | X509KeyUsageFlags.KeyAgreement, false)
+            new X509KeyUsageExtension(X509KeyUsageFlags.DigitalSignature | X509KeyUsageFlags.KeyEncipherment | X509KeyUsageFlags.DataEncipherment | X509KeyUsageFlags.KeyAgreement, true)
             );
 
         // MMC: See https://access.redhat.com/documentation/en-us/red_hat_certificate_system/9/html/administration_guide/standard_x.509_v3_certificate_extensions
@@ -77,8 +93,17 @@ public class CryptClass
             new X509EnhancedKeyUsageExtension([new Oid("1.3.6.1.5.5.7.3.1"), new Oid("1.3.6.1.5.5.7.3.2")], false)
             );
 
+        request.CertificateExtensions.Add
+        (
+            new X509BasicConstraintsExtension(
+                certificateAuthority: false,
+                hasPathLengthConstraint: false,
+                pathLengthConstraint: 0,
+                critical: true)
+        );
+
         // Create a self-signed certificate
-        return request.CreateSelfSigned(DateTimeOffset.Now, DateTimeOffset.Now.AddYears(expires_years));
+        return request.CreateSelfSigned(DateTimeOffset.UtcNow.AddMinutes(-1), DateTimeOffset.UtcNow.AddYears(expires_years));
 
     }
 

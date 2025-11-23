@@ -11,6 +11,7 @@ public class WellknownIdentityConstants
     public const string ClientId = "client_id";
     public const string Nonce = "nonce";
     public const string State = "state";
+    public const string Request = "request";
     public const string SessionIdentifier = "sid";
     public const string Code = "code";
     public const string CodeVerifier = "code_verifier";

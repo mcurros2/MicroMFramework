@@ -13,6 +13,8 @@ namespace MicroM.Web.Authentication.SSO;
 
 public static class PushedAuthorizationProvider
 {
+    private const int MAX_REQUEST_OBJECT_BYTES = 64 * 1024;
+
     public static OIDCSigningAlg? SelectAssertionAlg(X509Certificate2 cert, List<OIDCSigningAlg>? supported)
     {
         if (supported == null || supported.Count == 0) return null;
@@ -33,46 +35,145 @@ public static class PushedAuthorizationProvider
         return null;
     }
 
-    public static ResultWithStatus<PushedAuthorizationRequest, ErrorResult> ValidateRequest(ApplicationOption app, IFormCollection form)
+    public static ResultWithStatus<(PushedAuthorizationRequest? request, OIDCSigningAlg? request_obj_alg), ErrorResult> ValidateRequest(ApplicationOption app, IFormCollection form)
     {
-        var responseType = form[WellknownIdentityConstants.ResponseType].ToString();
-        var redirectUri = form[WellknownIdentityConstants.RedirectUri].ToString();
-        var scope = form[WellknownIdentityConstants.Scope].ToString();
-        var state = form[WellknownIdentityConstants.State].ToString();
-        var codeChallenge = form[WellknownIdentityConstants.CodeChallenge].ToString();
-        var codeChallengeMethod = form[WellknownIdentityConstants.CodeChallengeMethod].ToString();
-        var clientId = form[WellknownIdentityConstants.ClientId].ToString();
 
-        if (string.IsNullOrEmpty(responseType) || !string.Equals(responseType, WellknownIdentityConstants.Code, StringComparison.Ordinal))
-            return new(null, new("invalid_request", "response_type must be 'code'"));
+        form.TryGetValue(WellknownIdentityConstants.Request, out var requestVal);
 
-        if (string.IsNullOrEmpty(clientId))
-            return new(null, new("invalid_request", "client_id is required"));
+        form.TryGetValue(WellknownIdentityConstants.ClientId, out var clientIdVal);
+        form.TryGetValue(WellknownIdentityConstants.ResponseType, out var responseTypeVal);
+        form.TryGetValue(WellknownIdentityConstants.RedirectUri, out var redirectUriVal);
+        form.TryGetValue(WellknownIdentityConstants.Scope, out var scopeVal);
+        form.TryGetValue(WellknownIdentityConstants.State, out var stateVal);
+        form.TryGetValue(WellknownIdentityConstants.CodeChallenge, out var codeChallengeVal);
+        form.TryGetValue(WellknownIdentityConstants.CodeChallengeMethod, out var codeChallengeMethodVal);
 
-        if (string.IsNullOrEmpty(redirectUri))
-            return new(null, new("invalid_request", "redirect_uri is required"));
 
-        if (string.IsNullOrEmpty(scope))
-            return new(null, new("invalid_request", "scope is required"));
+        var request = requestVal.ToString();
+        var redirectUri = redirectUriVal.ToString();
+        var scope = scopeVal.ToString();
+        var state = stateVal.ToString();
+        var codeChallenge = codeChallengeVal.ToString();
+        var codeChallengeMethod = codeChallengeMethodVal.ToString();
+        var clientId = clientIdVal.ToString();
+        var responseType = responseTypeVal.ToString();
 
-        if (string.IsNullOrEmpty(codeChallenge) || string.IsNullOrEmpty(codeChallengeMethod))
-            return new(null, new("invalid_request", "PKCE code_challenge and code_challenge_method are required"));
+        if (!string.IsNullOrEmpty(request) &&
+               (
+               !string.IsNullOrEmpty(clientId) ||
+               !string.IsNullOrEmpty(responseType) ||
+               !string.IsNullOrEmpty(redirectUri) ||
+               !string.IsNullOrEmpty(scope) ||
+               !string.IsNullOrEmpty(state) ||
+               !string.IsNullOrEmpty(codeChallenge) ||
+               !string.IsNullOrEmpty(codeChallengeMethod)
+               )
+           )
+        {
+            return new((null, null), new("invalid_request", "Both 'request' parameter and individual parameters are present"));
+        }
 
-        bool allowPlain = app.OIDCAllowPkcePlain;
-        if (!string.Equals(codeChallengeMethod, "S256", StringComparison.Ordinal) &&
-            !(allowPlain && string.Equals(codeChallengeMethod, "plain", StringComparison.Ordinal)))
-            return new(null, new("invalid_request", "Unsupported code_challenge_method"));
+        if (!string.IsNullOrEmpty(request))
+        {
+            OIDCSigningAlg? requestObjAlg = null;
 
-        var result = new PushedAuthorizationRequest(
-            client_id: clientId,
-            response_type: responseType,
-            redirect_uri: redirectUri,
-            scope: scope,
-            state: state ?? "",
-            code_challenge: codeChallenge ?? "",
-            code_challenge_method: codeChallengeMethod ?? ""
-        );
-        return new(result, null);
+            if (request.Length > MAX_REQUEST_OBJECT_BYTES)
+            {
+                return new((null, null), new("invalid_request", "request object exceeds size limit"));
+            }
+
+            // Validate signature alg header (basic surface check before full signature validation at authorize)
+            try
+            {
+                var handler = new JsonWebTokenHandler();
+                var jwt = handler.ReadJsonWebToken(request);
+                var alg = jwt?.Alg;
+                if (string.IsNullOrWhiteSpace(alg))
+                {
+                    return new((null, null), new("invalid_request_object", "Missing alg in request object"));
+                }
+
+                // Enforce allowed algs (exclude none / HS*)
+                if (alg.Equals("none", StringComparison.OrdinalIgnoreCase) ||
+                    alg.StartsWith("HS", StringComparison.OrdinalIgnoreCase))
+                {
+                    return new((null, null), new("invalid_request_object", "Unsupported request object signing algorithm"));
+                }
+
+                requestObjAlg = alg switch
+                {
+                    "RS256" => OIDCSigningAlg.RS256,
+                    "RS384" => OIDCSigningAlg.RS384,
+                    "RS512" => OIDCSigningAlg.RS512,
+                    "PS256" => OIDCSigningAlg.PS256,
+                    "PS384" => OIDCSigningAlg.PS384,
+                    "PS512" => OIDCSigningAlg.PS512,
+                    "ES256" => OIDCSigningAlg.ES256,
+                    "ES384" => OIDCSigningAlg.ES384,
+                    "ES512" => OIDCSigningAlg.ES512,
+                    _ => null
+                };
+
+                if (requestObjAlg == null)
+                {
+                    return new((null, null), new("invalid_request_object", "Unrecognized or unsupported request object alg"));
+                }
+
+                var result = new PushedAuthorizationRequest(
+                    client_id: null,
+                    response_type: null,
+                    redirect_uri: null,
+                    scope: null,
+                    state: null,
+                    code_challenge: null,
+                    code_challenge_method: null,
+                    request: request
+                );
+
+                return new((result, requestObjAlg), null);
+            }
+            catch
+            {
+                return new((null, null), new("invalid_request_object", "Malformed request object"));
+            }
+
+        }
+        else
+        {
+            if (string.IsNullOrEmpty(responseType) || !string.Equals(responseType, WellknownIdentityConstants.Code, StringComparison.Ordinal))
+                return new((null, null), new("invalid_request", "response_type must be 'code'"));
+
+            if (string.IsNullOrEmpty(clientId))
+                return new((null, null), new("invalid_request", "client_id is required"));
+
+            if (string.IsNullOrEmpty(redirectUri))
+                return new((null, null), new("invalid_request", "redirect_uri is required"));
+
+            if (string.IsNullOrEmpty(scope))
+                return new((null, null), new("invalid_request", "scope is required"));
+
+            if (string.IsNullOrEmpty(codeChallenge) || string.IsNullOrEmpty(codeChallengeMethod))
+                return new((null, null), new("invalid_request", "PKCE code_challenge and code_challenge_method are required"));
+
+            bool allowPlain = app.OIDCAllowPkcePlain;
+            if (!string.Equals(codeChallengeMethod, "S256", StringComparison.Ordinal) &&
+                !(allowPlain && string.Equals(codeChallengeMethod, "plain", StringComparison.Ordinal)))
+                return new((null, null), new("invalid_request", "Unsupported code_challenge_method"));
+
+            var result = new PushedAuthorizationRequest(
+                client_id: clientId.ToString(),
+                response_type: responseType.ToString(),
+                redirect_uri: redirectUri.ToString(),
+                scope: scope.ToString(),
+                state: state.ToString() ?? "",
+                code_challenge: codeChallenge.ToString() ?? "",
+                code_challenge_method: codeChallengeMethod.ToString() ?? "",
+                request: null
+            );
+            return new((result, null), null);
+
+        }
+
     }
 
     public static string BuildClientAssertion(X509Certificate2 cert, string clientId, string audience, OIDCSigningAlg? signingAlg)

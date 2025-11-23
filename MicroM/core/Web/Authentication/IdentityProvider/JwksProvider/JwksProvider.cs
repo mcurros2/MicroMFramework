@@ -1,5 +1,6 @@
 ﻿using MicroM.Configuration;
 using MicroM.Core;
+using MicroM.Web.Extensions;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
 using System.Security.Claims;
@@ -10,8 +11,46 @@ using System.Text.Json;
 
 namespace MicroM.Web.Authentication.SSO;
 
+public record JWTProtectedHeaderResult
+(
+    bool IsJwe,
+    string? Alg,
+    string? Enc,
+    string? Kid,
+    string? ParseError
+);
+
 public static class JwksProvider
 {
+    // Allowed key mgmt algs
+    private static readonly HashSet<string> AllowedTokenAlgs = new(StringComparer.Ordinal)
+    {
+        SecurityAlgorithms.RsaOAEP,
+
+        // Ecdh not yet supported, we only use RSA certificates in IdP and Clients for now
+        //SecurityAlgorithms.EcdhEsA256kw,
+        //SecurityAlgorithms.EcdhEs
+    };
+
+    // Allowed content enc
+    private static readonly HashSet<string> AllowedTokenEncs = new(StringComparer.Ordinal)
+    {
+        SecurityAlgorithms.Aes256Gcm,
+        SecurityAlgorithms.Aes192Gcm,
+        SecurityAlgorithms.Aes128Gcm
+    };
+
+    private static readonly HashSet<string> AllowedSigningAlgs = new(StringComparer.Ordinal)
+    {
+        SecurityAlgorithms.RsaSha256,
+        SecurityAlgorithms.RsaSha384,
+        SecurityAlgorithms.RsaSha512,
+        SecurityAlgorithms.RsaSsaPssSha256,
+        SecurityAlgorithms.RsaSsaPssSha384,
+        SecurityAlgorithms.RsaSsaPssSha512
+        // ECDSA not yet supported, we only use RSA certificates in IdP for now
+    };
+
     public static OIDCJwksKeyResponse? GetRSAKey(ApplicationOption app, X509Certificate2 cert)
     {
         var kid = !string.IsNullOrEmpty(app.OIDCCertificateUniqueID) ? app.OIDCCertificateUniqueID : cert.Thumbprint;
@@ -31,7 +70,7 @@ public static class JwksProvider
             (
                 kid: kid,
                 kty: OIDCKeyType.RSA,
-                use: OIDCKeyUse.sig,
+                // omitting use to allow both sig/enc usage
                 // omitting alg to allow RS*/PS* selection at runtime
                 n: Base64UrlEncoder.Encode(par.Modulus),
                 e: Base64UrlEncoder.Encode(par.Exponent),
@@ -64,34 +103,33 @@ public static class JwksProvider
             // Determine curve name (crv) by coordinate length
             OIDCKeyCurveValues crv;
             int coordLen = ecParams.Q.X?.Length ?? 0;
-            OIDCSigningAlg alg;
-            if (coordLen == 32)
+
+            switch (coordLen)
             {
-                crv = OIDCKeyCurveValues.P256;
-                alg = OIDCSigningAlg.ES256;
+                case 32:
+                    crv = OIDCKeyCurveValues.P256;
+                    break;
+                case 48:
+                    crv = OIDCKeyCurveValues.P384;
+                    break;
+                case 66:
+                    crv = OIDCKeyCurveValues.P521;
+                    break;
+                default:
+                    return null;
             }
-            else if (coordLen == 48)
-            {
-                crv = OIDCKeyCurveValues.P384;
-                alg = OIDCSigningAlg.ES384;
-            }
-            else if (coordLen == 66)
-            {
-                crv = OIDCKeyCurveValues.P521;
-                alg = OIDCSigningAlg.ES512;
-            }
-            else
-            {
-                return null;
-            }
+
 
             var ecKey = new OIDCJwksKeyResponse
             {
                 kid = kid,
                 kty = OIDCKeyType.EC,
-                use = OIDCKeyUse.sig,
-                alg = alg,
+
+                // omitting use to allow both sig/enc usage
+                // omitting alg to allow ES* selection at runtime
+
                 crv = crv,
+
                 x = Base64UrlEncoder.Encode(ecParams.Q.X),
                 y = Base64UrlEncoder.Encode(ecParams.Q.Y),
                 x5c = x5c,
@@ -117,85 +155,75 @@ public static class JwksProvider
         return new JsonWebKeySet(jwksJson);
     }
 
-    private static (bool isJwe, string? alg, string? enc, string? parseError) TryReadProtectedHeader(string jwt)
+    public static JWTProtectedHeaderResult TryReadProtectedHeader(string jwt)
     {
         try
         {
-            // JWS: 3 parts; JWE: 5 parts
+            if (string.IsNullOrWhiteSpace(jwt))
+            {
+                return new(false, null, null, null, "empty_token");
+            }
+
             var parts = jwt.Split('.');
-            if (parts.Length != 5)
-                return (false, null, null, null);
+            // JWS: 3 parts; JWE: 5 parts. Any other length is invalid for our purposes.
+            bool isJwe = parts.Length == 5;
+            if (parts.Length != 3 && parts.Length != 5)
+            {
+                return new(false, null, null, null, "invalid_segment_count");
+            }
 
             var headerB64 = parts[0];
             var headerJson = Encoding.UTF8.GetString(Base64UrlEncoder.DecodeBytes(headerB64));
             using var doc = JsonDocument.Parse(headerJson);
             var root = doc.RootElement;
 
-            string? alg = root.TryGetProperty(JwtHeaderParameterNames.Alg, out var algEl) && algEl.ValueKind == JsonValueKind.String ? algEl.GetString() : null;
-            string? enc = root.TryGetProperty(JwtHeaderParameterNames.Enc, out var encEl) && encEl.ValueKind == JsonValueKind.String ? encEl.GetString() : null;
-            return (true, alg, enc, null);
+            string? alg = root.ReadString(JwtHeaderParameterNames.Alg);
+            string? enc = root.ReadString(JwtHeaderParameterNames.Enc);
+            string? kid = root.ReadString(JwtHeaderParameterNames.Kid);
+
+            return new(isJwe, alg, enc, kid, null);
         }
         catch (Exception ex)
         {
-            return (true, null, null, ex.Message);
+            return new(false, null, null, null, ex.Message);
         }
     }
 
-    public static async Task<ResultWithStatus<JWTTokenResult, string>> ValidateIdTokenAsync(
-        IHttpClientFactory httpClientFactory,
-        string jwksUri,
-        string issuer,
-        string audience,
-        string idToken,
-        CancellationToken ct)
-    {
-        return await ValidateIdTokenAsync(httpClientFactory, jwksUri, issuer, audience, idToken, clientDecryptionCertificate: null, ct);
-    }
-
-    public static async Task<ResultWithStatus<JWTTokenResult, string>> ValidateIdTokenAsync(
-        IHttpClientFactory httpClientFactory,
-        string jwksUri,
+    public static async Task<ResultWithStatus<JWTTokenResult, string>> ValidateIdTokenWithKeysAsync(
+        IEnumerable<SecurityKey> signingKeys,
         string issuer,
         string audience,
         string idToken,
         X509Certificate2? clientDecryptionCertificate,
+        JWTProtectedHeaderResult protectedHeader,
         CancellationToken ct)
     {
         try
         {
-            // Enforce allowed JWE alg/enc when encrypted
-            var (isJwe, alg, enc, parseError) = TryReadProtectedHeader(idToken);
+            var (isJwe, alg, enc, kid, parseError) = protectedHeader;
             if (isJwe)
             {
                 if (parseError != null)
                 {
                     return new(null, $"id_token header parse error: {parseError}");
                 }
-
-                // Allowed key mgmt algs
-                var allowedAlgs = new HashSet<string>(StringComparer.Ordinal)
-                {
-                    SecurityAlgorithms.RsaOAEP,
-                    SecurityAlgorithms.EcdhEsA256kw,
-                    SecurityAlgorithms.EcdhEs
-                };
-                // Allowed content enc
-                var allowedEnc = new HashSet<string>(StringComparer.Ordinal)
-                {
-                    SecurityAlgorithms.Aes256Gcm
-                };
-
-                if (string.IsNullOrWhiteSpace(alg) || !allowedAlgs.Contains(alg))
+                if (string.IsNullOrWhiteSpace(alg) || !AllowedTokenAlgs.Contains(alg))
                 {
                     return new(null, $"unsupported_encryption_alg: {alg ?? "<null>"}");
                 }
-                if (string.IsNullOrWhiteSpace(enc) || !allowedEnc.Contains(enc))
+                if (string.IsNullOrWhiteSpace(enc) || !AllowedTokenEncs.Contains(enc))
                 {
                     return new(null, $"unsupported_encryption_enc: {enc ?? "<null>"}");
                 }
             }
-
-            var jwks = await FetchJwksAsync(httpClientFactory, jwksUri, ct);
+            else
+            {
+                // JWS (non-encrypted) → enforce allowed signing algs
+                if (string.IsNullOrWhiteSpace(alg) || !AllowedSigningAlgs.Contains(alg))
+                {
+                    return new(null, $"unsupported_signing_alg: {alg}");
+                }
+            }
 
             var handler = new JsonWebTokenHandler();
             var parms = new TokenValidationParameters
@@ -206,15 +234,14 @@ public static class JwksProvider
                 ValidAudience = audience,
                 ValidateLifetime = true,
                 RequireSignedTokens = true,
-                IssuerSigningKeys = jwks.Keys,
-                ClockSkew = TimeSpan.FromMinutes(1)
+                IssuerSigningKeys = signingKeys,
+                ClockSkew = TimeSpan.FromMinutes(1),
+                ValidAlgorithms = AllowedSigningAlgs
             };
 
-            // Enable JWE decryption when id_token is encrypted and the client has the private key
             if (clientDecryptionCertificate != null)
             {
                 SecurityKey? decryptKey = null;
-
                 if (clientDecryptionCertificate.GetRSAPrivateKey() != null)
                 {
                     decryptKey = new X509SecurityKey(clientDecryptionCertificate);
@@ -227,7 +254,6 @@ public static class JwksProvider
                         decryptKey = new ECDsaSecurityKey(ecdsa);
                     }
                 }
-
                 if (decryptKey != null)
                 {
                     parms.TokenDecryptionKey = decryptKey;
@@ -253,4 +279,5 @@ public static class JwksProvider
             return new(null, $"id_token validation error: {ex.Message}");
         }
     }
+
 }
