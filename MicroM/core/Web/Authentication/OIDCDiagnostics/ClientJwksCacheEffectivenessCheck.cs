@@ -103,7 +103,7 @@ internal class ClientJwksCacheEffectivenessCheck : IDiagnosticCheck<ClientDiagno
         }
 
         // If server did not return 304, check if content is unchanged
-        var unchanged = string.Equals(jwks1.Body, jwks2.Body, StringComparison.Ordinal);
+        var unchanged = jwks1.Body == jwks2.Body;
         lines.Add(unchanged
             ? "result: No 304, but content unchanged; server may not support ETag fully."
             : "result: JWKS content changed without 304; this could indicate rotation or missing ETag support.");

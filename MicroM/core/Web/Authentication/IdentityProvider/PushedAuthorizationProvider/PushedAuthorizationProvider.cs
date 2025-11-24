@@ -175,7 +175,7 @@ public static class PushedAuthorizationProvider
         }
 
         // Plain PAR fields validation
-        if (string.IsNullOrEmpty(responseType) || !string.Equals(responseType, WellknownIdentityConstants.Code, StringComparison.Ordinal))
+        if (string.IsNullOrEmpty(responseType) || responseType != WellknownIdentityConstants.Code)
             return new((null, null), new("invalid_request", "response_type must be 'code'"));
 
         if (string.IsNullOrEmpty(clientId))
@@ -191,8 +191,7 @@ public static class PushedAuthorizationProvider
             return new((null, null), new("invalid_request", "PKCE code_challenge and code_challenge_method are required"));
 
         bool allowPlain = app.OIDCAllowPkcePlain;
-        if (!string.Equals(codeChallengeMethod, "S256", StringComparison.Ordinal) &&
-            !(allowPlain && string.Equals(codeChallengeMethod, "plain", StringComparison.Ordinal)))
+        if (codeChallengeMethod != "S256" && !(allowPlain && codeChallengeMethod == "plain"))
             return new((null, null), new("invalid_request", "Unsupported code_challenge_method"));
 
         var plainResult = new PushedAuthorizationRequest(
@@ -295,8 +294,7 @@ public static class PushedAuthorizationProvider
             return (null, new { error = "invalid_request", error_description = "code_challenge_method is required" });
 
         bool allowPlain = client_app.OIDCAllowPkcePlain;
-        if (!string.Equals(codeChallengeMethod, "S256", StringComparison.Ordinal) &&
-            !(allowPlain && string.Equals(codeChallengeMethod, "plain", StringComparison.Ordinal)))
+        if (codeChallengeMethod != "S256" && !(allowPlain && codeChallengeMethod == "plain"))
             return (null, new { error = "invalid_request", error_description = "Unsupported code_challenge_method" });
 
         forward.TryGetValue(WellknownIdentityConstants.State, out var state);
@@ -323,7 +321,7 @@ public static class PushedAuthorizationProvider
         {
             foreach (var u in cfg.URLAuthorizedRedirects)
             {
-                if (!string.IsNullOrEmpty(u) && string.Equals(u, redirectUri, StringComparison.Ordinal))
+                if (!string.IsNullOrEmpty(u) && u == redirectUri)
                     return true;
             }
         }
@@ -333,13 +331,11 @@ public static class PushedAuthorizationProvider
             foreach (var kvp in app.OIDCClientConfiguration)
             {
                 var c = kvp.Value;
-                if (c?.ClientAPPID != null &&
-                    string.Equals(c.ClientAPPID, clientId, StringComparison.Ordinal) &&
-                    c.URLAuthorizedRedirects != null)
+                if (c?.ClientAPPID != null && c.ClientAPPID == clientId && c.URLAuthorizedRedirects != null)
                 {
                     foreach (var u in c.URLAuthorizedRedirects)
                     {
-                        if (!string.IsNullOrEmpty(u) && string.Equals(u, redirectUri, StringComparison.Ordinal))
+                        if (!string.IsNullOrEmpty(u) && u == redirectUri)
                             return true;
                     }
                 }

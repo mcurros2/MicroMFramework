@@ -132,7 +132,7 @@ public class OauthTokenService(
             return new(null, error);
         }
 
-        if (!string.Equals(request_record.client_id, authenticated_client_app, StringComparison.Ordinal))
+        if (request_record.client_id != authenticated_client_app)
         {
             log.LogWarning("OIDC_TOKEN_CODE_CLIENT_MISMATCH form_client_id={formClient} auth_client_id={authClient}", request_record.client_id, authenticated_client_app);
             return new(null, new("invalid_client", "client_id mismatch with authenticated client"));

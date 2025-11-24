@@ -274,8 +274,4 @@ public class IdentityProviderService(
         return true;
     }
 
-    public Task<Dictionary<string, object?>> HandleUserInfo(ApplicationOption app_config, string app_id, string user_id, CancellationToken ct)
-    {
-        throw new NotImplementedException();
-    }
 }

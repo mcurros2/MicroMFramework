@@ -59,8 +59,7 @@ public static class AuthorizeEndpointProvider
             }
 
             // client_id must match the authenticated client used at PAR time
-            if (!string.IsNullOrEmpty(authorize_request.client_id) &&
-                !string.Equals(authorize_request.client_id, pushed.client_id, StringComparison.Ordinal))
+            if (!string.IsNullOrEmpty(authorize_request.client_id) && authorize_request.client_id != pushed.client_id)
             {
                 return new(null, new("invalid_request", "client_id in authorize request does not match PAR client_id"));
             }
@@ -132,8 +131,7 @@ public static class AuthorizeEndpointProvider
 
                 // 4) Enforce that client_id in the Request Object (if present) matches the authenticated client
                 var roClientId = requestObjectJwt.Claims.FirstOrDefault(c => c.Type == "client_id")?.Value;
-                if (!string.IsNullOrEmpty(roClientId) &&
-                    !string.Equals(roClientId, pushed.client_id, StringComparison.Ordinal))
+                if (!string.IsNullOrEmpty(roClientId) && roClientId != pushed.client_id)
                 {
                     return new(null, new("invalid_request", "client_id in request object does not match authenticated client"));
                 }
@@ -150,21 +148,22 @@ public static class AuthorizeEndpointProvider
                 // enforce that if state/nonce appear both in RO and query, they match
                 if (!string.IsNullOrEmpty(roState) &&
                     !string.IsNullOrEmpty(authorize_request.state) &&
-                    !string.Equals(roState, authorize_request.state, StringComparison.Ordinal))
+                    roState != authorize_request.state)
                 {
                     return new(null, new("invalid_request", "state in request object does not match authorize request"));
                 }
 
                 if (!string.IsNullOrEmpty(roNonce) &&
                     !string.IsNullOrEmpty(authorize_request.nonce) &&
-                    !string.Equals(roNonce, authorize_request.nonce, StringComparison.Ordinal))
+                    roNonce != authorize_request.nonce)
                 {
                     return new(null, new("invalid_request", "nonce in request object does not match authorize request"));
                 }
 
                 // Precedence:
-                //   response_type / redirect_uri / scope: RO > PAR > original
-                //   state: query > RO > PAR (query wins)
+                //   - response_type / redirect_uri / scope: RO > PAR > original query
+                //   - state / nonce: RO > PAR > original query
+                //   - If RO and query both contain state/nonce, they MUST match (or invalid_request).
                 var finalResponseType = roResponseType ?? pushed.response_type ?? authorize_request.response_type;
                 var finalRedirectUri = roRedirectUri ?? pushed.redirect_uri ?? authorize_request.redirect_uri;
                 var finalScope = roScope ?? pushed.scope ?? authorize_request.scope;

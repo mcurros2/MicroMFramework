@@ -115,18 +115,6 @@ public static class JwksProvider
         return null;
     }
 
-    public static async Task<JsonWebKeySet> FetchJwksAsync(IHttpClientFactory httpClientFactory, string jwksUri, CancellationToken ct)
-    {
-        ArgumentNullException.ThrowIfNull(httpClientFactory);
-        if (string.IsNullOrWhiteSpace(jwksUri)) throw new ArgumentNullException(nameof(jwksUri));
-
-        using var http = httpClientFactory.CreateClient(ConfigurationDefaults.HTTPClientJwksName);
-        using var res = await http.GetAsync(jwksUri, ct);
-        res.EnsureSuccessStatusCode();
-        var jwksJson = await res.Content.ReadAsStringAsync(ct);
-        return new JsonWebKeySet(jwksJson);
-    }
-
     public static JWTProtectedHeaderResult TryReadProtectedHeader(string jwt)
     {
         try

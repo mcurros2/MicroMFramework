@@ -105,7 +105,7 @@ public class StateAndNonceService
             return new(null, "state_cookie_expired");
         }
 
-        if (!string.Equals(hashed.Data.State, incomingState, StringComparison.Ordinal))
+        if (hashed.Data.State != incomingState)
         {
             log.LogDebug("State cookie {cookie_name} state mismatch (expected {expected}, got {actual})", cookieName, hashed.Data.State, incomingState);
             return new(null, "state_mismatch");

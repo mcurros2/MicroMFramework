@@ -145,7 +145,7 @@ public static class OauthTokenServiceProvider
             [WellknownIdentityConstants.Scope] = WellknownIdentityConstants.OpenID
         };
 
-        // NEW: OIDC id_token is now generated via GenerateOidcIdToken (always signed; encrypted if certificate supports it).
+        // OIDC id_token is now generated via GenerateOidcIdToken (always signed; encrypted if certificate supports it).
         //       On unexpected failure, we fall back to legacy symmetric token generation to avoid breaking issuance.
         TokenResult? idTokenResult;
         try
@@ -154,7 +154,7 @@ public static class OauthTokenServiceProvider
         }
         catch
         {
-            // NEW: Fallback path (graceful degradation) - log at warning level externally.
+            // Fallback path (graceful degradation) - log at warning level externally.
             idTokenResult = jwtHandler.GenerateJwtTokenWEBApi(idClaims, app, audience: client_id);
         }
 

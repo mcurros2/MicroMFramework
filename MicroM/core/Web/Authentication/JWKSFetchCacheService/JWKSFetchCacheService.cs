@@ -106,7 +106,7 @@ public class JWKSFetchCacheService(
 
         var cacheHit = _jwksResults.TryGetValue(jwksUri, out var existing) &&
                        !string.IsNullOrEmpty(existing.ETag) &&
-                       string.Equals(existing.ETag, localEtag, StringComparison.Ordinal);
+                       existing.ETag == localEtag;
 
         if (cacheHit)
         {
