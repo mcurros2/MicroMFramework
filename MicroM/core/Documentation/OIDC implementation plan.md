@@ -137,4 +137,59 @@ Acceptance criteria (updated)
 - Tests assert rejection of ECDH, CBC-HS*, RSA1_5, HS*, none; verify kid-miss triggers single forced refresh.
 - Documentation explicitly lists out-of-scope endpoints and rationale.
 
+## Urgent Bug Fixes (TOP priority)
+
+The items below are immediate, blocking fixes discovered during the recent IdP / OIDC refactor. All entries below are PENDING until implemented and validated.
+
+1. COMPLETED: Make the IdP `/oauth2/authorize` endpoint accessible to browser user-agents (remove requirement for IdP client backchannel auth; change controller attribute to `AllowAnonymous`).
+2. COMPLETED: Restrict client encryption algorithms to RSA-OAEP only and content encryption to GCM-only (`A256GCM`, `A192GCM`, `A128GCM`). Remove RSA1_5 and CBC-HS* usages from IdP encrypting credentials builders and any JWE generation paths.  
+   - Verified in: `core/Web/Authentication/IdentityProvider/IdPClientEncryptingCredentialsCacheService/IdPClientEncryptingCredentialsCacheService.cs` — `BuildEncryptingCredentialsFromSecurityKey` now uses `SecurityAlgorithms.RsaOAEP` and only GCM content algorithms.
+3. PENDING: Enforce token endpoint auth methods advertised by the IdP metadata in the backchannel authentication handler (reject `client_secret_basic` when metadata requires `private_key_jwt`).
+4. PENDING: Tighten Request Object validation: require `iss == client_id` when present, enforce appropriate `aud` (authorization endpoint or issuer), and strictly validate `exp` / `nbf`.
+5. PENDING: Fix IdP client encrypting credentials cache to use RSA-OAEP and GCM-only content algs; invalidate legacy RSA1_5/CBC-HMAC code paths.
+6. PENDING: Ensure JWKS kid-miss logic triggers a single forced refresh and verify cache invalidation semantics across nodes. Add unit test for kid-miss forced refresh behavior.
+7. PENDING: Fix audience (`aud`) construction used when validating `client_assertion` / token endpoint to include exact host:port and path base to avoid mismatch on non-default ports.
+8. PENDING: Replace any internal OIDC id_token encryption using CBC-HMAC with GCM variants where OIDC policy requires it; audit internal token encryption paths for policy alignment.
+9. PENDING: Ensure network and crypto calls accept and propagate `CancellationToken` (avoid using `CancellationToken.None` where caller CT should apply).
+10. PENDING: Document and/or implement distributed replay cache for backchannel logout in multi-node deployments (current in-memory replay cache is node-local).
+11. PENDING: Implement negative interoperability tests (reject ECDH request object attempts, RSA1_5, CBC-HS*, HS*, `none` signing).
+12. PENDING: Implement tests for PAR expiry behavior, request_object oversized rejection, and request_uri matching rules.
+13. PENDING: Add tests for `private_key_jwt` validation negative cases (wrong `iss`/`sub`/`aud`, expired assertion, unknown keys) and positive cases with JWKS rotation.
+14. PENDING: Add diagnostics telemetry and structured negotiation records: `{context, candidates, selected, exclusions, reasonCodes}` for id_token and request_object negotiation.
+15. PENDING: Add performance counters for crypto timings, payload sizes, JWKS cache latency/benefit and forced refresh frequency (diagnostics-only, queryable).
+16. PENDING: Update documentation to explicitly call out out-of-scope endpoints (UserInfo, introspection, revocation) and the updated cryptographic policy.
+17. PENDING: Audit logging to ensure no raw tokens/assertions/logout_token bodies are logged; confirm scrub convention coverage.
+18. PENDING: CI workflow: add unit/integration tests covering PAR → authorize → token → callback, including request object JWE decrypt path and `private_key_jwt` flows.
+
+---
+
+## Implementation reference
+
+Below is a concise reference to the primary files implementing the OIDC functionality described above. Links are repository-relative to help navigate the codebase.
+
+- `core/Web/Authentication/IdentityProvider/ApplicationCertificateCacheService/ApplicationCertificateCacheService.cs` — certificate caching for IdP signing/encryption keys.
+- `core/Web/Authentication/IdentityProvider/AuthorizationCodeService/MemoryAuthorizationCodeService.cs` — authorization code lifecycle (memory implementation).
+- `core/Web/Authentication/IdentityProvider/AuthorizeEndpointProvider/AuthorizeEndpointProvider.cs` — authorize endpoint handling, request validation and PAR integration.
+- `core/Web/Authentication/IdentityProvider/IdentityProviderService/IdentityProviderService.cs` — central IdP service orchestration and flows.
+- `core/Web/Authentication/IdentityProvider/IdPBackchannelAuthenticationHandler/IdPBackchannelAuthenticationHandler.cs` — back-channel authentication and logout receiver logic.
+- `core/Web/Authentication/IdentityProvider/IdPClientEncryptingCredentialsCacheService/IdPClientEncryptingCredentialsCacheService.cs` — cache for client encrypting credentials used for JWE.
+- `core/Web/Authentication/IdentityProvider/IdPClientSigningKeysCacheService/IdPClientSigningKeysCacheService.cs` — cache for client signing keys (request objects, client assertions).
+- `core/Web/Authentication/IdentityProvider/JwksProvider/JwksProvider.cs` — Well-known and JWKS provider, metadata production.
+- `core/Web/Authentication/IdentityProvider/JwksService/JwksService.cs` — JWKS fetch & parsing logic (integration point for fetch cache).
+- `core/Web/Authentication/IdentityProvider/OIDCCryptoCapabilities/OIDCCryptoCapabilities.cs` — advertised crypto capabilities and selection rules.
+- `core/Web/Authentication/IdentityProvider/OIDCReplayCacheService/OIDCReplayCacheService.cs` — replay protection for request objects / nonces.
+- `core/Web/Authentication/IdentityProvider/PushedAuthorizationProvider/PushedAuthorizationProvider.cs` — PAR handling and storage.
+- `core/Web/Authentication/IdentityProvider/PushedAuthorizationService/PushedAuthorizationService.cs` — PAR service implementation.
+- `core/Web/Authentication/IdentityProvider/StateAndNonceService/StateAndNonceService.cs` — state/nonce persistence and validation.
+- `core/Web/Authentication/IdentityProvider/WellKnownProvider/WellKnownProvider.cs` — well-known document generation and policy application.
+- `core/Web/Authentication/JWKSFetchCacheService/JWKSFetchCacheService.cs` — shared JWKS fetch cache with ETag / conditional GET and kid-miss logic.
+- `core/Web/Authentication/JWTHandling/WebAPIJsonWebTokenHandler.cs` — JWT/JWE parsing, protected header inspection and enforcement.
+- `core/Web/Authentication/OIDCClientService/OIDCClientService.cs` — client (RP) integration points and callbacks.
+- `core/Web/Authentication/OIDCHttpClient/OIDCHttpClient.cs` — HTTP client wrapper used for IdP interactions.
+- `core/Web/Controllers/IdentityProviderController/IdentityProviderController.cs` — API controller surface for IdP endpoints.
+- `core/Web/Controllers/OIDCClientController/OIDCClientController.cs` — controller endpoints used by clients (callback, refresh, logout).
+- `core/Documentation/MicroM OIDC multi tenant flow.md` — detailed flow diagram and reference for multi-tenant PAR+PKCE flow.
+
+
+
 

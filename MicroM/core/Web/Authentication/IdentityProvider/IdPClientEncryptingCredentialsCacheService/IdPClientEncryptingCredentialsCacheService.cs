@@ -93,14 +93,12 @@ public class IdPClientEncryptingCredentialsCacheService(
         // Key management algorithm candidates (RSA or EC)
         string[] keyAlgs;
         if (IsRsa(key))
-            keyAlgs = [SecurityAlgorithms.RsaOAEP, SecurityAlgorithms.RsaPKCS1];
-        else if (IsEc(key))
-            keyAlgs = [SecurityAlgorithms.EcdhEsA256kw, SecurityAlgorithms.EcdhEs];
-        else
+            keyAlgs = [SecurityAlgorithms.RsaOAEP];
+        else // EC not supported yet
             return null;
 
         // Content encryption preference
-        string[] contentAlgs = [SecurityAlgorithms.Aes256Gcm, SecurityAlgorithms.Aes256CbcHmacSha512];
+        string[] contentAlgs = [SecurityAlgorithms.Aes256Gcm, SecurityAlgorithms.Aes192Gcm, SecurityAlgorithms.Aes128Gcm];
 
         foreach (var km in keyAlgs)
         {

@@ -174,7 +174,8 @@ public class IdentityProviderController : ControllerBase, IIdentityProviderContr
         }
     }
 
-    [Authorize(Policy = nameof(MicroMPermissionsConstants.IdPClientPolicy))]
+    //[Authorize(Policy = nameof(MicroMPermissionsConstants.IdPClientPolicy))]
+    [AllowAnonymous]
     [HttpGet("{app_id}/oauth2/authorize")]
     [EnableRateLimiting(MicroMServicesConstants.RateLimitingOidcAuthorizePolicy)]
     public async Task<ActionResult> Authorize([FromServices] IMicroMAppConfiguration app_config, [FromServices] IIdentityProviderService idp, string app_id, CancellationToken ct)
