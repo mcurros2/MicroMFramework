@@ -119,7 +119,7 @@ public enum OIDCTokenEndpointAuthMethod { client_secret_basic, private_key_jwt }
 [JsonConverter(typeof(JsonStringEnumConverter))]
 public enum OIDCProfileScopes { openid, email, profile }
 
-public sealed record OIDCJwksResponse(List<OIDCJwksKeyResponse> keys);
+public sealed record OIDCJwksResponse(IReadOnlyList<OIDCJwksKeyResponse> keys);
 
 public sealed record OIDCWellKnownResponse
 (
@@ -131,8 +131,8 @@ public sealed record OIDCWellKnownResponse
     string jwks_uri,
 
     // Use strongly-typed lists so serialization follows spec and values are consistent.
-    List<OIDCResponseType>? response_types_supported = null,
-    List<OIDCSubjectType>? subject_types_supported = null,
+    IReadOnlyList<OIDCResponseType>? response_types_supported = null,
+    IReadOnlyList<OIDCSubjectType>? subject_types_supported = null,
 
     // Endpoints
     string? userinfo_endpoint = null,
@@ -145,11 +145,11 @@ public sealed record OIDCWellKnownResponse
 
 
     string? check_session_iframe = null,
-    List<OIDCGrantType>? grant_types_supported = null,
-    List<string>? acr_values_supported = null,
-    List<OIDCResponseMode>? response_modes_supported = null,
-    List<OIDCProfileScopes>? scopes_supported = null,
-    List<string>? claims_supported = null,
+    IReadOnlyList<OIDCGrantType>? grant_types_supported = null,
+    IReadOnlyList<string>? acr_values_supported = null,
+    IReadOnlyList<OIDCResponseMode>? response_modes_supported = null,
+    IReadOnlyList<OIDCProfileScopes>? scopes_supported = null,
+    IReadOnlyList<string>? claims_supported = null,
     bool? claims_parameter_supported = null,
     bool? request_uri_parameter_supported = null,
     bool? require_request_uri_registration = null,
@@ -160,44 +160,44 @@ public sealed record OIDCWellKnownResponse
     bool? backchannel_logout_supported = null,
     bool? backchannel_logout_session_supported = null,
 
-    List<string>? display_values_supported = null,
-    List<string>? claim_types_supported = null,
+    IReadOnlyList<string>? display_values_supported = null,
+    IReadOnlyList<string>? claim_types_supported = null,
     string? service_documentation = null,
     string? op_policy_uri = null,
     string? op_tos_uri = null,
-    List<string>? ui_locales_supported = null,
+    IReadOnlyList<string>? ui_locales_supported = null,
 
-    List<OIDCKeyEncryptionAlgorithm>? id_token_encryption_alg_values_supported = null,
-    List<OIDCEncryptionAlg>? id_token_encryption_enc_values_supported = null,
+    IReadOnlyList<OIDCKeyEncryptionAlgorithm>? id_token_encryption_alg_values_supported = null,
+    IReadOnlyList<OIDCEncryptionAlg>? id_token_encryption_enc_values_supported = null,
 
-    List<OIDCKeyEncryptionAlgorithm>? userinfo_encryption_alg_values_supported = null,
-    List<OIDCEncryptionAlg>? userinfo_encryption_enc_values_supported = null,
+    IReadOnlyList<OIDCKeyEncryptionAlgorithm>? userinfo_encryption_alg_values_supported = null,
+    IReadOnlyList<OIDCEncryptionAlg>? userinfo_encryption_enc_values_supported = null,
 
-    List<OIDCKeyEncryptionAlgorithm>? request_object_encryption_alg_values_supported = null,
-    List<OIDCEncryptionAlg>? request_object_encryption_enc_values_supported = null,
+    IReadOnlyList<OIDCKeyEncryptionAlgorithm>? request_object_encryption_alg_values_supported = null,
+    IReadOnlyList<OIDCEncryptionAlg>? request_object_encryption_enc_values_supported = null,
 
-    List<OIDCKeyEncryptionAlgorithm>? authorization_encryption_alg_values_supported = null,
-    List<OIDCEncryptionAlg>? authorization_encryption_enc_values_supported = null,
+    IReadOnlyList<OIDCKeyEncryptionAlgorithm>? authorization_encryption_alg_values_supported = null,
+    IReadOnlyList<OIDCEncryptionAlg>? authorization_encryption_enc_values_supported = null,
 
-    List<OIDCKeyEncryptionAlgorithm>? pushed_authorization_request_encryption_alg_values_supported = null,
-    List<OIDCEncryptionAlg>? pushed_authorization_request_encryption_enc_values_supported = null,
+    IReadOnlyList<OIDCKeyEncryptionAlgorithm>? pushed_authorization_request_encryption_alg_values_supported = null,
+    IReadOnlyList<OIDCEncryptionAlg>? pushed_authorization_request_encryption_enc_values_supported = null,
 
 
-    List<OIDCSigningAlg>? id_token_signing_alg_values_supported = null,
-    List<OIDCSigningAlg>? userinfo_signing_alg_values_supported = null,
-    List<OIDCSigningAlg>? token_endpoint_auth_signing_alg_values_supported = null,
-    List<OIDCSigningAlg>? request_object_signing_alg_values_supported = null,
-    List<OIDCSigningAlg>? revocation_endpoint_auth_signing_alg_values_supported = null,
-    List<OIDCSigningAlg>? introspection_endpoint_auth_signing_alg_values_supported = null,
+    IReadOnlyList<OIDCSigningAlg>? id_token_signing_alg_values_supported = null,
+    IReadOnlyList<OIDCSigningAlg>? userinfo_signing_alg_values_supported = null,
+    IReadOnlyList<OIDCSigningAlg>? token_endpoint_auth_signing_alg_values_supported = null,
+    IReadOnlyList<OIDCSigningAlg>? request_object_signing_alg_values_supported = null,
+    IReadOnlyList<OIDCSigningAlg>? revocation_endpoint_auth_signing_alg_values_supported = null,
+    IReadOnlyList<OIDCSigningAlg>? introspection_endpoint_auth_signing_alg_values_supported = null,
 
-    List<OIDCTokenEndpointAuthMethod>? revocation_endpoint_auth_methods_supported = null,
-    List<OIDCTokenEndpointAuthMethod>? token_endpoint_auth_methods_supported = null,
-    List<OIDCTokenEndpointAuthMethod>? introspection_endpoint_auth_methods_supported = null,
+    IReadOnlyList<OIDCTokenEndpointAuthMethod>? revocation_endpoint_auth_methods_supported = null,
+    IReadOnlyList<OIDCTokenEndpointAuthMethod>? token_endpoint_auth_methods_supported = null,
+    IReadOnlyList<OIDCTokenEndpointAuthMethod>? introspection_endpoint_auth_methods_supported = null,
 
     bool? authorization_response_iss_parameter_supported = null,
 
-    List<OIDCCodeChallengeMethod>? code_challenge_methods_supported = null,
+    IReadOnlyList<OIDCCodeChallengeMethod>? code_challenge_methods_supported = null,
 
-    List<string>? claims_locales_supported = null,
+    IReadOnlyList<string>? claims_locales_supported = null,
     bool? request_parameter_supported = null
 );

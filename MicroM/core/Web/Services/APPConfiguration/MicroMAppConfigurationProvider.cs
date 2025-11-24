@@ -35,7 +35,7 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
     private readonly string _jwtkey;
     private readonly IEtagCacheService _etag_cache;
     private readonly IApplicationCertificateCacheService _certificate_cache;
-    private readonly IAudienceCryptoCacheService _audience_crypto_cache;
+    private readonly IIdPClientEncryptingCredentialsCacheService _audience_crypto_cache;
     private readonly PathString _basePathString;
 
     private static string NormalizeURL(string url)
@@ -52,7 +52,7 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
         IBackgroundTaskQueue queue,
         IApplicationCertificateCacheService certificate_cache,
         IEtagCacheService etag_cache,
-        IAudienceCryptoCacheService audience_crypto_cache,
+        IIdPClientEncryptingCredentialsCacheService audience_crypto_cache,
         IConfiguration config)
     {
         ThrowIfNull(options);

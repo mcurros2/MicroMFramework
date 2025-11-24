@@ -23,6 +23,7 @@ public class IdentityProviderService(
     IApplicationCertificateCacheService certificate_cache,
     IJwksService jwks_service,
     IOIDCHttpClient oidcHttpClient,
+    IIdPClientSigningKeysCacheService idpClientSigningKeysCacheService,
     ILogger<IdentityProviderService> log
     ) : IIdentityProviderService
 {
@@ -80,22 +81,29 @@ public class IdentityProviderService(
         return par_service.CreatePushedRequest(app, form, clientId);
     }
 
-    public Task<ResultWithStatus<OIDCAuthorizeRecord, ErrorResult>> HandleAuthorize(ApplicationOption app, IQueryCollection query, ClaimsPrincipal user, string request_base, CancellationToken ct)
+    public async Task<ResultWithStatus<OIDCAuthorizeRecord, ErrorResult>> HandleAuthorize(ApplicationOption app, IQueryCollection query, ClaimsPrincipal user, string request_base, CancellationToken ct)
     {
+        X509Certificate2? cert = certificate_cache.GetCertificate(app);
+        if (cert == null)
+        {
+            log.LogWarning("Authorize: No certificate configured for IdP app {app}", app.ApplicationID);
+            return new(null, new("server_error", "Identity Provider misconfiguration"));
+        }
+
         // Accept either a request_uri (PAR) or inline params.
         // Build an authoritative parameter set to use.
-        var (qs, error) = AuthorizeEndpointProvider.ValidateAndOverrideWithPARAuthorizationRequest(app, par_service, query);
+        var (authorize_request, error) = await AuthorizeEndpointProvider.ValidateAndOverrideWithPARAuthorizationRequest(app, cert, idpClientSigningKeysCacheService, par_service, query, ct);
 
-        if (qs == null || error != null)
+        if (authorize_request == null || error != null)
         {
-            return Task.FromResult<ResultWithStatus<OIDCAuthorizeRecord, ErrorResult>>(new(null, error));
+            return new(null, error);
         }
 
         // If user is not authenticated, redirect to interactive login SPA.
         if (user?.Identity == null || !user.Identity.IsAuthenticated)
         {
             string login_url = AuthorizeEndpointProvider.BuildLoginURL(app, query, request_base);
-            return Task.FromResult<ResultWithStatus<OIDCAuthorizeRecord, ErrorResult>>(new(new(null, login_url), null));
+            return new(new(null, login_url), null);
         }
 
         // User is authenticated -> issue authorization code and redirect to redirect_uri with code and state
@@ -110,22 +118,22 @@ public class IdentityProviderService(
         // build authorization code record
         var record = new AuthorizationCodeRecord(
             Code: string.Empty,
-            ClientId: qs.client_id,
+            ClientId: authorize_request.client_id,
             UserId: userId,
-            RedirectUri: qs.redirect_uri!,
+            RedirectUri: authorize_request.redirect_uri!,
             Sid: sid,
-            Nonce: string.IsNullOrWhiteSpace(qs.nonce) ? null : qs.nonce,
+            Nonce: string.IsNullOrWhiteSpace(authorize_request.nonce) ? null : authorize_request.nonce,
             ExpiresAt: DateTimeOffset.UtcNow.AddMinutes(5),
-            CodeChallenge: string.IsNullOrEmpty(qs.code_challenge) ? null : qs.code_challenge,
-            CodeChallengeMethod: string.IsNullOrEmpty(qs.code_challenge_method) ? null : qs.code_challenge_method
+            CodeChallenge: string.IsNullOrEmpty(authorize_request.code_challenge) ? null : authorize_request.code_challenge,
+            CodeChallengeMethod: string.IsNullOrEmpty(authorize_request.code_challenge_method) ? null : authorize_request.code_challenge_method
         );
 
         // store per-client
-        var created_record = code_service.CreateAndStoreAuthorizationCode(app, qs.client_id, record);
+        var created_record = code_service.CreateAndStoreAuthorizationCode(app, authorize_request.client_id, record);
 
         // build redirect URI with code and state
-        string redirect_uri = AuthorizeEndpointProvider.BuildRedirectURI(qs.redirect_uri!, qs.state, created_record.Code);
-        return Task.FromResult<ResultWithStatus<OIDCAuthorizeRecord, ErrorResult>>(new(new(redirect_uri, null), null));
+        string redirect_uri = AuthorizeEndpointProvider.BuildRedirectURI(authorize_request.redirect_uri!, authorize_request.state, created_record.Code);
+        return new(new(redirect_uri, null), null);
     }
 
     public async Task<bool> HandleEndSession(ApplicationOption app, string issuer, string user_id, CancellationToken ct)

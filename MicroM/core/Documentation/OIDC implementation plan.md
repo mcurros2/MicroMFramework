@@ -46,9 +46,7 @@ Phases
 1. IdP JWE wrapping: COMPLETE
 2. Client decryption path: COMPLETE
 3. Diagnostics (negotiation specifics): PARTIAL
-4. UserInfo / request object encryption: IN PROGRESS
-   - Request object: PARTIAL (signed, basic alg enforcement; encryption supported only with RSA_OAEP; request_uri flow integrated; ECDH disabled)
-   - UserInfo encryption: PENDING
+4. Request object encryption: IN PROGRESS (UserInfo removed from scope)
 5. Policy flags removed (capability-driven): COMPLETE
 
 Updated cryptographic policy (Refactor: WellKnownProvider & JwksProvider)
@@ -56,86 +54,87 @@ Updated cryptographic policy (Refactor: WellKnownProvider & JwksProvider)
 - RSA key encryption algorithms advertised: RSA-OAEP ONLY (RSA1_5 disabled).
 - Content encryption algorithms reduced to GCM only (A256GCM, A192GCM, A128GCM) — CBC-HS* disabled.
 - Request object signing / client assertion acceptance: RS*, PS*, ES* independent of IdP cert.
-- IdP signing algorithms (id_token/userinfo) depend on IdP cert key type (RSA vs EC). Current: RSA only.
+- IdP signing algorithms (id_token) depend on IdP cert key type (RSA vs EC). Current: RSA only.
 - `request_uri_parameter_supported`: FALSE (PAR mandatory).
 - ECDH_ES / ECDH_ES+A256KW removed from metadata.
-- RSA_OAEP_256 excluded (unchanged rationale: interop + marginal benefit).
-- UserInfo encryption not yet advertised (pending implementation).
+- RSA_OAEP_256 excluded (unchanged rationale: marginal benefit vs complexity).
+- UserInfo encryption not advertised (endpoint explicitly OUT OF SCOPE).
 
 Key selection rules (updated)
 - ID Token signing: Based on IdP cert (RSA: RS/PS; EC: ES).
-- ID Token encryption (to client): RSA-OAEP only (current policy).
-- Request Object encryption (to IdP): RSA-OAEP only (ECDH future enhancement gate).
+- ID Token encryption (to client): RSA-OAEP only.
+- Request Object encryption (to IdP): RSA-OAEP only (ECDH deferred).
 - Content encryption preference: A256GCM > A192GCM > A128GCM.
 
 G — JWKS caching & conditional fetches
 - Shared JWKS cache + ETag reuse: COMPLETE
-  - Integrated `IJWKSFetchCacheService` in OIDCClientService (authorization, refresh, backchannel logout).
-  - Conditional GET with If-None-Match; 304 reuse implemented.
-  - Kid-miss forced refresh logic in id_token validation path.
-  - Unified protected header parsing for JWS (3-part) and JWE (5-part) to expose `kid` and enforce signing algorithms (reject HS*, none).
-  - Metrics emitted: hit/miss/forced_refresh/not_modified, key count, ETag transitions.
-  - Legacy direct fetch path deprecated (still present but unused by client flows).
+  - Integrated `IJWKSFetchCacheService` everywhere (authorization, refresh, backchannel logout).
+  - Conditional GET (If-None-Match) + 304 reuse.
+  - Kid-miss forced refresh logic.
+  - Unified header parsing (JWS/JWE) to expose `kid` and enforce signing alg policy.
+  - Metrics: hit/miss/forced_refresh/not_modified/key_count/etag transitions.
+  - Legacy direct fetch path deprecated.
 
 Recent changes (UPDATED)
-- WellKnownProvider refactor (split IdP signing vs accepted client signing lists).
+- WellKnownProvider refactor: split IdP signing vs accepted client signing lists.
 - Removal of ECDH and CBC-HS* from metadata.
 - Disabled RSA1_5 advertisement.
 - Unified client signing capability list (RS*/PS*/ES*).
 - `request_uri_parameter_supported` set to false (PAR mandated).
-- Centralized request object alg validation in PushedAuthorizationProvider.
-- JWKS cache integration (cache-first id_token & logout validation).
-- Added JWS/JWE protected header parsing + signing alg enforcement.
-- Kid-based forced refresh on JWKS cache miss implemented.
+- Centralized request object alg validation.
+- JWKS cache integration & kid-based forced refresh.
+- JWS/JWE protected header parsing + signing alg enforcement.
 
 Diagnostics conventions
 - No raw tokens/assertions/logout_token.
 - State/nonce metadata only.
 - JWKS diagnostics expose ServerETag / NotModified / SentIfNoneMatch.
-- Signing/encryption errors return structured codes (unsupported_encryption_alg, unsupported_signing_alg, kid-miss forced refresh path).
+- Structured error codes: unsupported_encryption_alg, unsupported_signing_alg, kid_miss.
 
-Pending tasks
-- UserInfo endpoint (signed + optional encrypted) + advertise userinfo_encryption_*.
-- Request object FULL encryption (evaluate ECDH enablement or retain RSA-only; implement JWE decrypt path).
-- Deeper encryption negotiation diagnostics (candidate ordering / chosen / reason codes).
-- Performance counters (sign/encrypt/decrypt timings, payload sizes, JWKS cache latency benefits).
-- Revocation & introspection endpoints.
-- Request object policy enhancements (nonce requirement rules, restricted claims set).
-- Documentation: updated crypto policy (ECDH removed, CBC-HS removed, RSA1_5 exclusion, signing alg enforcement).
-- Test suite: negative alg cases (ECDH attempt, RSA1_5, HS*, none; kid-miss refresh behavior).
-- UserInfo scope-based claim filtering & optional JWE.
-- Structured selection logging for id_token vs request object vs userinfo (negotiation trace).
+Out-of-Scope (Explicit Non-Implementation)
+- UserInfo endpoint (not mandatory for core authorization code + id_token flow).
+- Introspection endpoint.
+- Revocation endpoint.
+Rationale: Current clients only require authorization code, id_token issuance, refresh handling, and logout. Excluding non-mandatory endpoints reduces surface area, operational complexity, and cryptographic exposure. Discovery document may be adjusted later to omit these endpoints or retain placeholders with documentation stating non-support.
+
+Pending tasks (adjusted)
+- Request object FULL encryption (JWE decrypt path; keep RSA-only or re-evaluate ECDH).
+- Deeper encryption negotiation diagnostics (candidate ordering, chosen, reason codes, exclusion logging).
+- Performance counters only in diagnostics (sign/encrypt/decrypt timings, payload sizes, JWKS cache latency benefit, forced refresh frequency).
+- Request object policy enhancements (nonce enforcement when openid scope present, restricted claims, size already enforced).
+- Documentation: crypto reductions, signing alg enforcement, kid-miss logic, explicit non-support for UserInfo / introspection / revocation.
+- Test suite: negative alg cases (ECDH attempt, RSA1_5, HS*, none; kid-miss forced refresh; disallowed request object scenarios).
+- Structured selection logging for id_token vs request object (negotiation trace records).
 
 Release readiness
-- Core flows and JWKS caching COMPLETE.
-- Blocking items for Phase 4 completion: UserInfo, extended diagnostics, revocation/introspection, documentation, tests, performance telemetry.
+- Core flows, JWKS caching, logout, encryption policies: COMPLETE.
+- Blocking for next milestone: request object JWE decrypt, enhanced diagnostics, performance telemetry, documentation, tests.
 
 Status TL;DR
-- Foundations COMPLETE.
-- JWKS caching & ETag reuse now COMPLETE (cache-first, forced refresh, metrics).
-- Outstanding: UserInfo encryption, request object encryption extension, diagnostics depth, perf counters, revocation/introspection, docs, tests.
+- Foundations COMPLETE, JWKS caching COMPLETE.
+- Non-mandatory endpoints (UserInfo, introspection, revocation) explicitly OUT OF SCOPE.
+- Remaining focus: request object encryption completion, diagnostics depth, performance metrics, documentation & tests.
 
 H — Signing & encryption alignment
 - IdP signing based on cert: COMPLETE
 - client_assertion & request object signing enforcement (asymmetric only): COMPLETE
 - id_token JWS signing alg enforcement (no HS*/none): COMPLETE
-- UserInfo encryption/signing metadata: PENDING
+- UserInfo encryption/signing metadata: NOT APPLICABLE (endpoint out of scope)
 
 Next focus (adjusted)
-1. Implement UserInfo (signed + optional RSA-OAEP/GCM encryption) & advertise metadata.
-2. Request object encryption/decryption completion (decide on ECDH introduction; implement JWE decrypt path).
-3. Encryption negotiation diagnostics (candidate sets, selection reasons, exclusion flags).
-4. Performance telemetry (crypto timings, payload size deltas, JWKS cache hit ratio, forced refresh counts).
-5. Revocation & introspection endpoints.
-6. Documentation update (crypto reductions, signing alg enforcement, kid-miss forced refresh behavior).
-7. Negative/interop test suite (alg rejection, kid-miss refresh scenarios, request object invalid cases).
-8. Decision gate for future ECDH enablement.
+1. Request object encryption/decryption completion (JWE decrypt path, confirm RSA-only stance).
+2. Encryption negotiation diagnostics (candidate set + selection + exclusion reasons).
+3. Performance telemetry only in diagnostics (crypto timings, payload size deltas, JWKS cache metrics).
+4. Documentation update (policy reductions, out-of-scope endpoints, alg enforcement, kid refresh flow).
+5. Negative/interop test suite (alg rejection, request object invalid cases, forced refresh scenarios).
+6. Decision gate for future ECDH enablement (record rationale & criteria).
 
-Acceptance criteria for updated policy
-- Well-known reflects reduced algorithm surface (no ECDH, no CBC-HS*, no RSA1_5, no HS*/none in signing sets).
-- UserInfo implemented & advertised when complete.
-- Diagnostics show candidate encryption/signing sets, exclusions (e.g. ECDH disabled), selection reason codes.
-- JWKS cache metrics accessible (hit/miss/not_modified/forced_refresh/key_count).
-- Tests assert rejection of ECDH, CBC-HS*, RSA1_5, HS*, none; verify kid-miss triggers forced refresh exactly once.
+Acceptance criteria (updated)
+- Well-known does not advertise UserInfo / introspection / revocation as supported (or includes clear documentation note if retained).
+- Request object supports RSA-OAEP encrypted JWE (decrypt & validate) and enforced signing algorithms.
+- Diagnostics produce structured negotiation records: {context, candidates, selected, exclusions, reasonCodes}.
+- Performance counters recorded and queryable (encryption timings, payload sizes, jwks cache hit ratios).
+- Tests assert rejection of ECDH, CBC-HS*, RSA1_5, HS*, none; verify kid-miss triggers single forced refresh.
+- Documentation explicitly lists out-of-scope endpoints and rationale.
 
 

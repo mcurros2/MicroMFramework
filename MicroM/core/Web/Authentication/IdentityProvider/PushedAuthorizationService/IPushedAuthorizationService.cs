@@ -1,6 +1,5 @@
 ﻿using MicroM.Configuration;
 using MicroM.Core;
-using MicroM.Web.Services;
 using Microsoft.AspNetCore.Http;
 
 namespace MicroM.Web.Authentication.SSO;
@@ -16,7 +15,7 @@ public interface IPushedAuthorizationService
     /// <summary>
     /// Retrieve the pushed request parameters by request_uri. Returns null if not found or expired.
     /// </summary>
-    PushedAuthorizationRequest? ConsumeRequest(string requestUri);
+    (PushedAuthorizationRequest? request, string? rawObject, JWTProtectedHeaderResult? header) ConsumeRequest(string requestUri);
 
     /// <summary>
     /// Remove a pushed request (one-time read).

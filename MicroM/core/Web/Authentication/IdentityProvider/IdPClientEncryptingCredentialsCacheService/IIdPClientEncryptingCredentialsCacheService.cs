@@ -3,7 +3,7 @@ using Microsoft.IdentityModel.Tokens;
 
 namespace MicroM.Web.Authentication.SSO;
 
-public interface IAudienceCryptoCacheService
+public interface IIdPClientEncryptingCredentialsCacheService
 {
     Task<EncryptingCredentials?> GetEncryptingCredentialsAsync(ApplicationOption idpApp, string audience, CancellationToken ct);
     void Clear();
