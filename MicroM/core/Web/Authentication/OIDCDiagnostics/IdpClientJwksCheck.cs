@@ -100,7 +100,7 @@ keys_count: 0", Errors: [new("jwks_empty", "Client JWKS contains no keys")]));
                         foreach (var keyEl in keysEl.EnumerateArray())
                         {
                             var kid = keyEl.ReadString("kid");
-                            if (!string.IsNullOrWhiteSpace(kid) && string.Equals(kid, configuredKid, StringComparison.Ordinal))
+                            if (!string.IsNullOrWhiteSpace(kid) && kid == configuredKid)
                             {
                                 found = true;
                                 break;

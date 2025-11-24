@@ -318,7 +318,7 @@ public class OIDCClientService(
         var nonceFromIdToken = jwt_result.Principal.FindFirst("nonce")?.Value;
         if (!string.IsNullOrWhiteSpace(state_result.Nonce))
         {
-            if (string.IsNullOrWhiteSpace(nonceFromIdToken) || !string.Equals(nonceFromIdToken, state_result.Nonce, StringComparison.Ordinal))
+            if (string.IsNullOrWhiteSpace(nonceFromIdToken) || nonceFromIdToken != state_result.Nonce)
             {
                 return new(null, "invalid_nonce");
             }
@@ -437,12 +437,12 @@ public class OIDCClientService(
         if (parsed.TryGetPayloadValue<object>(WellknownIdentityConstants.Events, out var evRaw) && evRaw is not null)
         {
             var evStr = evRaw.ToString() ?? string.Empty;
-            hasEvent = evStr.Contains(WellknownIdentityConstants.BackchannelLogoutEventUri, StringComparison.Ordinal);
+            hasEvent = evStr.Contains(WellknownIdentityConstants.BackchannelLogoutEventUri);
         }
         else
         {
             var evClaim = parsed.Claims.FirstOrDefault(c => c.Type == WellknownIdentityConstants.Events)?.Value;
-            hasEvent = !string.IsNullOrEmpty(evClaim) && evClaim.Contains(WellknownIdentityConstants.BackchannelLogoutEventUri, StringComparison.Ordinal);
+            hasEvent = !string.IsNullOrEmpty(evClaim) && evClaim.Contains(WellknownIdentityConstants.BackchannelLogoutEventUri);
         }
         if (!hasEvent) return new(OIDCLogoutProcessingStatus.MissingEvent, "missing_backchannel_event");
 

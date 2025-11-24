@@ -97,11 +97,11 @@ public class PushedAuthorizationService : IPushedAuthorizationService
 
         var rPath = (r.AbsolutePath ?? string.Empty).TrimEnd('/');
         var iPath = (i.AbsolutePath ?? string.Empty).TrimEnd('/');
-        if (!string.Equals(rPath, iPath, StringComparison.Ordinal)) return false;
+        if (rPath != iPath) return false;
 
         var rQuery = r.Query ?? string.Empty;
         var iQuery = i.Query ?? string.Empty;
-        if (!string.Equals(rQuery, iQuery, StringComparison.Ordinal)) return false;
+        if (rQuery != iQuery) return false;
 
         return true;
     }

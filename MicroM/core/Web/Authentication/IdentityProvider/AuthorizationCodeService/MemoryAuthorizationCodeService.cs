@@ -25,7 +25,7 @@ public class MemoryAuthorizationCodeService : IAuthorizationCodeService
         var key = $"{app.ApplicationID}_{clientId}_{code}";
         if (!_codeStore.TryRemove(key, out var record)) return null;
 
-        if (!string.Equals(record.RedirectUri, redirectUri, StringComparison.Ordinal)) return null;
+        if (record.RedirectUri != redirectUri) return null;
         if (DateTimeOffset.UtcNow > record.ExpiresAt) return null;
 
         if (!string.IsNullOrEmpty(record.CodeChallenge))
@@ -46,14 +46,14 @@ public class MemoryAuthorizationCodeService : IAuthorizationCodeService
     public void RemoveAuthorizationCodesForClient(ApplicationOption app, string clientId)
     {
         var prefix = $"{app.ApplicationID}_{clientId}_";
-        var keys = _codeStore.Keys.Where(k => k.StartsWith(prefix, StringComparison.Ordinal)).ToList();
+        var keys = _codeStore.Keys.Where(k => k.StartsWith(prefix)).ToList();
         foreach (var k in keys) _codeStore.TryRemove(k, out _);
     }
 
     public void ClearAuthorizationCodesForApp(ApplicationOption app)
     {
         var prefix = $"{app.ApplicationID}_";
-        var keys = _codeStore.Keys.Where(k => k.StartsWith(prefix, StringComparison.Ordinal)).ToList();
+        var keys = _codeStore.Keys.Where(k => k.StartsWith(prefix)).ToList();
         foreach (var k in keys) _codeStore.TryRemove(k, out _);
     }
 

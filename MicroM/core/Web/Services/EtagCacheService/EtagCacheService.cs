@@ -55,7 +55,7 @@ public class EtagCacheService : IEtagCacheService
 
         var none_match = request_headers.IfNoneMatch;
 
-        bool anyWildcard = none_match != null && none_match.Any(n => n == EntityTagHeaderValue.Any || string.Equals(n.Tag.Value, "*", StringComparison.Ordinal));
+        bool anyWildcard = none_match != null && none_match.Any(n => n == EntityTagHeaderValue.Any || n.Tag.Value == "*");
         bool tagMatch = none_match != null && none_match.Contains(etag);
 
         return anyWildcard || tagMatch;
