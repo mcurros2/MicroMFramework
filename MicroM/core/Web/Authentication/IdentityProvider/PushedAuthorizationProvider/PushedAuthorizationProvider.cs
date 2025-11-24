@@ -15,7 +15,7 @@ public static class PushedAuthorizationProvider
 {
     private const int MAX_REQUEST_OBJECT_BYTES = 64 * 1024;
 
-    public static OIDCSigningAlg? SelectAssertionAlg(X509Certificate2 cert, List<OIDCSigningAlg>? supported)
+    public static OIDCSigningAlg? SelectAssertionAlg(X509Certificate2 cert, IReadOnlyList<OIDCSigningAlg>? supported)
     {
         if (supported == null || supported.Count == 0) return null;
         if (cert.GetECDsaPrivateKey() != null)
@@ -35,7 +35,8 @@ public static class PushedAuthorizationProvider
         return null;
     }
 
-    public static ResultWithStatus<(PushedAuthorizationRequest? request, OIDCSigningAlg? request_obj_alg), ErrorResult> ValidateRequest(ApplicationOption app, IFormCollection form)
+    public static ResultWithStatus<(PushedAuthorizationRequest? request, JWTProtectedHeaderResult? header), ErrorResult>
+        ValidateRequest(ApplicationOption app, IFormCollection form)
     {
 
         form.TryGetValue(WellknownIdentityConstants.Request, out var requestVal);
@@ -45,6 +46,7 @@ public static class PushedAuthorizationProvider
         form.TryGetValue(WellknownIdentityConstants.RedirectUri, out var redirectUriVal);
         form.TryGetValue(WellknownIdentityConstants.Scope, out var scopeVal);
         form.TryGetValue(WellknownIdentityConstants.State, out var stateVal);
+        form.TryGetValue(WellknownIdentityConstants.Nonce, out var nonceVal);
         form.TryGetValue(WellknownIdentityConstants.CodeChallenge, out var codeChallengeVal);
         form.TryGetValue(WellknownIdentityConstants.CodeChallengeMethod, out var codeChallengeMethodVal);
 
@@ -53,6 +55,7 @@ public static class PushedAuthorizationProvider
         var redirectUri = redirectUriVal.ToString();
         var scope = scopeVal.ToString();
         var state = stateVal.ToString();
+        var nonce = nonceVal.ToString();
         var codeChallenge = codeChallengeVal.ToString();
         var codeChallengeMethod = codeChallengeMethodVal.ToString();
         var clientId = clientIdVal.ToString();
@@ -65,6 +68,7 @@ public static class PushedAuthorizationProvider
                !string.IsNullOrEmpty(redirectUri) ||
                !string.IsNullOrEmpty(scope) ||
                !string.IsNullOrEmpty(state) ||
+               !string.IsNullOrEmpty(nonce) ||
                !string.IsNullOrEmpty(codeChallenge) ||
                !string.IsNullOrEmpty(codeChallengeMethod)
                )
@@ -75,48 +79,79 @@ public static class PushedAuthorizationProvider
 
         if (!string.IsNullOrEmpty(request))
         {
-            OIDCSigningAlg? requestObjAlg = null;
-
             if (request.Length > MAX_REQUEST_OBJECT_BYTES)
             {
                 return new((null, null), new("invalid_request", "request object exceeds size limit"));
             }
 
-            // Validate signature alg header (basic surface check before full signature validation at authorize)
+            // Basic header validation (works for both JWS and JWE)
             try
             {
-                var handler = new JsonWebTokenHandler();
-                var jwt = handler.ReadJsonWebToken(request);
-                var alg = jwt?.Alg;
-                if (string.IsNullOrWhiteSpace(alg))
+                var header = JwksProvider.TryReadProtectedHeader(request);
+
+                if (!string.IsNullOrEmpty(header.ParseError))
                 {
-                    return new((null, null), new("invalid_request_object", "Missing alg in request object"));
+                    return new((null, null), new("invalid_request_object", $"Request object header parse error: {header.ParseError}"));
                 }
 
-                // Enforce allowed algs (exclude none / HS*)
-                if (alg.Equals("none", StringComparison.OrdinalIgnoreCase) ||
-                    alg.StartsWith("HS", StringComparison.OrdinalIgnoreCase))
+                if (header.IsJwe)
                 {
-                    return new((null, null), new("invalid_request_object", "Unsupported request object signing algorithm"));
+                    // JWE request object: clients encrypt TO the IdP.
+                    // Check key management and content encryption algorithms
+                    // against what the IdP is willing to accept.
+                    if (string.IsNullOrWhiteSpace(header.Alg) ||
+                        !OIDCCryptoCapabilities.Idp.AllowedRequestObjectKeyManagementAlgStrings.Contains(header.Alg))
+                    {
+                        return new((null, null), new("invalid_request_object", $"Unsupported request object encryption alg: {header.Alg ?? "<null>"}"));
+                    }
+
+                    if (string.IsNullOrWhiteSpace(header.Enc) ||
+                        !OIDCCryptoCapabilities.Idp.AllowedRequestObjectContentEncryptionAlgStrings.Contains(header.Enc))
+                    {
+                        return new((null, null), new("invalid_request_object", $"Unsupported request object encryption enc: {header.Enc ?? "<null>"}"));
+                    }
+
                 }
-
-                requestObjAlg = alg switch
+                else
                 {
-                    "RS256" => OIDCSigningAlg.RS256,
-                    "RS384" => OIDCSigningAlg.RS384,
-                    "RS512" => OIDCSigningAlg.RS512,
-                    "PS256" => OIDCSigningAlg.PS256,
-                    "PS384" => OIDCSigningAlg.PS384,
-                    "PS512" => OIDCSigningAlg.PS512,
-                    "ES256" => OIDCSigningAlg.ES256,
-                    "ES384" => OIDCSigningAlg.ES384,
-                    "ES512" => OIDCSigningAlg.ES512,
-                    _ => null
-                };
+                    // JWS (non-encrypted) request object.
+                    var alg = header.Alg;
+                    if (string.IsNullOrWhiteSpace(alg))
+                    {
+                        return new((null, null), new("invalid_request_object", "Missing alg in request object"));
+                    }
 
-                if (requestObjAlg == null)
-                {
-                    return new((null, null), new("invalid_request_object", "Unrecognized or unsupported request object alg"));
+                    // Enforce allowed signing algorithms (no "none" / HS*)
+                    if (alg.Equals("none", StringComparison.OrdinalIgnoreCase) ||
+                        alg.StartsWith("HS", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return new((null, null), new("invalid_request_object", "Unsupported request object signing algorithm"));
+                    }
+
+                    OIDCSigningAlg? requestObjAlg = alg switch
+                    {
+                        "RS256" => OIDCSigningAlg.RS256,
+                        "RS384" => OIDCSigningAlg.RS384,
+                        "RS512" => OIDCSigningAlg.RS512,
+                        "PS256" => OIDCSigningAlg.PS256,
+                        "PS384" => OIDCSigningAlg.PS384,
+                        "PS512" => OIDCSigningAlg.PS512,
+                        "ES256" => OIDCSigningAlg.ES256,
+                        "ES384" => OIDCSigningAlg.ES384,
+                        "ES512" => OIDCSigningAlg.ES512,
+                        _ => null
+                    };
+
+                    if (requestObjAlg == null)
+                    {
+                        return new((null, null), new("invalid_request_object", $"Unrecognized or unsupported request object alg: {alg}"));
+                    }
+
+                    // Restrict to IdP capabilities for request objects / client assertions.
+                    if (!OIDCCryptoCapabilities.Idp.AcceptedClientAssertionSigningAlgs.Contains(requestObjAlg.Value))
+                    {
+                        return new((null, null), new("invalid_request_object", "Request object signing algorithm not allowed by IdP policy"));
+                    }
                 }
 
                 var result = new PushedAuthorizationRequest(
@@ -125,54 +160,54 @@ public static class PushedAuthorizationProvider
                     redirect_uri: null,
                     scope: null,
                     state: null,
+                    nonce: null,
                     code_challenge: null,
                     code_challenge_method: null,
                     request: request
                 );
 
-                return new((result, requestObjAlg), null);
+                return new((result, header), null);
             }
             catch
             {
                 return new((null, null), new("invalid_request_object", "Malformed request object"));
             }
-
         }
-        else
-        {
-            if (string.IsNullOrEmpty(responseType) || !string.Equals(responseType, WellknownIdentityConstants.Code, StringComparison.Ordinal))
-                return new((null, null), new("invalid_request", "response_type must be 'code'"));
 
-            if (string.IsNullOrEmpty(clientId))
-                return new((null, null), new("invalid_request", "client_id is required"));
+        // Plain PAR fields validation
+        if (string.IsNullOrEmpty(responseType) || !string.Equals(responseType, WellknownIdentityConstants.Code, StringComparison.Ordinal))
+            return new((null, null), new("invalid_request", "response_type must be 'code'"));
 
-            if (string.IsNullOrEmpty(redirectUri))
-                return new((null, null), new("invalid_request", "redirect_uri is required"));
+        if (string.IsNullOrEmpty(clientId))
+            return new((null, null), new("invalid_request", "client_id is required"));
 
-            if (string.IsNullOrEmpty(scope))
-                return new((null, null), new("invalid_request", "scope is required"));
+        if (string.IsNullOrEmpty(redirectUri))
+            return new((null, null), new("invalid_request", "redirect_uri is required"));
 
-            if (string.IsNullOrEmpty(codeChallenge) || string.IsNullOrEmpty(codeChallengeMethod))
-                return new((null, null), new("invalid_request", "PKCE code_challenge and code_challenge_method are required"));
+        if (string.IsNullOrEmpty(scope))
+            return new((null, null), new("invalid_request", "scope is required"));
 
-            bool allowPlain = app.OIDCAllowPkcePlain;
-            if (!string.Equals(codeChallengeMethod, "S256", StringComparison.Ordinal) &&
-                !(allowPlain && string.Equals(codeChallengeMethod, "plain", StringComparison.Ordinal)))
-                return new((null, null), new("invalid_request", "Unsupported code_challenge_method"));
+        if (string.IsNullOrEmpty(codeChallenge) || string.IsNullOrEmpty(codeChallengeMethod))
+            return new((null, null), new("invalid_request", "PKCE code_challenge and code_challenge_method are required"));
 
-            var result = new PushedAuthorizationRequest(
-                client_id: clientId.ToString(),
-                response_type: responseType.ToString(),
-                redirect_uri: redirectUri.ToString(),
-                scope: scope.ToString(),
-                state: state.ToString() ?? "",
-                code_challenge: codeChallenge.ToString() ?? "",
-                code_challenge_method: codeChallengeMethod.ToString() ?? "",
-                request: null
-            );
-            return new((result, null), null);
+        bool allowPlain = app.OIDCAllowPkcePlain;
+        if (!string.Equals(codeChallengeMethod, "S256", StringComparison.Ordinal) &&
+            !(allowPlain && string.Equals(codeChallengeMethod, "plain", StringComparison.Ordinal)))
+            return new((null, null), new("invalid_request", "Unsupported code_challenge_method"));
 
-        }
+        var plainResult = new PushedAuthorizationRequest(
+            client_id: clientId,
+            response_type: responseType,
+            redirect_uri: redirectUri,
+            scope: scope,
+            state: state ?? "",
+            nonce: nonce ?? "",
+            code_challenge: codeChallenge ?? "",
+            code_challenge_method: codeChallengeMethod ?? "",
+            request: null
+        );
+        return new((plainResult, null), null);
+
 
     }
 
@@ -320,8 +355,8 @@ public static class PushedAuthorizationProvider
         X509Certificate2? cert,
         string par_endpoint,
         Dictionary<string, string> valid_form,
-        List<OIDCTokenEndpointAuthMethod>? supported_auth_methods,
-        List<OIDCSigningAlg>? supported_auth_algs
+        IReadOnlyList<OIDCTokenEndpointAuthMethod>? supported_auth_methods,
+        IReadOnlyList<OIDCSigningAlg>? supported_auth_algs
         )
     {
         bool allowBasic = supported_auth_methods == null || supported_auth_methods.Count == 0 || supported_auth_methods.Contains(OIDCTokenEndpointAuthMethod.client_secret_basic);
@@ -390,7 +425,7 @@ public static class PushedAuthorizationProvider
            string code,
            string redirectUri,
            string codeVerifier,
-           List<OIDCSigningAlg>? supported_algs
+           IReadOnlyList<OIDCSigningAlg>? supported_algs
         )
     {
         var signingAlg = SelectAssertionAlg(cert, supported_algs);
@@ -413,7 +448,7 @@ public static class PushedAuthorizationProvider
            string clientId,
            string tokenEndpoint,
            string refreshToken,
-           List<OIDCSigningAlg>? supported_algs
+           IReadOnlyList<OIDCSigningAlg>? supported_algs
         )
     {
         var signingAlg = SelectAssertionAlg(cert, supported_algs);

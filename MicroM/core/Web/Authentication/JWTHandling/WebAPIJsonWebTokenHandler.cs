@@ -18,7 +18,7 @@ public record TokenResult { public string? Token { get; init; } public SecurityT
 public class WebAPIJsonWebTokenHandler(
     IMicroMAppConfiguration app_config,
     IHttpContextAccessor http_context,
-    IAudienceCryptoCacheService audience_crypto_cache,
+    IIdPClientEncryptingCredentialsCacheService audience_crypto_cache,
     ILogger<WebAPIJsonWebTokenHandler> logger
     ) : JsonWebTokenHandler
 {

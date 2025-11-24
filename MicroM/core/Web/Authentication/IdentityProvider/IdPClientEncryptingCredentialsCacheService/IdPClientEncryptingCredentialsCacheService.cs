@@ -7,12 +7,12 @@ using System.Security.Cryptography.X509Certificates;
 
 namespace MicroM.Web.Authentication.SSO;
 
-public class AudienceCryptoCacheService(
+public class IdPClientEncryptingCredentialsCacheService(
     IMicroMAppConfiguration appConfig,
     IApplicationCertificateCacheService certCache,
     IJWKSFetchCacheService jwksCache,
-    ILogger<AudienceCryptoCacheService> log
-    ) : IAudienceCryptoCacheService
+    ILogger<IdPClientEncryptingCredentialsCacheService> log
+    ) : IIdPClientEncryptingCredentialsCacheService
 {
     // Cache EncryptingCredentials by a composite key (source + app + audience + etag + keyid + algs)
     private readonly ConcurrentDictionary<string, Lazy<EncryptingCredentials?>> _cache = new(StringComparer.Ordinal);
@@ -27,6 +27,7 @@ public class AudienceCryptoCacheService(
         if (idpApp.OIDCClientConfiguration == null ||
             !idpApp.OIDCClientConfiguration.TryGetValue(audience, out var clientCfg))
         {
+            log.LogWarning("IDP_CRYPTO_CLIENT_ID_EMPTY idp_app={idp}", idpApp.ApplicationID);
             return null;
         }
 
@@ -44,17 +45,23 @@ public class AudienceCryptoCacheService(
 
         // 2. Remote JWKS path
         if (string.IsNullOrWhiteSpace(clientCfg.URLClientJWKS))
+        {
+            log.LogWarning("IDP_CRYPTO_JWKS_URL_EMPTY idp_app={idp} audience={aud}", idpApp.ApplicationID, audience);
             return null;
+        }
 
         var jwksResult = await jwksCache.GetAsync(clientCfg.URLClientJWKS, ct).ConfigureAwait(false);
         if (jwksResult.Keys.Count == 0)
+        {
+            log.LogWarning("IDP_CRYPTO_JWKS_NO_KEYS idp_app={idp} audience={aud} jwks_url={url}", idpApp.ApplicationID, audience, clientCfg.URLClientJWKS);
             return null;
+        }
 
         // Resolve candidate key
         var selectedKey = ResolveSecurityKey(jwksResult.Keys, clientCfg.CertificateUniqueID);
         if (selectedKey == null)
         {
-            log.LogWarning("AUDIENCE_CRYPTO_NO_MATCH idp_app={idp} audience={aud} cert_unique_id={cid}", idpApp.ApplicationID, audience, clientCfg.CertificateUniqueID ?? "<null>");
+            log.LogWarning("IDP_CRYPTO_NO_MATCH idp_app={idp} audience={aud} cert_unique_id={cid}", idpApp.ApplicationID, audience, clientCfg.CertificateUniqueID ?? "<null>");
             return null;
         }
 
@@ -135,4 +142,6 @@ public class AudienceCryptoCacheService(
 
         return null;
     }
+
+
 }

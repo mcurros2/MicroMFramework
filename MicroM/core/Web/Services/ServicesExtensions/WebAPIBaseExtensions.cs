@@ -137,6 +137,8 @@ public static class WebAPIBaseExtensions
         services.AddSingleton<IEtagCacheService, EtagCacheService>();
         services.AddSingleton<IJWKSFetchCacheService, JWKSFetchCacheService>();
         services.AddSingleton<IJwksService, JwksService>();
+        services.AddSingleton<IIdPClientEncryptingCredentialsCacheService, IdPClientEncryptingCredentialsCacheService>();
+        services.AddSingleton<IIdPClientSigningKeysCacheService, IdPClientSigningKeysCacheService>();
         services.AddSingleton<IAuthorizationCodeService, MemoryAuthorizationCodeService>();
         services.AddSingleton<IOauthTokenService, OauthTokenService>();
         services.AddSingleton<IPushedAuthorizationService, PushedAuthorizationService>();
@@ -458,8 +460,6 @@ public static class WebAPIBaseExtensions
         services.AddMicroMRateLimitingPolicies();
 
         services.AddIdentityProviderService();
-
-        services.AddSingleton<IAudienceCryptoCacheService, AudienceCryptoCacheService>();
 
         services.AddSingleton<WebAPIJsonWebTokenHandler>();
         services.AddSingleton<IPostConfigureOptions<JwtBearerOptions>, WebAPIJwtPostConfigurationOptions>();

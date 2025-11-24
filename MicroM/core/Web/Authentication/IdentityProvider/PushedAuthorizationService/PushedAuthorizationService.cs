@@ -5,10 +5,23 @@ using System.Collections.Concurrent;
 
 namespace MicroM.Web.Authentication.SSO;
 
+public record PushedAuthorizationRequest(
+    string? client_id,
+    string? response_type,
+    string? redirect_uri,
+    string? scope,
+    string? state,
+    string? nonce,
+    string? code_challenge,
+    string? code_challenge_method,
+    string? request
+    );
+
+
 public class PushedAuthorizationService : IPushedAuthorizationService
 {
-    // Phase 4: retain raw request object to allow authorize-time reconciliation & signature enforcement
-    private record ParEntry(PushedAuthorizationRequest Request, string? RawRequestObject, DateTime ExpiresAt, OIDCSigningAlg? RequestObjectAlg);
+    // retain raw request object to allow authorize-time reconciliation & signature enforcement
+    private record ParEntry(PushedAuthorizationRequest Request, string? RawRequestObject, DateTime ExpiresAt, JWTProtectedHeaderResult? header);
 
     private readonly ConcurrentDictionary<string, ParEntry> _store = new();
 
@@ -17,10 +30,7 @@ public class PushedAuthorizationService : IPushedAuthorizationService
 
     public ResultWithStatus<OIDCPARResponse, ErrorResult> CreatePushedRequest(ApplicationOption app, IFormCollection form, string authenticated_client_id)
     {
-        string? rawRequestJwt = null;
-        OIDCSigningAlg? requestObjAlg = null;
-
-        var ((request, request_obj_alg), error) = PushedAuthorizationProvider.ValidateRequest(app, form);
+        var ((request, header), error) = PushedAuthorizationProvider.ValidateRequest(app, form);
 
         if (request == null || error != null)
         {
@@ -48,37 +58,23 @@ public class PushedAuthorizationService : IPushedAuthorizationService
         var requestUri = $"urn:ietf:params:oauth:request_uri:{CryptClass.GenerateBase64UrlRandomCode(32)}";
         var expiresAt = DateTime.UtcNow.AddSeconds(DEFAULT_EXPIRES_IN);
 
-        _store[requestUri] = new ParEntry(request, rawRequestJwt, expiresAt, requestObjAlg);
+        string? rawRequestJwt = request.request;
+
+        _store[requestUri] = new ParEntry(request, rawRequestJwt, expiresAt, header);
 
         var response = new OIDCPARResponse(request_uri: requestUri, expires_in: DEFAULT_EXPIRES_IN);
 
         return new(response, null);
     }
 
-    public PushedAuthorizationRequest? ConsumeRequest(string requestUri)
-    {
-        if (string.IsNullOrEmpty(requestUri)) return null;
-
-        if (!_store.TryGetValue(requestUri, out var entry)) return null;
-
-        _store.TryRemove(requestUri, out _);
-
-        if (entry.ExpiresAt < DateTime.UtcNow)
-        {
-            return null;
-        }
-
-        return entry.Request;
-    }
-
-    // Phase 4 helper: retrieve full entry (including raw request object) for authorize reconciliation
-    public (PushedAuthorizationRequest? request, string? rawObject, OIDCSigningAlg? alg) ConsumeFullEntry(string requestUri)
+    // Retrieve full entry (including raw request object) for authorize reconciliation
+    public (PushedAuthorizationRequest? request, string? rawObject, JWTProtectedHeaderResult? header) ConsumeRequest(string requestUri)
     {
         if (string.IsNullOrEmpty(requestUri)) return (null, null, null);
         if (!_store.TryGetValue(requestUri, out var entry)) return (null, null, null);
         _store.TryRemove(requestUri, out _);
         if (entry.ExpiresAt < DateTime.UtcNow) return (null, null, null);
-        return (entry.Request, entry.RawRequestObject, entry.RequestObjectAlg);
+        return (entry.Request, entry.RawRequestObject, entry.header);
     }
 
     public void RemoveRequest(string requestUri)

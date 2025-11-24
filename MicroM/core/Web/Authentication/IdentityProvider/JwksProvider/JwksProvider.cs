@@ -22,34 +22,6 @@ public record JWTProtectedHeaderResult
 
 public static class JwksProvider
 {
-    // Allowed key mgmt algs
-    private static readonly HashSet<string> AllowedTokenAlgs = new(StringComparer.Ordinal)
-    {
-        SecurityAlgorithms.RsaOAEP,
-
-        // Ecdh not yet supported, we only use RSA certificates in IdP and Clients for now
-        //SecurityAlgorithms.EcdhEsA256kw,
-        //SecurityAlgorithms.EcdhEs
-    };
-
-    // Allowed content enc
-    private static readonly HashSet<string> AllowedTokenEncs = new(StringComparer.Ordinal)
-    {
-        SecurityAlgorithms.Aes256Gcm,
-        SecurityAlgorithms.Aes192Gcm,
-        SecurityAlgorithms.Aes128Gcm
-    };
-
-    private static readonly HashSet<string> AllowedSigningAlgs = new(StringComparer.Ordinal)
-    {
-        SecurityAlgorithms.RsaSha256,
-        SecurityAlgorithms.RsaSha384,
-        SecurityAlgorithms.RsaSha512,
-        SecurityAlgorithms.RsaSsaPssSha256,
-        SecurityAlgorithms.RsaSsaPssSha384,
-        SecurityAlgorithms.RsaSsaPssSha512
-        // ECDSA not yet supported, we only use RSA certificates in IdP for now
-    };
 
     public static OIDCJwksKeyResponse? GetRSAKey(ApplicationOption app, X509Certificate2 cert)
     {
@@ -207,11 +179,11 @@ public static class JwksProvider
                 {
                     return new(null, $"id_token header parse error: {parseError}");
                 }
-                if (string.IsNullOrWhiteSpace(alg) || !AllowedTokenAlgs.Contains(alg))
+                if (string.IsNullOrWhiteSpace(alg) || !OIDCCryptoCapabilities.Client.AllowedIdTokenKeyManagementAlgs.Contains(alg))
                 {
                     return new(null, $"unsupported_encryption_alg: {alg ?? "<null>"}");
                 }
-                if (string.IsNullOrWhiteSpace(enc) || !AllowedTokenEncs.Contains(enc))
+                if (string.IsNullOrWhiteSpace(enc) || !OIDCCryptoCapabilities.Client.AllowedIdTokenContentEncryptionAlgs.Contains(enc))
                 {
                     return new(null, $"unsupported_encryption_enc: {enc ?? "<null>"}");
                 }
@@ -219,9 +191,9 @@ public static class JwksProvider
             else
             {
                 // JWS (non-encrypted) → enforce allowed signing algs
-                if (string.IsNullOrWhiteSpace(alg) || !AllowedSigningAlgs.Contains(alg))
+                if (string.IsNullOrWhiteSpace(alg) || !OIDCCryptoCapabilities.Client.AllowedIdTokenSigningAlgorithms.Contains(alg))
                 {
-                    return new(null, $"unsupported_signing_alg: {alg}");
+                    return new(null, $"unsupported_signing_alg: {alg ?? "<null>"}");
                 }
             }
 
@@ -236,7 +208,9 @@ public static class JwksProvider
                 RequireSignedTokens = true,
                 IssuerSigningKeys = signingKeys,
                 ClockSkew = TimeSpan.FromMinutes(1),
-                ValidAlgorithms = AllowedSigningAlgs
+                // Hard anti-downgrade enforcement: do not accept algorithms outside our allow-list,
+                // even if the external IdP advertises them in metadata.
+                ValidAlgorithms = OIDCCryptoCapabilities.Client.AllowedIdTokenSigningAlgorithms
             };
 
             if (clientDecryptionCertificate != null)
@@ -278,6 +252,177 @@ public static class JwksProvider
         {
             return new(null, $"id_token validation error: {ex.Message}");
         }
+    }
+
+
+    /// <summary>
+    /// Decrypts an OIDC request object (JWE) sent to our IdP and returns it as a JsonWebToken.
+    /// If the request object is not encrypted (JWS only), it is just parsed and returned as-is.
+    ///
+    /// This method:
+    /// - Enforces the same JWE "alg"/"enc" policy that we advertise in the IdP metadata
+    ///   (request_object_encryption_alg_values_supported / request_object_encryption_enc_values_supported).
+    /// - Uses the IdP certificate configured in ApplicationOption (OIDCCertificateBlob/Password)
+    ///   as the decryption key.
+    ///
+    /// NOTE:
+    /// - Signature validation of the request object against the client's JWKS is NOT done here, must be done later;
+    ///   this method only handles decryption (plus basic header policy checks).
+    /// </summary>
+    public static async Task<ResultWithStatus<JsonWebToken, string>> DecryptRequestObjectAsync(
+        ApplicationOption app,
+        string requestObjectJwt,
+        X509Certificate2 idp_cert,
+        CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(requestObjectJwt))
+        {
+            return new(null, "empty_request_object");
+        }
+
+        // Ensure we have an IdP certificate configured for decryption
+        if (idp_cert == null)
+        {
+            return new(null, "IdP decryption certificate not configured");
+        }
+
+        // Parse protected header (works for both JWS and JWE)
+        var header = TryReadProtectedHeader(requestObjectJwt);
+        if (!string.IsNullOrEmpty(header.ParseError))
+        {
+            return new(null, $"request_object header parse error: {header.ParseError}");
+        }
+
+        var handler = new JsonWebTokenHandler();
+
+        // If this is not a JWE, just parse and return the token as-is.
+        if (!header.IsJwe)
+        {
+            try
+            {
+                var jwt = handler.ReadJsonWebToken(requestObjectJwt);
+                return new(jwt, null);
+            }
+            catch (Exception ex)
+            {
+                return new(null, $"request_object parse error: {ex.Message}");
+            }
+        }
+
+        // --- JWE path: request object is encrypted TO our IdP ---
+
+        // Enforce JWE "alg" and "enc" policy consistent with the IdP metadata.
+        var allowedAlgs = OIDCCryptoCapabilities.Idp.AllowedRequestObjectKeyManagementAlgStrings;
+        var allowedEncs = OIDCCryptoCapabilities.Idp.AllowedRequestObjectContentEncryptionAlgStrings;
+
+        if (string.IsNullOrWhiteSpace(header.Alg) || !allowedAlgs.Contains(header.Alg))
+        {
+            return new(null, $"unsupported_request_object_encryption_alg: {header.Alg ?? "<null>"}");
+        }
+
+        if (string.IsNullOrWhiteSpace(header.Enc) || !allowedEncs.Contains(header.Enc))
+        {
+            return new(null, $"unsupported_request_object_encryption_enc: {header.Enc ?? "<null>"}");
+        }
+
+        try
+        {
+            var decryptionKey = new X509SecurityKey(idp_cert);
+
+            var parms = new TokenValidationParameters
+            {
+                // We only care about decryption here, not about issuer/audience/lifetime.
+                ValidateIssuer = false,
+                ValidateAudience = false,
+                ValidateLifetime = false,
+                ValidateIssuerSigningKey = false,
+                RequireSignedTokens = false,
+
+                TokenDecryptionKey = decryptionKey,
+            };
+
+            var result = await handler.ValidateTokenAsync(requestObjectJwt, parms);
+
+            if (!result.IsValid || result.SecurityToken is not JsonWebToken decryptedJwt)
+            {
+                return new(null, $"request_object decrypt error: {result.Exception?.Message ?? "unknown error"}");
+            }
+
+            return new(decryptedJwt, null);
+        }
+        catch (Exception ex)
+        {
+            return new(null, $"request_object decrypt error: {ex.Message}");
+        }
+    }
+
+    public static async Task<ResultWithStatus<JsonWebToken, string>> ValidateSignedRequestObjectAsync(
+    string signedRequestObjectJwt,
+    IEnumerable<SecurityKey> clientSigningKeys,
+    CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(signedRequestObjectJwt))
+        {
+            return new(null, "empty_request_object");
+        }
+
+        if (clientSigningKeys == null || !clientSigningKeys.Any())
+        {
+            return new(null, "no_client_signing_keys");
+        }
+
+        // Basic header parsing to enforce alg allow-list
+        var header = TryReadProtectedHeader(signedRequestObjectJwt);
+        if (!string.IsNullOrEmpty(header.ParseError))
+        {
+            return new(null, $"request_object header parse error: {header.ParseError}");
+        }
+
+        if (header.IsJwe)
+        {
+            // This helper is meant for a *signed* JWT (JWS), not an encrypted JWE.
+            // Encryption should have been handled by DecryptRequestObjectAsync first.
+            return new(null, "request_object_is_encrypted_use_decrypt_first");
+        }
+
+        var alg = header.Alg;
+        if (string.IsNullOrWhiteSpace(alg))
+        {
+            return new(null, "request_object_missing_alg");
+        }
+
+        // Enforce IdP’s allow-list for client assertions / request objects
+        var allowedAlgs = OIDCCryptoCapabilities.Idp.AllowedClientAssertionSigningAlgStrings;
+
+        if (!allowedAlgs.Contains(alg))
+        {
+            return new(null, $"unsupported_request_object_signing_alg: {alg}");
+        }
+
+        var handler = new JsonWebTokenHandler();
+        var parms = new TokenValidationParameters
+        {
+            // Request Object validation is closer to client_assertion than to id_token:
+            // - iss must be the client_id
+            // - aud must be the authorization endpoint or issuer (you can tighten later)
+            ValidateIssuer = false,   // can be tightened later to client_id
+            ValidateAudience = false, // can be tightened later to authorization endpoint
+            ValidateLifetime = true,  // exp/nbf on request objects SHOULD be enforced
+            RequireSignedTokens = true,
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKeys = clientSigningKeys,
+            // Hard anti-downgrade: only accept our allow-listed algorithms
+            ValidAlgorithms = allowedAlgs
+        };
+
+        var result = await handler.ValidateTokenAsync(signedRequestObjectJwt, parms);
+
+        if (!result.IsValid || result.SecurityToken is not JsonWebToken jwt)
+        {
+            return new(null, $"request_object signature validation failed: {result.Exception?.Message}");
+        }
+
+        return new(jwt, null);
     }
 
 }

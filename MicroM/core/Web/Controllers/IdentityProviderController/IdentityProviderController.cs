@@ -1,6 +1,5 @@
 ﻿using MicroM.Configuration;
 using MicroM.DataDictionary.CategoriesDefinitions;
-using MicroM.Web.Authentication;
 using MicroM.Web.Authentication.SSO;
 using MicroM.Web.Services;
 using MicroM.Web.Services.Security;
@@ -221,13 +220,6 @@ public class IdentityProviderController : ControllerBase, IIdentityProviderContr
     }
 
     [Authorize(Policy = nameof(MicroMPermissionsConstants.IdPClientPolicy))]
-    [HttpPost("{app_id}/oauth2/userinfo")]
-    public Task<Dictionary<string, object?>> UserInfo([FromServices] IAuthenticationProvider auth, [FromServices] IMicroMAppConfiguration app_config, string app_id, [FromBody] string userId, CancellationToken ct)
-    {
-        throw new NotImplementedException();
-    }
-
-    [Authorize(Policy = nameof(MicroMPermissionsConstants.IdPClientPolicy))]
     [HttpPost("{app_id}/oauth2/endsession")]
     [EnableRateLimiting(MicroMServicesConstants.RateLimitingOidcEndSessionPolicy)]
     public async Task<ActionResult> EndSession(
@@ -263,17 +255,24 @@ public class IdentityProviderController : ControllerBase, IIdentityProviderContr
         }
     }
 
-    [Authorize(Policy = nameof(MicroMPermissionsConstants.IdPClientPolicy))]
-    [HttpPost("{app_id}/oauth2/revoke")]
-    public Task<bool> Revoke([FromServices] IAuthenticationProvider auth, [FromServices] IMicroMAppConfiguration app_config, string app_id, [FromBody] string token, CancellationToken ct)
-    {
-        throw new NotImplementedException();
-    }
+    //[Authorize(Policy = nameof(MicroMPermissionsConstants.IdPClientPolicy))]
+    //[HttpPost("{app_id}/oauth2/userinfo")]
+    //public Task<Dictionary<string, object?>> UserInfo([FromServices] IAuthenticationProvider auth, [FromServices] IMicroMAppConfiguration app_config, string app_id, [FromBody] string userId, CancellationToken ct)
+    //{
+    //    throw new NotImplementedException();
+    //}
 
-    [Authorize(Policy = nameof(MicroMPermissionsConstants.IdPClientPolicy))]
-    [HttpPost("{app_id}/oauth2/introspect")]
-    public Task<Dictionary<string, object?>> Introspect([FromServices] IAuthenticationProvider auth, [FromServices] IMicroMAppConfiguration app_config, string app_id, [FromBody] string token, CancellationToken ct)
-    {
-        throw new NotImplementedException();
-    }
+    //[Authorize(Policy = nameof(MicroMPermissionsConstants.IdPClientPolicy))]
+    //[HttpPost("{app_id}/oauth2/revoke")]
+    //public Task<bool> Revoke([FromServices] IAuthenticationProvider auth, [FromServices] IMicroMAppConfiguration app_config, string app_id, [FromBody] string token, CancellationToken ct)
+    //{
+    //    throw new NotImplementedException();
+    //}
+
+    //[Authorize(Policy = nameof(MicroMPermissionsConstants.IdPClientPolicy))]
+    //[HttpPost("{app_id}/oauth2/introspect")]
+    //public Task<Dictionary<string, object?>> Introspect([FromServices] IAuthenticationProvider auth, [FromServices] IMicroMAppConfiguration app_config, string app_id, [FromBody] string token, CancellationToken ct)
+    //{
+    //    throw new NotImplementedException();
+    //}
 }
