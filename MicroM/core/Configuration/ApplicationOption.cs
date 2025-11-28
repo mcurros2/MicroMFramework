@@ -31,7 +31,7 @@ public class ApplicationOption
     public string? OIDCWellKnownURL { get; set; } = null;
 
     // Used at the IdP API tenant (wellknown and jwks endpoint) and
-    // at the IDClient API tenant (for token signing) it should configured at the IdP when configurikng authorized OIDC applications
+    // at the IDClient API tenant (for token signing) it should configured at the IdP when configuring authorized OIDC applications
     public string? OIDCCertificateUniqueID { get; set; } = null;
     public byte[]? OIDCCertificateBlob { get; set; } = null;
     public string OIDCCertificatePassword { get; set; } = "";

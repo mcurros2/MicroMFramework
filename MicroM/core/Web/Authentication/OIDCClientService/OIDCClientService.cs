@@ -9,7 +9,6 @@ using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
-using System.Collections.Concurrent;
 using System.Security.Claims;
 using System.Security.Cryptography.X509Certificates;
 using System.Text.Json;
@@ -17,15 +16,16 @@ using System.Text.Json;
 namespace MicroM.Web.Authentication.SSO;
 
 public class OIDCClientService(
-    IEtagCacheService etag_cache,
+    IEtagCacheService<OIDCWellKnownResponse> wk_cache,
+    IEtagCacheService<OIDCJwksResponse> client_jwks_cache,
+    IEtagCacheService<OIDCJwksResponse> remote_jwks_cache,
     IApplicationCertificateCacheService certificate_cache,
     IStateAndNonceService state_and_nonce_service,
     IOIDCHttpClient oidcHttpClient,
     IOIDCReplayCacheService replay_cache,
     ILogger<OIDCClientService> log,
     IDeviceIdService deviceid_service,
-    IMicroMEncryption encryptor,
-    IJWKSFetchCacheService jwks_cache
+    IMicroMEncryption encryptor
 ) : IOIDCClientService
 {
     private readonly JsonSerializerOptions _jsonOptionsUnsafe = new()
@@ -35,8 +35,6 @@ public class OIDCClientService(
         Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
     };
 
-    private readonly ConcurrentDictionary<string, OIDCWellKnownResponse> _wellKnownCache = new();
-
     // Scrub helper: never log raw tokens, only length & segment count
     private static string DescribeToken(string? token)
     {
@@ -45,7 +43,18 @@ public class OIDCClientService(
         return $"segments={segs.Length} len={token.Length}";
     }
 
-    public EtagCacheServiceCacheCheckResult? HandleClientJwks(ApplicationOption app, RequestHeaders request_headers, IHeaderDictionary response_headers)
+    public static string BuildJwksCacheKey(ApplicationOption app)
+    {
+        return $"oidc_client:{app.ApplicationID}_JWKS";
+    }
+
+    public static string BuildWellknownCacheKey(ApplicationOption client_app)
+    {
+        return $"oidc_client:{client_app.ApplicationID}_WK";
+    }
+
+
+    public EtagCacheServiceCacheCheckResult<OIDCJwksResponse>? HandleClientJwks(ApplicationOption app, RequestHeaders request_headers, IHeaderDictionary response_headers)
     {
         // Build JWKS for this client app using its certificate (kid = CertificateUniqueID)
         if (app.OIDCCertificateBlob == null || app.OIDCCertificateBlob.Length == 0)
@@ -54,18 +63,18 @@ public class OIDCClientService(
             return null;
         }
 
-        string key = $"{app.ApplicationID}_CLIENT_JWKS";
-        var result = etag_cache.GetOrAddResponseWithCacheCheck(
+        string key = BuildJwksCacheKey(app);
+        var result = client_jwks_cache.GetOrAddResponseWithCacheCheck(
             key,
             request_headers,
             response_headers,
             cache_duration_seconds: ConfigurationDefaults.JwksCacheDurationSeconds,
-            () =>
+            (existing) =>
         {
             X509Certificate2? cert = certificate_cache.GetCertificate(app);
             OIDCJwksKeyResponse? k = cert != null ? JwksProvider.GetRSAKey(app, cert) : null;
             var jwks = new OIDCJwksResponse(keys: k != null ? [k] : []);
-            return JsonSerializer.Serialize(jwks, _jsonOptionsUnsafe);
+            return (json: JsonSerializer.Serialize(jwks, _jsonOptionsUnsafe), parsed: jwks, etag: null);
         });
 
         return result;
@@ -80,40 +89,43 @@ public class OIDCClientService(
 
         try
         {
-            string key = $"{app.ApplicationID}_CLIENT_WK";
+            string key = BuildWellknownCacheKey(app);
 
-            if (_wellKnownCache.TryGetValue(key, out var cached) && cached != null)
-            {
-                return new(cached, null);
-            }
-
-            var wellknown_etag_content = await etag_cache.GetOrAddAsync(
+            var wellknown_etag_content = await wk_cache.GetOrAddAsync(
                 key,
                 serveStaleOnError: true,
                 ct: ct,
-                valueFactory: async (ct) =>
+                valueFactory: async (existing, ct) =>
                 {
                     var result = await oidcHttpClient.GetWellKnownJsonAsync(app.OIDCWellKnownURL, ct);
 
-                    if (!result.IsSuccessStatusCode)
+                    if (result.IsSuccessStatusCode)
                     {
-                        throw new Exception(result.Error);
+                        try
+                        {
+                            var wellknown_response = JsonSerializer.Deserialize<OIDCWellKnownResponse>(result.Body, _jsonOptionsUnsafe);
+                            return (json: result.Body, parsed: wellknown_response, etag: null);
+                        }
+                        catch (Exception ex)
+                        {
+                            log.LogError(ex, "Failed to parse IdP discovery document for app {app}", app.ApplicationID);
+                        }
+                    }
+                    else
+                    {
+                        log.LogError("Failed to retrieve IdP discovery document for app {app} from {wkuri}: {status} {error}", app.ApplicationID, app.OIDCWellKnownURL, result.StatusCode, result.Error);
                     }
 
-                    return result.Body;
+                    return (json: "", parsed: null, etag: null);
                 }
             );
 
-            if (wellknown_etag_content == null)
+            if (string.IsNullOrEmpty(wellknown_etag_content.Content) || wellknown_etag_content.Parsed == null)
             {
-                return new(null, "Failed to parse IdP discovery document");
+                return new(null, "Failed to retrieve IdP discovery document");
             }
 
-            var wellknown_response = JsonSerializer.Deserialize<OIDCWellKnownResponse>(wellknown_etag_content.Content, _jsonOptionsUnsafe);
-
-            if (wellknown_response != null) _wellKnownCache.GetOrAdd(key, wellknown_response);
-
-            return new(wellknown_response, null);
+            return new(wellknown_etag_content.Parsed, null);
         }
         catch (Exception ex)
         {
@@ -297,17 +309,26 @@ public class OIDCClientService(
 
         // Validate id_token via IdP JWKS
         var clientDecryptCert = certificate_cache.GetCertificate(app);
-        var jwksResult = await jwks_cache.GetAsync(jwksUri, ct);
-        var signingKeys = jwksResult.Keys.Values;
+
+        var jwksResult = await JwksProvider.FetchAndCacheRemoteJwksAsync(jwksUri, oidcHttpClient, remote_jwks_cache, ct);
 
         var header = JwksProvider.TryReadProtectedHeader(id_token);
-        if (header.Kid != null && !jwksResult.Keys.ContainsKey(header.Kid))
+
+        var signingKeys = jwksResult.Keys.Values;
+
+        if (jwksResult.Keys.Count > 0 && header.Kid != null && !jwksResult.Keys.ContainsKey(header.Kid))
         {
-            var forced = await jwks_cache.GetAsync(jwksUri, ct, forceRefresh: true);
+            log.LogTrace("JWKS_HEADER_KID_NOT_FOUND - Client_id: {client_id} - refetching Jwks {jwksuri}", clientId, jwksUri);
+            var forced = await JwksProvider.FetchAndCacheRemoteJwksAsync(jwksUri, oidcHttpClient, remote_jwks_cache, ct);
             signingKeys = forced.Keys.Values;
         }
 
-        var (jwt_result, jwt_error) = await JwksProvider.ValidateIdTokenWithKeysAsync(signingKeys, issuer, clientId, id_token, clientDecryptCert, header, ct);
+        var effectiveAlgs = BuildEffectiveIdTokenAlgs(wellknown);
+
+        var (jwt_result, jwt_error) = await JwksProvider.ValidateIdTokenWithKeysAsync(
+            signingKeys, issuer, clientId, id_token, clientDecryptCert, header,
+            effectiveAlgs.AllowedSigningAlgs, effectiveAlgs.AllowedKeyMgmtAlgs, effectiveAlgs.AllowedEncAlgs,
+            ct);
 
         if (jwt_error != null || jwt_result == null)
         {
@@ -384,7 +405,7 @@ public class OIDCClientService(
         JsonWebToken? parsed = null;
         try
         {
-            var jwks = await jwks_cache.GetAsync(wk.jwks_uri!, ct);
+            var jwks = await JwksProvider.FetchAndCacheRemoteJwksAsync(wk.jwks_uri, oidcHttpClient, remote_jwks_cache, ct);
             var handler = new JsonWebTokenHandler();
             var tvp = new TokenValidationParameters
             {
@@ -452,7 +473,7 @@ public class OIDCClientService(
             return new(OIDCLogoutProcessingStatus.MissingSidOrSub, "missing_sid_and_sub");
 
         // 4) Replay check
-        var replay = replay_cache.TryStore(jti, iatUtc);
+        var replay = replay_cache.TryStore("logout", jti, iatUtc, TimeSpan.FromMinutes(10), TimeSpan.FromMinutes(2));
         if (replay.Status == ReplayCacheStatus.Replay)
         {
             log.LogInformation("Backchannel logout replay for app {app}, jti {jti}", app.ApplicationID, jti);
@@ -597,17 +618,23 @@ public class OIDCClientService(
 
         // Validate refreshed id_token
         var clientDecryptCert = certificate_cache.GetCertificate(app);
-        var jwksResult = await jwks_cache.GetAsync(jwksUri, ct);
+
+        var jwksResult = await JwksProvider.FetchAndCacheRemoteJwksAsync(jwksUri, oidcHttpClient, remote_jwks_cache, ct);
         var signingKeys = jwksResult.Keys.Values;
 
         var header = JwksProvider.TryReadProtectedHeader(id_token);
-        if (header.Kid != null && !jwksResult.Keys.ContainsKey(header.Kid))
+        if (jwksResult.Keys.Count > 0 && header.Kid != null && !jwksResult.Keys.ContainsKey(header.Kid))
         {
-            var forced = await jwks_cache.GetAsync(jwksUri, ct, forceRefresh: true);
+            var forced = await JwksProvider.FetchAndCacheRemoteJwksAsync(jwksUri, oidcHttpClient, remote_jwks_cache, ct);
             signingKeys = forced.Keys.Values;
         }
 
-        var (jwt_result, jwt_error) = await JwksProvider.ValidateIdTokenWithKeysAsync(signingKeys, issuer, app.ApplicationID, id_token, clientDecryptCert, header, ct);
+        var effectiveAlgs = BuildEffectiveIdTokenAlgs(wellknown);
+
+        var (jwt_result, jwt_error) = await JwksProvider.ValidateIdTokenWithKeysAsync(
+            signingKeys, issuer, app.ApplicationID, id_token, clientDecryptCert, header,
+            effectiveAlgs.AllowedSigningAlgs, effectiveAlgs.AllowedKeyMgmtAlgs, effectiveAlgs.AllowedEncAlgs,
+            ct);
 
         if (jwt_error != null || jwt_result == null)
         {
@@ -618,8 +645,6 @@ public class OIDCClientService(
         var effectiveRefreshToken = string.IsNullOrWhiteSpace(newIdpRefreshToken) ? idpRefreshToken : newIdpRefreshToken;
 
         return new(new(jwt_result.Principal, jwt_result.ExpiresUtc, effectiveRefreshToken, DeviceId: null, idpRefreshExpirationUtc), null);
-
-
     }
 
     public async Task<bool> RefreshIdpToken(
@@ -686,5 +711,63 @@ public class OIDCClientService(
         }
     }
 
+    private sealed record EffectiveIdTokenAlgs(
+        ISet<string> AllowedSigningAlgs,
+        ISet<string> AllowedKeyMgmtAlgs,
+        ISet<string> AllowedEncAlgs
+        );
+
+    private static EffectiveIdTokenAlgs BuildEffectiveIdTokenAlgs(OIDCWellKnownResponse wk)
+    {
+        // 1) SIGNING
+        var signing = new HashSet<string>();
+
+        if (wk.id_token_signing_alg_values_supported != null &&
+            wk.id_token_signing_alg_values_supported.Count > 0)
+        {
+            foreach (var jwtAlg in wk.id_token_signing_alg_values_supported)
+            {
+                string currentAlg = jwtAlg.ToString();
+                if (OIDCCryptoCapabilities.Client.AllowedIdTokenSigningAlgorithms.Contains(currentAlg))
+                {
+                    signing.Add(currentAlg);
+                }
+            }
+        }
+
+        // 2) KEY MGMT (alg)
+        var km = new HashSet<string>();
+
+        if (wk.id_token_encryption_alg_values_supported != null &&
+            wk.id_token_encryption_alg_values_supported.Count > 0)
+        {
+            foreach (var jwtAlg in wk.id_token_encryption_alg_values_supported)
+            {
+                string currentAlg = jwtAlg.ToAlgString();
+                if (OIDCCryptoCapabilities.Client.AllowedIdTokenKeyManagementAlgs.Contains(currentAlg))
+                {
+                    km.Add(currentAlg);
+                }
+            }
+        }
+
+        // 3) ENC (enc)
+        var enc = new HashSet<string>();
+
+        if (wk.id_token_encryption_enc_values_supported != null &&
+            wk.id_token_encryption_enc_values_supported.Count > 0)
+        {
+            foreach (var jwtEnc in wk.id_token_encryption_enc_values_supported)
+            {
+                string currentAlg = jwtEnc.ToAlgString();
+                if (OIDCCryptoCapabilities.Client.AllowedIdTokenContentEncryptionAlgs.Contains(currentAlg))
+                {
+                    enc.Add(currentAlg);
+                }
+            }
+        }
+
+        return new(signing, km, enc);
+    }
 
 }

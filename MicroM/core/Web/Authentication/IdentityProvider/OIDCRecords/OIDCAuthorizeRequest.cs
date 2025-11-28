@@ -4,6 +4,7 @@ public sealed record OIDCAuthorizeRequest
 (
     string response_type,
     string client_id,
+    string? request = null,
     string? request_uri = null,
     string? redirect_uri = null,
     string? scope = null,

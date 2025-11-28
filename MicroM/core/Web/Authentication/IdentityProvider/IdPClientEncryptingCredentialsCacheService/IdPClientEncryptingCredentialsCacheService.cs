@@ -10,7 +10,8 @@ namespace MicroM.Web.Authentication.SSO;
 public class IdPClientEncryptingCredentialsCacheService(
     IMicroMAppConfiguration appConfig,
     IApplicationCertificateCacheService certCache,
-    IJWKSFetchCacheService jwksCache,
+    IEtagCacheService<OIDCJwksResponse> jwksCache,
+    IOIDCHttpClient oidcHttpClient,
     ILogger<IdPClientEncryptingCredentialsCacheService> log
     ) : IIdPClientEncryptingCredentialsCacheService
 {
@@ -50,7 +51,7 @@ public class IdPClientEncryptingCredentialsCacheService(
             return null;
         }
 
-        var jwksResult = await jwksCache.GetAsync(clientCfg.URLClientJWKS, ct).ConfigureAwait(false);
+        var jwksResult = await JwksProvider.FetchAndCacheRemoteJwksAsync(clientCfg.URLClientJWKS, oidcHttpClient, jwksCache, ct);
         if (jwksResult.Keys.Count == 0)
         {
             log.LogWarning("IDP_CRYPTO_JWKS_NO_KEYS idp_app={idp} audience={aud} jwks_url={url}", idpApp.ApplicationID, audience, clientCfg.URLClientJWKS);
@@ -98,7 +99,7 @@ public class IdPClientEncryptingCredentialsCacheService(
             return null;
 
         // Content encryption preference
-        string[] contentAlgs = [SecurityAlgorithms.Aes256Gcm, SecurityAlgorithms.Aes192Gcm, SecurityAlgorithms.Aes128Gcm];
+        var contentAlgs = OIDCCryptoCapabilities.Idp.AllowedRequestObjectContentEncryptionAlgStrings;
 
         foreach (var km in keyAlgs)
         {

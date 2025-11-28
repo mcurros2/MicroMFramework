@@ -199,7 +199,7 @@ public class WebAPIJsonWebTokenHandler(
     }
 
     // Creates a signed id_token; if encryption to the audience is possible, returns JWE (sign-then-encrypt).
-    public async Task<TokenResult> GenerateOidcIdToken(Dictionary<string, object> claims, ApplicationOption app, string audience, string? nonce = null)
+    public async Task<TokenResult> GenerateOidcIdToken(Dictionary<string, object> claims, ApplicationOption app, string audience, CancellationToken ct, string? nonce = null)
     {
         if (nonce != null && !claims.ContainsKey(WellknownIdentityConstants.Nonce))
             claims[WellknownIdentityConstants.Nonce] = nonce;
@@ -218,7 +218,7 @@ public class WebAPIJsonWebTokenHandler(
         var signing = GetOidcSigningCredentials(app, idpCert) ?? throw new InvalidOperationException("Unable to resolve signing credentials for id_token.");
 
         // NEW: resolve encrypting credentials based on the audience (client)
-        var encrypting = await audience_crypto_cache.GetEncryptingCredentialsAsync(app, audience, CancellationToken.None);
+        var encrypting = await audience_crypto_cache.GetEncryptingCredentialsAsync(app, audience, ct);
 
         var sd = new SecurityTokenDescriptor
         {

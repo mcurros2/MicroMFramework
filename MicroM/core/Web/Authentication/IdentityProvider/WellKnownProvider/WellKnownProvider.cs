@@ -114,17 +114,19 @@ public static class WellKnownProvider
             code_challenge_methods_supported: pkceMethods,
 
             // Grant types & auth methods
-            grant_types_supported: [OIDCGrantType.authorization_code, OIDCGrantType.refresh_token],
-            token_endpoint_auth_methods_supported: [OIDCTokenEndpointAuthMethod.private_key_jwt],
+            grant_types_supported: OIDCCryptoCapabilities.Idp.GrantTypes,
+            token_endpoint_auth_methods_supported: OIDCCryptoCapabilities.Idp.TokenEndpointAuthMethods,
 
             scopes_supported: [OIDCProfileScopes.openid, OIDCProfileScopes.profile, OIDCProfileScopes.email],
 
             // PAR & security
-            require_pushed_authorization_requests: true,
-            request_uri_parameter_supported: false,
-            authorization_response_iss_parameter_supported: true,
-            backchannel_logout_supported: true,
-            backchannel_logout_session_supported: true
+            require_pushed_authorization_requests: OIDCCryptoCapabilities.Idp.RequirePushedAuthorizationRequests,
+            request_uri_parameter_supported: OIDCCryptoCapabilities.Idp.RequestUriParameterSupported,
+            request_parameter_supported: OIDCCryptoCapabilities.Idp.RequestParameterSupported,
+
+            authorization_response_iss_parameter_supported: OIDCCryptoCapabilities.Idp.AuthorizationResponseIssParameterSupported,
+            backchannel_logout_supported: OIDCCryptoCapabilities.Idp.BackchannelLogoutSupported,
+            backchannel_logout_session_supported: OIDCCryptoCapabilities.Idp.BackchannelLogoutSessionSupported
         );
     }
 

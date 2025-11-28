@@ -11,6 +11,13 @@ namespace MicroM.Web.Authentication.SSO;
 /// - Do NOT share sets between IdP and Client. They may diverge when using an external IdP.
 /// - This class is the single source of truth for what algorithms we are willing to use/accept.
 /// </summary>
+/// <remarks>
+///  - This IdP supports Request Objects only via PAR.
+///  - Clients must POST 'request' (signed/encrypted JWT) to /oauth2/par.
+///  - The authorize endpoint accepts only 'request_uri' pointing to a PAR entry.
+///  - Direct use of 'request' at /oauth2/authorize is rejected, even if
+///    request_parameter_supported = true in discovery metadata.
+/// </remarks>
 public static class OIDCCryptoCapabilities
 {
     /// <summary>
@@ -110,6 +117,23 @@ public static class OIDCCryptoCapabilities
         ];
 
         /// <summary>
+        /// Gets the list of supported OpenID Connect token endpoint authentication methods.
+        /// </summary>
+        public static readonly IReadOnlyList<OIDCTokenEndpointAuthMethod> TokenEndpointAuthMethods =
+        [
+            OIDCTokenEndpointAuthMethod.private_key_jwt
+        ];
+
+        /// <summary>
+        /// Supported OIDC grant types.
+        /// </summary>
+        public static readonly IReadOnlyList<OIDCGrantType>? GrantTypes =
+        [
+            OIDCGrantType.authorization_code,
+            OIDCGrantType.refresh_token
+        ];
+
+        /// <summary>
         /// Allowed JWE "alg" for request objects encrypted TO our IdP.
         /// This must match what we advertise in:
         /// request_object_encryption_alg_values_supported
@@ -135,6 +159,16 @@ public static class OIDCCryptoCapabilities
         public static readonly HashSet<string> AllowedClientAssertionSigningAlgStrings = AcceptedClientAssertionSigningAlgs
                 .Select(a => a.ToString())
                 .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+
+        public readonly static bool RequirePushedAuthorizationRequests = true;
+        public readonly static bool RequestParameterSupported = true;
+        public readonly static bool RequestUriParameterSupported = false;
+
+
+        public readonly static bool AuthorizationResponseIssParameterSupported = true;
+        public readonly static bool BackchannelLogoutSupported = true;
+        public readonly static bool BackchannelLogoutSessionSupported = true;
 
     }
 
@@ -196,5 +230,7 @@ public static class OIDCCryptoCapabilities
             OIDCSigningAlg.PS512
             // ES* can be added here when ECDSA client certificates are supported.
         ];
+
+
     }
 }

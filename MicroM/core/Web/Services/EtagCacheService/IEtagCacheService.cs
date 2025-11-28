@@ -3,18 +3,30 @@ using Microsoft.AspNetCore.Http.Headers;
 
 namespace MicroM.Web.Services;
 
-public interface IEtagCacheService
+public interface IEtagCacheService<T> where T : class?
 {
     void ClearCache();
-    EtagContent? Get(string key);
+    EtagContent<T>? Get(string key);
 
-    EtagContent GetOrAdd(string key, Func<string> valueFactory, TimeSpan? ttl = null);
+    EtagContent<T> GetOrAdd(string key, Func<EtagContent<T>?, (string json, T? parsed, string? etag)> valueFactory, TimeSpan? ttl = null);
 
-    ValueTask<EtagContent> GetOrAddAsync(string key, Func<CancellationToken, ValueTask<string>> valueFactory, bool serveStaleOnError, CancellationToken ct, int maxRetries = 2, TimeSpan? ttl = null);
+    ValueTask<EtagContent<T>> GetOrAddAsync(
+        string key,
+        Func<EtagContent<T>?, CancellationToken, ValueTask<(string json, T? parsed, string? etag)>> valueFactory,
+        bool serveStaleOnError,
+        CancellationToken ct,
+        int maxRetries = 2,
+        TimeSpan? ttl = null);
 
-    EtagCacheServiceCacheCheckResult GetOrAddResponseWithCacheCheck(string key, RequestHeaders request_headers, IHeaderDictionary response_headers, double cache_duration_seconds, Func<string> valueFactory);
+    EtagCacheServiceCacheCheckResult<T> GetOrAddResponseWithCacheCheck(
+        string key,
+        RequestHeaders request_headers,
+        IHeaderDictionary response_headers,
+        double cache_duration_seconds,
+        Func<EtagContent<T>?, (string json, T? parsed, string? etag)> valueFactory);
 
     string? GetRequestEtag(RequestHeaders request_headers);
 
     void Remove(string key);
+
 }

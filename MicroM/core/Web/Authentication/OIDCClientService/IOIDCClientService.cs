@@ -9,7 +9,7 @@ namespace MicroM.Web.Authentication.SSO;
 public interface IOIDCClientService
 {
     // Client JWKS: mirrors IdP JWKS pattern, returns ETag-aware response info
-    EtagCacheServiceCacheCheckResult? HandleClientJwks(ApplicationOption app, RequestHeaders request_headers, IHeaderDictionary response_headers);
+    EtagCacheServiceCacheCheckResult<OIDCJwksResponse>? HandleClientJwks(ApplicationOption app, RequestHeaders request_headers, IHeaderDictionary response_headers);
 
     // Client-side PAR forwarder: returns (statusCode, contentType, body)
     Task<OIDCHttpClientPostResponse> HandleSignInOidc(ApplicationOption app, IHeaderDictionary requestHeaders, IFormCollection form, CancellationToken ct);

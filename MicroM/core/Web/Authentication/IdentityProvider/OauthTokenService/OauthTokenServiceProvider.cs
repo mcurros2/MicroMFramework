@@ -108,7 +108,8 @@ public static class OauthTokenServiceProvider
             string sid,
             string? nonce,
             string client_id,
-            string sub_hash
+            string sub_hash,
+            CancellationToken ct
         )
     {
         if (string.IsNullOrWhiteSpace(sid))
@@ -150,7 +151,7 @@ public static class OauthTokenServiceProvider
         TokenResult? idTokenResult;
         try
         {
-            idTokenResult = await jwtHandler.GenerateOidcIdToken(idClaims, app, audience: client_id, nonce: nonce);
+            idTokenResult = await jwtHandler.GenerateOidcIdToken(idClaims, app, audience: client_id, nonce: nonce, ct: ct);
         }
         catch
         {
@@ -191,7 +192,7 @@ public static class OauthTokenServiceProvider
         string? sub = null;
         try
         {
-            await dbc.Connect(CancellationToken.None);
+            await dbc.Connect(ct);
 
             var sub_hash = await ApplicationOidcActiveSessions.CreateOrUpdateIdPSession(
                 dbc,

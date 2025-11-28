@@ -134,8 +134,8 @@ public static class WebAPIBaseExtensions
     public static IServiceCollection AddOIDCServices(this IServiceCollection services)
     {
         services.AddSingleton<IApplicationCertificateCacheService, ApplicationCertificateCacheService>();
-        services.AddSingleton<IEtagCacheService, EtagCacheService>();
-        services.AddSingleton<IJWKSFetchCacheService, JWKSFetchCacheService>();
+        services.AddSingleton<IEtagCacheService<OIDCWellKnownResponse>, EtagCacheService<OIDCWellKnownResponse>>();
+        services.AddSingleton<IEtagCacheService<OIDCJwksResponse>, EtagCacheService<OIDCJwksResponse>>();
         services.AddSingleton<IJwksService, JwksService>();
         services.AddSingleton<IIdPClientEncryptingCredentialsCacheService, IdPClientEncryptingCredentialsCacheService>();
         services.AddSingleton<IIdPClientSigningKeysCacheService, IdPClientSigningKeysCacheService>();

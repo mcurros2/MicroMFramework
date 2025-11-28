@@ -13,7 +13,8 @@ namespace MicroM.Web.Authentication.SSO;
 
 public static class PushedAuthorizationProvider
 {
-    private const int MAX_REQUEST_OBJECT_BYTES = 64 * 1024;
+    // Safety limit on compact JWS/JWE length (characters), to avoid abusing PAR endpoint.
+    private const int MAX_REQUEST_OBJECT_CHARS = 64 * 1024;
 
     public static OIDCSigningAlg? SelectAssertionAlg(X509Certificate2 cert, IReadOnlyList<OIDCSigningAlg>? supported)
     {
@@ -79,7 +80,7 @@ public static class PushedAuthorizationProvider
 
         if (!string.IsNullOrEmpty(request))
         {
-            if (request.Length > MAX_REQUEST_OBJECT_BYTES)
+            if (request.Length > MAX_REQUEST_OBJECT_CHARS)
             {
                 return new((null, null), new("invalid_request", "request object exceeds size limit"));
             }
@@ -191,7 +192,7 @@ public static class PushedAuthorizationProvider
             return new((null, null), new("invalid_request", "PKCE code_challenge and code_challenge_method are required"));
 
         bool allowPlain = app.OIDCAllowPkcePlain;
-        if (codeChallengeMethod != "S256" && !(allowPlain && codeChallengeMethod == "plain"))
+        if (codeChallengeMethod != nameof(OIDCCodeChallengeMethod.S256) && !(allowPlain && codeChallengeMethod == nameof(OIDCCodeChallengeMethod.plain)))
             return new((null, null), new("invalid_request", "Unsupported code_challenge_method"));
 
         var plainResult = new PushedAuthorizationRequest(
@@ -294,7 +295,7 @@ public static class PushedAuthorizationProvider
             return (null, new { error = "invalid_request", error_description = "code_challenge_method is required" });
 
         bool allowPlain = client_app.OIDCAllowPkcePlain;
-        if (codeChallengeMethod != "S256" && !(allowPlain && codeChallengeMethod == "plain"))
+        if (codeChallengeMethod != nameof(OIDCCodeChallengeMethod.S256) && !(allowPlain && codeChallengeMethod == nameof(OIDCCodeChallengeMethod.plain)))
             return (null, new { error = "invalid_request", error_description = "Unsupported code_challenge_method" });
 
         forward.TryGetValue(WellknownIdentityConstants.State, out var state);
@@ -379,7 +380,7 @@ public static class PushedAuthorizationProvider
             // Remove weaker auth artifacts if present
             valid_form.Remove(WellknownIdentityConstants.ClientSecret);
 
-            // WARNING, REVIEW THIS IS CORRECT: No Authorization header required for private_key_jwt
+            // No Authorization header required for private_key_jwt
             return new(null, null);
         }
 

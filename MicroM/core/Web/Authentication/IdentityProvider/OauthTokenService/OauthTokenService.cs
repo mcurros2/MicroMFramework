@@ -86,7 +86,7 @@ public class OauthTokenService(
             );
 
             var (idTokenResult, accessTokenResult, tokenError) =
-                await OauthTokenServiceProvider.GenerateAuthTokens(jwtHandler, app, session.vc_oidc_session_id, null, record.client_id, sub!);
+                await OauthTokenServiceProvider.GenerateAuthTokens(jwtHandler, app, session.vc_oidc_session_id, null, record.client_id, sub!, ct);
 
             if (idTokenResult?.Token == null || accessTokenResult?.Token == null || tokenError != null)
             {
@@ -172,7 +172,7 @@ public class OauthTokenService(
         var sub_hash = ApplicationOidcActiveSessions.GetDerivedSub(authenticated_client_app, record.UserId, sub_pepper);
 
         var (idTokenResult, accessTokenResult, tokenError) =
-            await OauthTokenServiceProvider.GenerateAuthTokens(jwtHandler, app, sid, record.Nonce, request_record.client_id, sub_hash);
+            await OauthTokenServiceProvider.GenerateAuthTokens(jwtHandler, app, sid, record.Nonce, request_record.client_id, sub_hash, ct);
 
         if (tokenError != null || idTokenResult?.Token == null || accessTokenResult?.Token == null)
         {
@@ -194,6 +194,13 @@ public class OauthTokenService(
             sub_pepper: sub_pepper,
             ct);
 
+        if (sub is null)
+        {
+            log.LogError("OIDC_TOKEN_REFRESH_UPSERT_FAILED client_id={clientId} sid={sid} error={error}",
+                request_record.client_id, SidMarker(sid), upsert_error?.Error ?? "unknown");
+            return new(null, new("server_error", "Failed to persist session"));
+        }
+
         var token_response = new OIDCTokenResponse(
             token_type: WellknownIdentityConstants.Bearer,
             expires_in: app.JWTTokenExpirationMinutes * 60,
@@ -204,7 +211,7 @@ public class OauthTokenService(
             refresh_expiration_utc: refresh_expiration.ToString("o")
         );
 
-        log.LogInformation("OIDC_TOKEN_CODE_ISSUED client_id={clientId} sid={sid} user_id={userId} nonce_present={nonce} refresh_expiration={refreshExp:o} id_token_len={idLen} access_token_len={accLen} refresh_token_len={refLen} upsert_error={upsertErr}",
+        log.LogDebug("OIDC_TOKEN_CODE_ISSUED client_id={clientId} sid={sid} user_id={userId} nonce_present={nonce} refresh_expiration={refreshExp:o} id_token_len={idLen} access_token_len={accLen} refresh_token_len={refLen} upsert_error={upsertErr}",
             request_record.client_id,
             SidMarker(sid),
             record.UserId,

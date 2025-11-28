@@ -33,10 +33,14 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
     private readonly IBackgroundTaskQueue _backgroundTaskQueue;
     private readonly IConfiguration _config;
     private readonly string _jwtkey;
-    private readonly IEtagCacheService _etag_cache;
+    private readonly PathString _basePathString;
+
     private readonly IApplicationCertificateCacheService _certificate_cache;
     private readonly IIdPClientEncryptingCredentialsCacheService _audience_crypto_cache;
-    private readonly PathString _basePathString;
+    private readonly IIdPClientSigningKeysCacheService _signing_keys_cache;
+    private readonly IEtagCacheService<OIDCWellKnownResponse> _wk_cache;
+    private readonly IEtagCacheService<OIDCJwksResponse> _jwks_cache;
+
 
     private static string NormalizeURL(string url)
     {
@@ -51,8 +55,10 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
         IMicroMEncryption encryptor,
         IBackgroundTaskQueue queue,
         IApplicationCertificateCacheService certificate_cache,
-        IEtagCacheService etag_cache,
         IIdPClientEncryptingCredentialsCacheService audience_crypto_cache,
+        IIdPClientSigningKeysCacheService signing_keys_cache,
+        IEtagCacheService<OIDCWellKnownResponse> wk_cache,
+        IEtagCacheService<OIDCJwksResponse> jwks_cache,
         IConfiguration config)
     {
         ThrowIfNull(options);
@@ -65,9 +71,12 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
         _jwtkey = CryptClass.GenerateRandomBase64String(32);
 
         _config = config;
-        _etag_cache = etag_cache;
+
+        _wk_cache = wk_cache;
+        _jwks_cache = jwks_cache;
         _certificate_cache = certificate_cache;
         _audience_crypto_cache = audience_crypto_cache;
+        _signing_keys_cache = signing_keys_cache;
 
         var raw = options?.Value.MicroMAPIBaseRootPath ?? string.Empty;
         var trimmed = raw.Trim().Trim('/');
@@ -113,10 +122,10 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
         return (result, thumbprint);
     }
 
-    private async Task AddControlPanelApp(CancellationToken? ct)
+    private async Task AddControlPanelApp(CancellationToken ct)
     {
 
-        var (secrets, thumbprint) = await ReadConfigurationDBParms(ct ?? CancellationToken.None);
+        var (secrets, thumbprint) = await ReadConfigurationDBParms(ct);
         if (thumbprint == null)
         {
             _log.LogError("ERROR: There is no certificate configured");
@@ -457,10 +466,14 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
         {
             try
             {
-                _etag_cache.ClearCache();
+                _wk_cache.ClearCache();
+                _jwks_cache.ClearCache();
                 _certificate_cache.ClearCache();
+
                 _audience_crypto_cache.Clear();
+                _signing_keys_cache.Clear();
                 _ApplicationsCache.Clear();
+
                 await RefreshConfiguration(null, ct);
             }
             finally
