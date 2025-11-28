@@ -10,7 +10,7 @@ namespace MicroM.Web.Authentication.SSO;
 
 public class JwksService(
     IApplicationCertificateCacheService certificate_cache,
-    IEtagCacheService etag_cache,
+    IEtagCacheService<OIDCJwksResponse> etag_cache,
     ILogger<JwksService> log
     ) : IJwksService
 {
@@ -22,24 +22,30 @@ public class JwksService(
         Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
     };
 
-    public EtagCacheServiceCacheCheckResult? HandleJwks(ApplicationOption app, RequestHeaders request_headers, IHeaderDictionary response_headers)
+    private static string BuildCacheKey(ApplicationOption app)
+    {
+        return $"idp:{app.ApplicationID}_JWKS";
+    }
+
+    public EtagCacheServiceCacheCheckResult<OIDCJwksResponse>? HandleJwks(ApplicationOption app, RequestHeaders request_headers, IHeaderDictionary response_headers)
     {
         if (app.OIDCCertificateBlob == null)
         {
             log.LogWarning("JWKS requested for app {app} which has no certificate configured", app.ApplicationID);
             return null;
         }
-        var key = $"{app.ApplicationID}_JWKS";
+
+        var key = BuildCacheKey(app);
 
         var result = etag_cache.GetOrAddResponseWithCacheCheck(
             key,
             request_headers,
             response_headers,
             cache_duration_seconds: ConfigurationDefaults.JwksCacheDurationSeconds,
-            () =>
+            (existing) =>
         {
             var jwks = CreateJwksResponse(app);
-            return JsonSerializer.Serialize(jwks, _jsonUnsafeSerializationOptions);
+            return (json: JsonSerializer.Serialize(jwks, _jsonUnsafeSerializationOptions), parsed: jwks, etag: null);
         });
 
         return result;

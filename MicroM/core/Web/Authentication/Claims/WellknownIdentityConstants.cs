@@ -40,6 +40,13 @@ public class WellknownIdentityConstants
     public const string RefreshExpirationUtc = "refresh_expiration_utc";
     public const string ClientSecret = "client_secret";
 
+    public const string Display = "display";
+    public const string Prompt = "prompt";
+    public const string MaxAge = "max_age";
+    public const string LoginHint = "login_hint";
+    public const string UiLocales = "ui_locales";
+    public const string AcrValues = "acr_values";
+
     public const string ResponseType = "response_type";
     public const string CodeChallenge = "code_challenge";
     public const string CodeChallengeMethod = "code_challenge_method";

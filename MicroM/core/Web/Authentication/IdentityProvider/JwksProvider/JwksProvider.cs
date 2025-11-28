@@ -1,6 +1,7 @@
 ﻿using MicroM.Configuration;
 using MicroM.Core;
 using MicroM.Web.Extensions;
+using MicroM.Web.Services;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
 using System.Security.Claims;
@@ -10,6 +11,16 @@ using System.Text;
 using System.Text.Json;
 
 namespace MicroM.Web.Authentication.SSO;
+
+public sealed record JwksCacheResult
+(
+    string JwksUri,
+    string? ETag,                // Local content-hash ETag
+    string? ServerETag,          // Last server-provided ETag for jwks_uri (If-None-Match target)
+    IReadOnlyDictionary<string, SecurityKey> Keys,
+    string? RawJson,
+    OIDCJwksResponse? Parsed
+);
 
 public record JWTProtectedHeaderResult
 (
@@ -149,6 +160,15 @@ public static class JwksProvider
         }
     }
 
+    /// <summary>
+    /// Validates an OpenID Connect ID token using the specified signing keys, issuer, audience, and allowed algorithms.
+    /// Supports both signed (JWS) and encrypted (JWE) tokens.
+    /// </summary>
+    /// <remarks>This method enforces strict algorithm allow-lists for both signed and encrypted tokens. If
+    /// the ID token is encrypted (JWE), a suitable decryption certificate must be provided and the token's algorithms
+    /// must be explicitly allowed. The method returns detailed error messages in the result status for common
+    /// validation failures, such as unsupported algorithms or invalid token structure.
+    /// </remarks>
     public static async Task<ResultWithStatus<JWTTokenResult, string>> ValidateIdTokenWithKeysAsync(
         IEnumerable<SecurityKey> signingKeys,
         string issuer,
@@ -156,6 +176,9 @@ public static class JwksProvider
         string idToken,
         X509Certificate2? clientDecryptionCertificate,
         JWTProtectedHeaderResult protectedHeader,
+        ISet<string> allowedSigningAlgs,
+        ISet<string> allowedKeyMgmtAlgs,
+        ISet<string> allowedEncAlgs,
         CancellationToken ct)
     {
         try
@@ -167,11 +190,11 @@ public static class JwksProvider
                 {
                     return new(null, $"id_token header parse error: {parseError}");
                 }
-                if (string.IsNullOrWhiteSpace(alg) || !OIDCCryptoCapabilities.Client.AllowedIdTokenKeyManagementAlgs.Contains(alg))
+                if (string.IsNullOrWhiteSpace(alg) || !allowedKeyMgmtAlgs.Contains(alg))
                 {
                     return new(null, $"unsupported_encryption_alg: {alg ?? "<null>"}");
                 }
-                if (string.IsNullOrWhiteSpace(enc) || !OIDCCryptoCapabilities.Client.AllowedIdTokenContentEncryptionAlgs.Contains(enc))
+                if (string.IsNullOrWhiteSpace(enc) || !allowedEncAlgs.Contains(enc))
                 {
                     return new(null, $"unsupported_encryption_enc: {enc ?? "<null>"}");
                 }
@@ -179,7 +202,7 @@ public static class JwksProvider
             else
             {
                 // JWS (non-encrypted) → enforce allowed signing algs
-                if (string.IsNullOrWhiteSpace(alg) || !OIDCCryptoCapabilities.Client.AllowedIdTokenSigningAlgorithms.Contains(alg))
+                if (string.IsNullOrWhiteSpace(alg) || !allowedSigningAlgs.Contains(alg))
                 {
                     return new(null, $"unsupported_signing_alg: {alg ?? "<null>"}");
                 }
@@ -198,7 +221,7 @@ public static class JwksProvider
                 ClockSkew = TimeSpan.FromMinutes(1),
                 // Hard anti-downgrade enforcement: do not accept algorithms outside our allow-list,
                 // even if the external IdP advertises them in metadata.
-                ValidAlgorithms = OIDCCryptoCapabilities.Client.AllowedIdTokenSigningAlgorithms
+                ValidAlgorithms = allowedSigningAlgs
             };
 
             if (clientDecryptionCertificate != null)
@@ -263,6 +286,8 @@ public static class JwksProvider
         X509Certificate2 idp_cert,
         CancellationToken ct)
     {
+        ct.ThrowIfCancellationRequested();
+
         if (string.IsNullOrWhiteSpace(requestObjectJwt))
         {
             return new(null, "empty_request_object");
@@ -334,6 +359,12 @@ public static class JwksProvider
             if (!result.IsValid || result.SecurityToken is not JsonWebToken decryptedJwt)
             {
                 return new(null, $"request_object decrypt error: {result.Exception?.Message ?? "unknown error"}");
+            }
+
+            // If this is a nested JWE containing a signed JWT, prefer the inner token
+            if (decryptedJwt.InnerToken is JsonWebToken inner)
+            {
+                return new(inner, null);
             }
 
             return new(decryptedJwt, null);
@@ -413,4 +444,83 @@ public static class JwksProvider
         return new(jwt, null);
     }
 
+    private static readonly JsonSerializerOptions _jsonOptions = new() { PropertyNameCaseInsensitive = true };
+
+    public static async Task<JwksCacheResult> FetchAndCacheRemoteJwksAsync(
+    string jwksUri,
+    IOIDCHttpClient http,
+    IEtagCacheService<OIDCJwksResponse> etagCache,
+    CancellationToken ct,
+    TimeSpan? ttl = null)
+    {
+        if (ttl == null) ttl = TimeSpan.FromSeconds(ConfigurationDefaults.JwksCacheDurationSeconds);
+
+        string key = $"jwks:{jwksUri}";
+
+        var etagContent = await etagCache.GetOrAddAsync(
+            key,
+            async (existing, ct) =>
+            {
+                var ifNoneMatch = existing?.Etag;
+
+                var resp = await http.GetJwksJsonAsync(jwksUri, ct, ifNoneMatch);
+
+                // 304 Not Modified → reuse previous content and ETag
+                if (resp.NotModified && existing != null)
+                {
+                    return (existing.Content, existing.Parsed, existing.Etag);
+                }
+
+                if (!resp.IsSuccessStatusCode || string.IsNullOrEmpty(resp.Body))
+                {
+                    // On error: keep previous (cache layer will serve stale on error if configured)
+                    return (existing?.Content ?? "", existing?.Parsed, existing?.Etag);
+                }
+
+                // Success: parse, and use server ETag if present; otherwise cache will hash.
+                OIDCJwksResponse? parsed = null;
+                try
+                {
+                    parsed = JsonSerializer.Deserialize<OIDCJwksResponse>(resp.Body, _jsonOptions);
+                }
+                catch
+                {
+                    // If parsing fails we still cache the raw JSON with null parsed,
+                    // and let callers decide what to do.
+                }
+
+                return (resp.Body, parsed, resp.ETag);
+            },
+            serveStaleOnError: true,
+            ttl: ttl,
+            ct: ct
+        );
+
+        var keys = BuildSecurityKeyMap(etagContent.Content ?? "");
+
+        return new(
+            JwksUri: jwksUri,
+            ETag: etagContent.Etag,
+            ServerETag: etagContent.Etag,
+            Keys: keys,
+            RawJson: etagContent.Content ?? "",
+            Parsed: etagContent.Parsed
+        );
+    }
+
+    private static Dictionary<string, SecurityKey> BuildSecurityKeyMap(string json)
+    {
+        if (string.IsNullOrWhiteSpace(json))
+            return [];
+
+        var set = new JsonWebKeySet(json);
+        var dict = new Dictionary<string, SecurityKey>();
+
+        foreach (var jwk in set.Keys)
+        {
+            var kid = jwk.Kid ?? jwk.X5tS256 ?? jwk.X5t ?? Guid.NewGuid().ToString("N");
+            dict.TryAdd(kid, jwk);
+        }
+        return dict;
+    }
 }

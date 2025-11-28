@@ -10,7 +10,8 @@ namespace MicroM.Web.Authentication.SSO;
 public class IdPClientSigningKeysCacheService(
     IMicroMAppConfiguration appConfig,
     IApplicationCertificateCacheService certCache,
-    IJWKSFetchCacheService jwksCache,
+    IEtagCacheService<OIDCJwksResponse> jwksCache,
+    IOIDCHttpClient oidcHttpClient,
     ILogger<IdPClientSigningKeysCacheService> log
     ) : IIdPClientSigningKeysCacheService
 {
@@ -75,7 +76,7 @@ public class IdPClientSigningKeysCacheService(
             return [];
         }
 
-        var jwksResult = await jwksCache.GetAsync(clientCfg.URLClientJWKS, ct).ConfigureAwait(false);
+        var jwksResult = await JwksProvider.FetchAndCacheRemoteJwksAsync(clientCfg.URLClientJWKS, oidcHttpClient, jwksCache, ct);
         if (jwksResult.Keys.Count == 0)
         {
             log.LogWarning("IDP_SIGNING_JWKS_EMPTY idp_app={idp} client_id={client} jwks={jwks}", idpApp.ApplicationID, clientId, clientCfg.URLClientJWKS);

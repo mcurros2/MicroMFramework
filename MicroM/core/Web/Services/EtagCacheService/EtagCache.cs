@@ -3,43 +3,13 @@ using System.Collections.Concurrent;
 
 namespace MicroM.Web.Services;
 
-public class EtagCache
+public class EtagCache<T> where T : class?
 {
-    private readonly ConcurrentDictionary<string, EtagContent> _cache = new();
+    private readonly ConcurrentDictionary<string, EtagContent<T>> _cache = new();
     // Tracks exactly one in-flight computation per key
-    private readonly ConcurrentDictionary<string, Task<EtagContent>> _inflight = new();
+    private readonly ConcurrentDictionary<string, Task<EtagContent<T>>> _inflight = new();
 
-    public EtagContent GetOrAdd(string key, Func<string> valueFactory)
-    {
-        return GetOrAdd(key, valueFactory, ttl: null);
-    }
-
-    public EtagContent GetOrAdd(string key, Func<string> valueFactory, TimeSpan? ttl)
-    {
-        if (_cache.TryGetValue(key, out var existing))
-        {
-            if (ttl == null || !existing.IsExpired(DateTimeOffset.UtcNow))
-            {
-                return existing;
-            }
-        }
-
-        var content = valueFactory();
-        var now = DateTimeOffset.UtcNow;
-        var etag = content.ETag();
-        var refreshed = new EtagContent
-        {
-            Content = content,
-            Etag = etag,
-            CachedUtc = now,
-            ExpiresUtc = ttl.HasValue ? now.Add(ttl.Value) : null
-        };
-
-        _cache.AddOrUpdate(key, refreshed, (k, old) => refreshed);
-        return _cache[key];
-    }
-
-    public EtagContent? Get(string key)
+    public EtagContent<T>? Get(string key)
     {
         if (_cache.TryGetValue(key, out var value))
         {
@@ -61,23 +31,81 @@ public class EtagCache
         _inflight.TryRemove(key, out _);
     }
 
-    public async ValueTask<EtagContent> GetOrAddAsync(
+
+    public EtagContent<T> GetOrAdd(string key, Func<EtagContent<T>?, (string json, T? parsed, string? etag)> valueFactory)
+    {
+        return GetOrAdd(key, valueFactory, ttl: null);
+    }
+
+    public EtagContent<T> GetOrAdd(string key, Func<EtagContent<T>?, (string json, T? parsed, string? etag)> valueFactory, TimeSpan? ttl)
+    {
+        var now = DateTimeOffset.UtcNow;
+        if (_cache.TryGetValue(key, out var existing))
+        {
+            if (ttl == null || !existing.IsExpired(now))
+            {
+                return existing;
+            }
+        }
+
+        var (json, parsed, etagOverride) = valueFactory(existing);
+
+        // we do not cache empty json
+        if (string.IsNullOrEmpty(json))
+        {
+            // re-use previous
+            if (existing != null && (ttl == null || !existing.IsExpired(now)))
+            {
+                return existing;
+            }
+
+            // Return empty etag
+            var etagEmpty = !string.IsNullOrEmpty(etagOverride)
+                ? etagOverride
+                : "";
+
+            return new EtagContent<T>
+            {
+                Content = "",
+                Etag = etagEmpty,
+                CachedUtc = now,
+                Parsed = parsed,
+                ExpiresUtc = null
+            };
+        }
+
+        var etag = !string.IsNullOrEmpty(etagOverride) ? etagOverride : (json ?? "").ETag();
+
+        var refreshed = new EtagContent<T>
+        {
+            Content = json ?? "",
+            Etag = etag,
+            CachedUtc = now,
+            Parsed = parsed,
+            ExpiresUtc = ttl.HasValue ? now.Add(ttl.Value) : null
+        };
+
+        _cache.AddOrUpdate(key, refreshed, (k, old) => refreshed);
+        return _cache[key];
+    }
+
+    public async ValueTask<EtagContent<T>> GetOrAddAsync(
         string key,
-        Func<CancellationToken, ValueTask<string>> valueFactory,
+        Func<EtagContent<T>?, CancellationToken, ValueTask<(string json, T? parsed, string? etag)>> valueFactory,
         bool serveStaleOnError,
         CancellationToken ct,
         int maxRetries = 2,
         TimeSpan? ttl = null
     )
     {
-        if (_cache.TryGetValue(key, out var hit))
-        {
-            if (ttl == null || !hit.IsExpired(DateTimeOffset.UtcNow))
-                return hit;
+        var now = DateTimeOffset.UtcNow;
 
-            // Expired -> drop and refresh
-            _cache.TryRemove(key, out _);
+        if (_cache.TryGetValue(key, out var hit) &&
+            (ttl == null || !hit.IsExpired(now)))
+        {
+            return hit;
         }
+
 
         var task = _inflight.GetOrAdd(key, _ => CreateAndAddAsync(key, valueFactory, ct, maxRetries, ttl));
         try
@@ -97,9 +125,9 @@ public class EtagCache
         }
     }
 
-    private async Task<EtagContent> CreateAndAddAsync(
+    private async Task<EtagContent<T>> CreateAndAddAsync(
         string key,
-        Func<CancellationToken, ValueTask<string>> valueFactory,
+        Func<EtagContent<T>?, CancellationToken, ValueTask<(string json, T? parsed, string? etag)>> valueFactory,
         CancellationToken ct,
         int maxRetries = 2,
         TimeSpan? ttl = null)
@@ -108,24 +136,54 @@ public class EtagCache
 
         for (int attempt = 0; attempt <= maxRetries; attempt++)
         {
-            // Another producer may have filled it while we were backing off
-            if (_cache.TryGetValue(key, out var existing))
+            // Someone else might have filled it while we were backing off
+            var now = DateTimeOffset.UtcNow;
+            if (_cache.TryGetValue(key, out var existing) && (ttl == null || !existing.IsExpired(now)))
+            {
                 return existing;
+            }
 
             try
             {
-                var content = await valueFactory(ct).ConfigureAwait(false);
-                var now = DateTimeOffset.UtcNow;
-                var etag = content.ETag();
-                var result = new EtagContent
+
+                var (json, parsed, etagOverride) = await valueFactory(existing, ct).ConfigureAwait(false);
+
+                if (string.IsNullOrEmpty(json))
                 {
-                    Content = content,
+                    // Return previous if still valid
+                    if (existing != null && (ttl == null || !existing.IsExpired(now)))
+                    {
+                        return existing;
+                    }
+
+                    // Return empty etag without caching
+                    var etagEmpty = !string.IsNullOrEmpty(etagOverride)
+                        ? etagOverride
+                        : "";
+
+                    return new EtagContent<T>
+                    {
+                        Content = "",
+                        Etag = etagEmpty,
+                        CachedUtc = now,
+                        Parsed = parsed,
+                        ExpiresUtc = null
+                    };
+                }
+
+                var etag = !string.IsNullOrEmpty(etagOverride) ? etagOverride : (json ?? "").ETag();
+
+                var result = new EtagContent<T>
+                {
+                    Content = json ?? "",
                     Etag = etag,
                     CachedUtc = now,
+                    Parsed = parsed,
                     ExpiresUtc = ttl.HasValue ? now.Add(ttl.Value) : null
                 };
-                _cache.TryAdd(key, result);
-                return _cache[key];
+
+                _cache[key] = result;
+                return result;
             }
             catch (Exception ex) when (!ct.IsCancellationRequested)
             {
@@ -139,6 +197,13 @@ public class EtagCache
             }
         }
 
-        throw last!;
+        return new EtagContent<T>
+        {
+            Content = "",
+            Etag = "",
+            CachedUtc = DateTimeOffset.UtcNow,
+            Parsed = null,
+            ExpiresUtc = null
+        };
     }
 }

@@ -4,26 +4,27 @@ using Microsoft.Net.Http.Headers;
 
 namespace MicroM.Web.Services;
 
-public record EtagCacheServiceCacheCheckResult(
-    bool not_modified,
-    EtagContent etag_content,
-    ResponseHeaders result_headers
-    );
 
-public class EtagCacheService : IEtagCacheService
+public record EtagCacheServiceCacheCheckResult<T>(
+    bool not_modified,
+    EtagContent<T> etag_content,
+    ResponseHeaders result_headers
+) where T : class?;
+
+public class EtagCacheService<T> : IEtagCacheService<T> where T : class?
 {
-    private EtagCache _etagCache = new();
+    private EtagCache<T> _etagCache = new();
 
     public void ClearCache() => _etagCache.Clear();
 
-    public EtagContent? Get(string key) => _etagCache.Get(key);
+    public EtagContent<T>? Get(string key) => _etagCache.Get(key);
 
-    public EtagContent GetOrAdd(string key, Func<string> valueFactory, TimeSpan? ttl = null) => _etagCache.GetOrAdd(key, valueFactory, ttl);
+    public EtagContent<T> GetOrAdd(string key, Func<EtagContent<T>?, (string json, T? parsed, string? etag)> valueFactory, TimeSpan? ttl = null) => _etagCache.GetOrAdd(key, valueFactory, ttl);
 
 
-    public async ValueTask<EtagContent> GetOrAddAsync(
+    public async ValueTask<EtagContent<T>> GetOrAddAsync(
         string key,
-        Func<CancellationToken, ValueTask<string>> valueFactory,
+        Func<EtagContent<T>?, CancellationToken, ValueTask<(string json, T? parsed, string? etag)>> valueFactory,
         bool serveStaleOnError,
         CancellationToken ct,
         int maxRetries = 2,
@@ -32,7 +33,7 @@ public class EtagCacheService : IEtagCacheService
         return await _etagCache.GetOrAddAsync(key, valueFactory, serveStaleOnError, ct, maxRetries, ttl);
     }
 
-    private static ResponseHeaders GetResponseHeaders(EtagContent content, IHeaderDictionary response_headers, double cache_duration_seconds)
+    private static ResponseHeaders GetResponseHeaders(EtagContent<T> content, IHeaderDictionary response_headers, double cache_duration_seconds)
     {
         var etag = new EntityTagHeaderValue($"\"{content.Etag}\"");
         ResponseHeaders result_headers = new(response_headers)
@@ -49,7 +50,7 @@ public class EtagCacheService : IEtagCacheService
         return result_headers;
     }
 
-    private static bool IsEtagInCache(EtagContent content, RequestHeaders request_headers)
+    private static bool IsEtagInCache(EtagContent<T> content, RequestHeaders request_headers)
     {
         var etag = new EntityTagHeaderValue($"\"{content.Etag}\"");
 
@@ -62,12 +63,12 @@ public class EtagCacheService : IEtagCacheService
     }
 
 
-    public EtagCacheServiceCacheCheckResult GetOrAddResponseWithCacheCheck(
+    public EtagCacheServiceCacheCheckResult<T> GetOrAddResponseWithCacheCheck(
         string key,
         RequestHeaders request_headers,
         IHeaderDictionary response_headers,
         double cache_duration_seconds,
-        Func<string> valueFactory)
+        Func<EtagContent<T>?, (string json, T? parsed, string? etag)> valueFactory)
     {
         var ttl = TimeSpan.FromSeconds(cache_duration_seconds);
         var content = GetOrAdd(key, valueFactory, ttl);
@@ -75,7 +76,7 @@ public class EtagCacheService : IEtagCacheService
         var in_cache = IsEtagInCache(content, request_headers);
         var result_headers = GetResponseHeaders(content, response_headers, cache_duration_seconds);
 
-        return new EtagCacheServiceCacheCheckResult(in_cache, content, result_headers);
+        return new EtagCacheServiceCacheCheckResult<T>(in_cache, content, result_headers);
     }
 
     public string? GetRequestEtag(RequestHeaders request_headers)

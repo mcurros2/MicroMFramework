@@ -8,6 +8,7 @@ public static class WebExtensions
 {
     public static string ETag(this string data)
     {
+        if (string.IsNullOrWhiteSpace(data)) return string.Empty;
         var cachedBytes = Encoding.UTF8.GetBytes(data);
         var hash = SHA256.HashData(cachedBytes);
         return Convert.ToBase64String(hash);

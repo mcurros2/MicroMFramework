@@ -9,9 +9,9 @@ namespace MicroM.Web.Authentication.SSO;
 
 public interface IIdentityProviderService
 {
-    EtagCacheServiceCacheCheckResult HandleWellKnown(ApplicationOption app_config, string request_base, RequestHeaders request_headers, IHeaderDictionary response_headers);
+    EtagCacheServiceCacheCheckResult<OIDCWellKnownResponse> HandleWellKnown(ApplicationOption app_config, string request_base, RequestHeaders request_headers, IHeaderDictionary response_headers);
 
-    EtagCacheServiceCacheCheckResult? HandleJwks(ApplicationOption app_config, RequestHeaders request_headers, IHeaderDictionary response_headers);
+    EtagCacheServiceCacheCheckResult<OIDCJwksResponse>? HandleJwks(ApplicationOption app_config, RequestHeaders request_headers, IHeaderDictionary response_headers);
 
     Task<ResultWithStatus<OIDCTokenResponse, ErrorResult>> HandleToken(ApplicationOption app, IFormCollection form, ClaimsPrincipal client, CancellationToken ct);
 

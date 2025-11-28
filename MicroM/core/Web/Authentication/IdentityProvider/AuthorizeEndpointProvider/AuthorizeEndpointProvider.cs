@@ -13,19 +13,21 @@ public static class AuthorizeEndpointProvider
     {
         OIDCAuthorizeRequest auth_request = new
         (
-            response_type: query_string["response_type"],
-            client_id: query_string["client_id"],
-            redirect_uri: query_string["redirect_uri"],
-            scope: query_string["scope"],
-            state: query_string["state"],
-            nonce: query_string["nonce"],
-            display: query_string["display"],
-            prompt: query_string["prompt"],
-            max_age: query_string["max_age"],
-            ui_locales: query_string["ui_locales"],
-            id_token_hint: query_string["id_token_hint"],
-            login_hint: query_string["login_hint"],
-            acr_values: query_string["acr_values"]
+            response_type: query_string[WellknownIdentityConstants.ResponseType].ToString(),
+            client_id: query_string[WellknownIdentityConstants.ClientId].ToString(),
+            redirect_uri: query_string[WellknownIdentityConstants.RedirectUri].ToString(),
+            scope: query_string[WellknownIdentityConstants.Scope].ToString(),
+            state: query_string[WellknownIdentityConstants.State].ToString(),
+            nonce: query_string[WellknownIdentityConstants.Nonce].ToString(),
+            display: query_string[WellknownIdentityConstants.Display].ToString(),
+            prompt: query_string[WellknownIdentityConstants.Prompt].ToString(),
+            max_age: query_string[WellknownIdentityConstants.MaxAge].ToString(),
+            ui_locales: query_string[WellknownIdentityConstants.UiLocales].ToString(),
+            id_token_hint: query_string[WellknownIdentityConstants.IdTokenHint].ToString(),
+            login_hint: query_string[WellknownIdentityConstants.LoginHint].ToString(),
+            acr_values: query_string[WellknownIdentityConstants.AcrValues].ToString(),
+            request: query_string[WellknownIdentityConstants.Request].ToString(),
+            request_uri: query_string[WellknownIdentityConstants.RequestUri].ToString()
         );
 
         return auth_request;
@@ -43,10 +45,35 @@ public static class AuthorizeEndpointProvider
 
         var authorize_request = GetAuthorizeRequest(query_string);
 
-        // PAR
-        if (!string.IsNullOrEmpty(authorize_request.request_uri))
+        bool requirePar = OIDCCryptoCapabilities.Idp.RequirePushedAuthorizationRequests;
+        bool hasRequestUri = !string.IsNullOrEmpty(authorize_request.request_uri);
+        bool hasRequest = !string.IsNullOrEmpty(authorize_request.request);
+
+
+        // We do not support Request Object by value on /oauth2/authorize.
+        // Clients must either:
+        //  - send plain query parameters, or
+        //  - use PAR: POST to /oauth2/par (with or without 'request') and then call
+        //    /oauth2/authorize with the returned 'request_uri'.
+        if (hasRequest)
         {
-            var (pushed, rawJwt, stored_header) = par_service.ConsumeRequest(authorize_request.request_uri);
+            return new(null, new("invalid_request", "request parameter is not supported at authorize endpoint; use PAR (request_uri) instead."));
+        }
+
+        if (requirePar && !hasRequestUri)
+        {
+            return new(null, new("invalid_request", "Pushed authorization request is required: call /oauth2/par first and pass 'request_uri' to /oauth2/authorize."));
+        }
+
+        if (!string.IsNullOrEmpty(authorize_request.request))
+        {
+            return new(null, new("invalid_request", "request parameter not supported; use PAR (request_uri)"));
+        }
+
+        // PAR
+        if (hasRequestUri)
+        {
+            var (pushed, rawJwt, stored_header) = par_service.ConsumeRequest(authorize_request.request_uri!);
 
             if (pushed == null)
             {
@@ -62,6 +89,12 @@ public static class AuthorizeEndpointProvider
             if (!string.IsNullOrEmpty(authorize_request.client_id) && authorize_request.client_id != pushed.client_id)
             {
                 return new(null, new("invalid_request", "client_id in authorize request does not match PAR client_id"));
+            }
+
+            // valid response type
+            if (string.IsNullOrEmpty(pushed.response_type) || pushed.response_type != WellknownIdentityConstants.Code)
+            {
+                return new(null, new("invalid_request", "Invalid response type in PAR; only 'code' is supported."));
             }
 
             // If we have a Request Object, decrypt (if JWE) and validate its signature
@@ -107,7 +140,6 @@ public static class AuthorizeEndpointProvider
                         return new(null, new("invalid_request_object", msg));
                     }
 
-                    // EncodedToken here is the decrypted JWS compact string.
                     signedRequestJwt = decryptResult.Result.EncodedToken;
                 }
                 else
@@ -137,13 +169,13 @@ public static class AuthorizeEndpointProvider
                 }
 
                 // 5) Build the effective authorize request from Request Object + PAR data + original QS
-                string? roResponseType = requestObjectJwt.Claims.FirstOrDefault(c => c.Type == "response_type")?.Value;
-                string? roRedirectUri = requestObjectJwt.Claims.FirstOrDefault(c => c.Type == "redirect_uri")?.Value;
-                string? roScope = requestObjectJwt.Claims.FirstOrDefault(c => c.Type == "scope")?.Value;
-                string? roState = requestObjectJwt.Claims.FirstOrDefault(c => c.Type == "state")?.Value;
-                string? roNonce = requestObjectJwt.Claims.FirstOrDefault(c => c.Type == "nonce")?.Value;
-                string? roCodeChallenge = requestObjectJwt.Claims.FirstOrDefault(c => c.Type == "code_challenge")?.Value;
-                string? roCodeChallengeMethod = requestObjectJwt.Claims.FirstOrDefault(c => c.Type == "code_challenge_method")?.Value;
+                string? roResponseType = requestObjectJwt.Claims.FirstOrDefault(c => c.Type == WellknownIdentityConstants.ResponseType)?.Value;
+                string? roRedirectUri = requestObjectJwt.Claims.FirstOrDefault(c => c.Type == WellknownIdentityConstants.RedirectUri)?.Value;
+                string? roScope = requestObjectJwt.Claims.FirstOrDefault(c => c.Type == WellknownIdentityConstants.Scope)?.Value;
+                string? roState = requestObjectJwt.Claims.FirstOrDefault(c => c.Type == WellknownIdentityConstants.State)?.Value;
+                string? roNonce = requestObjectJwt.Claims.FirstOrDefault(c => c.Type == WellknownIdentityConstants.Nonce)?.Value;
+                string? roCodeChallenge = requestObjectJwt.Claims.FirstOrDefault(c => c.Type == WellknownIdentityConstants.CodeChallenge)?.Value;
+                string? roCodeChallengeMethod = requestObjectJwt.Claims.FirstOrDefault(c => c.Type == WellknownIdentityConstants.CodeChallengeMethod)?.Value;
 
                 // enforce that if state/nonce appear both in RO and query, they match
                 if (!string.IsNullOrEmpty(roState) &&
@@ -201,17 +233,30 @@ public static class AuthorizeEndpointProvider
                     client_id: pushed.client_id,
                     response_type: pushed.response_type,
                     redirect_uri: pushed.redirect_uri,
-                    state: string.IsNullOrEmpty(authorize_request.state) ? pushed.state : authorize_request.state,
-                    nonce: string.IsNullOrEmpty(authorize_request.nonce) ? pushed.nonce : authorize_request.nonce,
+                    state: pushed.state,
+                    nonce: pushed.nonce,
                     scope: pushed.scope,
                     code_challenge: pushed.code_challenge,
                     code_challenge_method: pushed.code_challenge_method
                 );
             }
+
+            // Enforce that query string state/nonce cannot contradict values sent at PAR time
+            if (!string.IsNullOrEmpty(pushed.state) && !string.IsNullOrEmpty(authorize_request.state) && pushed.state != authorize_request.state)
+            {
+                return new(null, new("invalid_request", "state in authorize request does not match PAR state"));
+            }
+
+            if (!string.IsNullOrEmpty(pushed.nonce) && !string.IsNullOrEmpty(authorize_request.nonce) && pushed.nonce != authorize_request.nonce)
+            {
+                return new(null, new("invalid_request", "nonce in authorize request does not match PAR nonce"));
+            }
+
         }
 
         // Basic validation
-        if (string.IsNullOrEmpty(authorize_request.response_type) || !string.Equals(authorize_request.response_type, "code", StringComparison.OrdinalIgnoreCase))
+        if (string.IsNullOrEmpty(authorize_request.response_type) ||
+            !string.Equals(authorize_request.response_type, WellknownIdentityConstants.Code, StringComparison.OrdinalIgnoreCase))
         {
             return new(null, new("unsupported_response_type", "response_type must be 'code'"));
         }

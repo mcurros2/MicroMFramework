@@ -30,6 +30,9 @@ public class PushedAuthorizationService : IPushedAuthorizationService
 
     public ResultWithStatus<OIDCPARResponse, ErrorResult> CreatePushedRequest(ApplicationOption app, IFormCollection form, string authenticated_client_id)
     {
+        // Prune expired entries first
+        ClearExpiredEntries();
+
         var ((request, header), error) = PushedAuthorizationProvider.ValidateRequest(app, form);
 
         if (request == null || error != null)
@@ -83,6 +86,7 @@ public class PushedAuthorizationService : IPushedAuthorizationService
         _store.TryRemove(requestUri, out _);
     }
 
+    // Implements exact redirect_uri comparison per OIDC / OAuth 2.0 security recommendations.
     public bool RedirectUriMatches(string registered, string incoming)
     {
         if (!Uri.TryCreate(registered, UriKind.Absolute, out var r)) return false;
@@ -104,5 +108,24 @@ public class PushedAuthorizationService : IPushedAuthorizationService
         if (rQuery != iQuery) return false;
 
         return true;
+    }
+
+    private void ClearExpiredEntries()
+    {
+        if (_store.IsEmpty) return;
+
+        var now = DateTime.UtcNow;
+        var keysToRemove = new List<string>();
+        foreach (var kvp in _store)
+        {
+            if (kvp.Value.ExpiresAt < now)
+            {
+                keysToRemove.Add(kvp.Key);
+            }
+        }
+        foreach (var key in keysToRemove)
+        {
+            _store.TryRemove(key, out _);
+        }
     }
 }

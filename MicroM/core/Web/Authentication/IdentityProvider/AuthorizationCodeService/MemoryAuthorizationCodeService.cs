@@ -31,13 +31,36 @@ public class MemoryAuthorizationCodeService : IAuthorizationCodeService
         if (!string.IsNullOrEmpty(record.CodeChallenge))
         {
             if (string.IsNullOrEmpty(codeVerifier)) return null;
-            if (string.Equals(record.CodeChallengeMethod, "S256", StringComparison.OrdinalIgnoreCase))
+
+            // Enforce PKCE verification based on the original code_challenge_method
+            if (string.Equals(record.CodeChallengeMethod, nameof(OIDCCodeChallengeMethod.S256), StringComparison.OrdinalIgnoreCase))
             {
                 var hash = SHA256.HashData(Encoding.UTF8.GetBytes(codeVerifier));
                 var ver = Base64UrlEncoder.Encode(hash);
-                if (!string.Equals(ver, record.CodeChallenge, StringComparison.Ordinal)) return null;
+
+                // Use constant time comparison to avoid timing attacks
+                if (!CryptographicOperations.FixedTimeEquals(
+                        Encoding.UTF8.GetBytes(ver),
+                        Encoding.UTF8.GetBytes(record.CodeChallenge)))
+                {
+                    return null;
+                }
             }
-            else return null;
+            else if (string.Equals(record.CodeChallengeMethod, nameof(OIDCCodeChallengeMethod.plain), StringComparison.OrdinalIgnoreCase))
+            {
+                // plain: verifier must exactly match the stored code_challenge
+                if (!CryptographicOperations.FixedTimeEquals(
+                        Encoding.UTF8.GetBytes(codeVerifier),
+                        Encoding.UTF8.GetBytes(record.CodeChallenge)))
+                {
+                    return null;
+                }
+            }
+            else
+            {
+                // Unknown PKCE method -> reject
+                return null;
+            }
         }
 
         return record;

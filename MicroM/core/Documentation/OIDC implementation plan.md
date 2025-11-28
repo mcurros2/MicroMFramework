@@ -103,17 +103,16 @@ Pending tasks (adjusted)
 - Performance counters only in diagnostics (sign/encrypt/decrypt timings, payload sizes, JWKS cache latency benefit, forced refresh frequency).
 - Request object policy enhancements (nonce enforcement when openid scope present, restricted claims, size already enforced).
 - Documentation: crypto reductions, signing alg enforcement, kid-miss logic, explicit non-support for UserInfo / introspection / revocation.
-- Test suite: negative alg cases (ECDH attempt, RSA1_5, HS*, none; kid-miss forced refresh; disallowed request object scenarios).
 - Structured selection logging for id_token vs request object (negotiation trace records).
 
 Release readiness
 - Core flows, JWKS caching, logout, encryption policies: COMPLETE.
-- Blocking for next milestone: request object JWE decrypt, enhanced diagnostics, performance telemetry, documentation, tests.
+- Blocking for next milestone: request object JWE decrypt, enhanced diagnostics, performance telemetry, documentation, tests (tests deferred until diagnostics complete).
 
 Status TL;DR
 - Foundations COMPLETE, JWKS caching COMPLETE.
 - Non-mandatory endpoints (UserInfo, introspection, revocation) explicitly OUT OF SCOPE.
-- Remaining focus: request object encryption completion, diagnostics depth, performance metrics, documentation & tests.
+- Remaining focus: request object encryption completion, diagnostics depth, performance metrics, documentation & tests (tests deferred).
 
 H — Signing & encryption alignment
 - IdP signing based on cert: COMPLETE
@@ -126,7 +125,7 @@ Next focus (adjusted)
 2. Encryption negotiation diagnostics (candidate set + selection + exclusion reasons).
 3. Performance telemetry only in diagnostics (crypto timings, payload size deltas, JWKS cache metrics).
 4. Documentation update (policy reductions, out-of-scope endpoints, alg enforcement, kid refresh flow).
-5. Negative/interop test suite (alg rejection, request object invalid cases, forced refresh scenarios).
+5. Negative/interop test suite (alg rejection, request object invalid cases, forced refresh scenarios) — DEFERRED until diagnostics complete.
 6. Decision gate for future ECDH enablement (record rationale & criteria).
 
 Acceptance criteria (updated)
@@ -134,38 +133,57 @@ Acceptance criteria (updated)
 - Request object supports RSA-OAEP encrypted JWE (decrypt & validate) and enforced signing algorithms.
 - Diagnostics produce structured negotiation records: {context, candidates, selected, exclusions, reasonCodes}.
 - Performance counters recorded and queryable (encryption timings, payload sizes, jwks cache hit ratios).
-- Tests assert rejection of ECDH, CBC-HS*, RSA1_5, HS*, none; verify kid-miss triggers single forced refresh.
+- Tests assert rejection of ECDH, CBC-HS*, RSA1_5, HS*, none; verify kid-miss triggers single forced refresh — TESTS DEFERRED UNTIL DIAGNOSTICS COMPLETE.
 - Documentation explicitly lists out-of-scope endpoints and rationale.
+
+---
 
 ## Urgent Bug Fixes (TOP priority)
 
-The items below are immediate, blocking fixes discovered during the recent IdP / OIDC refactor. All entries below are PENDING until implemented and validated.
+The items below are immediate, blocking fixes discovered during the recent IdP / OIDC refactor. Statuses reflect recent refactor work. Tests remain deferred until diagnostics and documentation are completed.
 
-1. COMPLETED: Make the IdP `/oauth2/authorize` endpoint accessible to browser user-agents (remove requirement for IdP client backchannel auth; change controller attribute to `AllowAnonymous`).
-2. COMPLETED: Restrict client encryption algorithms to RSA-OAEP only and content encryption to GCM-only (`A256GCM`, `A192GCM`, `A128GCM`). Remove RSA1_5 and CBC-HS* usages from IdP encrypting credentials builders and any JWE generation paths.  
-   - Verified in: `core/Web/Authentication/IdentityProvider/IdPClientEncryptingCredentialsCacheService/IdPClientEncryptingCredentialsCacheService.cs` — `BuildEncryptingCredentialsFromSecurityKey` now uses `SecurityAlgorithms.RsaOAEP` and only GCM content algorithms.
-3. PENDING: Enforce token endpoint auth methods advertised by the IdP metadata in the backchannel authentication handler (reject `client_secret_basic` when metadata requires `private_key_jwt`).
-4. PENDING: Tighten Request Object validation: require `iss == client_id` when present, enforce appropriate `aud` (authorization endpoint or issuer), and strictly validate `exp` / `nbf`.
-5. PENDING: Fix IdP client encrypting credentials cache to use RSA-OAEP and GCM-only content algs; invalidate legacy RSA1_5/CBC-HMAC code paths.
-6. PENDING: Ensure JWKS kid-miss logic triggers a single forced refresh and verify cache invalidation semantics across nodes. Add unit test for kid-miss forced refresh behavior.
-7. PENDING: Fix audience (`aud`) construction used when validating `client_assertion` / token endpoint to include exact host:port and path base to avoid mismatch on non-default ports.
-8. PENDING: Replace any internal OIDC id_token encryption using CBC-HMAC with GCM variants where OIDC policy requires it; audit internal token encryption paths for policy alignment.
-9. PENDING: Ensure network and crypto calls accept and propagate `CancellationToken` (avoid using `CancellationToken.None` where caller CT should apply).
-10. PENDING: Document and/or implement distributed replay cache for backchannel logout in multi-node deployments (current in-memory replay cache is node-local).
-11. PENDING: Implement negative interoperability tests (reject ECDH request object attempts, RSA1_5, CBC-HS*, HS*, `none` signing).
-12. PENDING: Implement tests for PAR expiry behavior, request_object oversized rejection, and request_uri matching rules.
-13. PENDING: Add tests for `private_key_jwt` validation negative cases (wrong `iss`/`sub`/`aud`, expired assertion, unknown keys) and positive cases with JWKS rotation.
-14. PENDING: Add diagnostics telemetry and structured negotiation records: `{context, candidates, selected, exclusions, reasonCodes}` for id_token and request_object negotiation.
-15. PENDING: Add performance counters for crypto timings, payload sizes, JWKS cache latency/benefit and forced refresh frequency (diagnostics-only, queryable).
-16. PENDING: Update documentation to explicitly call out out-of-scope endpoints (UserInfo, introspection, revocation) and the updated cryptographic policy.
-17. PENDING: Audit logging to ensure no raw tokens/assertions/logout_token bodies are logged; confirm scrub convention coverage.
-18. PENDING: CI workflow: add unit/integration tests covering PAR → authorize → token → callback, including request object JWE decrypt path and `private_key_jwt` flows.
+1. OPEN: Enforce PAR at `/oauth2/authorize` when `require_pushed_authorization_requests = true`. Reject non‑PAR authorize calls that do not include `request_uri`.  
+   - Implement in: `AuthorizeEndpointProvider.ValidateAndOverrideWithPARAuthorizationRequest` (early `invalid_request` if `request_uri` missing).  
+   - Rationale: Align runtime with metadata (`request_uri_parameter_supported = false`).
+
+2. COMPLETED: PKCE “plain” verification bug. When `OIDCAllowPkcePlain` is enabled, `code_challenge_method = plain` validates `code_verifier == code_challenge`.  
+   - Fixed in: `MemoryAuthorizationCodeService.ValidateAndConsumeAuthorizationCode` (added `plain` branch alongside `S256`).
+
+3. COMPLETED: `private_key_jwt` audience mismatch on non‑default ports. Token endpoint audience now includes scheme, host and port.  
+   - Fixed in: `IdPBackchannelAuthenticationHandler.AuthenticatePrivateKeyJwtAsync` using `Request.Scheme`, `Request.Host.Value`, `Request.PathBase`, `Request.Path`.
+
+4. OPEN: Request Object semantic validations and post‑decrypt size cap.  
+   - Implement in: `AuthorizeEndpointProvider.ValidateAndOverrideWithPARAuthorizationRequest` (after decryption/signature validation) to enforce:  
+     - `iss == client_id`, `sub == client_id` (if present),  
+     - `aud` matches authorization endpoint (or issuer per policy),  
+     - valid `exp`/`nbf` window,  
+     - cap payload size after decryption to mitigate inflation attacks.  
+   - Helpers may live in `JwksProvider` for reuse.
+
+5. COMPLETED: Client assertion replay protection for `private_key_jwt`.  
+   - Implemented short‑lived replay cache via `IOIDCReplayCacheService` keyed by `jti`; enforced single‑use in `IdPBackchannelAuthenticationHandler`.
+
+6. COMPLETED: EndSession fan‑out delivers `logout_token` even when no server‑side `sid` is found.  
+   - Implemented in: `IdentityProviderService.HandleEndSession` — always includes `sub`; conditionally includes `sid` if found; purges by `sub`.
+
+7. OPEN: Authorization response mix‑up mitigation. Validate `authorization_response_iss` in client callback when present.  
+   - Implement in: `OIDCClientService.HandleAuthorizationCallback` — verify `iss` param equals discovered IdP `issuer`.
+
+8. OPEN: Defensive limits for incoming JWTs and forms.  
+   - Add max payload size checks for `client_assertion` and `request` (request object) at handler level (`IdPBackchannelAuthenticationHandler`, `PushedAuthorizationProvider`).  
+   - Cap post‑decrypt size for request objects to reduce DoS risk.
+
+9. COMPLETED: Make the IdP `/oauth2/authorize` endpoint accessible to browser user-agents (`AllowAnonymous`).
+
+10. COMPLETED: Restrict client encryption algorithms to RSA-OAEP only and content encryption to GCM-only (`A256GCM`, `A192GCM`, `A128GCM`).
+
+11. COMPLETED: Enforce token endpoint auth methods advertised by IdP metadata in backchannel authentication handler (reject `client_secret_basic` when metadata requires `private_key_jwt`).
 
 ---
 
 ## Implementation reference
 
-Below is a concise reference to the primary files implementing the OIDC functionality described above. Links are repository-relative to help navigate the codebase.
+Primary files implementing the OIDC functionality:
 
 - `core/Web/Authentication/IdentityProvider/ApplicationCertificateCacheService/ApplicationCertificateCacheService.cs` — certificate caching for IdP signing/encryption keys.
 - `core/Web/Authentication/IdentityProvider/AuthorizationCodeService/MemoryAuthorizationCodeService.cs` — authorization code lifecycle (memory implementation).

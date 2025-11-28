@@ -19,7 +19,7 @@ public class IdentityProviderService(
     IOauthTokenService oauth_token_service,
     IPushedAuthorizationService par_service,
     IAuthorizationCodeService code_service,
-    IEtagCacheService etag_cache,
+    IEtagCacheService<OIDCWellKnownResponse> etag_cache,
     IApplicationCertificateCacheService certificate_cache,
     IJwksService jwks_service,
     IOIDCHttpClient oidcHttpClient,
@@ -33,26 +33,31 @@ public class IdentityProviderService(
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
     };
 
-    public EtagCacheServiceCacheCheckResult HandleWellKnown(ApplicationOption app, string request_base, RequestHeaders request_headers, IHeaderDictionary response_headers)
+    private static string BuildCacheKey(ApplicationOption app)
     {
-        var key = $"{app.ApplicationID}_WK";
+        return $"idp:{app.ApplicationID}_WK";
+    }
+
+    public EtagCacheServiceCacheCheckResult<OIDCWellKnownResponse> HandleWellKnown(ApplicationOption app, string request_base, RequestHeaders request_headers, IHeaderDictionary response_headers)
+    {
+        var key = BuildCacheKey(app);
 
         var result = etag_cache.GetOrAddResponseWithCacheCheck(
             key,
             request_headers,
             response_headers,
             cache_duration_seconds: ConfigurationDefaults.EtagCacheDurationSeconds,
-            () =>
+            (existing) =>
             {
                 X509Certificate2? cert = certificate_cache.GetCertificate(app);
                 var wellKnown = WellKnownProvider.CreateWellKnown(app, request_base, cert);
-                return JsonSerializer.Serialize(wellKnown, _jsonSerializationOptions);
+                return (json: JsonSerializer.Serialize(wellKnown, _jsonSerializationOptions), parsed: wellKnown, etag: null);
             });
 
         return result;
     }
 
-    public EtagCacheServiceCacheCheckResult? HandleJwks(ApplicationOption app, RequestHeaders request_headers, IHeaderDictionary response_headers)
+    public EtagCacheServiceCacheCheckResult<OIDCJwksResponse>? HandleJwks(ApplicationOption app, RequestHeaders request_headers, IHeaderDictionary response_headers)
     {
         return jwks_service.HandleJwks(app, request_headers, response_headers);
     }
@@ -201,7 +206,6 @@ public class IdentityProviderService(
                 else
                 {
                     log.LogWarning("EndSession: No active sessions found for sub {sub} in client {client}", sub, clientAppId);
-                    continue;
                 }
             }
             catch (Exception ex)

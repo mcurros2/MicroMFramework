@@ -13,5 +13,5 @@ public readonly record struct ReplayCacheResult(ReplayCacheStatus Status, string
 
 public interface IOIDCReplayCacheService
 {
-    ReplayCacheResult TryStore(string jti, DateTimeOffset iatUtc);
+    ReplayCacheResult TryStore(string purpose, string jti, DateTimeOffset iatUtc, TimeSpan ttl, TimeSpan clockSkew);
 }

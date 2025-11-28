@@ -25,18 +25,21 @@ public class IdPBackchannelAuthenticationHandler : AuthenticationHandler<Authent
     private readonly IMicroMAppConfiguration _appConfig;
     private readonly ILogger<IdPBackchannelAuthenticationHandler> _log;
     private readonly IIdPClientSigningKeysCacheService _clientSigningKeysCache;
+    private readonly IOIDCReplayCacheService _replayCache;
 
     public IdPBackchannelAuthenticationHandler(
         IOptionsMonitor<AuthenticationSchemeOptions> options,
         ILoggerFactory logger,
         UrlEncoder encoder,
         IMicroMAppConfiguration appConfig,
-        IIdPClientSigningKeysCacheService clientSigningKeysCache
+        IIdPClientSigningKeysCacheService clientSigningKeysCache,
+        IOIDCReplayCacheService replayCache
         ) : base(options, logger, encoder)
     {
         _appConfig = appConfig;
         _log = logger.CreateLogger<IdPBackchannelAuthenticationHandler>();
         _clientSigningKeysCache = clientSigningKeysCache;
+        _replayCache = replayCache;
     }
 
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
@@ -106,6 +109,14 @@ public class IdPBackchannelAuthenticationHandler : AuthenticationHandler<Authent
 
     private AuthenticateResult? TryAuthenticateBasic(ApplicationOption app)
     {
+        bool allowBasic = OIDCCryptoCapabilities.Idp.TokenEndpointAuthMethods.Contains(OIDCTokenEndpointAuthMethod.client_secret_basic);
+
+        if (!allowBasic)
+        {
+            _log.LogDebug("IdP backchannel auth: Basic auth not allowed by IdP metadata for app {app}", app.ApplicationID);
+            return null;
+        }
+
         string auth = Request.Headers.Authorization.FirstOrDefault() ?? string.Empty;
         if (string.IsNullOrEmpty(auth) ||
             !auth.StartsWith($"{WellknownIdentityConstants.Basic} ", StringComparison.OrdinalIgnoreCase))
@@ -163,8 +174,17 @@ public class IdPBackchannelAuthenticationHandler : AuthenticationHandler<Authent
     private async Task<AuthenticateResult> AuthenticatePrivateKeyJwtAsync(
     ApplicationOption app,
     string clientAssertion,
-    string clientIdFromForm)
+    string clientIdFromForm
+    )
     {
+        bool allowPrivateKeyJwt = OIDCCryptoCapabilities.Idp.TokenEndpointAuthMethods.Contains(OIDCTokenEndpointAuthMethod.private_key_jwt);
+
+        if (!allowPrivateKeyJwt)
+        {
+            _log.LogWarning("IdP backchannel auth: private_key_jwt not allowed by IdP metadata for app {app}", app.ApplicationID);
+            return AuthenticateResult.Fail("private_key_jwt not allowed for this client");
+        }
+
         // Get client_id: form > iss from JWT
         string? clientId = !string.IsNullOrEmpty(clientIdFromForm)
             ? clientIdFromForm
@@ -244,7 +264,7 @@ public class IdPBackchannelAuthenticationHandler : AuthenticationHandler<Authent
             ValidateIssuer = true,
             ValidIssuer = clientId,
             ValidateAudience = true,
-            ValidAudience = $"{Request.Scheme}://{Request.Host.Host}{Request.PathBase}{Request.Path}",
+            ValidAudience = $"{Request.Scheme}://{Request.Host.Value}{Request.PathBase}{Request.Path}",
 
             ValidateLifetime = true,
             ClockSkew = TimeSpan.FromMinutes(1),
@@ -253,7 +273,7 @@ public class IdPBackchannelAuthenticationHandler : AuthenticationHandler<Authent
             ValidateIssuerSigningKey = true,
             IssuerSigningKeys = signingKeys,
 
-            // Anti-downgrade: solo algs permitidos
+            // Anti-downgrade: only allow algorithms from the configured allow-list
             ValidAlgorithms = allowedAlgs
         };
 
@@ -267,12 +287,47 @@ public class IdPBackchannelAuthenticationHandler : AuthenticationHandler<Authent
         }
 
         // Validate sub == client_id - RFC 7523
-        var jwt = (JsonWebToken?)result.SecurityToken;
-        var sub = jwt?.Subject;
+
+        if (result.SecurityToken is not JsonWebToken jwt)
+        {
+            _log.LogWarning("IdP backchannel auth: client_assertion validation did not return a valid JWT for client {clientId}", clientId);
+            return AuthenticateResult.Fail("Invalid client_assertion");
+        }
+
+        var sub = jwt.Subject;
         if (!string.IsNullOrEmpty(sub) && sub != clientId)
         {
             _log.LogWarning("IdP backchannel auth: client_assertion sub ({sub}) does not match client_id ({clientId})", sub, clientId);
             return AuthenticateResult.Fail("Invalid client_assertion subject");
+        }
+
+        var jti = jwt.Id;
+
+
+        if (!string.IsNullOrEmpty(jti))
+        {
+            var iatUtc = jwt.IssuedAt.Kind == DateTimeKind.Utc ?
+                new DateTimeOffset(jwt.IssuedAt) :
+                new DateTimeOffset(DateTime.SpecifyKind(jwt.IssuedAt, DateTimeKind.Utc));
+
+            var rc = _replayCache.TryStore("client_assertion", jti, iatUtc, TimeSpan.FromMinutes(10), TimeSpan.FromMinutes(2));
+
+            if (rc.Status == ReplayCacheStatus.Replay)
+            {
+                _log.LogWarning("IdP backchannel auth: replay client_assertion detected for client_id {clientId}, jti={jti}", clientId, jti);
+                return AuthenticateResult.Fail("Replay client_assertion");
+            }
+
+            if (rc.Status is ReplayCacheStatus.Stale or ReplayCacheStatus.Skew or ReplayCacheStatus.Invalid)
+            {
+                _log.LogWarning("IdP backchannel auth: client_assertion rejected by replay cache for client_id {clientId}: status={status}, reason={reason}", clientId, rc.Status, rc.Reason);
+                return AuthenticateResult.Fail("Invalid client_assertion");
+            }
+        }
+        else
+        {
+            _log.LogWarning("IdP backchannel auth: client_assertion missing jti or iat for client {clientId}", clientId);
+            return AuthenticateResult.Fail("Invalid client_assertion");
         }
 
         _log.LogDebug("IdP backchannel auth: private_key_jwt success for client_id {clientId}", clientId);
