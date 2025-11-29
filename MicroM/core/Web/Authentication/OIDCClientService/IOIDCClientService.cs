@@ -15,16 +15,17 @@ public interface IOIDCClientService
     Task<OIDCHttpClientPostResponse> HandleSignInOidc(ApplicationOption app, IHeaderDictionary requestHeaders, IFormCollection form, CancellationToken ct);
 
     // OIDC authorization code callback: exchanges code at IdP /token (PKCE), validates id_token, returns a local ClaimsPrincipal
+    // Adds authorizationResponseIssuer (optional 'iss' param from authorization response) for mix-up mitigation.
     Task<ResultWithStatus<OIDCClientCallbackResult, string>> HandleAuthorizationCallback(
         ApplicationOption app,
         string code,
         string redirectUri,
         string codeVerifier,
         string state,
+        string? authorizationResponseIssuer,
         CancellationToken ct);
 
     // FRONT-CHANNEL LOGOUT INITIATION (Client side)
-    // Builds the IdP end_session URL (optionally adding state + post_logout_redirect_uri) without performing redirect.
     Task<ResultWithStatus<OIDCFrontChannelLogoutInitiation, string>> BuildEndSessionRequest(
         ApplicationOption app,
         string idTokenHint,

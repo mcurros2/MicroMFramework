@@ -7,5 +7,5 @@ namespace MicroM.Web.Authentication.SSO;
 
 public interface IJwksService
 {
-    public EtagCacheServiceCacheCheckResult<OIDCJwksResponse>? HandleJwks(ApplicationOption app, RequestHeaders request_headers, IHeaderDictionary reponse_headers);
+    public EtagCacheServiceCacheCheckResult<OIDCJwksResponse>? HandleJwks(ApplicationOption app, string request_base, RequestHeaders request_headers, IHeaderDictionary reponse_headers);
 }

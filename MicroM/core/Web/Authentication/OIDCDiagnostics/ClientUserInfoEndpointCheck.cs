@@ -5,7 +5,7 @@ using System.Text.Json;
 
 namespace MicroM.Web.Authentication.OIDCDiagnostics;
 
-internal class ClientUserInfoEndpointCheck() : IDiagnosticCheck<ClientDiagnosticsContext>
+internal class ClientUserInfoEndpointCheck : IDiagnosticCheck<ClientDiagnosticsContext>
 {
     public string DiagnosticId => "oidc_client_userinfo_endpoint_check";
 

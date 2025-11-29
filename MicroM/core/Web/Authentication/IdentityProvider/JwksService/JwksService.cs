@@ -10,7 +10,7 @@ namespace MicroM.Web.Authentication.SSO;
 
 public class JwksService(
     IApplicationCertificateCacheService certificate_cache,
-    IEtagCacheService<OIDCJwksResponse> etag_cache,
+    IEtagCacheService<OIDCJwksResponse> jwks_cache,
     ILogger<JwksService> log
     ) : IJwksService
 {
@@ -22,12 +22,12 @@ public class JwksService(
         Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
     };
 
-    private static string BuildCacheKey(ApplicationOption app)
+    private static string BuildJwksCacheKey(string request_base)
     {
-        return $"idp:{app.ApplicationID}_JWKS";
+        return $"idp:{request_base}/oidc/jwks";
     }
 
-    public EtagCacheServiceCacheCheckResult<OIDCJwksResponse>? HandleJwks(ApplicationOption app, RequestHeaders request_headers, IHeaderDictionary response_headers)
+    public EtagCacheServiceCacheCheckResult<OIDCJwksResponse>? HandleJwks(ApplicationOption app, string request_base, RequestHeaders request_headers, IHeaderDictionary response_headers)
     {
         if (app.OIDCCertificateBlob == null)
         {
@@ -35,9 +35,9 @@ public class JwksService(
             return null;
         }
 
-        var key = BuildCacheKey(app);
+        var key = BuildJwksCacheKey(request_base);
 
-        var result = etag_cache.GetOrAddResponseWithCacheCheck(
+        var result = jwks_cache.GetOrAddResponseWithCacheCheck(
             key,
             request_headers,
             response_headers,

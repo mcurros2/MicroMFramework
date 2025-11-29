@@ -19,6 +19,7 @@ namespace MicroM.Web.Authentication.SSO;
 ///  - HTTP Basic auth (client_id:client_secret) where client_secret is stored in app.OIDCClientConfiguration[client_id].APISecret
 ///  - private_key_jwt: client_assertion (JWT) in form body validated against client's JWKS (URLClientJWKS)
 /// The handler sets HttpContext.User.Identity.Name = client_id and issues a ClaimTypes.NameIdentifier claim with client_id.
+/// Includes defensive payload size caps to mitigate oversized JWT attacks.
 /// </summary>
 public class IdPBackchannelAuthenticationHandler : AuthenticationHandler<AuthenticationSchemeOptions>
 {
@@ -26,6 +27,10 @@ public class IdPBackchannelAuthenticationHandler : AuthenticationHandler<Authent
     private readonly ILogger<IdPBackchannelAuthenticationHandler> _log;
     private readonly IIdPClientSigningKeysCacheService _clientSigningKeysCache;
     private readonly IOIDCReplayCacheService _replayCache;
+
+    // Defensive cap on client_assertion (compact JWT) encoded character length.
+    // Client assertions are typically small (a few KB). 32KiB is a generous upper bound while mitigating DoS attempts.
+    private const int MAX_CLIENT_ASSERTION_CHARS = 32 * 1024;
 
     public IdPBackchannelAuthenticationHandler(
         IOptionsMonitor<AuthenticationSchemeOptions> options,
@@ -81,7 +86,6 @@ public class IdPBackchannelAuthenticationHandler : AuthenticationHandler<Authent
                 var form = await Request.ReadFormAsync(Context.RequestAborted);
                 try
                 {
-                    // Reset request body stream for downstream handlers
                     if (Request.Body.CanSeek) Request.Body.Seek(0, SeekOrigin.Begin);
                 }
                 catch { }
@@ -92,6 +96,13 @@ public class IdPBackchannelAuthenticationHandler : AuthenticationHandler<Authent
 
                 if (!string.IsNullOrEmpty(clientAssertion) && clientAssertionType == WellknownIdentityConstants.ClientAssertionTypeJwtBearer)
                 {
+                    // Pre-parse size cap
+                    if (clientAssertion.Length > MAX_CLIENT_ASSERTION_CHARS)
+                    {
+                        _log.LogWarning("IdP backchannel auth: client_assertion exceeds size limit ({length} chars) for client_id {clientId}", clientAssertion.Length, clientIdFromForm);
+                        return AuthenticateResult.Fail("client_assertion_too_large");
+                    }
+
                     return await AuthenticatePrivateKeyJwtAsync(app, clientAssertion, clientIdFromForm);
                 }
 
@@ -172,9 +183,9 @@ public class IdPBackchannelAuthenticationHandler : AuthenticationHandler<Authent
     }
 
     private async Task<AuthenticateResult> AuthenticatePrivateKeyJwtAsync(
-    ApplicationOption app,
-    string clientAssertion,
-    string clientIdFromForm
+        ApplicationOption app,
+        string clientAssertion,
+        string clientIdFromForm
     )
     {
         bool allowPrivateKeyJwt = OIDCCryptoCapabilities.Idp.TokenEndpointAuthMethods.Contains(OIDCTokenEndpointAuthMethod.private_key_jwt);
@@ -185,7 +196,13 @@ public class IdPBackchannelAuthenticationHandler : AuthenticationHandler<Authent
             return AuthenticateResult.Fail("private_key_jwt not allowed for this client");
         }
 
-        // Get client_id: form > iss from JWT
+        // Defensive size cap (re-check in case handler invoked directly)
+        if (clientAssertion.Length > MAX_CLIENT_ASSERTION_CHARS)
+        {
+            _log.LogWarning("IdP backchannel auth: client_assertion exceeds size limit ({length} chars) post-dispatch for client_id {clientId}", clientAssertion.Length, clientIdFromForm);
+            return AuthenticateResult.Fail("client_assertion_too_large");
+        }
+
         string? clientId = !string.IsNullOrEmpty(clientIdFromForm)
             ? clientIdFromForm
             : GetClientIdFromJwt(clientAssertion);
@@ -302,7 +319,6 @@ public class IdPBackchannelAuthenticationHandler : AuthenticationHandler<Authent
         }
 
         var jti = jwt.Id;
-
 
         if (!string.IsNullOrEmpty(jti))
         {

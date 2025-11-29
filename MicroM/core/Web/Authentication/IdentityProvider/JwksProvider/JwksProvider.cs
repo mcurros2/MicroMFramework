@@ -380,6 +380,8 @@ public static class JwksProvider
     IEnumerable<SecurityKey> clientSigningKeys,
     CancellationToken ct)
     {
+        ct.ThrowIfCancellationRequested();
+
         if (string.IsNullOrWhiteSpace(signedRequestObjectJwt))
         {
             return new(null, "empty_request_object");

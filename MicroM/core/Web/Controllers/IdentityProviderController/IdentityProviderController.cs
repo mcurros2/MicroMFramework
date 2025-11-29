@@ -83,7 +83,9 @@ public class IdentityProviderController : ControllerBase, IIdentityProviderContr
             var request_headers = Request.GetTypedHeaders();
             var response_headers = Response.GetTypedHeaders();
 
-            var result = idp.HandleJwks(app, request_headers, response_headers.Headers);
+            string requestBase = $"{Request.Scheme}://{Request.Host.Value}{_api_path}/{app_id}";
+
+            var result = idp.HandleJwks(app, requestBase, request_headers, response_headers.Headers);
 
             if (result == null)
             {
@@ -152,6 +154,12 @@ public class IdentityProviderController : ControllerBase, IIdentityProviderContr
             var app = app_config.GetAppConfiguration(app_id);
             if (app == null) return NotFound(APPLICATION_NOT_FOUND);
 
+            if (app.IdentityProviderRoleType != nameof(IdentityProviderRole.IDPServer))
+            {
+                _log.LogWarning("Application {app_id} is not configured as an Identity Provider", app_id);
+                return BadRequest("Application is not configured as an Identity Provider");
+            }
+
             if (!Request.HasFormContentType)
             {
                 return BadRequest(new { error = "invalid_request", error_description = "Request must be application/x-www-form-urlencoded" });
@@ -184,6 +192,12 @@ public class IdentityProviderController : ControllerBase, IIdentityProviderContr
         {
             var app = app_config.GetAppConfiguration(app_id);
             if (app == null) return NotFound(APPLICATION_NOT_FOUND);
+
+            if (app.IdentityProviderRoleType != nameof(IdentityProviderRole.IDPServer))
+            {
+                _log.LogWarning("Application {app_id} is not configured as an Identity Provider", app_id);
+                return BadRequest("Application is not configured as an Identity Provider");
+            }
 
             string requestBase = $"{Request.Scheme}://{Request.Host.Value}{_api_path}/{app_id}";
 

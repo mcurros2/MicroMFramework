@@ -99,16 +99,19 @@ public class OIDCClientController : ControllerBase, IOIDCClientController
         string? redirectUri = Request.Query[WellknownIdentityConstants.RedirectUri];
         string? codeVerifier = Request.Query[WellknownIdentityConstants.CodeVerifier];
         string? stateIncoming = Request.Query[WellknownIdentityConstants.State];
+        string? authorizationResponseIssuer = Request.Query[WellknownIdentityConstants.IssuerClaim]; // 'iss' mix-up mitigation
 
         if (HttpMethods.IsPost(Request.Method))
         {
             if (Request.HasFormContentType)
             {
                 var form = await Request.ReadFormAsync(ct);
-                code = string.IsNullOrEmpty(code) ? form[WellknownIdentityConstants.Code].ToString() : code;
-                redirectUri = string.IsNullOrEmpty(redirectUri) ? form[WellknownIdentityConstants.RedirectUri].ToString() : redirectUri;
-                codeVerifier = string.IsNullOrEmpty(codeVerifier) ? form[WellknownIdentityConstants.CodeVerifier].ToString() : codeVerifier;
-                stateIncoming = string.IsNullOrEmpty(stateIncoming) ? form[WellknownIdentityConstants.State].ToString() : stateIncoming;
+                code = form[WellknownIdentityConstants.Code].ToString();
+                redirectUri = form[WellknownIdentityConstants.RedirectUri].ToString();
+                codeVerifier = form[WellknownIdentityConstants.CodeVerifier].ToString();
+                stateIncoming = form[WellknownIdentityConstants.State].ToString();
+                // Ensure 'iss' is captured for POST callbacks
+                authorizationResponseIssuer = form[WellknownIdentityConstants.IssuerClaim].ToString();
             }
             else
             {
@@ -125,10 +128,16 @@ public class OIDCClientController : ControllerBase, IOIDCClientController
             return BadRequest(new { error = "invalid_request", error_description = "code, redirect_uri, code_verifier and state are required" });
         }
 
-        var (callback_result, error) = await clientService.HandleAuthorizationCallback(app, code, redirectUri, codeVerifier, stateIncoming, ct);
+        var (callback_result, error) =
+            await clientService.HandleAuthorizationCallback(app, code, redirectUri, codeVerifier, stateIncoming, authorizationResponseIssuer, ct);
 
         if (error != null || callback_result == null || callback_result.Principal == null)
         {
+            // Map specific issuer mismatch to clearer error
+            if (error == "invalid_authorization_response_iss")
+            {
+                return BadRequest(new { error = "access_denied", error_description = "authorization response issuer mismatch" });
+            }
             return BadRequest(new { error = "access_denied", error_description = error ?? "Callback failed" });
         }
 

@@ -30,7 +30,7 @@ public class OIDCClientDiagnostics(
     private readonly ClientIntrospectionEndpointCheck introspectionEndpointCheck = new();
     private readonly ClientJwksCacheEffectivenessCheck jwksCacheEffectivenessCheck = new();
     private readonly ClientEncryptionMetadataCheck EncMetadataCheck = new();
-    private readonly ClientRefreshFallbackDiagnostic RefreshFallbackCheck = new();
+    private readonly ClientRefreshFallbackCheck RefreshFallbackCheck = new();
 
     public async Task<Dictionary<string, List<DiagnosticResult>>> RunAllDiagnosticsAsync(string app_id, CancellationToken ct)
     {

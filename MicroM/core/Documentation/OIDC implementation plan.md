@@ -46,7 +46,7 @@ Phases
 1. IdP JWE wrapping: COMPLETE
 2. Client decryption path: COMPLETE
 3. Diagnostics (negotiation specifics): PARTIAL
-4. Request object encryption: IN PROGRESS (UserInfo removed from scope)
+4. Request object encryption: COMPLETE (Request Object JWE decrypt path implemented)
 5. Policy flags removed (capability-driven): COMPLETE
 
 Updated cryptographic policy (Refactor: WellKnownProvider & JwksProvider)
@@ -84,6 +84,8 @@ Recent changes (UPDATED)
 - Centralized request object alg validation.
 - JWKS cache integration & kid-based forced refresh.
 - JWS/JWE protected header parsing + signing alg enforcement.
+- Fixed well-known `request_parameter_supported` vs runtime mismatch (PAR-only enforcement).
+- Implemented Request Object JWE decrypt path (JwksProvider.DecryptRequestObjectAsync + AuthorizeEndpointProvider usage).
 
 Diagnostics conventions
 - No raw tokens/assertions/logout_token.
@@ -98,21 +100,22 @@ Out-of-Scope (Explicit Non-Implementation)
 Rationale: Current clients only require authorization code, id_token issuance, refresh handling, and logout. Excluding non-mandatory endpoints reduces surface area, operational complexity, and cryptographic exposure. Discovery document may be adjusted later to omit these endpoints or retain placeholders with documentation stating non-support.
 
 Pending tasks (adjusted)
-- Request object FULL encryption (JWE decrypt path; keep RSA-only or re-evaluate ECDH).
+- Confirm RSA-only stance for request object key management (document rationale; consider ECDH future-proofing).
 - Deeper encryption negotiation diagnostics (candidate ordering, chosen, reason codes, exclusion logging).
 - Performance counters only in diagnostics (sign/encrypt/decrypt timings, payload sizes, JWKS cache latency benefit, forced refresh frequency).
 - Request object policy enhancements (nonce enforcement when openid scope present, restricted claims, size already enforced).
 - Documentation: crypto reductions, signing alg enforcement, kid-miss logic, explicit non-support for UserInfo / introspection / revocation.
 - Structured selection logging for id_token vs request object (negotiation trace records).
+- Key rotation handling for encrypted IdP refresh tokens (re-encryption or multi-key decryption strategy).
 
 Release readiness
 - Core flows, JWKS caching, logout, encryption policies: COMPLETE.
-- Blocking for next milestone: request object JWE decrypt, enhanced diagnostics, performance telemetry, documentation, tests (tests deferred until diagnostics complete).
+- Blocking for next milestone: enhanced diagnostics, performance telemetry, documentation, tests (tests deferred until diagnostics complete).
 
 Status TL;DR
 - Foundations COMPLETE, JWKS caching COMPLETE.
 - Non-mandatory endpoints (UserInfo, introspection, revocation) explicitly OUT OF SCOPE.
-- Remaining focus: request object encryption completion, diagnostics depth, performance metrics, documentation & tests (tests deferred).
+- Remaining focus: diagnostics depth, performance metrics, documentation & tests (tests deferred).
 
 H — Signing & encryption alignment
 - IdP signing based on cert: COMPLETE
@@ -121,16 +124,15 @@ H — Signing & encryption alignment
 - UserInfo encryption/signing metadata: NOT APPLICABLE (endpoint out of scope)
 
 Next focus (adjusted)
-1. Request object encryption/decryption completion (JWE decrypt path, confirm RSA-only stance).
+1. Confirm RSA-only stance and finalize request object negotiation diagnostics (trace records, exclusion reasons, candidate ordering).
 2. Encryption negotiation diagnostics (candidate set + selection + exclusion reasons).
 3. Performance telemetry only in diagnostics (crypto timings, payload size deltas, JWKS cache metrics).
 4. Documentation update (policy reductions, out-of-scope endpoints, alg enforcement, kid refresh flow).
-5. Negative/interop test suite (alg rejection, request object invalid cases, forced refresh scenarios) — DEFERRED until diagnostics complete.
-6. Decision gate for future ECDH enablement (record rationale & criteria).
+5. Negative/interop test suite (alg rejection, request object invalid cases, forced refresh scenarios) — DEFERRED until diagnostics complete; add minimal smoke tests before release.
 
 Acceptance criteria (updated)
 - Well-known does not advertise UserInfo / introspection / revocation as supported (or includes clear documentation note if retained).
-- Request object supports RSA-OAEP encrypted JWE (decrypt & validate) and enforced signing algorithms.
+- Request object supports RSA-OAEP encrypted JWE (decrypt & validate) and enforced signing algorithms. (IMPLEMENTED)
 - Diagnostics produce structured negotiation records: {context, candidates, selected, exclusions, reasonCodes}.
 - Performance counters recorded and queryable (encryption timings, payload sizes, jwks cache hit ratios).
 - Tests assert rejection of ECDH, CBC-HS*, RSA1_5, HS*, none; verify kid-miss triggers single forced refresh — TESTS DEFERRED UNTIL DIAGNOSTICS COMPLETE.
@@ -138,12 +140,12 @@ Acceptance criteria (updated)
 
 ---
 
-## Urgent Bug Fixes (TOP priority)
+## Urgent Bug Fixes (TOP priority) (updated)
 
 The items below are immediate, blocking fixes discovered during the recent IdP / OIDC refactor. Statuses reflect recent refactor work. Tests remain deferred until diagnostics and documentation are completed.
 
-1. OPEN: Enforce PAR at `/oauth2/authorize` when `require_pushed_authorization_requests = true`. Reject non‑PAR authorize calls that do not include `request_uri`.  
-   - Implement in: `AuthorizeEndpointProvider.ValidateAndOverrideWithPARAuthorizationRequest` (early `invalid_request` if `request_uri` missing).  
+1. COMPLETED: Enforce PAR at `/oauth2/authorize` when `require_pushed_authorization_requests = true`. Reject non‑PAR authorize calls that do not include `request_uri`.  
+   - Implemented in: `AuthorizeEndpointProvider.ValidateAndOverrideWithPARAuthorizationRequest` (early `invalid_request` if `request_uri` missing).  
    - Rationale: Align runtime with metadata (`request_uri_parameter_supported = false`).
 
 2. COMPLETED: PKCE “plain” verification bug. When `OIDCAllowPkcePlain` is enabled, `code_challenge_method = plain` validates `code_verifier == code_challenge`.  
@@ -152,26 +154,20 @@ The items below are immediate, blocking fixes discovered during the recent IdP /
 3. COMPLETED: `private_key_jwt` audience mismatch on non‑default ports. Token endpoint audience now includes scheme, host and port.  
    - Fixed in: `IdPBackchannelAuthenticationHandler.AuthenticatePrivateKeyJwtAsync` using `Request.Scheme`, `Request.Host.Value`, `Request.PathBase`, `Request.Path`.
 
-4. OPEN: Request Object semantic validations and post‑decrypt size cap.  
-   - Implement in: `AuthorizeEndpointProvider.ValidateAndOverrideWithPARAuthorizationRequest` (after decryption/signature validation) to enforce:  
-     - `iss == client_id`, `sub == client_id` (if present),  
-     - `aud` matches authorization endpoint (or issuer per policy),  
-     - valid `exp`/`nbf` window,  
-     - cap payload size after decryption to mitigate inflation attacks.  
-   - Helpers may live in `JwksProvider` for reuse.
-
+4. COMPLETED: Request Object semantic validations + post-decrypt encoded payload length cap (64KiB) mitigating JWE inflation.
 5. COMPLETED: Client assertion replay protection for `private_key_jwt`.  
    - Implemented short‑lived replay cache via `IOIDCReplayCacheService` keyed by `jti`; enforced single‑use in `IdPBackchannelAuthenticationHandler`.
 
 6. COMPLETED: EndSession fan‑out delivers `logout_token` even when no server‑side `sid` is found.  
    - Implemented in: `IdentityProviderService.HandleEndSession` — always includes `sub`; conditionally includes `sid` if found; purges by `sub`.
 
-7. OPEN: Authorization response mix‑up mitigation. Validate `authorization_response_iss` in client callback when present.  
-   - Implement in: `OIDCClientService.HandleAuthorizationCallback` — verify `iss` param equals discovered IdP `issuer`.
+7. COMPLETED: Authorization response mix‑up mitigation. Validate `authorization_response_iss` in client callback when present.  
+   - Implemented in: `OIDCClientService.HandleAuthorizationCallback` — verify `iss` param equals discovered IdP `issuer`.
 
-8. OPEN: Defensive limits for incoming JWTs and forms.  
-   - Add max payload size checks for `client_assertion` and `request` (request object) at handler level (`IdPBackchannelAuthenticationHandler`, `PushedAuthorizationProvider`).  
-   - Cap post‑decrypt size for request objects to reduce DoS risk.
+8. COMPLETED: Defensive limits:
+   - PAR `request` parameter length capped (64KiB encoded) in `PushedAuthorizationProvider`.
+   - Post-decrypt Request Object payload cap applied (AuthorizeEndpointProvider).
+   - client_assertion encoded length capped (32KiB) pre-parse and rechecked in `IdPBackchannelAuthenticationHandler`.
 
 9. COMPLETED: Make the IdP `/oauth2/authorize` endpoint accessible to browser user-agents (`AllowAnonymous`).
 
@@ -208,6 +204,24 @@ Primary files implementing the OIDC functionality:
 - `core/Web/Controllers/OIDCClientController/OIDCClientController.cs` — controller endpoints used by clients (callback, refresh, logout).
 - `core/Documentation/MicroM OIDC multi tenant flow.md` — detailed flow diagram and reference for multi-tenant PAR+PKCE flow.
 
+Diagnostics
+- `core/Web/Authentication/OIDCDiagnostics/ClientAuthorizeMetadataCheck.cs` — client-side diagnostic check that validates IdP discovery/authorization metadata
+- `core/Web/Authentication/OIDCDiagnostics/ClientEncryptionMetadataCheck.cs` — client-side diagnostic check that validates IdP Encryption metadata
+- `core/Web/Authentication/OIDCDiagnostics/ClientEndSessionEndpointCheck.cs` — client-side diagnostic check that validates IdP End session endpoint
+- `core/Web/Authentication/OIDCDiagnostics/ClientIdpRefreshCheck.cs` — client-side diagnostic check that validates IdP Token endpoint
+- `core/Web/Authentication/OIDCDiagnostics/ClientIntrospectionEndpointCheck.cs` — client-side diagnostic check that validates IdP Introspection endpoint
+- `core/Web/Authentication/OIDCDiagnostics/ClientJwksCacheEffectivenessCheck.cs` — client-side diagnostic check Jwks cache effectiveness
+- `core/Web/Authentication/OIDCDiagnostics/ClientPARCheck.cs` — client-side diagnostic check that validates IdP PAR endpoint
+- `core/Web/Authentication/OIDCDiagnostics/ClientRefreshFallbackCheck.cs` — client-side diagnostic check that validates refresh fallback behavior
+- `core/Web/Authentication/OIDCDiagnostics/ClientRevocationEndpointCheck.cs` — client-side diagnostic check that validates IdP Revocation endpoint
+- `core/Web/Authentication/OIDCDiagnostics/ClientUserInfoEndpointCheck.cs` — client-side diagnostic check that validates IdP Userinfo endpoint
+- `core/Web/Authentication/OIDCDiagnostics/ClientWellKnownAndJwksCheck.cs` — client-side diagnostic check that validates IdP Wellknow and Jwks endpoints
 
-
+- `core/Web/Authentication/OIDCDiagnostics/IdpClientBackchannelEndpointCheck.cs` — IdP-side diagnostic check that validates configured OIDC Clients Backchannel endpoints
+- `core/Web/Authentication/OIDCDiagnostics/IdpClientFrontchannelEndpointCheck.cs` — IdP-side diagnostic check that validates configured OIDC Clients Frontchannel endpoints
+- `core/Web/Authentication/OIDCDiagnostics/IdpClientJwksCheck.cs` — IdP-side diagnostic check that validates configured OIDC Clients Jwks endpoints
+- `core/Web/Authentication/OIDCDiagnostics/IdpClientRedirectUrisCheck.cs` — IdP-side diagnostic check that validates configured OIDC Clients Redirect URIs
+- `core/Web/Authentication/OIDCDiagnostics/IdpClientRegistrationSanityCheck.cs` — IdP-side diagnostic check that validates configured OIDC Clients registration
+- `core/Web/Authentication/OIDCDiagnostics/IdpConfigurationCheck.cs` — IdP-side diagnostic check that validates OIDC Identity Provider configuration
+- `core/Web/Authentication/OIDCDiagnostics/IdpFrontChannelLogoutConfigCheck.cs` — IdP-side diagnostic check that validates OIDC Identity Provider Frontchannel logout configuration
 
