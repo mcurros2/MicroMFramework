@@ -215,6 +215,7 @@ public class OIDCClientService(
             string redirectUri,
             string codeVerifier,
             string state,
+            string? authorizationResponseIssuer,
             CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(app.OIDCWellKnownURL))
@@ -241,6 +242,14 @@ public class OIDCClientService(
         var jwksUri = wellknown.jwks_uri;
         if (string.IsNullOrEmpty(issuer) || string.IsNullOrEmpty(tokenEndpoint) || string.IsNullOrEmpty(jwksUri))
             return new(null, "Invalid IdP discovery document");
+
+        // Mix-up mitigation: validate authorization response issuer ('iss' param) if present
+        if (!string.IsNullOrWhiteSpace(authorizationResponseIssuer) &&
+            !string.Equals(authorizationResponseIssuer, issuer, StringComparison.Ordinal))
+        {
+            log.LogWarning("AUTH_RESPONSE_ISS_MISMATCH app={app} expected={expected} received={received}", app.ApplicationID, issuer, authorizationResponseIssuer);
+            return new(null, "invalid_authorization_response_iss");
+        }
 
         // Enforce token endpoint auth (prefer/require private_key_jwt)
         var allowed = wellknown.token_endpoint_auth_methods_supported;

@@ -4,7 +4,7 @@ using System.Text.Json;
 
 namespace MicroM.Web.Authentication.OIDCDiagnostics;
 
-internal class ClientAuthorizeMetadataCheck() : IDiagnosticCheck<ClientDiagnosticsContext>
+internal class ClientAuthorizeMetadataCheck : IDiagnosticCheck<ClientDiagnosticsContext>
 {
     public string DiagnosticId => "oidc_client_authorize_metadata_check";
 

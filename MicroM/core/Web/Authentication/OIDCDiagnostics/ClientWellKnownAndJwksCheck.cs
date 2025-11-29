@@ -4,7 +4,7 @@ using System.Text.Json;
 
 namespace MicroM.Web.Authentication.OIDCDiagnostics;
 
-internal class ClientWellKnownAndJwksCheck() : IDiagnosticCheck<ClientDiagnosticsContext>
+internal class ClientWellKnownAndJwksCheck : IDiagnosticCheck<ClientDiagnosticsContext>
 {
     public string DiagnosticId => "oidc_client_wellknown_jwks_check";
 

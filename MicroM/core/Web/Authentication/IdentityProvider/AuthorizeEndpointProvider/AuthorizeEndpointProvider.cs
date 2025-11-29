@@ -33,9 +33,80 @@ public static class AuthorizeEndpointProvider
         return auth_request;
     }
 
+    private static ResultWithStatus<bool, ErrorResult> ValidateRequestObjectClaims(
+        JsonWebToken requestObjectJwt,
+        string clientId,
+        OIDCWellKnownResponse wellKnown)
+    {
+        // iss MUST equal client_id
+        if (!string.Equals(requestObjectJwt.Issuer, clientId, StringComparison.Ordinal))
+        {
+            return new(false, new("invalid_request_object", "iss in request object must equal client_id"));
+        }
+
+        // sub, if present, MUST equal client_id
+        var sub = requestObjectJwt.Subject;
+        if (!string.IsNullOrEmpty(sub) && !string.Equals(sub, clientId, StringComparison.Ordinal))
+        {
+            return new(false, new("invalid_request_object", "sub in request object must equal client_id when present"));
+        }
+
+        // aud MUST contain AS issuer or authorization_endpoint (FAPI 2.0 allows issuer or endpoint)
+        var audiences = requestObjectJwt.Audiences?.ToList() ?? [];
+        var acceptedAudiences = new[]
+        {
+            wellKnown.issuer,
+            wellKnown.authorization_endpoint,
+            wellKnown.pushed_authorization_request_endpoint,
+            wellKnown.token_endpoint
+        }.Where(a => !string.IsNullOrEmpty(a)).ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        if (!audiences.Any(aud => acceptedAudiences.Contains(aud)))
+        {
+            return new(false, new("invalid_request_object", "aud in request object does not match this authorization server"));
+        }
+
+        // Lifetime: exp / nbf
+        var now = DateTimeOffset.UtcNow;
+        var expClaim = requestObjectJwt.GetClaim(JwtRegisteredClaimNames.Exp)?.Value;
+        var nbfClaim = requestObjectJwt.GetClaim(JwtRegisteredClaimNames.Nbf)?.Value;
+
+        if (expClaim != null && long.TryParse(expClaim, out var expSeconds))
+        {
+            var exp = DateTimeOffset.FromUnixTimeSeconds(expSeconds);
+            if (exp < now)
+            {
+                return new(false, new("invalid_request_object", "request object is expired"));
+            }
+
+            // opcional: max lifetime window (ej. 10 minutos)
+            if (exp - now > TimeSpan.FromMinutes(10))
+            {
+                return new(false, new("invalid_request_object", "request object lifetime exceeds policy window"));
+            }
+        }
+
+        if (nbfClaim != null && long.TryParse(nbfClaim, out var nbfSeconds))
+        {
+            var nbf = DateTimeOffset.FromUnixTimeSeconds(nbfSeconds);
+            // leve clock skew permitido
+            if (nbf - now > TimeSpan.FromMinutes(1))
+            {
+                return new(false, new("invalid_request_object", "request object not yet valid (nbf in the future)"));
+            }
+        }
+
+        return new(true, null);
+    }
+
+
+
+
+
     public static async Task<ResultWithStatus<OIDCAuthorizeRequest, ErrorResult>> ValidateAndOverrideWithPARAuthorizationRequest(
         ApplicationOption app,
         X509Certificate2 idp_cert,
+        OIDCWellKnownResponse idp_wellknown,
         IIdPClientSigningKeysCacheService clientSigningKeysCache,
         IPushedAuthorizationService par_service,
         IQueryCollection query_string,
@@ -63,11 +134,6 @@ public static class AuthorizeEndpointProvider
         if (requirePar && !hasRequestUri)
         {
             return new(null, new("invalid_request", "Pushed authorization request is required: call /oauth2/par first and pass 'request_uri' to /oauth2/authorize."));
-        }
-
-        if (!string.IsNullOrEmpty(authorize_request.request))
-        {
-            return new(null, new("invalid_request", "request parameter not supported; use PAR (request_uri)"));
         }
 
         // PAR
@@ -140,6 +206,15 @@ public static class AuthorizeEndpointProvider
                         return new(null, new("invalid_request_object", msg));
                     }
 
+                    // safety cap against JWE inflation attacks
+                    const int MAX_REQUEST_OBJECT_PAYLOAD_CHARS = 64 * 1024;
+
+                    var rawPayloadLength = (decryptResult.Result.EncodedPayload ?? string.Empty).Length;
+                    if (rawPayloadLength > MAX_REQUEST_OBJECT_PAYLOAD_CHARS)
+                    {
+                        return new(null, new("invalid_request_object", "request object payload exceeds size limit"));
+                    }
+
                     signedRequestJwt = decryptResult.Result.EncodedToken;
                 }
                 else
@@ -168,6 +243,13 @@ public static class AuthorizeEndpointProvider
                     return new(null, new("invalid_request", "client_id in request object does not match authenticated client"));
                 }
 
+                var (ok, claimError) = ValidateRequestObjectClaims(requestObjectJwt, pushed.client_id!, idp_wellknown);
+
+                if (!ok)
+                {
+                    return new(null, claimError);
+                }
+
                 // 5) Build the effective authorize request from Request Object + PAR data + original QS
                 string? roResponseType = requestObjectJwt.Claims.FirstOrDefault(c => c.Type == WellknownIdentityConstants.ResponseType)?.Value;
                 string? roRedirectUri = requestObjectJwt.Claims.FirstOrDefault(c => c.Type == WellknownIdentityConstants.RedirectUri)?.Value;
@@ -192,19 +274,25 @@ public static class AuthorizeEndpointProvider
                     return new(null, new("invalid_request", "nonce in request object does not match authorize request"));
                 }
 
-                // Precedence:
-                //   - response_type / redirect_uri / scope: RO > PAR > original query
-                //   - state / nonce: RO > PAR > original query
-                //   - If RO and query both contain state/nonce, they MUST match (or invalid_request).
-                var finalResponseType = roResponseType ?? pushed.response_type ?? authorize_request.response_type;
-                var finalRedirectUri = roRedirectUri ?? pushed.redirect_uri ?? authorize_request.redirect_uri;
-                var finalScope = roScope ?? pushed.scope ?? authorize_request.scope;
-
-                var finalState = roState ?? pushed.state ?? authorize_request.state;
-                var finalNonce = roNonce ?? pushed.nonce ?? authorize_request.nonce;
-
+                // Critical fields: only RO and/or PAR, no query fallback
+                var finalResponseType = roResponseType ?? pushed.response_type;
+                var finalRedirectUri = roRedirectUri ?? pushed.redirect_uri;
+                var finalScope = roScope ?? pushed.scope;
+                var finalState = roState ?? pushed.state;
+                var finalNonce = roNonce ?? pushed.nonce;
                 var finalCodeChallenge = roCodeChallenge ?? pushed.code_challenge;
                 var finalCodeMethod = roCodeChallengeMethod ?? pushed.code_challenge_method;
+
+                if (string.IsNullOrEmpty(finalResponseType) || !string.Equals(finalResponseType, WellknownIdentityConstants.Code, StringComparison.OrdinalIgnoreCase))
+                {
+                    return new(null, new("invalid_request", "Missing or invalid response_type in PAR/Request Object"));
+                }
+
+                if (string.IsNullOrEmpty(finalRedirectUri))
+                    return new(null, new("invalid_request", "Missing redirect_uri in PAR/Request Object"));
+
+                if (string.IsNullOrEmpty(finalScope))
+                    return new(null, new("invalid_request", "Missing scope in PAR/Request Object"));
 
                 authorize_request = new
                 (

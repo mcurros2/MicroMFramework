@@ -162,7 +162,7 @@ public static class OIDCCryptoCapabilities
 
 
         public readonly static bool RequirePushedAuthorizationRequests = true;
-        public readonly static bool RequestParameterSupported = true;
+        public readonly static bool RequestParameterSupported = false;
         public readonly static bool RequestUriParameterSupported = false;
 
 

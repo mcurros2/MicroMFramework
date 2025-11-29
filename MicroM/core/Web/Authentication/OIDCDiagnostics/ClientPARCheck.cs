@@ -11,7 +11,7 @@ using System.Text.Json;
 
 namespace MicroM.Web.Authentication.OIDCDiagnostics;
 
-internal class ClientPARCheck() : IDiagnosticCheck<ClientDiagnosticsContext>
+internal class ClientPARCheck : IDiagnosticCheck<ClientDiagnosticsContext>
 {
     public string DiagnosticId => "oidc_client_par_check";
 

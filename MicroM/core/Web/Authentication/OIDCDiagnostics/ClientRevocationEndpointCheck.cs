@@ -5,7 +5,7 @@ using System.Text.Json;
 
 namespace MicroM.Web.Authentication.OIDCDiagnostics;
 
-internal class ClientRevocationEndpointCheck() : IDiagnosticCheck<ClientDiagnosticsContext>
+internal class ClientRevocationEndpointCheck : IDiagnosticCheck<ClientDiagnosticsContext>
 {
     public string DiagnosticId => "oidc_client_revocation_endpoint_check";
 

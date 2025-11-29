@@ -19,7 +19,7 @@ public class IdentityProviderService(
     IOauthTokenService oauth_token_service,
     IPushedAuthorizationService par_service,
     IAuthorizationCodeService code_service,
-    IEtagCacheService<OIDCWellKnownResponse> etag_cache,
+    IEtagCacheService<OIDCWellKnownResponse> wk_cache,
     IApplicationCertificateCacheService certificate_cache,
     IJwksService jwks_service,
     IOIDCHttpClient oidcHttpClient,
@@ -27,22 +27,38 @@ public class IdentityProviderService(
     ILogger<IdentityProviderService> log
     ) : IIdentityProviderService
 {
-    private JsonSerializerOptions _jsonSerializationOptions = new()
+    private static JsonSerializerOptions _jsonSerializationOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
     };
 
-    private static string BuildCacheKey(ApplicationOption app)
+    private static string BuildWkCacheKey(string request_base)
     {
-        return $"idp:{app.ApplicationID}_WK";
+        return $"idp:{request_base}/oidc/.well-known/openid-configuration";
+    }
+
+    private OIDCWellKnownResponse? GetOrCreateWellKnown(ApplicationOption app, string request_base, X509Certificate2 cert)
+    {
+        var key = BuildWkCacheKey(request_base);
+
+        var result = wk_cache.GetOrAdd(key, (existing) =>
+        {
+            var wk = WellKnownProvider.CreateWellKnown(app, request_base, cert);
+            var json = JsonSerializer.Serialize(wk, _jsonSerializationOptions);
+            return (json, wk, etag: null);
+        },
+        ttl: TimeSpan.FromSeconds(ConfigurationDefaults.EtagCacheDurationSeconds)
+        );
+
+        return result.Parsed;
     }
 
     public EtagCacheServiceCacheCheckResult<OIDCWellKnownResponse> HandleWellKnown(ApplicationOption app, string request_base, RequestHeaders request_headers, IHeaderDictionary response_headers)
     {
-        var key = BuildCacheKey(app);
+        var key = BuildWkCacheKey(request_base);
 
-        var result = etag_cache.GetOrAddResponseWithCacheCheck(
+        var result = wk_cache.GetOrAddResponseWithCacheCheck(
             key,
             request_headers,
             response_headers,
@@ -57,9 +73,9 @@ public class IdentityProviderService(
         return result;
     }
 
-    public EtagCacheServiceCacheCheckResult<OIDCJwksResponse>? HandleJwks(ApplicationOption app, RequestHeaders request_headers, IHeaderDictionary response_headers)
+    public EtagCacheServiceCacheCheckResult<OIDCJwksResponse>? HandleJwks(ApplicationOption app, string request_base, RequestHeaders request_headers, IHeaderDictionary response_headers)
     {
-        return jwks_service.HandleJwks(app, request_headers, response_headers);
+        return jwks_service.HandleJwks(app, request_base, request_headers, response_headers);
     }
 
     public async Task<ResultWithStatus<OIDCTokenResponse, ErrorResult>> HandleToken(ApplicationOption app, IFormCollection form, ClaimsPrincipal client, CancellationToken ct)
@@ -95,9 +111,11 @@ public class IdentityProviderService(
             return new(null, new("server_error", "Identity Provider misconfiguration"));
         }
 
+        var wk = GetOrCreateWellKnown(app, request_base, cert);
+
         // Accept either a request_uri (PAR) or inline params.
         // Build an authoritative parameter set to use.
-        var (authorize_request, error) = await AuthorizeEndpointProvider.ValidateAndOverrideWithPARAuthorizationRequest(app, cert, idpClientSigningKeysCacheService, par_service, query, ct);
+        var (authorize_request, error) = await AuthorizeEndpointProvider.ValidateAndOverrideWithPARAuthorizationRequest(app, cert, wk!, idpClientSigningKeysCacheService, par_service, query, ct);
 
         if (authorize_request == null || error != null)
         {
