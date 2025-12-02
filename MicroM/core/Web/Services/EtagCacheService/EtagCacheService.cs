@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Headers;
+using Microsoft.Extensions.Logging;
 using Microsoft.Net.Http.Headers;
 
 namespace MicroM.Web.Services;
@@ -14,6 +15,16 @@ public record EtagCacheServiceCacheCheckResult<T>(
 public class EtagCacheService<T> : IEtagCacheService<T> where T : class?
 {
     private EtagCache<T> _etagCache = new();
+
+
+    public EtagCacheService(IMemoryEventBus bus, ILogger<EtagCacheService<T>> log)
+    {
+        bus.Subscribe<MicroMConfigurationReloaded>(_ =>
+        {
+            log.LogInformation("Clearing ETag cache due to MicroMConfigurationReloaded");
+            ClearCache();
+        });
+    }
 
     public void ClearCache() => _etagCache.Clear();
 

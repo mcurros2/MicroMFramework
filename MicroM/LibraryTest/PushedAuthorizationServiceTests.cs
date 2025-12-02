@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Primitives;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Collections.Generic;
+using System.Diagnostics;
 
 namespace LibraryTest;
 
@@ -30,10 +31,12 @@ public class PushedAuthorizationServiceTests
         return app;
     }
 
-    private IFormCollection MakeForm(string response_type, string redirect_uri, string scope, string state = "", string code_challenge = "", string code_challenge_method = "")
+    // Provide sensible defaults for PKCE so tests that don't explicitly pass PKCE still satisfy validation.
+    private IFormCollection MakeForm(string response_type, string redirect_uri, string scope, string state = "", string code_challenge = "challenge", string code_challenge_method = "S256")
     {
         var dict = new Dictionary<string, StringValues>
         {
+            ["client_id"] = "client1",
             ["response_type"] = response_type,
             ["redirect_uri"] = redirect_uri,
             ["scope"] = scope,
@@ -118,15 +121,23 @@ public class PushedAuthorizationServiceTests
 
         var form = MakeForm("code", redirect, "openid");
         var (response, error) = _service.CreatePushedRequest(app, form, clientId);
+
+        if (error != null) Debug.WriteLine(error);
         Assert.IsNotNull(response);
         Assert.IsNull(error);
+
+        if (response.request_uri != null) Debug.WriteLine(response.request_uri);
+        Assert.IsNotNull(response.request_uri);
 
         var requestUri = response!.request_uri;
         var req = _service.ConsumeRequest(requestUri);
         Assert.IsNotNull(req);
-        Assert.AreEqual(clientId, req!.client_id);
+        Assert.AreEqual(clientId, req.request?.client_id);
 
         var req2 = _service.ConsumeRequest(requestUri);
-        Assert.IsNull(req2);
+        Debug.WriteLine(req2);
+        Assert.IsNull(req2.request);
+        Assert.IsNull(req2.header);
+        Assert.IsNull(req2.rawObject);
     }
 }
