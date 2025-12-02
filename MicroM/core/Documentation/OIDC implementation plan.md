@@ -92,6 +92,7 @@ Diagnostics conventions
 - State/nonce metadata only.
 - JWKS diagnostics expose ServerETag / NotModified / SentIfNoneMatch.
 - Structured error codes: unsupported_encryption_alg, unsupported_signing_alg, kid_miss.
+- All diagnostics class names should be suffixed with `Check`
 
 Out-of-Scope (Explicit Non-Implementation)
 - UserInfo endpoint (not mandatory for core authorization code + id_token flow).
@@ -137,6 +138,99 @@ Acceptance criteria (updated)
 - Performance counters recorded and queryable (encryption timings, payload sizes, jwks cache hit ratios).
 - Tests assert rejection of ECDH, CBC-HS*, RSA1_5, HS*, none; verify kid-miss triggers single forced refresh — TESTS DEFERRED UNTIL DIAGNOSTICS COMPLETE.
 - Documentation explicitly lists out-of-scope endpoints and rationale.
+
+---
+
+## OIDC Diagnostics implementation
+
+Execution model (via Applications Entity Action)
+- Diagnostics are executed through the Applications entity action `APPOIDCDiagnostics` (core/DataDictionary/Entities/Applications/APPOIDCDiagnostics.cs).
+- Endpoint exposed by `IEntitiesController` automatically; caller supplies `c_application_id`.
+- Role-driven branching:
+  - `IdentityProviderRoleType == IDPServer` → run IdP POV checks (`OIDCIdPDiagnostics.RunAllDiagnosticsAsync`).
+  - `IdentityProviderRoleType == IDPClient` → run Client POV checks (`OIDCClientDiagnostics.RunAllDiagnosticsAsync`).
+  - Disabled or invalid role → return pre-flight diagnostic with `app_invalid_role` error.
+- All planned diagnostics MUST consume configuration exclusively from `API.app_config` (single source of truth); no external injection of URLs.
+- Result contract: `Dictionary<string,List<DiagnosticResult>>` grouped by category (e.g. `client_checks`, `idp_checks`, `app_config`, `summary`).
+- Each check inherits the application context (ApplicationID, IdentityProviderRoleType). Per-client context is added where applicable (IdP POV).
+
+Goals and phased execution
+- Goal 1 (Phase 1): Ensure everything works end-to-end (connectivity, metadata alignment, core crypto policy). Focus on pass/fail functional health.
+- Goal 2 (Phase 2): Add parameters to execute a subset of checks per run (health set, client-only, idp-only, or custom).
+- Goal 3 (Phase 3): Add performance metrics and telemetry (timings, sizes, cache effectiveness, negotiation traces).
+
+Phase 1 — Core health & correctness (first goal)
+- PENDING Ensure all existing checks run under `APPOIDCDiagnostics` for the configured Application based on `IdentityProviderRoleType`.
+- PENDING Normalize output groups: `app_config`, `client_checks`, `idp_checks`.
+- PENDING Handle pre-flight issues (missing app, invalid role) as structured diagnostics under `app_config`.
+- PENDING Client checks to implement/verify now (see Client POV Diagnostics/Phase 1).
+- PENDING IdP checks to implement/verify now (see IdP POV Diagnostics/Phase 1).
+- PENDING Use only `API.app_config` for URLs/credentials; reuse `OIDCHttpClient`, `JwksService`/`IJwksService`, `IJWKSFetchCacheService`, `WellKnownProvider`, `IOIDCReplayCacheService`.
+- PENDING Implement unified reason code constants and apply across all checks (no metrics yet).
+- PENDING Add summary group with overall pass/warn/fail counts.
+
+Phase 2 — Subset execution parameters (second goal)
+- PENDING Add optional parameters to `APPOIDCDiagnostics`: `subset`, `customChecks`.
+- PENDING Subset values: `health` (minimal core), `client_all`, `idp_all`, `all`, and `custom` (comma-separated list of check names).
+- PENDING Map parameters from `IEntitiesController` to `APPOIDCDiagnostics`.
+- PENDING Implement check registry in client/idp runners to select checks by name.
+- PENDING Limit parallelism for IdP client endpoint probes via `maxParallelProbes` (default sensible value).
+
+Phase 3 — Performance metrics & telemetry (third goal)
+- PENDING NEW Add `includePerformanceMetrics` (bool) and `timeoutMs`, `forceJwksRefresh` parameters.
+- PENDING NEW Add timing wrapper utility so each check can populate `metrics.durationMs` and HTTP/JWKS timings when enabled.
+- PENDING NEW Capture ETag flow (`SentIfNoneMatch`, `NotModified`) in relevant checks; compute cache effectiveness.
+- PENDING NEW Integrate negotiation traces from `OIDCCryptoCapabilities` (candidates, selected, exclusions, reason codes) without exposing secrets.
+- PENDING NEW Add correlationId per run and attach to each record; enable optional publish to `IMemoryEventBus` (summary only).
+- PENDING NEW Add redaction guard to ensure no raw JWT/JWE/assertions are serialized.
+
+### Client POV Diagnostics
+
+Phase 1 (Core health)
+- PENDING ClientWellKnownAndJwksCheck: Validate issuer and required endpoints; JWKS reachable; reasons: `metadata_mismatch`, `http_error`, `jwks_kid_miss`.
+- PENDING ClientAuthorizeMetadataCheck: Validate PAR enforcement (`request_uri_parameter_supported == false`), supported `response_types`; reasons: `par_required_missing`, `metadata_mismatch`.
+- PENDING ClientEncryptionMetadataCheck: Validate advertised JWE alg/enc vs policy (RSA-OAEP + GCM only); reasons: `encryption_not_advertised`, `alg_unsupported`.
+- PENDING ClientIdpRefreshCheck: Token endpoint reachable; required grants present; audience validation; reasons: `metadata_mismatch`, `audience_mismatch`.
+- PENDING ClientPARCheck: Endpoint reachable; size caps respected; reasons: `par_required_missing`.
+- PENDING ClientRefreshFallbackCheck: Ensure fallback only when local refresh fails; reasons: `refresh_flow_fallback` (warn if frequent).
+- PENDING ClientEndSessionEndpointCheck: Endpoint exists and reachable; reasons: `logout_channel_unreachable`, `http_error`.
+- PENDING ClientIntrospectionEndpointCheck: If not advertised, classify `info` with `out_of_scope_endpoint`.
+- PENDING ClientRevocationEndpointCheck: If not advertised, classify `info` with `out_of_scope_endpoint`.
+- PENDING ClientUserInfoEndpointCheck: If not advertised, classify `info` with `out_of_scope_endpoint`.
+
+Phase 2 (Subset execution)
+- PENDING NEW Implement health subset: WellKnownAndJwks, AuthorizeMetadata, IdpRefresh.
+- PENDING NEW Support `client_all` and `custom` selection in `OIDCClientDiagnostics` registry.
+
+Phase 3 (Metrics & telemetry)
+- PENDING NEW ClientJwksCacheEffectivenessCheck: Compute hit ratio, forced refresh count; warn on `cache_ineffective`.
+- PENDING NEW Add metrics to all client checks when enabled (durationMs, payload sizes where applicable, ETag fields).
+- PENDING NEW ClientAlgorithmEnforcementCheck: Validate rejection of HS*, none, RSA1_5, ECDH, CBC-HS* using negative paths; reasons: `alg_unsupported`.
+- PENDING NEW ClientRequestObjectValidationCheck: Surface semantic validation outcomes (e.g., nonce when `openid` scope); reasons: `request_object_invalid`.
+- PENDING NEW ClientCapabilitiesSummaryCheck: Aggregate results (encryption, signing, PAR, logout, JWKS effectiveness).
+
+### IdP POV Diagnostics
+
+Phase 1 (Core health)
+- PENDING IdpConfigurationCheck: Validate global config alignment (PAR required, alg lists policy-compliant); reasons: `metadata_mismatch`, `alg_unsupported`.
+- PENDING IdpClientRegistrationSanityCheck: Client registration validity (uniqueness, required fields present); reasons: `invalid_registration`.
+- PENDING IdpClientRedirectUrisCheck: HTTPS enforcement and exact-match normalization; reasons: `redirect_uri_insecure`.
+- PENDING IdpClientJwksCheck: Client JWKS reachable; kids/alg sets valid; reasons: `jwks_kid_miss`, `http_error`.
+- PENDING IdpFrontChannelLogoutConfigCheck: Front-channel endpoints configured; reasons: `logout_channel_unreachable`, `endpoint_unreachable`.
+- PENDING IdpClientFrontchannelEndpointCheck: Reachability of front-channel logout endpoints; reasons: `endpoint_unreachable`.
+- PENDING IdpClientBackchannelEndpointCheck: Reachability of back-channel logout endpoints; reasons: `endpoint_unreachable`.
+
+Phase 2 (Subset execution)
+- PENDING NEW Support `idp_all` and `custom` selection in `OIDCIdPDiagnostics` registry.
+- PENDING NEW Concurrency limiter for client endpoint probes honoring `maxParallelProbes`.
+
+Phase 3 (Metrics & telemetry)
+- PENDING NEW Add ETag metrics in IdpClientJwksCheck; detect `key_set_changed` (info).
+- PENDING NEW Add replay cache stats into IdpConfigurationCheck; reason `assertion_replay_detected` with warn threshold.
+- PENDING NEW Add durationMs, latency distribution for front/back-channel checks; timeouts recorded as `endpoint_unreachable`/`http_error`.
+- PENDING NEW IdpClientAssertionKeySuitabilityCheck: Detect HS*/none; reasons: `alg_unsupported`.
+- PENDING NEW IdpRequestObjectKeyValidationCheck: Enforce RSA-OAEP only (ECDH excluded); reasons: `alg_unsupported`.
+- PENDING NEW IdpClientCapabilitiesSummaryCheck: Aggregate per-client findings (encryption/signing/logout/JWKS freshness).
 
 ---
 

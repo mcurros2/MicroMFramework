@@ -79,6 +79,12 @@ public static class WebAPIBaseExtensions
         return services;
     }
 
+    public static IServiceCollection AddMemoryEventBus(this IServiceCollection services)
+    {
+        services.AddSingleton<IMemoryEventBus, MemoryEventBus>();
+        return services;
+    }
+
     public static IApplicationBuilder UseDebugRoutes(this IApplicationBuilder app, string path = "/debug-routes")
     {
         return app.UseMiddleware<DebugRoutesMiddleware>(path);
@@ -440,6 +446,7 @@ public static class WebAPIBaseExtensions
         services.AddHttpClient();
         services.AddMemoryCache();
 
+        services.AddMemoryEventBus();
         services.AddMicroMOidcHttpClients();
 
         services.AddMemoryQueue();

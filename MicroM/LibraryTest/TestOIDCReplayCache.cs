@@ -17,10 +17,12 @@ public class TestOIDCReplayCache
         var svc = new OIDCReplayCacheService(cache, NullLogger<OIDCReplayCacheService>.Instance);
         var jti = Guid.NewGuid().ToString("N");
         var iat = DateTimeOffset.UtcNow.AddMinutes(-1);
+        var ttl = TimeSpan.FromMinutes(5);
+        var clockSkew = TimeSpan.FromMinutes(2);
 
         // Act
-        var first = svc.TryStore(jti, iat);
-        var second = svc.TryStore(jti, iat);
+        var first = svc.TryStore("test_replay", jti, iat, ttl, clockSkew);
+        var second = svc.TryStore("test_replay", jti, iat, ttl, clockSkew);
 
         // Assert
         Assert.AreEqual(ReplayCacheStatus.Added, first.Status, first.Reason);
@@ -35,9 +37,11 @@ public class TestOIDCReplayCache
         var svc = new OIDCReplayCacheService(cache, NullLogger<OIDCReplayCacheService>.Instance);
         var jti = Guid.NewGuid().ToString("N");
         var iatExpired = DateTimeOffset.UtcNow.AddMinutes(-30); // much older than TTL
+        var ttl = TimeSpan.FromMinutes(5);
+        var clockSkew = TimeSpan.FromMinutes(2);
 
         // Act
-        var result = svc.TryStore(jti, iatExpired);
+        var result = svc.TryStore("test_expired", jti, iatExpired, ttl, clockSkew);
 
         // Assert
         Assert.AreEqual(ReplayCacheStatus.Stale, result.Status);
@@ -52,9 +56,11 @@ public class TestOIDCReplayCache
         var svc = new OIDCReplayCacheService(cache, NullLogger<OIDCReplayCacheService>.Instance);
         var jti = Guid.NewGuid().ToString("N");
         var iatFuture = DateTimeOffset.UtcNow.AddMinutes(5); // beyond allowed skew
+        var ttl = TimeSpan.FromMinutes(5);
+        var clockSkew = TimeSpan.FromMinutes(2);
 
         // Act
-        var result = svc.TryStore(jti, iatFuture);
+        var result = svc.TryStore("test_future", jti, iatFuture, ttl, clockSkew);
 
         // Assert
         Assert.AreEqual(ReplayCacheStatus.Skew, result.Status);
@@ -67,11 +73,14 @@ public class TestOIDCReplayCache
         // Arrange
         var cache = new MemoryCache(new MemoryCacheOptions());
         var svc = new OIDCReplayCacheService(cache, NullLogger<OIDCReplayCacheService>.Instance);
-        var jti = new string('a', 1024); // far beyond max length
+        var jti = new string('a', 1024 * 1000); // far beyond max length
         var iat = DateTimeOffset.UtcNow.AddMinutes(-1);
+        var ttl = TimeSpan.FromMinutes(5);
+        var clockSkew = TimeSpan.FromMinutes(2);
+
 
         // Act
-        var result = svc.TryStore(jti, iat);
+        var result = svc.TryStore("test_jtitoolong", jti, iat, ttl, clockSkew);
 
         // Assert
         Assert.AreEqual(ReplayCacheStatus.Invalid, result.Status);

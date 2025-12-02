@@ -77,7 +77,7 @@ public static class WellKnownProvider
 
             response_types_supported: [OIDCResponseType.code],
             response_modes_supported: [OIDCResponseMode.query, OIDCResponseMode.form_post],
-            subject_types_supported: [OIDCSubjectType.@public, OIDCSubjectType.pairwise],
+            subject_types_supported: [OIDCSubjectType.pairwise],
 
             // Signing:
             //  - These fields describe algorithms the IdP uses when it SIGNS tokens/claims

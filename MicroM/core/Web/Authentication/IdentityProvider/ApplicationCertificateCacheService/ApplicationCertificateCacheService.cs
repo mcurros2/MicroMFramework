@@ -1,13 +1,27 @@
 ﻿using MicroM.Configuration;
+using MicroM.Web.Services;
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 using System.Security.Cryptography.X509Certificates;
 
 namespace MicroM.Web.Authentication.SSO;
 
-public class ApplicationCertificateCacheService(ILogger<ApplicationCertificateCacheService> log) : IApplicationCertificateCacheService
+public class ApplicationCertificateCacheService : IApplicationCertificateCacheService
 {
     private readonly ConcurrentDictionary<string, X509Certificate2> _certificateCache = new();
+    private readonly ILogger<ApplicationCertificateCacheService> log;
+    private readonly IMemoryEventBus bus;
+
+    public ApplicationCertificateCacheService(ILogger<ApplicationCertificateCacheService> log, IMemoryEventBus bus)
+    {
+        this.log = log;
+        this.bus = bus;
+        bus.Subscribe<MicroMConfigurationReloaded>(_ =>
+        {
+            log.LogInformation("Clearing application certificate cache due to MicroMConfigurationReloaded");
+            ClearCache();
+        });
+    }
 
     private X509Certificate2? GetOrAddCertificateToCache(ApplicationOption app)
     {

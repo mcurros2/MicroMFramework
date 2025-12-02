@@ -7,16 +7,39 @@ using System.Security.Cryptography.X509Certificates;
 
 namespace MicroM.Web.Authentication.SSO;
 
-public class IdPClientEncryptingCredentialsCacheService(
-    IMicroMAppConfiguration appConfig,
-    IApplicationCertificateCacheService certCache,
-    IEtagCacheService<OIDCJwksResponse> jwksCache,
-    IOIDCHttpClient oidcHttpClient,
-    ILogger<IdPClientEncryptingCredentialsCacheService> log
-    ) : IIdPClientEncryptingCredentialsCacheService
+public class IdPClientEncryptingCredentialsCacheService : IIdPClientEncryptingCredentialsCacheService
 {
     // Cache EncryptingCredentials by a composite key (source + app + audience + etag + keyid + algs)
     private readonly ConcurrentDictionary<string, Lazy<EncryptingCredentials?>> _cache = new(StringComparer.Ordinal);
+    private readonly IMicroMAppConfiguration appConfig;
+    private readonly IApplicationCertificateCacheService certCache;
+    private readonly IEtagCacheService<OIDCJwksResponse> jwksCache;
+    private readonly IOIDCHttpClient oidcHttpClient;
+    private readonly ILogger<IdPClientEncryptingCredentialsCacheService> log;
+    private readonly IMemoryEventBus bus;
+
+    public IdPClientEncryptingCredentialsCacheService(
+        IMicroMAppConfiguration appConfig,
+        IApplicationCertificateCacheService certCache,
+        IEtagCacheService<OIDCJwksResponse> jwksCache,
+        IOIDCHttpClient oidcHttpClient,
+        IMemoryEventBus bus,
+        ILogger<IdPClientEncryptingCredentialsCacheService> log
+    )
+    {
+        this.appConfig = appConfig;
+        this.certCache = certCache;
+        this.jwksCache = jwksCache;
+        this.oidcHttpClient = oidcHttpClient;
+        this.log = log;
+        this.bus = bus;
+
+        bus.Subscribe<MicroMConfigurationReloaded>(_ =>
+        {
+            log.LogInformation("Clearing IDP client encrypting credentials cache due to MicroMConfigurationReloaded");
+            Clear();
+        });
+    }
 
     public void Clear() => _cache.Clear();
 

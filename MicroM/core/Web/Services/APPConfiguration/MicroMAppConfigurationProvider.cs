@@ -5,7 +5,6 @@ using MicroM.Database;
 using MicroM.DataDictionary.CategoriesDefinitions;
 using MicroM.DataDictionary.Entities;
 using MicroM.Extensions;
-using MicroM.Web.Authentication.SSO;
 using MicroM.Web.Services.Security;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
@@ -18,6 +17,8 @@ using static MicroM.Extensions.DataExtensions;
 using static System.ArgumentNullException;
 
 namespace MicroM.Web.Services;
+
+public sealed record MicroMConfigurationReloaded { }
 
 public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfiguration
 {
@@ -35,12 +36,7 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
     private readonly string _jwtkey;
     private readonly PathString _basePathString;
 
-    private readonly IApplicationCertificateCacheService _certificate_cache;
-    private readonly IIdPClientEncryptingCredentialsCacheService _audience_crypto_cache;
-    private readonly IIdPClientSigningKeysCacheService _signing_keys_cache;
-    private readonly IEtagCacheService<OIDCWellKnownResponse> _wk_cache;
-    private readonly IEtagCacheService<OIDCJwksResponse> _jwks_cache;
-
+    private readonly IMemoryEventBus _bus;
 
     private static string NormalizeURL(string url)
     {
@@ -54,11 +50,7 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
         ILogger<MicroMAppConfigurationProvider> logger,
         IMicroMEncryption encryptor,
         IBackgroundTaskQueue queue,
-        IApplicationCertificateCacheService certificate_cache,
-        IIdPClientEncryptingCredentialsCacheService audience_crypto_cache,
-        IIdPClientSigningKeysCacheService signing_keys_cache,
-        IEtagCacheService<OIDCWellKnownResponse> wk_cache,
-        IEtagCacheService<OIDCJwksResponse> jwks_cache,
+        IMemoryEventBus bus,
         IConfiguration config)
     {
         ThrowIfNull(options);
@@ -71,12 +63,7 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
         _jwtkey = CryptClass.GenerateRandomBase64String(32);
 
         _config = config;
-
-        _wk_cache = wk_cache;
-        _jwks_cache = jwks_cache;
-        _certificate_cache = certificate_cache;
-        _audience_crypto_cache = audience_crypto_cache;
-        _signing_keys_cache = signing_keys_cache;
+        _bus = bus;
 
         var raw = options?.Value.MicroMAPIBaseRootPath ?? string.Empty;
         var trimmed = raw.Trim().Trim('/');
@@ -88,13 +75,13 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
 
     public Task StartAsync(CancellationToken cancellationToken)
     {
-        _log.LogTrace("StartAsync Called");
+        _log.LogInformation("StartAsync Called");
         return ReloadConfiguration(cancellationToken);
     }
 
     public Task StopAsync(CancellationToken cancellationToken)
     {
-        _log.LogTrace("StopAsync Called");
+        _log.LogInformation("StopAsync Called");
         // Cleanup or stop tasks.
         return Task.CompletedTask;
     }
@@ -389,6 +376,10 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
             {
                 _log.LogError(ex, "ERROR: Trying to read configured applications from configuration DB. Server {server} DB {DB}", control_panel.SQLServer, control_panel.SQLDB);
             }
+            finally
+            {
+                _bus.Publish(new MicroMConfigurationReloaded());
+            }
         }
 
         return ret;
@@ -466,14 +457,7 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
         {
             try
             {
-                _wk_cache.ClearCache();
-                _jwks_cache.ClearCache();
-                _certificate_cache.ClearCache();
-
-                _audience_crypto_cache.Clear();
-                _signing_keys_cache.Clear();
                 _ApplicationsCache.Clear();
-
                 await RefreshConfiguration(null, ct);
             }
             finally
