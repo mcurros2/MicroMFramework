@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using System.Net.Mime;
 using static MicroM.Web.Controllers.MicroMControllersMessages;
 
 namespace MicroM.Web.Controllers;
@@ -55,7 +56,7 @@ public class IdentityProviderController : ControllerBase, IIdentityProviderContr
                 return StatusCode(StatusCodes.Status304NotModified);
             }
 
-            return Content(result.etag_content.Content, "application/json");
+            return Content(result.etag_content.Content, MediaTypeNames.Application.Json);
         }
         catch (Exception ex) when (ex is TaskCanceledException || ex is OperationCanceledException || (ex.InnerException is TaskCanceledException || ex.InnerException is OperationCanceledException))
         {
@@ -97,7 +98,7 @@ public class IdentityProviderController : ControllerBase, IIdentityProviderContr
                 return StatusCode(StatusCodes.Status304NotModified);
             }
 
-            return Content(result.etag_content.Content, "application/json");
+            return Content(result.etag_content.Content, MediaTypeNames.Application.Json);
 
         }
         catch (Exception ex) when (ex is TaskCanceledException || ex is OperationCanceledException || (ex.InnerException is TaskCanceledException || ex.InnerException is OperationCanceledException))

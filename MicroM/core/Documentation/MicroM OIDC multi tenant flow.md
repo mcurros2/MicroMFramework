@@ -35,17 +35,17 @@ Terminology
 
 - CLIENT (IdPClient)
   - Client JWKS: GET api.com/microm/client/oidc-client/jwks (for private_key_jwt if used)
-  - Client PAR forwarder: POST api.com/microm/client/oidc-client/login (SPA → backend; forwards to CENTRAL /par)
+  - Client PAR forwarder: POST api.com/microm/client/oidc-client/par (SPA → backend; backchannel to CENTRAL /par; returns redirect_uri)
   - Client callback (redirect_uri): GET/POST api.com/microm/client/oidc-client/callback
   - Local login: POST api.com/microm/client/auth/login
-	- If app is IdPClient, this endpoint does not accept credentials; it validates authorize params and forwards to /oidc-client/login (PAR), returning PAR result to the SPA.
+	- If app is IdPClient, this endpoint does not accept credentials; it validates authorize params and forwards to /oidc-client/par (PAR), returning PAR result to the SPA.
   - Local refresh: POST api.com/microm/client/auth/refresh
 	- Uses CLIENT-issued refresh tokens (per device) to renew the local session without contacting CENTRAL
   - Local logoff: POST api.com/microm/client/auth/logoff (if OIDC client, call IdP endsession)
   - Backchannel logout receiver: POST api.com/microm/client/oidc-client/backchannel-logout
 
 2) High-level flow (SSO vs no SSO)
-- Client SPA needs a session → SPA POSTs to api.com/microm/client/oidc-client/login with authorize params (scope, state, nonce, redirect_uri, code_challenge=S256).
+- Client SPA needs a session → SPA POSTs to api.com/microm/client/oidc-client/par with authorize params (scope, state, nonce, redirect_uri, code_challenge=S256).
 - Client backend forwards to CENTRAL /oauth2/par (client_secret_basic or private_key_jwt). IdP responds with request_uri.
 - SPA redirects to CENTRAL /oauth2/authorize?client_id=CLIENT&request_uri=...
   - If user has IdP SSO → IdP immediately redirects to CLIENT redirect_uri with code & state.
@@ -60,16 +60,16 @@ Terminology
   - Upsert ApplicationOidcActiveSessions with (`c_application_id`, `vc_username` or `sub`, `c_device_id`, `ui_oidc_session_guid_id`), optionally `vc_oidc_refreshtoken` + `dt_refresh_expiration` if background IdP refresh is desired.
 - /auth/refresh (CLIENT):
   - Validate/rotate the CLIENT refresh token (per device) and re-issue local cookie; do not call CENTRAL. Same as APPs that valdiate locally (IDPDisabled).
-    - If local refresh fails and an IdP refresh_token exists, attempt refresh at CENTRAL as a one-time fallback; otherwise instruct SPA to re-initiate OIDC via /oidc-client/login.
+    - If local refresh fails and an IdP refresh_token exists, attempt refresh at CENTRAL as a one-time fallback; otherwise instruct SPA to re-initiate OIDC via /oidc-client/par.
   - IdP refresh expiration is configured on the IdP at a longer cadence (e.g., 30 days). CLIENT should not issue a refresh token with an expiration greater than the IdP refresh expiration.
   - CLIENT issues its own refresh token with a shorter expiration (e.g., 1 day) and rotates it on each /auth/refresh.
-  - If local refresh fails and an IdP refresh_token exists, attempt a one-time IdP refresh; otherwise instruct SPA to re-initiate OIDC via /oidc-client/login.
+  - If local refresh fails and an IdP refresh_token exists, attempt a one-time IdP refresh; otherwise instruct SPA to re-initiate OIDC via /oidc-client/par.
 - Tokens remain server-side only; never return IdP refresh_token to the SPA.
 
 3) CLIENT local login behavior (guard)
 - If app is configured as IdPClient, the local login endpoint (api.com/microm/client/auth/login) must:
   - Not accept credentials.
-  - Return 400 (or a specific code) instructing the SPA to start OIDC flow via /oidc-client/login.
+  - Return 400 (or a specific code) instructing the SPA to start OIDC flow via /oidc-client/par.
 
 4) Just-In-Time (JIT) provisioning at CLIENT
 - When CLIENT validates id_token:
@@ -109,7 +109,7 @@ Terminology
 - Backchannels:
   - IdP backchannel auth handler supports BASIC and private_key_jwt. Hosted clients can validate via local certificate cache; external clients via URLClientJWKS.
 - CSRF/CORS/rate limiting:
-  - Client’s /oidc-client/login is called by the SPA (front-channel). Use CORS allowlist and CSRF protections. Do not gate it behind IdP backchannel auth.
+  - Client’s /oidc-client/par is called by the SPA (front-channel). Use CORS allowlist and CSRF protections. Do not gate it behind IdP backchannel auth.
 - Additional:
   - CLIENT refresh tokens are per device; enforce rotation and throttle validation attempts to mitigate abuse.
   - If storing IdP refresh_token in ApplicationOidcActiveSessions, keep it server-only and encrypted; rotate on refresh; delete on logout/backchannel.
@@ -121,4 +121,4 @@ Terminology
 - JWKS not configured → return 404 to reduce info leakage.
 - CLIENT /auth/refresh failures:
   - If IdP refresh_token exists and refresh succeeds → update local session silently.
-  - Otherwise, instruct the SPA to re-initiate OIDC via /oidc-client/login.
+  - Otherwise, instruct the SPA to re-initiate OIDC via /oidc-client/par.

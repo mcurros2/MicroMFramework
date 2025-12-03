@@ -2,6 +2,8 @@
 using Microsoft.Extensions.Logging;
 using System.Net;
 using System.Net.Http.Headers;
+using System.Net.Mime;
+using System.Text;
 using System.Text.Json;
 
 namespace MicroM.Web.Authentication.SSO;
@@ -27,8 +29,8 @@ public class OIDCHttpClient(IHttpClientFactory httpClientFactory, ILogger<OIDCHt
         {
             using var client = httpClientFactory.CreateClient(ConfigurationDefaults.HTTPClientOidcName);
             using var req = new HttpRequestMessage(HttpMethod.Get, uri);
-            req.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-            req.Headers.AcceptCharset.Add(new StringWithQualityHeaderValue("utf-8"));
+            req.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue(MediaTypeNames.Application.Json));
+            req.Headers.AcceptCharset.Add(new StringWithQualityHeaderValue(UTF8Encoding.UTF8.WebName));
             if (!string.IsNullOrWhiteSpace(ifNoneMatch))
             {
                 req.Headers.IfNoneMatch.Add(new EntityTagHeaderValue($"\"{ifNoneMatch}\""));
@@ -40,7 +42,7 @@ public class OIDCHttpClient(IHttpClientFactory httpClientFactory, ILogger<OIDCHt
             if (resp.StatusCode == HttpStatusCode.NotModified)
             {
                 var etag = resp.Headers.ETag?.Tag?.Trim('"');
-                return new((int)resp.StatusCode, IsSuccessStatusCode: false, ContentType: "application/json", Body: "", Error: null, ETag: etag, NotModified: true);
+                return new((int)resp.StatusCode, IsSuccessStatusCode: false, ContentType: MediaTypeNames.Application.Json, Body: "", Error: null, ETag: etag, NotModified: true);
             }
 
             var content = await resp.Content.ReadAsStringAsync(ct);
@@ -57,7 +59,7 @@ public class OIDCHttpClient(IHttpClientFactory httpClientFactory, ILogger<OIDCHt
                 return new((int)resp.StatusCode, Error: JsonSerializer.Serialize(new { error = "server_error", error_description = $"GET well-known failed: {(int)resp.StatusCode} {resp.ReasonPhrase}\n{content}" }));
             }
 
-            string content_type = resp.Content.Headers.ContentType?.ToString() ?? "application/json";
+            string content_type = resp.Content.Headers.ContentType?.ToString() ?? MediaTypeNames.Application.Json;
             var responseEtag = resp.Headers.ETag?.Tag?.Trim('"');
             return new((int)resp.StatusCode, true, content_type, content, ETag: responseEtag);
         }
@@ -77,8 +79,8 @@ public class OIDCHttpClient(IHttpClientFactory httpClientFactory, ILogger<OIDCHt
         {
             using var client = httpClientFactory.CreateClient(ConfigurationDefaults.HTTPClientJwksName);
             using var req = new HttpRequestMessage(HttpMethod.Get, uri);
-            req.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-            req.Headers.AcceptCharset.Add(new StringWithQualityHeaderValue("utf-8"));
+            req.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue(MediaTypeNames.Application.Json));
+            req.Headers.AcceptCharset.Add(new StringWithQualityHeaderValue(UTF8Encoding.UTF8.WebName));
             if (!string.IsNullOrWhiteSpace(ifNoneMatch))
             {
                 req.Headers.IfNoneMatch.Add(new EntityTagHeaderValue($"\"{ifNoneMatch}\""));
@@ -91,7 +93,7 @@ public class OIDCHttpClient(IHttpClientFactory httpClientFactory, ILogger<OIDCHt
             if (resp.StatusCode == HttpStatusCode.NotModified)
             {
                 var etag = resp.Headers.ETag?.Tag?.Trim('"');
-                return new((int)resp.StatusCode, ContentType: "application/json", ETag: etag, NotModified: true);
+                return new((int)resp.StatusCode, ContentType: MediaTypeNames.Application.Json, ETag: etag, NotModified: true);
             }
 
             var content = await resp.Content.ReadAsStringAsync(ct);
@@ -107,7 +109,7 @@ public class OIDCHttpClient(IHttpClientFactory httpClientFactory, ILogger<OIDCHt
                 return new((int)resp.StatusCode, Error: JsonSerializer.Serialize(new { error = "server_error", error_description = $"GET JWKS failed: {(int)resp.StatusCode} {resp.ReasonPhrase}\n{content}" }));
             }
 
-            string content_type = resp.Content.Headers.ContentType?.ToString() ?? "application/json";
+            string content_type = resp.Content.Headers.ContentType?.ToString() ?? MediaTypeNames.Application.Json;
             var responseEtag = resp.Headers.ETag?.Tag?.Trim('"');
             return new((int)resp.StatusCode, true, content_type, content, ETag: responseEtag);
         }
@@ -157,19 +159,19 @@ public class OIDCHttpClient(IHttpClientFactory httpClientFactory, ILogger<OIDCHt
             };
 
             if (authorization != null) req.Headers.Authorization = authorization;
-            req.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-            req.Headers.AcceptCharset.Add(new StringWithQualityHeaderValue("utf-8"));
+            req.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue(MediaTypeNames.Application.Json));
+            req.Headers.AcceptCharset.Add(new StringWithQualityHeaderValue(UTF8Encoding.UTF8.WebName));
 
             using var resp = await client.SendAsync(req, ct);
             var body = await resp.Content.ReadAsStringAsync(ct);
-            var ctype = resp.Content.Headers.ContentType?.ToString() ?? "application/json";
+            var ctype = resp.Content.Headers.ContentType?.ToString() ?? MediaTypeNames.Application.Json;
             return new((int)resp.StatusCode, resp.IsSuccessStatusCode, ctype, body);
         }
         catch (Exception ex)
         {
             log.LogWarning(ex, "POST form failed to {url}", url);
             var msg = new { error = "server_error", error_description = $"HTTP error: {ex.Message}" };
-            return new(502, false, "application/json", JsonSerializer.Serialize(msg));
+            return new(502, false, MediaTypeNames.Application.Json, JsonSerializer.Serialize(msg));
         }
     }
 }

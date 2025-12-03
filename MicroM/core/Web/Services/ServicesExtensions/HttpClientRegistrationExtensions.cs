@@ -3,9 +3,11 @@ using MicroM.Web.Authentication.SSO;
 using Microsoft.Extensions.DependencyInjection;
 using System.Net;
 using System.Net.Http.Headers;
+using System.Net.Mime;
 using System.Net.Security;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
+using System.Text;
 
 namespace MicroM.Web.Extensions;
 
@@ -18,8 +20,8 @@ public static class HttpClientRegistrationExtensions
             client.DefaultRequestVersion = HttpVersion.Version20;
             client.DefaultVersionPolicy = HttpVersionPolicy.RequestVersionOrLower;
             client.Timeout = TimeSpan.FromSeconds(30);
-            client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-            client.DefaultRequestHeaders.AcceptCharset.Add(new StringWithQualityHeaderValue("utf-8"));
+            client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue(MediaTypeNames.Application.Json));
+            client.DefaultRequestHeaders.AcceptCharset.Add(new StringWithQualityHeaderValue(UTF8Encoding.UTF8.WebName));
             client.DefaultRequestHeaders.UserAgent.ParseAdd(ConfigurationDefaults.HTTPClientOidcUserAgent);
         })
         .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
@@ -31,7 +33,7 @@ public static class HttpClientRegistrationExtensions
                 EnabledSslProtocols = SslProtocols.Tls12 | SslProtocols.Tls13,
                 CertificateRevocationCheckMode = X509RevocationMode.Online
             },
-            AllowAutoRedirect = false // avoid losing method/headers across redirects
+            AllowAutoRedirect = true
         });
 
         services.AddHttpClient(ConfigurationDefaults.HTTPClientJwksName, client =>
@@ -39,8 +41,8 @@ public static class HttpClientRegistrationExtensions
             client.DefaultRequestVersion = HttpVersion.Version20;
             client.DefaultVersionPolicy = HttpVersionPolicy.RequestVersionOrLower;
             client.Timeout = TimeSpan.FromSeconds(15);
-            client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-            client.DefaultRequestHeaders.AcceptCharset.Add(new StringWithQualityHeaderValue("utf-8"));
+            client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue(MediaTypeNames.Application.Json));
+            client.DefaultRequestHeaders.AcceptCharset.Add(new StringWithQualityHeaderValue(UTF8Encoding.UTF8.WebName));
             client.DefaultRequestHeaders.UserAgent.ParseAdd(ConfigurationDefaults.HTTPClientJwksUserAgent);
         })
         .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler

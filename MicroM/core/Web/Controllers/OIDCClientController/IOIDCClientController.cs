@@ -10,7 +10,7 @@ public interface IOIDCClientController
 {
     ActionResult Jwks(IMicroMAppConfiguration app_config, IOIDCClientService client_service, string app_id, CancellationToken ct);
 
-    Task<ActionResult> SignInOidc(IMicroMAppConfiguration app_config, IOIDCClientService clientService, string app_id, CancellationToken ct);
+    Task<ActionResult> ClientPAR(IMicroMAppConfiguration app_config, IOIDCClientService clientService, string app_id, CancellationToken ct);
 
     Task<ActionResult> AuthorizeCallback(
         IMicroMAppConfiguration app_config,

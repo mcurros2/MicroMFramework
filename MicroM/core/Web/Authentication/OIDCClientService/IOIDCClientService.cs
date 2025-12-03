@@ -12,7 +12,7 @@ public interface IOIDCClientService
     EtagCacheServiceCacheCheckResult<OIDCJwksResponse>? HandleClientJwks(ApplicationOption app, RequestHeaders request_headers, IHeaderDictionary response_headers);
 
     // Client-side PAR forwarder: returns (statusCode, contentType, body)
-    Task<OIDCHttpClientPostResponse> HandleSignInOidc(ApplicationOption app, IHeaderDictionary requestHeaders, IFormCollection form, CancellationToken ct);
+    Task<OIDCHttpClientPostResponse> HandleOidcClientPAR(ApplicationOption app, IHeaderDictionary requestHeaders, IFormCollection form, CancellationToken ct);
 
     // OIDC authorization code callback: exchanges code at IdP /token (PKCE), validates id_token, returns a local ClaimsPrincipal
     // Adds authorizationResponseIssuer (optional 'iss' param from authorization response) for mix-up mitigation.

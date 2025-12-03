@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
+using System.Net.Mime;
 using System.Text;
 using System.Text.Json;
 
@@ -35,7 +36,7 @@ namespace MicroM.Web.Middleware
 
                     var routesJson = JsonSerializer.Serialize(routes, _jsonSerializerOptions);
 
-                    context.Response.ContentType = "application/json";
+                    context.Response.ContentType = MediaTypeNames.Application.Json;
                     await context.Response.WriteAsync(routesJson, Encoding.UTF8);
                 }
                 else

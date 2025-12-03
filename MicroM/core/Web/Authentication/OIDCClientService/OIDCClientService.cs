@@ -2,6 +2,7 @@
 using MicroM.Core;
 using MicroM.DataDictionary.Entities;
 using MicroM.Extensions;
+using MicroM.Web.Extensions;
 using MicroM.Web.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Headers;
@@ -9,6 +10,7 @@ using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
+using System.Net.Mime;
 using System.Security.Claims;
 using System.Security.Cryptography.X509Certificates;
 using System.Text.Json;
@@ -133,27 +135,27 @@ public class OIDCClientService(
         }
     }
 
-    public async Task<OIDCHttpClientPostResponse> HandleSignInOidc(ApplicationOption app, IHeaderDictionary requestHeaders, IFormCollection form, CancellationToken ct)
+    public async Task<OIDCHttpClientPostResponse> HandleOidcClientPAR(ApplicationOption app, IHeaderDictionary requestHeaders, IFormCollection form, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(app.OIDCWellKnownURL))
         {
             log.LogWarning("OIDC SignIn requested for app {app} which has no IdP discovery URL configured", app.ApplicationID);
-            return new(400, false, "application/json", JsonSerializer.Serialize(new { error = "invalid_request", error_description = "IdP discovery URL not configured for this client app" }));
+            return new(400, false, MediaTypeNames.Application.Json, JsonSerializer.Serialize(new { error = "invalid_request", error_description = "IdP discovery URL not configured for this client app" }));
         }
 
-        // Discover PAR endpoint
+        // Discover IdP PAR endpoint
         var (wellknown_result, wellknown_error) = await DiscoverWellKnown(app, ct);
         if (wellknown_error != null || wellknown_result == null)
         {
             log.LogWarning("Failed to discover IdP configuration for app {app}: {error}", app.ApplicationID, wellknown_error);
-            return new(502, false, "application/json", JsonSerializer.Serialize(new { error = "server_error", error_description = "IdP discovery failed" }));
+            return new(502, false, MediaTypeNames.Application.Json, JsonSerializer.Serialize(new { error = "server_error", error_description = "IdP discovery failed" }));
         }
 
         string? parEndpoint = wellknown_result.pushed_authorization_request_endpoint;
         if (string.IsNullOrEmpty(parEndpoint))
         {
             log.LogWarning("IdP for app {app} does not expose a pushed_authorization_request_endpoint", app.ApplicationID);
-            return new(400, false, "application/json", JsonSerializer.Serialize(new { error = "unsupported_operation", error_description = "IdP does not expose a pushed_authorization_request_endpoint" }));
+            return new(400, false, MediaTypeNames.Application.Json, JsonSerializer.Serialize(new { error = "unsupported_operation", error_description = "IdP does not expose a pushed_authorization_request_endpoint" }));
         }
 
         // State and Nonce validation (if present)
@@ -169,7 +171,7 @@ public class OIDCClientService(
         if (form_result.error != null || form_result.valid_form == null)
         {
             log.LogWarning("Invalid OIDC SignIn form for app {app}: {error}", app.ApplicationID, form_result.error);
-            return new(400, false, "application/json", JsonSerializer.Serialize(form_result.error));
+            return new(400, false, MediaTypeNames.Application.Json, JsonSerializer.Serialize(form_result.error));
         }
 
         var forward = form_result.valid_form;
@@ -190,7 +192,7 @@ public class OIDCClientService(
         if (authHeaderError != null)
         {
             log.LogWarning("Client authentication failed for app {app}: {error}", app.ApplicationID, authHeaderError);
-            return new(400, false, "application/json", JsonSerializer.Serialize(new { error = "invalid_client", error_description = authHeaderError }));
+            return new(400, false, MediaTypeNames.Application.Json, JsonSerializer.Serialize(new { error = "invalid_client", error_description = authHeaderError }));
         }
 
         // Build and send PAR request
@@ -200,6 +202,48 @@ public class OIDCClientService(
         if (parResult.IsSuccessStatusCode)
         {
             state_and_nonce_service.StoreStateCookie(app, app.JWTKey, stateContext.Data);
+
+            // Build authorize_url for redirect
+            if (!string.IsNullOrWhiteSpace(wellknown_result.authorization_endpoint))
+            {
+                try
+                {
+                    using var parDoc = JsonDocument.Parse(parResult.Body);
+                    var requestUri = parDoc.RootElement.ReadString(WellknownIdentityConstants.RequestUri);
+
+                    if (!string.IsNullOrWhiteSpace(requestUri))
+                    {
+                        var authorizeQuery = new Dictionary<string, string?>(StringComparer.Ordinal)
+                        {
+                            [WellknownIdentityConstants.ClientId] = app.ApplicationID,
+                            [WellknownIdentityConstants.RequestUri] = requestUri
+                        };
+
+                        string authorizeUrl = QueryHelpers.AddQueryString(wellknown_result.authorization_endpoint, authorizeQuery);
+
+                        // Return a JSON body with the authorize_url so the client can redirect
+                        return new OIDCHttpClientPostResponse(
+                            StatusCode: 200,
+                            IsSuccessStatusCode: true,
+                            ContentType: MediaTypeNames.Application.Json,
+                            Body: JsonSerializer.Serialize(new { authorize_url = authorizeUrl }, _jsonOptionsUnsafe)
+                        );
+                    }
+                    else
+                    {
+                        log.LogWarning("PAR response missing request_uri for app {app}", app.ApplicationID);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    log.LogWarning(ex, "Failed to parse PAR response for app {app}", app.ApplicationID);
+                }
+            }
+            else
+            {
+                log.LogWarning("IdP discovery missing authorization_endpoint for app {app}", app.ApplicationID);
+            }
+
         }
         else
         {
