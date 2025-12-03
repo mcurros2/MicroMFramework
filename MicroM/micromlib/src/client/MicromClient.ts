@@ -31,6 +31,7 @@ export interface MicroMClientProps {
     , publicEndpoints?: Record<string, PublicEndpoint>
     , dataStorage?: DataStorage
     , redirect_on_401?: string
+    , idp_url_root?: string
 }
 
 const ENABLED_MENUS_DATA_KEY = 'mm_menus';
@@ -41,10 +42,49 @@ const TIMEZONE_OFFSET_DATA_KEY = 'mm_server_timezone_offset';
 
 const LOCAL_DEVICE_ID_KEY = 'mm_ldid';
 
+const OIDC_LOGIN_DATA_KEY = 'mm_oidc_login';
+
+type OidcLoginData = {
+    state: string;
+    nonce: string;
+    code_verifier: string;
+};
+
+async function createPkcePair(): Promise<{ verifier: string; challenge: string }> {
+    const array = new Uint8Array(32);
+    crypto.getRandomValues(array);
+    const verifier = btoa(String.fromCharCode(...array))
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=+$/, '');
+
+    const encoder = new TextEncoder();
+    const data = encoder.encode(verifier);
+    const digest = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(digest));
+    const base64 = btoa(String.fromCharCode(...hashArray))
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=+$/, '');
+
+    return { verifier, challenge: base64 };
+}
+
+function generateRandomUrlSafeString(byteLength: number = 32): string {
+    const array = new Uint8Array(byteLength);
+    crypto.getRandomValues(array);
+    const b64 = btoa(String.fromCharCode(...array));
+    return b64
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=+$/, '');
+}
+
 export class MicroMClient {
     #API_URL;
     #TOKEN_STORAGE;
     #APP_ID;
+    #IDP_URL_ROOT: string;
     #LOGIN_TIMEOUT;
     #REQUEST_MODE;
     #TOKEN: MicroMToken | null = null;
@@ -56,7 +96,6 @@ export class MicroMClient {
 
     #RECORD_PATHS: boolean = false;
     #RECORDED_PATHS: Record<string, RecordedAccessData> = {};
-    ;
 
     #REDIRECT_ON_401?: string;
 
@@ -64,7 +103,7 @@ export class MicroMClient {
 
     constructor
         (
-            { api_url, app_id, login_timeout, mode, tokenStorage, publicEndpoints, dataStorage, redirect_on_401 }: MicroMClientProps
+            { api_url, app_id, login_timeout, mode, tokenStorage, publicEndpoints, dataStorage, redirect_on_401, idp_url_root }: MicroMClientProps
         ) {
 
         this.#API_URL = api_url ?? "";
@@ -75,6 +114,7 @@ export class MicroMClient {
         this.#publicEndpoints = publicEndpoints ?? {};
         this.#DATA_STORAGE = dataStorage ?? new DataStorage("localStorage");
         this.#REDIRECT_ON_401 = redirect_on_401;
+        this.#IDP_URL_ROOT = idp_url_root ?? "";
     }
 
     getAPPID() { return this.#APP_ID; }
@@ -111,6 +151,113 @@ export class MicroMClient {
             console.log(result);
         }
     }
+
+    // OIDC methods
+    async #saveOidcLoginData(data: OidcLoginData) {
+        await this.#DATA_STORAGE.saveData(this.#APP_ID, OIDC_LOGIN_DATA_KEY, data);
+    }
+
+    async #readOidcLoginData(): Promise<OidcLoginData | null> {
+        const stored: OidcLoginData | null = await this.#DATA_STORAGE.readData(this.#APP_ID, OIDC_LOGIN_DATA_KEY);
+        return stored ?? null;
+    }
+
+    async #deleteOidcLoginData() {
+        await this.#DATA_STORAGE.deleteData(this.#APP_ID, OIDC_LOGIN_DATA_KEY);
+    }
+
+    async startOidcLogin(options: {
+        redirectUri: string;
+        scope?: string;
+        extraParams?: Record<string, string>;
+    }): Promise<string> {
+        const { redirectUri, scope, extraParams } = options;
+
+        if (!redirectUri) {
+            throw { statusMessage: 'redirectUri is required for OIDC login', url: '' } as MicroMError;
+        }
+
+        const loginTimeout = new TimeoutSignal(this.#LOGIN_TIMEOUT, 'OIDC PAR request timed out');
+
+        try {
+            await this.#deleteOidcLoginData();
+
+            const localDeviceId = await this.#getLocalDeviceId();
+
+            // PKCE
+            const { verifier, challenge } = await createPkcePair();
+
+            // state + nonce
+            const state = generateRandomUrlSafeString(32);
+            const nonce = generateRandomUrlSafeString(32);
+
+            const oidcData: OidcLoginData = {
+                state,
+                nonce,
+                code_verifier: verifier
+            };
+            await this.#saveOidcLoginData(oidcData);
+
+            const params = new URLSearchParams();
+            params.set('response_type', 'code');
+            params.set('scope', scope ?? 'openid profile email');
+            params.set('redirect_uri', redirectUri);
+            params.set('code_challenge', challenge);
+            params.set('code_challenge_method', 'S256');
+            params.set('state', state);
+            params.set('nonce', nonce);
+
+            params.set('LocalDeviceId', localDeviceId);
+
+            if (extraParams) {
+                for (const [k, v] of Object.entries(extraParams)) {
+                    if (v != null) {
+                        params.set(k, v);
+                    }
+                }
+            }
+
+            const parUrl = `${this.#API_URL}/${this.#APP_ID}/oidc-client/par`;
+
+            const response = await fetch(parUrl, {
+                method: 'POST',
+                headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                mode: this.#REQUEST_MODE,
+                cache: 'no-store',
+                credentials: 'include',
+                referrerPolicy: 'strict-origin-when-cross-origin',
+                signal: loginTimeout.signal,
+                body: params.toString()
+            });
+
+            if (!response.ok) {
+                const text = await response.text().catch(() => '');
+                throw {
+                    status: response.status,
+                    statusMessage: response.statusText,
+                    message: text || response.statusText,
+                    url: response.url
+                } as MicroMError;
+            }
+
+            const data = await response.json() as { authorize_url?: string; error?: string; error_description?: string };
+
+            if (!data.authorize_url) {
+                throw {
+                    status: 500,
+                    statusMessage: 'invalid_par_response',
+                    message: data.error_description || data.error || 'PAR response missing authorize_url',
+                    url: parUrl
+                } as MicroMError;
+            }
+
+            return data.authorize_url;
+        }
+        finally {
+            loginTimeout.clear();
+        }
+    }
+
 
     async localLogoff() {
         await this.#removeToken();
@@ -213,7 +360,7 @@ export class MicroMClient {
         await this.#DATA_STORAGE.saveData(this.#APP_ID, LOCAL_DEVICE_ID_KEY, randomId);
         this.#LOCAL_DEVICE_ID = randomId;
         return randomId;
-    } 
+    }
 
     async login(username: string, password: string, rememberme?: boolean) {
         //Intentionally not accounting for tokenRefreshInProgress (see refresh logic)
@@ -224,7 +371,7 @@ export class MicroMClient {
             if (this.#RECORD_PATHS) {
                 this.#RECORDED_PATHS = {};
             }
-            
+
             const localDeviceId = await this.#getLocalDeviceId();
 
             const response = await fetch(`${this.#API_URL}/${this.#APP_ID}/auth/login`, {

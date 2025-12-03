@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Logging;
+using System.Net.Mime;
 using System.Security.Claims;
 using IAuthenticationService = MicroM.Web.Services.IAuthenticationService;
 
@@ -34,7 +35,7 @@ public class OIDCClientController : ControllerBase, IOIDCClientController
         if (result == null) return NotFound();
 
         if (result.not_modified) return StatusCode(StatusCodes.Status304NotModified);
-        return Content(result.etag_content.Content, "application/json");
+        return Content(result.etag_content.Content, MediaTypeNames.Application.Json);
     }
 
     /// <summary>
@@ -42,8 +43,8 @@ public class OIDCClientController : ControllerBase, IOIDCClientController
     /// Supports Authorization header pass-through, client_secret_post to Basic, or private_key_jwt from local cert.
     /// </summary>
     [AllowAnonymous]
-    [HttpPost("{app_id}/oidc-client/login")]
-    public async Task<ActionResult> SignInOidc(IMicroMAppConfiguration app_config, [FromServices] IOIDCClientService clientService, string app_id, CancellationToken ct)
+    [HttpPost("{app_id}/oidc-client/par")]
+    public async Task<ActionResult> ClientPAR(IMicroMAppConfiguration app_config, [FromServices] IOIDCClientService clientService, string app_id, CancellationToken ct)
     {
         if (!Request.HasFormContentType)
         {
@@ -54,7 +55,7 @@ public class OIDCClientController : ControllerBase, IOIDCClientController
         if (app == null) return NotFound("Application not found");
 
         var form = await Request.ReadFormAsync(ct);
-        var result = await clientService.HandleSignInOidc(app, Request.Headers, form, ct);
+        var result = await clientService.HandleOidcClientPAR(app, Request.Headers, form, ct);
 
         return new ContentResult
         {
