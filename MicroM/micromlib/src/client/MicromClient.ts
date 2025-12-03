@@ -119,6 +119,7 @@ export class MicroMClient {
 
     getAPPID() { return this.#APP_ID; }
 
+    //*** Record access
     startRecordPaths() {
         this.#RECORD_PATHS = true;
     }
@@ -144,6 +145,10 @@ export class MicroMClient {
         }
     }
 
+    async #saveRecordedAccessData(data: string) {
+        await this.#DATA_STORAGE.saveData(this.#APP_ID, RECORDED_ACCESS_DATA_STORAGE_KEY, data);
+    }
+
     async #saveAllRecordedAccess() {
         if (this.#RECORD_PATHS) {
             const result = generateCSharpGetRoutePaths(this.#RECORDED_PATHS);
@@ -152,20 +157,7 @@ export class MicroMClient {
         }
     }
 
-    // OIDC methods
-    async #saveOidcLoginData(data: OidcLoginData) {
-        await this.#DATA_STORAGE.saveData(this.#APP_ID, OIDC_LOGIN_DATA_KEY, data);
-    }
-
-    async #readOidcLoginData(): Promise<OidcLoginData | null> {
-        const stored: OidcLoginData | null = await this.#DATA_STORAGE.readData(this.#APP_ID, OIDC_LOGIN_DATA_KEY);
-        return stored ?? null;
-    }
-
-    async #deleteOidcLoginData() {
-        await this.#DATA_STORAGE.deleteData(this.#APP_ID, OIDC_LOGIN_DATA_KEY);
-    }
-
+    //*** OIDC flows
     async startOidcLogin(options: {
         redirectUri: string;
         scope?: string;
@@ -258,42 +250,25 @@ export class MicroMClient {
         }
     }
 
-
-    async localLogoff() {
-        await this.#removeToken();
-        await this.#deleteEnabledMenus();
+    async #saveOidcLoginData(data: OidcLoginData) {
+        await this.#DATA_STORAGE.saveData(this.#APP_ID, OIDC_LOGIN_DATA_KEY, data);
     }
 
-    async logoff() {
-        const loginTimeout = new TimeoutSignal(this.#LOGIN_TIMEOUT, 'Login request timed out');
+    async #readOidcLoginData(): Promise<OidcLoginData | null> {
+        const stored: OidcLoginData | null = await this.#DATA_STORAGE.readData(this.#APP_ID, OIDC_LOGIN_DATA_KEY);
+        return stored ?? null;
+    }
 
-        try {
-            await this.#removeToken();
-            await this.#deleteEnabledMenus();
+    async #deleteOidcLoginData() {
+        await this.#DATA_STORAGE.deleteData(this.#APP_ID, OIDC_LOGIN_DATA_KEY);
+    }
 
-            if (this.#RECORD_PATHS) {
-                this.#saveAllRecordedAccess();
-            }
 
-            const response = await fetch(`${this.#API_URL}/${this.#APP_ID}/auth/logoff`, {
-                method: 'POST',
-                headers: { "Content-Type": "application/json; charset=utf-8", "Authorization": `Bearer ${this.#TOKEN?.access_token || ''}` },
-                mode: this.#REQUEST_MODE,
-                cache: 'no-store',
-                credentials: 'include',
-                referrerPolicy: 'strict-origin-when-cross-origin',
-                signal: loginTimeout.signal,
-                body: JSON.stringify({})
-            });
+    //*** Local login/logout
+    get LOGGED_IN_USER(): Partial<MicroMClientClaimTypes> | undefined { return this.#TOKEN?.claims; }
 
-            if (!response.ok) {
-                throw { status: response.status, statusMessage: response.statusText, message: response.statusText, url: response.url } as MicroMError;
-            }
-
-        }
-        finally {
-            loginTimeout.clear();
-        }
+    async getRememberUser(): Promise<string | null> {
+        return await this.#DATA_STORAGE.readData(this.#APP_ID, REMEMBER_USER_DATA_KEY);
     }
 
     async isLoggedIn(): Promise<boolean> {
@@ -334,32 +309,6 @@ export class MicroMClient {
             //console.log(error)
         }
         return !!this.#TOKEN?.access_token && new Date() < new Date(this.#TOKEN.expiration);
-    }
-
-    get LOGGED_IN_USER(): Partial<MicroMClientClaimTypes> | undefined { return this.#TOKEN?.claims; }
-
-    async updateClientClaims(claims: Partial<MicroMClientClaimTypes>) {
-        if (this.#TOKEN) {
-            this.#TOKEN.claims = claims;
-            await this.#setToken(this.#TOKEN);
-        }
-    }
-
-    async #getLocalDeviceId() {
-        const local_device: string | null = await this.#DATA_STORAGE.readData(this.#APP_ID, LOCAL_DEVICE_ID_KEY);
-        if (local_device !== null) {
-            this.#LOCAL_DEVICE_ID = local_device;
-            return local_device;
-        }
-
-        // Generate a new local device ID if it doesn't exist
-        const randomId = "10000000-1000-4000-8000-100000000000".replace(/[018]/g, c =>
-            (+c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> +c / 4).toString(16)
-        );
-
-        await this.#DATA_STORAGE.saveData(this.#APP_ID, LOCAL_DEVICE_ID_KEY, randomId);
-        this.#LOCAL_DEVICE_ID = randomId;
-        return randomId;
     }
 
     async login(username: string, password: string, rememberme?: boolean) {
@@ -434,6 +383,50 @@ export class MicroMClient {
         }
     }
 
+    async localLogoff() {
+        await this.#removeToken();
+        await this.#deleteEnabledMenus();
+    }
+
+    async logoff() {
+        const loginTimeout = new TimeoutSignal(this.#LOGIN_TIMEOUT, 'Login request timed out');
+
+        try {
+            await this.#removeToken();
+            await this.#deleteEnabledMenus();
+
+            if (this.#RECORD_PATHS) {
+                this.#saveAllRecordedAccess();
+            }
+
+            const response = await fetch(`${this.#API_URL}/${this.#APP_ID}/auth/logoff`, {
+                method: 'POST',
+                headers: { "Content-Type": "application/json; charset=utf-8", "Authorization": `Bearer ${this.#TOKEN?.access_token || ''}` },
+                mode: this.#REQUEST_MODE,
+                cache: 'no-store',
+                credentials: 'include',
+                referrerPolicy: 'strict-origin-when-cross-origin',
+                signal: loginTimeout.signal,
+                body: JSON.stringify({})
+            });
+
+            if (!response.ok) {
+                throw { status: response.status, statusMessage: response.statusText, message: response.statusText, url: response.url } as MicroMError;
+            }
+
+        }
+        finally {
+            loginTimeout.clear();
+        }
+    }
+
+    async updateClientClaims(claims: Partial<MicroMClientClaimTypes>) {
+        if (this.#TOKEN) {
+            this.#TOKEN.claims = claims;
+            await this.#setToken(this.#TOKEN);
+        }
+    }
+
     async recoveryemail(username: string): Promise<DBStatusResult> {
         const loginTimeout = new TimeoutSignal(this.#LOGIN_TIMEOUT * 4, 'Login request timed out');
 
@@ -493,6 +486,118 @@ export class MicroMClient {
 
     }
 
+    async #getLocalDeviceId() {
+        const local_device: string | null = await this.#DATA_STORAGE.readData(this.#APP_ID, LOCAL_DEVICE_ID_KEY);
+        if (local_device !== null) {
+            this.#LOCAL_DEVICE_ID = local_device;
+            return local_device;
+        }
+
+        // Generate a new local device ID if it doesn't exist
+        const randomId = "10000000-1000-4000-8000-100000000000".replace(/[018]/g, c =>
+            (+c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> +c / 4).toString(16)
+        );
+
+        await this.#DATA_STORAGE.saveData(this.#APP_ID, LOCAL_DEVICE_ID_KEY, randomId);
+        this.#LOCAL_DEVICE_ID = randomId;
+        return randomId;
+    }
+
+    async #loadToken() {
+        if (!this.#TOKEN) {
+            this.#TOKEN = await this.#TOKEN_STORAGE.readToken(this.#APP_ID);
+        }
+    }
+
+    async #setToken(token: MicroMToken) {
+        await this.#TOKEN_STORAGE.saveToken(this.#APP_ID, token);
+        this.#TOKEN = token;
+    }
+
+    async #removeToken() {
+        await this.#TOKEN_STORAGE.deleteToken(this.#APP_ID);
+        this.#TOKEN = null;
+    }
+
+    async #checkAndRefreshToken() {
+        await this.#loadToken();
+        await this.#readTimeZoneOffset();
+
+        if (!this.#TOKEN) {
+            return;
+        }
+        const renewalAheadPeriod = 1 * 60 * 1000;
+        const now = new Date();
+        const expiration = new Date(this.#TOKEN.expiration);
+        if (now > new Date(expiration.getTime() - renewalAheadPeriod)) {
+            await this.#refreshToken();
+        }
+    }
+
+    async #refreshToken(): Promise<void> {
+        // Check if a token refresh is already in progress.
+        // If so, return that promise instead of starting a new request.
+        if (this.#tokenRefreshInProgress) {
+            console.warn('Token refresh already in progress');
+            return this.#tokenRefreshInProgress;
+        }
+
+        const _performTokenRefresh = async () => {
+            const loginTimeout = new TimeoutSignal(this.#LOGIN_TIMEOUT, 'Login request timed out');
+
+            try {
+
+                if (!this.#TOKEN) { throw new Error('Token not found'); }
+
+                //console.log('Refreshing token');
+                const old_token = this.#TOKEN;
+                const response = await fetch(`${this.#API_URL}/${this.#APP_ID}/auth/refresh`, {
+                    method: 'POST',
+                    headers: { "Content-Type": "application/json; charset=utf-8" },
+                    mode: this.#REQUEST_MODE,
+                    cache: 'no-store',
+                    credentials: 'include',
+                    referrerPolicy: 'strict-origin-when-cross-origin',
+                    signal: loginTimeout.signal,
+                    body: JSON.stringify({ Bearer: this.#TOKEN.access_token, RefreshToken: this.#TOKEN.refresh_token })
+                });
+
+                if (!response.ok) {
+                    throw { status: response?.status, statusMessage: response?.statusText, message: response?.statusText, url: response?.url } as MicroMError;
+                }
+
+                const data = await response.json();
+
+                if (data && data.access_token) {
+                    const new_token = new MicroMToken(data.access_token, data.expires_in, data['refresh-token'], data.token_type, this.#TOKEN.claims);
+                    if (old_token !== this.#TOKEN) {
+                        throw new Error("Current token was changed while refreshing.");
+                    }
+                    await this.#setToken(new_token);
+                    //console.log('Token refreshed', new_token);
+                    return;
+                } else {
+                    //console.log('Unexpected result', data);
+                    throw { statusMessage: 'Unexpected result', url: response.url } as MicroMError;
+                }
+            }
+            catch (error) {
+                //console.log('RefreshToken', error);
+                throw error;
+            } finally {
+                this.#tokenRefreshInProgress = null; // Clear the ongoing refresh promise once done.
+                loginTimeout.clear();
+            }
+        }
+
+        this.#tokenRefreshInProgress = _performTokenRefresh();
+        return this.#tokenRefreshInProgress;
+    }
+
+
+    //*** Timezone offset
+    get TIMEZONE_OFFSET(): number { return this.#TIMEZONE_OFFSET; }
+
     async #saveTimeZoneOffset(data: number) {
         await this.#DATA_STORAGE.saveData(this.#APP_ID, TIMEZONE_OFFSET_DATA_KEY, data);
     }
@@ -525,7 +630,17 @@ export class MicroMClient {
         return result;
     }
 
-    get TIMEZONE_OFFSET(): number { return this.#TIMEZONE_OFFSET; }
+
+    //*** Enabled menus
+    async getMenus(): Promise<Set<string>> {
+
+        if (this.#ENABLED_MENUS.size === 0) {
+            const data = await this.#readEnabledMenus();
+            this.#ENABLED_MENUS = data ? new Set<string>(data) : new Set<string>();
+        }
+
+        return this.#ENABLED_MENUS;
+    }
 
     async #getAPIEnabledMenus(username: string, abort_signal: AbortSignal | null = null) {
         if (!this.#TOKEN) return;
@@ -541,14 +656,50 @@ export class MicroMClient {
         this.#ENABLED_MENUS = new Set<string>(menu_items);
     }
 
-    async getMenus(): Promise<Set<string>> {
+    async #saveEnabledMenus(data: string[]) {
+        await this.#DATA_STORAGE.saveData(this.#APP_ID, ENABLED_MENUS_DATA_KEY, data);
+    }
 
-        if (this.#ENABLED_MENUS.size === 0) {
-            const data = await this.#readEnabledMenus();
-            this.#ENABLED_MENUS = data ? new Set<string>(data) : new Set<string>();
+    async #readEnabledMenus(): Promise<string[] | null> {
+        return await this.#DATA_STORAGE.readData(this.#APP_ID, ENABLED_MENUS_DATA_KEY);
+    }
+
+    async #deleteEnabledMenus() {
+        await this.#DATA_STORAGE.deleteData(this.#APP_ID, ENABLED_MENUS_DATA_KEY);
+    }
+
+    //*** File upload/download
+    getDocumentURL(fileGuid: string): string {
+        return fileGuid ? `${this.#API_URL}/${this.#APP_ID}/serve/${fileGuid}` : '';
+    }
+
+    getThumbnailURL(fileGuid: string, max_size: number = 150, quality: number = 75): string {
+        return fileGuid ? `${this.#API_URL}/${this.#APP_ID}/thumbnail/${fileGuid}/${max_size}/${quality}` : '';
+    }
+
+    async upload(file: File, fileprocess_id: string, abort_signal: AbortSignal | null = null, max_size: number = 150, quality: number = 75, onProgress: FetchUploadProgress = () => { }): Promise<FileUploadResponse> {
+        return this.#uploadFile(file, fileprocess_id, abort_signal, max_size, quality, onProgress);
+    }
+
+    async downloadBlob(fileUrl: string, abort_signal: AbortSignal | null = null): Promise<Blob> {
+
+        await this.#checkAndRefreshToken();
+        if (!this.#TOKEN) { throw { status: 401, statusMessage: `Can't execute request: Not logged in` } as MicroMError; }
+
+        const response = await fetch(fileUrl, {
+            headers: { ...(this.#TOKEN ? { "Authorization": `Bearer ${this.#TOKEN.access_token}` } : {}) },
+            mode: this.#REQUEST_MODE,
+            cache: 'no-store',
+            credentials: 'include',
+            referrerPolicy: 'strict-origin-when-cross-origin',
+            signal: abort_signal
+        });
+
+        if (!response.ok) {
+            throw new Error(`Network error: ${response.status} - ${response.statusText}`);
         }
 
-        return this.#ENABLED_MENUS;
+        return await response.blob();
     }
 
     async #uploadFile(file: File, fileprocess_id: string, abort_signal: AbortSignal | null = null, max_size: number = 150, quality: number = 75, onProgress: FetchUploadProgress = () => { }) {
@@ -617,231 +768,7 @@ export class MicroMClient {
         });
     }
 
-    async #refreshToken(): Promise<void> {
-        // Check if a token refresh is already in progress.
-        // If so, return that promise instead of starting a new request.
-        if (this.#tokenRefreshInProgress) {
-            console.warn('Token refresh already in progress');
-            return this.#tokenRefreshInProgress;
-        }
-
-        const _performTokenRefresh = async () => {
-            const loginTimeout = new TimeoutSignal(this.#LOGIN_TIMEOUT, 'Login request timed out');
-
-            try {
-
-                if (!this.#TOKEN) { throw new Error('Token not found'); }
-
-                //console.log('Refreshing token');
-                const old_token = this.#TOKEN;
-                const response = await fetch(`${this.#API_URL}/${this.#APP_ID}/auth/refresh`, {
-                    method: 'POST',
-                    headers: { "Content-Type": "application/json; charset=utf-8" },
-                    mode: this.#REQUEST_MODE,
-                    cache: 'no-store',
-                    credentials: 'include',
-                    referrerPolicy: 'strict-origin-when-cross-origin',
-                    signal: loginTimeout.signal,
-                    body: JSON.stringify({ Bearer: this.#TOKEN.access_token, RefreshToken: this.#TOKEN.refresh_token })
-                });
-
-                if (!response.ok) {
-                    throw { status: response?.status, statusMessage: response?.statusText, message: response?.statusText, url: response?.url } as MicroMError;
-                }
-
-                const data = await response.json();
-
-                if (data && data.access_token) {
-                    const new_token = new MicroMToken(data.access_token, data.expires_in, data['refresh-token'], data.token_type, this.#TOKEN.claims);
-                    if (old_token !== this.#TOKEN) {
-                        throw new Error("Current token was changed while refreshing.");
-                    }
-                    await this.#setToken(new_token);
-                    //console.log('Token refreshed', new_token);
-                    return;
-                } else {
-                    //console.log('Unexpected result', data);
-                    throw { statusMessage: 'Unexpected result', url: response.url } as MicroMError;
-                }
-            }
-            catch (error) {
-                //console.log('RefreshToken', error);
-                throw error;
-            } finally {
-                this.#tokenRefreshInProgress = null; // Clear the ongoing refresh promise once done.
-                loginTimeout.clear();
-            }
-        }
-
-        this.#tokenRefreshInProgress = _performTokenRefresh();
-        return this.#tokenRefreshInProgress;
-    }
-
-    async getRememberUser(): Promise<string | null> {
-        return await this.#DATA_STORAGE.readData(this.#APP_ID, REMEMBER_USER_DATA_KEY);
-    }
-
-    async #saveRecordedAccessData(data: string) {
-        await this.#DATA_STORAGE.saveData(this.#APP_ID, RECORDED_ACCESS_DATA_STORAGE_KEY, data);
-    }
-
-    async #saveEnabledMenus(data: string[]) {
-        await this.#DATA_STORAGE.saveData(this.#APP_ID, ENABLED_MENUS_DATA_KEY, data);
-    }
-
-    async #readEnabledMenus(): Promise<string[] | null> {
-        return await this.#DATA_STORAGE.readData(this.#APP_ID, ENABLED_MENUS_DATA_KEY);
-    }
-
-    async #deleteEnabledMenus() {
-        await this.#DATA_STORAGE.deleteData(this.#APP_ID, ENABLED_MENUS_DATA_KEY);
-    }
-
-    async #loadToken() {
-        if (!this.#TOKEN) {
-            this.#TOKEN = await this.#TOKEN_STORAGE.readToken(this.#APP_ID);
-        }
-    }
-
-    async #setToken(token: MicroMToken) {
-        await this.#TOKEN_STORAGE.saveToken(this.#APP_ID, token);
-        this.#TOKEN = token;
-    }
-
-    async #removeToken() {
-        await this.#TOKEN_STORAGE.deleteToken(this.#APP_ID);
-        this.#TOKEN = null;
-    }
-
-    async #checkAndRefreshToken() {
-        await this.#loadToken();
-        await this.#readTimeZoneOffset();
-
-        if (!this.#TOKEN) {
-            return;
-        }
-        const renewalAheadPeriod = 1 * 60 * 1000;
-        const now = new Date();
-        const expiration = new Date(this.#TOKEN.expiration);
-        if (now > new Date(expiration.getTime() - renewalAheadPeriod)) {
-            await this.#refreshToken();
-        }
-    }
-
-    async #submitToAPI(entity_name: string, parent_keys: ValuesObject | null, values: ValuesObject | null
-        , recordsSelection: ValuesObject[] | null, action: APIAction, abort_signal: AbortSignal | null = null, additional_route: string | null = null) {
-
-        const extra_route = (additional_route !== null) ? `/${additional_route}` : '';
-        const route = `${this.#API_URL}/${this.#APP_ID}/ent/${entity_name}/${action}${extra_route}`;
-
-        try {
-            await this.#checkAndRefreshToken();
-            if (!this.#TOKEN) { throw { status: 401, statusMessage: `Can't execute request: Not logged in`, url: route } as MicroMError; }
-
-            const body = JSON.stringify({ ParentKeys: parent_keys, Values: values, RecordsSelection: recordsSelection }, JSONDateWithTimezoneReplacer);
-            const res = await fetch(route, {
-                method: 'POST',
-                headers: { "Content-Type": "application/json; charset=utf-8", "Authorization": `Bearer ${this.#TOKEN.access_token}` },
-                mode: this.#REQUEST_MODE,
-                cache: 'no-store',
-                credentials: 'include',
-                referrerPolicy: 'strict-origin-when-cross-origin',
-                signal: abort_signal,
-                body: body
-            });
-
-            if (!res.ok) {
-                throw { status: res?.status, statusMessage: res?.statusText, message: res?.statusText, url: res?.url } as MicroMError;
-            }
-
-            const data = await res.json();
-            return data;
-
-        }
-        catch (error) {
-            abort_signal = null;
-            if (this.#REDIRECT_ON_401) {
-                if ((error as MicroMError).status === 401) {
-                    console.warn(`${route} 401, redirecting to login page: ${this.#REDIRECT_ON_401}`);
-                    await this.localLogoff();
-                    window.location.href = this.#REDIRECT_ON_401;
-                }
-            } else {
-                throw error;
-            }
-            throw error;
-        }
-    }
-
-    async #submitToPublicAPI(entity_name: string, parent_keys: ValuesObject | null, values: ValuesObject | null
-        , recordsSelection: ValuesObject[] | null, action: APIAction, abort_signal: AbortSignal | null = null, additional_route: string | null = null) {
-        const extra_route = (additional_route !== null) ? `/${additional_route}` : '';
-        const route = `${this.#API_URL}/${this.#APP_ID}/public/${entity_name}/${action}${extra_route}`;
-
-        const body = JSON.stringify({ ParentKeys: parent_keys, Values: values, RecordsSelection: recordsSelection }, JSONDateWithTimezoneReplacer);
-        const res = await fetch(route, {
-            method: 'POST',
-            headers: { "Content-Type": "application/json; charset=utf-8" },
-            mode: this.#REQUEST_MODE,
-            cache: 'no-store',
-            credentials: 'include',
-            referrerPolicy: 'strict-origin-when-cross-origin',
-            signal: abort_signal,
-            body: body
-        });
-
-        if (!res.ok) {
-            throw { status: res?.status, statusMessage: res?.statusText, message: res?.statusText, url: res?.url } as MicroMError;
-        }
-
-        const data = await res.json();
-        abort_signal = null;
-
-        return data;
-    }
-
-
-    async downloadBlob(fileUrl: string, abort_signal: AbortSignal | null = null): Promise<Blob> {
-
-        await this.#checkAndRefreshToken();
-        if (!this.#TOKEN) { throw { status: 401, statusMessage: `Can't execute request: Not logged in` } as MicroMError; }
-
-        const response = await fetch(fileUrl, {
-            headers: { ...(this.#TOKEN ? { "Authorization": `Bearer ${this.#TOKEN.access_token}` } : {}) },
-            mode: this.#REQUEST_MODE,
-            cache: 'no-store',
-            credentials: 'include',
-            referrerPolicy: 'strict-origin-when-cross-origin',
-            signal: abort_signal
-        });
-
-        if (!response.ok) {
-            throw new Error(`Network error: ${response.status} - ${response.statusText}`);
-        }
-
-        return await response.blob();
-    }
-
-    #isPublicAPI(entity_name: string, action: APIAction, proc_name?: string, action_name?: string): boolean {
-        const endpoint = this.#publicEndpoints[entity_name];
-
-        if (endpoint) {
-            switch (action) {
-                case "get": return (endpoint.AllowedAccess & 1 << 3) !== 0;
-                case "insert": return (endpoint.AllowedAccess & 1 << 0) !== 0;
-                case "update": return (endpoint.AllowedAccess & 1 << 1) !== 0;
-                case "delete": return (endpoint.AllowedAccess & 1 << 2) !== 0;
-                case "lookup": return (endpoint.AllowedAccess & 1 << 4) !== 0;
-                case "action": return (endpoint.AllowedActions && action_name && endpoint.AllowedActions.has(action_name)) || false;
-                case "view": return (endpoint.AllowedProcs && proc_name && endpoint.AllowedProcs.has(proc_name)) || false;
-                case "proc": return (endpoint.AllowedProcs && proc_name && endpoint.AllowedProcs.has(proc_name)) || false;
-                case "process": return (endpoint.AllowedProcs && proc_name && endpoint.AllowedProcs.has(proc_name)) || false;
-                default: return false;
-            }
-        }
-        return false;
-    }
-
+    //*** Entities API
     async get(entity_name: string, parent_keys: ValuesObject | null, values: ValuesObject, abort_signal: AbortSignal | null = null): Promise<ValuesObject> {
         this.#recordAccess({ entityName: entity_name, access: AllowedRouteFlags.Get });
 
@@ -939,17 +866,97 @@ export class MicroMClient {
         return this.#submitToAPI(entity_name, parent_keys, values, [], "import", abort_signal, import_procname);
     }
 
+    async #submitToAPI(entity_name: string, parent_keys: ValuesObject | null, values: ValuesObject | null
+        , recordsSelection: ValuesObject[] | null, action: APIAction, abort_signal: AbortSignal | null = null, additional_route: string | null = null) {
 
-    async upload(file: File, fileprocess_id: string, abort_signal: AbortSignal | null = null, max_size: number = 150, quality: number = 75, onProgress: FetchUploadProgress = () => { }): Promise<FileUploadResponse> {
-        return this.#uploadFile(file, fileprocess_id, abort_signal, max_size, quality, onProgress);
+        const extra_route = (additional_route !== null) ? `/${additional_route}` : '';
+        const route = `${this.#API_URL}/${this.#APP_ID}/ent/${entity_name}/${action}${extra_route}`;
+
+        try {
+            await this.#checkAndRefreshToken();
+            if (!this.#TOKEN) { throw { status: 401, statusMessage: `Can't execute request: Not logged in`, url: route } as MicroMError; }
+
+            const body = JSON.stringify({ ParentKeys: parent_keys, Values: values, RecordsSelection: recordsSelection }, JSONDateWithTimezoneReplacer);
+            const res = await fetch(route, {
+                method: 'POST',
+                headers: { "Content-Type": "application/json; charset=utf-8", "Authorization": `Bearer ${this.#TOKEN.access_token}` },
+                mode: this.#REQUEST_MODE,
+                cache: 'no-store',
+                credentials: 'include',
+                referrerPolicy: 'strict-origin-when-cross-origin',
+                signal: abort_signal,
+                body: body
+            });
+
+            if (!res.ok) {
+                throw { status: res?.status, statusMessage: res?.statusText, message: res?.statusText, url: res?.url } as MicroMError;
+            }
+
+            const data = await res.json();
+            return data;
+
+        }
+        catch (error) {
+            abort_signal = null;
+            if (this.#REDIRECT_ON_401) {
+                if ((error as MicroMError).status === 401) {
+                    console.warn(`${route} 401, redirecting to login page: ${this.#REDIRECT_ON_401}`);
+                    await this.localLogoff();
+                    window.location.href = this.#REDIRECT_ON_401;
+                }
+            } else {
+                throw error;
+            }
+            throw error;
+        }
     }
 
-    getDocumentURL(fileGuid: string): string {
-        return fileGuid ? `${this.#API_URL}/${this.#APP_ID}/serve/${fileGuid}` : '';
+    async #submitToPublicAPI(entity_name: string, parent_keys: ValuesObject | null, values: ValuesObject | null
+        , recordsSelection: ValuesObject[] | null, action: APIAction, abort_signal: AbortSignal | null = null, additional_route: string | null = null) {
+        const extra_route = (additional_route !== null) ? `/${additional_route}` : '';
+        const route = `${this.#API_URL}/${this.#APP_ID}/public/${entity_name}/${action}${extra_route}`;
+
+        const body = JSON.stringify({ ParentKeys: parent_keys, Values: values, RecordsSelection: recordsSelection }, JSONDateWithTimezoneReplacer);
+        const res = await fetch(route, {
+            method: 'POST',
+            headers: { "Content-Type": "application/json; charset=utf-8" },
+            mode: this.#REQUEST_MODE,
+            cache: 'no-store',
+            credentials: 'include',
+            referrerPolicy: 'strict-origin-when-cross-origin',
+            signal: abort_signal,
+            body: body
+        });
+
+        if (!res.ok) {
+            throw { status: res?.status, statusMessage: res?.statusText, message: res?.statusText, url: res?.url } as MicroMError;
+        }
+
+        const data = await res.json();
+        abort_signal = null;
+
+        return data;
     }
 
-    getThumbnailURL(fileGuid: string, max_size: number = 150, quality: number = 75): string {
-        return fileGuid ? `${this.#API_URL}/${this.#APP_ID}/thumbnail/${fileGuid}/${max_size}/${quality}` : '';
+    #isPublicAPI(entity_name: string, action: APIAction, proc_name?: string, action_name?: string): boolean {
+        const endpoint = this.#publicEndpoints[entity_name];
+
+        if (endpoint) {
+            switch (action) {
+                case "get": return (endpoint.AllowedAccess & 1 << 3) !== 0;
+                case "insert": return (endpoint.AllowedAccess & 1 << 0) !== 0;
+                case "update": return (endpoint.AllowedAccess & 1 << 1) !== 0;
+                case "delete": return (endpoint.AllowedAccess & 1 << 2) !== 0;
+                case "lookup": return (endpoint.AllowedAccess & 1 << 4) !== 0;
+                case "action": return (endpoint.AllowedActions && action_name && endpoint.AllowedActions.has(action_name)) || false;
+                case "view": return (endpoint.AllowedProcs && proc_name && endpoint.AllowedProcs.has(proc_name)) || false;
+                case "proc": return (endpoint.AllowedProcs && proc_name && endpoint.AllowedProcs.has(proc_name)) || false;
+                case "process": return (endpoint.AllowedProcs && proc_name && endpoint.AllowedProcs.has(proc_name)) || false;
+                default: return false;
+            }
+        }
+        return false;
     }
+
 
 }
