@@ -52,10 +52,13 @@ public class PushedAuthorizationService : IPushedAuthorizationService
             return new(null, new("invalid_request", "Client has no registered redirect URIs"));
         }
 
-        var matched = clientCfg.URLAuthorizedRedirects.Any(registered => RedirectUriMatches(registered, request.redirect_uri));
-        if (!matched)
+        if (request.request == null)
         {
-            return new(null, new("invalid_request", "redirect_uri not registered for client"));
+            var matched = clientCfg.URLAuthorizedRedirects.Any(registered => RedirectUriMatches(registered, request.redirect_uri!));
+            if (!matched)
+            {
+                return new(null, new("invalid_request", "redirect_uri not registered for client"));
+            }
         }
 
         var requestUri = $"urn:ietf:params:oauth:request_uri:{CryptClass.GenerateBase64UrlRandomCode(32)}";

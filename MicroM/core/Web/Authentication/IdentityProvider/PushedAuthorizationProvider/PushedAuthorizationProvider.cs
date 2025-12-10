@@ -262,56 +262,6 @@ public static class PushedAuthorizationProvider
         return handler.CreateToken(desc);
     }
 
-    public static (Dictionary<string, string>? valid_form, object? error) ValidateSignInForm(ApplicationOption client_app, IFormCollection form)
-    {
-        var forward = new Dictionary<string, string>(StringComparer.Ordinal);
-        foreach (var k in form.Keys)
-        {
-            forward[k] = form[k].ToString();
-        }
-
-        if (!forward.TryGetValue(WellknownIdentityConstants.ResponseType, out var response_type) ||
-             response_type != WellknownIdentityConstants.Code)
-            return (null, new { error = "invalid_request", error_description = "response_type must be 'code'" });
-
-        if (!forward.TryGetValue(WellknownIdentityConstants.ClientId, out var clientId) ||
-            string.IsNullOrWhiteSpace(clientId) || clientId != client_app.ApplicationID)
-            return (null, new { error = "invalid_request", error_description = "Invalid client_id" });
-
-        if (!forward.TryGetValue(WellknownIdentityConstants.RedirectUri, out var redirectUri) ||
-            string.IsNullOrWhiteSpace(redirectUri))
-            return (null, new { error = "invalid_request", error_description = "redirect_uri is required" });
-
-        if (!forward.TryGetValue(WellknownIdentityConstants.Scope, out var scope) ||
-            string.IsNullOrWhiteSpace(scope))
-            return (null, new { error = "invalid_request", error_description = "scope is required" });
-
-        if (!forward.TryGetValue(WellknownIdentityConstants.CodeChallenge, out var codeChallenge) ||
-            string.IsNullOrWhiteSpace(codeChallenge))
-            return (null, new { error = "invalid_request", error_description = "code_challenge is required" });
-
-        if (!forward.TryGetValue(WellknownIdentityConstants.CodeChallengeMethod, out var codeChallengeMethod) ||
-            string.IsNullOrWhiteSpace(codeChallengeMethod))
-            return (null, new { error = "invalid_request", error_description = "code_challenge_method is required" });
-
-        bool allowPlain = client_app.OIDCAllowPkcePlain;
-        if (codeChallengeMethod != nameof(OIDCCodeChallengeMethod.S256) && !(allowPlain && codeChallengeMethod == nameof(OIDCCodeChallengeMethod.plain)))
-            return (null, new { error = "invalid_request", error_description = "Unsupported code_challenge_method" });
-
-        forward.TryGetValue(WellknownIdentityConstants.State, out var state);
-        if (string.IsNullOrEmpty(state))
-            return (null, new { error = "invalid_request", error_description = "state is required" });
-
-        forward.TryGetValue(WellknownIdentityConstants.Nonce, out var nonce);
-        if (string.IsNullOrEmpty(nonce))
-            return (null, new { error = "invalid_request", error_description = "nonce is required" });
-
-        if (!IsRedirectUriAllowed(client_app, clientId, redirectUri))
-            return (null, new { error = "invalid_request", error_description = "redirect_uri is not registered for this client" });
-
-        return (forward, null);
-    }
-
     public static bool IsRedirectUriAllowed(ApplicationOption app, string clientId, string redirectUri)
     {
         if (string.IsNullOrWhiteSpace(redirectUri) || app.OIDCClientConfiguration == null)

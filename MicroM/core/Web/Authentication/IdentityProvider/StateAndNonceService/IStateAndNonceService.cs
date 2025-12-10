@@ -6,7 +6,7 @@ namespace MicroM.Web.Authentication.SSO;
 
 public interface IStateAndNonceService
 {
-    StateAndNonceContext EnsureStateAndNonce(IFormCollection original, string? providedState, string? providedNonce, string? providedDeviceId);
+    StateAndNonceContext EnsureStateNonceAndPkce(IFormCollection original, string? providedDeviceId, OIDCCodeChallengeMethod codeChallengeMethod, string? targetLinkUri);
 
     void StoreStateCookie(ApplicationOption app, string hmacKey, StateAndNonceData data);
 

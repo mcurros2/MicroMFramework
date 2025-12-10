@@ -33,4 +33,9 @@ public static class WebExtensions
         return root.TryGetProperty(name, out var prop) && prop.ValueKind == JsonValueKind.Array ? prop : null;
     }
 
+    public static int? ReadInt32(this JsonElement root, string name)
+    {
+        return root.TryGetProperty(name, out var prop) && prop.ValueKind == JsonValueKind.Number && prop.TryGetInt32(out var val) ? val : null;
+    }
+
 }

@@ -6,6 +6,13 @@ using Microsoft.AspNetCore.Http.Headers;
 
 namespace MicroM.Web.Authentication.SSO;
 
+public sealed record OIDCInitiateLoginRequest(
+        string Iss,
+        string? LoginHint,
+        string? TargetLinkUri
+    );
+
+
 public interface IOIDCClientService
 {
     // Client JWKS: mirrors IdP JWKS pattern, returns ETag-aware response info
@@ -20,7 +27,7 @@ public interface IOIDCClientService
         ApplicationOption app,
         string code,
         string redirectUri,
-        string codeVerifier,
+        string? codeVerifier,
         string state,
         string? authorizationResponseIssuer,
         CancellationToken ct);
@@ -56,5 +63,12 @@ public interface IOIDCClientService
         string sid,
         string device_id,
         CancellationToken ct);
+
+    // Initiate OIDC login request (Third party initiated login spec)
+    Task<ResultWithStatus<string, string>> HandleInitiateLoginAsync(
+            ApplicationOption app,
+            OIDCInitiateLoginRequest request,
+            HttpRequest httpRequest,
+            CancellationToken ct);
 
 }

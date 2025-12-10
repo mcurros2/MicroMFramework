@@ -17,6 +17,7 @@ public class WellknownIdentityConstants
     public const string CodeVerifier = "code_verifier";
     public const string RequestUri = "request_uri";
     public const string RedirectUri = "redirect_uri";
+    public const string TargetLinkUri = "target_link_uri";
     public const string LocalDeviceId = "local_device_id";
     public const string AuthorizedParty = "azp";
     public const string Audience = "aud";
@@ -39,6 +40,9 @@ public class WellknownIdentityConstants
     public const string ClientAssertionType = "client_assertion_type";
     public const string RefreshExpirationUtc = "refresh_expiration_utc";
     public const string ClientSecret = "client_secret";
+    public const string AuthorizeUrl = "authorize_url";
+    public const string TokenType = "token_type";
+    public const string AccessToken = "access_token";
 
     public const string Display = "display";
     public const string Prompt = "prompt";

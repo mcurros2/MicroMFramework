@@ -1,4 +1,5 @@
-﻿using MicroM.Web.Authentication;
+﻿using MicroM.DataDictionary.CategoriesDefinitions;
+using MicroM.Web.Authentication;
 using MicroM.Web.Authentication.SSO;
 using MicroM.Web.Services;
 using MicroM.Web.Services.Security;
@@ -14,7 +15,7 @@ using IAuthenticationService = MicroM.Web.Services.IAuthenticationService;
 namespace MicroM.Web.Controllers;
 
 [ApiController]
-public class OIDCClientController : ControllerBase, IOIDCClientController
+public class OIDCClientController(ILogger<OIDCClientController> log) : ControllerBase, IOIDCClientController
 {
     /// <summary>
     /// Expose this client's JWKS (public keys) for OIDC (e.g., private_key_jwt).
@@ -27,6 +28,12 @@ public class OIDCClientController : ControllerBase, IOIDCClientController
     {
         var app = app_config.GetAppConfiguration(app_id);
         if (app == null) return NotFound("Application not found");
+
+        if (app.IdentityProviderRoleType != nameof(IdentityProviderRole.IDPClient))
+        {
+            log.LogWarning("Application {app_id} is not configured as an Identity Provider Client", app_id);
+            return BadRequest("Application is not configured as an Identity Provider Client");
+        }
 
         var reqHeaders = Request.GetTypedHeaders();
         var resHeaders = Response.GetTypedHeaders();
@@ -54,6 +61,12 @@ public class OIDCClientController : ControllerBase, IOIDCClientController
         var app = app_config.GetAppConfiguration(app_id);
         if (app == null) return NotFound("Application not found");
 
+        if (app.IdentityProviderRoleType != nameof(IdentityProviderRole.IDPClient))
+        {
+            log.LogWarning("Application {app_id} is not configured as an Identity Provider Client", app_id);
+            return BadRequest("Application is not configured as an Identity Provider Client");
+        }
+
         var form = await Request.ReadFormAsync(ct);
         var result = await clientService.HandleOidcClientPAR(app, Request.Headers, form, ct);
 
@@ -68,7 +81,7 @@ public class OIDCClientController : ControllerBase, IOIDCClientController
     /// <summary>
     /// OIDC authorization code callback endpoint (client side).
     /// Accepts either GET query parameters or application/x-www-form-urlencoded POST body:
-    /// Required: code, redirect_uri, code_verifier
+    /// Required: code, redirect_uri, CodeVerifier
     /// Returns principal claims upon success.
     /// </summary>
     [AllowAnonymous]
@@ -87,6 +100,12 @@ public class OIDCClientController : ControllerBase, IOIDCClientController
     {
         var app = app_config.GetAppConfiguration(app_id);
         if (app == null) return NotFound("Application not found");
+
+        if (app.IdentityProviderRoleType != nameof(IdentityProviderRole.IDPClient))
+        {
+            log.LogWarning("Application {app_id} is not configured as an Identity Provider Client", app_id);
+            return BadRequest("Application is not configured as an Identity Provider Client");
+        }
 
         var authenticator = auth.GetAuthenticator(app);
         if (authenticator == null)
@@ -111,7 +130,6 @@ public class OIDCClientController : ControllerBase, IOIDCClientController
                 redirectUri = form[WellknownIdentityConstants.RedirectUri].ToString();
                 codeVerifier = form[WellknownIdentityConstants.CodeVerifier].ToString();
                 stateIncoming = form[WellknownIdentityConstants.State].ToString();
-                // Ensure 'iss' is captured for POST callbacks
                 authorizationResponseIssuer = form[WellknownIdentityConstants.IssuerClaim].ToString();
             }
             else
@@ -122,11 +140,10 @@ public class OIDCClientController : ControllerBase, IOIDCClientController
 
         if (string.IsNullOrWhiteSpace(code) ||
             string.IsNullOrWhiteSpace(redirectUri) ||
-            string.IsNullOrWhiteSpace(codeVerifier) ||
             string.IsNullOrWhiteSpace(stateIncoming)
             )
         {
-            return BadRequest(new { error = "invalid_request", error_description = "code, redirect_uri, code_verifier and state are required" });
+            return BadRequest(new { error = "invalid_request", error_description = "code, redirect_uri and state are required" });
         }
 
         var (callback_result, error) =
@@ -134,11 +151,6 @@ public class OIDCClientController : ControllerBase, IOIDCClientController
 
         if (error != null || callback_result == null || callback_result.Principal == null)
         {
-            // Map specific issuer mismatch to clearer error
-            if (error == "invalid_authorization_response_iss")
-            {
-                return BadRequest(new { error = "access_denied", error_description = "authorization response issuer mismatch" });
-            }
             return BadRequest(new { error = "access_denied", error_description = error ?? "Callback failed" });
         }
 
@@ -185,6 +197,12 @@ public class OIDCClientController : ControllerBase, IOIDCClientController
 
         var response = await auth_service.SignInAsync(HttpContext, token_result, refresh_token: "");
 
+        // Include target_link_uri so the SPA can perform a post-login redirect
+        if (!string.IsNullOrWhiteSpace(callback_result.TargetLinkURI))
+        {
+            response[WellknownIdentityConstants.TargetLinkUri] = callback_result.TargetLinkURI;
+        }
+
         // Add minimal client-facing claims (consistent with /auth/login behavior)
         response[MicroMClientClaimTypes.username] = username;
         response[MicroMClientClaimTypes.useremail] = callback_result.Principal.FindFirstValue(ClaimTypes.Email) ?? "";
@@ -210,13 +228,16 @@ public class OIDCClientController : ControllerBase, IOIDCClientController
         CancellationToken ct)
     {
 
-        var appOpt = app_config.GetAppConfiguration(app_id);
-        if (appOpt == null)
+        var app = app_config.GetAppConfiguration(app_id);
+        if (app == null) return NotFound("Application not found");
+
+        if (app.IdentityProviderRoleType != nameof(IdentityProviderRole.IDPClient))
         {
-            return NotFound("Application not found");
+            log.LogWarning("Application {app_id} is not configured as an Identity Provider Client", app_id);
+            return BadRequest("Application is not configured as an Identity Provider Client");
         }
 
-        var (ok, err) = await oidc_client.HandleFrontChannelLogout(appOpt, state, ct);
+        var (ok, err) = await oidc_client.HandleFrontChannelLogout(app, state, ct);
         if (err != null || !ok)
         {
             log.LogWarning("Front-channel logout processing failed for app {app}: {err}", app_id, err ?? "unknown");
@@ -225,6 +246,48 @@ public class OIDCClientController : ControllerBase, IOIDCClientController
 
         return Ok(true);
     }
+
+    [AllowAnonymous]
+    [HttpGet("{app_id}/oidc-client/initiate-login")]
+    public async Task<ActionResult> InitiateLogin(
+        [FromServices] IMicroMAppConfiguration app_config,
+        [FromServices] IOIDCClientService clientService,
+        string app_id,
+        CancellationToken ct)
+    {
+        var app = app_config.GetAppConfiguration(app_id);
+        if (app == null) return NotFound("Application not found");
+
+        if (app.IdentityProviderRoleType != nameof(IdentityProviderRole.IDPClient))
+        {
+            log.LogWarning("Application {app_id} is not configured as an Identity Provider Client", app_id);
+            return BadRequest("Application is not configured as an Identity Provider Client");
+        }
+
+        var iss = Request.Query["iss"].ToString();
+        var loginHint = Request.Query["login_hint"].ToString();
+        var targetLinkUri = Request.Query["target_link_uri"].ToString();
+
+        var request = new OIDCInitiateLoginRequest(
+            Iss: iss,
+            LoginHint: string.IsNullOrWhiteSpace(loginHint) ? null : loginHint,
+            TargetLinkUri: string.IsNullOrWhiteSpace(targetLinkUri) ? null : targetLinkUri
+        );
+
+        var (authorizeUrl, error) = await clientService.HandleInitiateLoginAsync(app, request, Request, ct);
+
+        if (error != null || string.IsNullOrWhiteSpace(authorizeUrl))
+        {
+            return BadRequest(new
+            {
+                error = "initiate_login_failed",
+                error_description = error ?? "Unknown error"
+            });
+        }
+
+        return Redirect(authorizeUrl);
+    }
+
 
     [Authorize(Policy = nameof(MicroMPermissionsConstants.IdPClientPolicy))]
     [HttpPost("{app_id}/oidc-client/back-logout")]
@@ -237,10 +300,13 @@ public class OIDCClientController : ControllerBase, IOIDCClientController
         string app_id,
         CancellationToken ct)
     {
-        var appOpt = app_config.GetAppConfiguration(app_id);
-        if (appOpt == null)
+        var app = app_config.GetAppConfiguration(app_id);
+        if (app == null) return NotFound("Application not found");
+
+        if (app.IdentityProviderRoleType != nameof(IdentityProviderRole.IDPClient))
         {
-            return NotFound("Application not found");
+            log.LogWarning("Application {app_id} is not configured as an Identity Provider Client", app_id);
+            return BadRequest("Application is not configured as an Identity Provider Client");
         }
 
         // Must be form-urlencoded with logout_token per spec
@@ -257,7 +323,7 @@ public class OIDCClientController : ControllerBase, IOIDCClientController
             return BadRequest(new { error = "invalid_request", error_description = "logout_token is required" });
         }
 
-        var result = await oidc_client.HandleBackchannelLogout(appOpt, logoutToken, ct);
+        var result = await oidc_client.HandleBackchannelLogout(app, logoutToken, ct);
 
         // Return 200 for success and replay/idempotent outcomes; 400 for validation failures.
         switch (result.Status)
