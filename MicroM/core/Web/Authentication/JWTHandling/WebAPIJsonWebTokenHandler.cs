@@ -213,7 +213,10 @@ public class WebAPIJsonWebTokenHandler(
         if (app.OIDCCertificateBlob == null || app.OIDCCertificateBlob.Length == 0)
             throw new InvalidOperationException("OIDC certificate blob not configured for id_token.");
 
-        using var idpCert = new X509Certificate2(app.OIDCCertificateBlob, app.OIDCCertificatePassword, X509KeyStorageFlags.EphemeralKeySet | X509KeyStorageFlags.Exportable);
+        using var idpCert = X509CertificateLoader.LoadPkcs12(
+            app.OIDCCertificateBlob,
+            app.OIDCCertificatePassword,
+            X509KeyStorageFlags.EphemeralKeySet | X509KeyStorageFlags.Exportable);
 
         var signing = GetOidcSigningCredentials(app, idpCert) ?? throw new InvalidOperationException("Unable to resolve signing credentials for id_token.");
 

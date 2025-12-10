@@ -82,7 +82,10 @@ internal class ClientPARCheck : IDiagnosticCheck<ClientDiagnosticsContext>
 
             if (app.OIDCCertificateBlob is { Length: > 0 } && !string.IsNullOrWhiteSpace(app.OIDCCertificatePassword))
             {
-                using var cert = new X509Certificate2(app.OIDCCertificateBlob, app.OIDCCertificatePassword);
+                using var cert = X509CertificateLoader.LoadPkcs12(
+                    app.OIDCCertificateBlob,
+                    app.OIDCCertificatePassword,
+                    X509KeyStorageFlags.EphemeralKeySet | X509KeyStorageFlags.Exportable);
 
                 var selectedAlg = PushedAuthorizationProvider.SelectAssertionAlg(cert, ctx.tokenEndpointAuthSigningAlgs);
                 chosenAlg = selectedAlg?.ToString() ?? "default";

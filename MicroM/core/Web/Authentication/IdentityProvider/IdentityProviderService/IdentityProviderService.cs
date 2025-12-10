@@ -66,7 +66,7 @@ public class IdentityProviderService(
             (existing) =>
             {
                 X509Certificate2? cert = certificate_cache.GetCertificate(app);
-                var wellKnown = WellKnownProvider.CreateWellKnown(app, request_base, cert);
+                var wellKnown = WellKnownProvider.CreateWellKnown(app, request_base, cert!);
                 return (json: JsonSerializer.Serialize(wellKnown, _jsonSerializationOptions), parsed: wellKnown, etag: null);
             });
 

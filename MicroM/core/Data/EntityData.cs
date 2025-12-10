@@ -244,10 +244,6 @@ namespace MicroM.Data
         /// Executes the specified <paramref name="proc"/> for an entity. This method will execute stored procedure specified for the entity.
         /// If the client is not connected to the database server, it will open a new connection.
         /// </summary>
-        /// <param name="ct"></param>
-        /// <param name="proc"></param>
-        /// <returns></returns>
-        /// <exception cref="ArgumentException">Throws this exception if <paramref name="row_limit"/> is greater than 0 and the stored procedure definition <paramref name="proc"/> hasn´t been defined for ReadOnlyLocks</exception>
         public async Task<DBStatusResult> ExecuteProcDBStatus(CancellationToken ct, ProcedureDefinition proc, bool set_parms_from_columns = true, bool throw_dbstat_exception = false)
         {
             //proc.Parms.TryGetValue(SystemColumnNames.webusr, out ColumnBase? webusr);
@@ -285,11 +281,6 @@ namespace MicroM.Data
         /// Executes the specified <paramref name="proc"/> for an entity. This method will execute stored procedure specified for the entity.
         /// If the client is not connected to the database server, it will open a new connection.
         /// </summary>
-        /// <param name="ct"></param>
-        /// <param name="proc"></param>
-        /// <param name="row_limit">Limits the number of rows returned</param>
-        /// <returns></returns>
-        /// <exception cref="ArgumentException">Throws this exception if <paramref name="row_limit"/> is greater than 0 and the stored procedure definition <paramref name="proc"/> hasn´t been defined for ReadOnlyLocks</exception>
         public async Task<List<DataResult>> ExecuteProc(CancellationToken ct, ProcedureDefinition proc, int row_limit = 0, bool set_parms_from_columns = true)
         {
             if (row_limit != 0 && proc.ReadonlyLocks == false) throw new ArgumentException($"Procedure {proc.Name} is defined with {nameof(proc.ReadonlyLocks)} false and cannot specify a {nameof(row_limit)} at execution");

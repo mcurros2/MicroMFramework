@@ -90,9 +90,6 @@ namespace MicroM.Core
         /// <summary>
         /// Returns the <see cref="EntityForeignKeyBase"/> that relates to <see cref="EntityForeignKeyBase.ParentEntityType"/>
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="entity"></param>
-        /// <returns></returns>
         public EntityForeignKeyBase? GetForeignKey<T>(T parent_entity) where T : EntityBase
         {
             foreach (var fk in _ForeignKeys)
@@ -218,10 +215,6 @@ namespace MicroM.Core
         /// It is expected that you implement a parameter-less constructor that calls this one with the definition mnemonic code: base("mnemonic").
         /// This constructor will call DefineProcs(), DefineViews(), DefineForeignKeys() in this order.
         /// </summary>
-        /// <param name="mneo">Sets the mnemonic code used to create all SPs that belong to this entity</param>
-        /// <param name="name">Sets the name for this entity. Use nameof(YourEntityName). This will rsult in the table name in the DB</param>
-        /// <param name="add_default_columns">If true it will add the default columns to the entity</param>
-        /// <exception cref="ArgumentNullException"></exception>
         protected EntityDefinition(string mneo, string name, bool add_default_columns = true, bool webusr_delete_flag = false)
         {
             Mneo = mneo ?? throw new ArgumentNullException(nameof(mneo));

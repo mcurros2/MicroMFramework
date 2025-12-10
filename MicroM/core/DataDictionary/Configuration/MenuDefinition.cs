@@ -1,4 +1,5 @@
 ﻿using MicroM.Core;
+using MicroM.DataDictionary.Entities;
 using MicroM.Extensions;
 using System.Reflection;
 using System.Runtime.CompilerServices;

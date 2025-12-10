@@ -7,7 +7,7 @@ namespace LibraryTest
 
     public class TestOutputLogger<T> : ILogger<T>
     {
-        public TestContext TestContext { get; set; }
+        public TestContext? TestContext { get; set; }
 
         public IDisposable BeginScope<TState>(TState state) => null;
 

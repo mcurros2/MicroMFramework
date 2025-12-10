@@ -2,8 +2,8 @@
 
 public sealed class EtagContent<T> where T : class?
 {
-    public string Content { get; init; }
-    public string Etag { get; init; }
+    public required string Content { get; init; }
+    public required string Etag { get; init; }
 
     public DateTimeOffset CachedUtc { get; init; }
 

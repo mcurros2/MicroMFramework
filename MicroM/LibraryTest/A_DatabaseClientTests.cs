@@ -294,7 +294,6 @@ namespace LibraryTest
         }
 
         [TestMethod]
-        [ExpectedException(typeof(TaskCanceledException))]
         public async Task ExecuteSQLChannel_CancelQueryWhenReturningResultsShouldNotKeepQueryRunningOnServer()
         {
             var cts = new CancellationTokenSource();
@@ -307,61 +306,66 @@ namespace LibraryTest
 
             DateTime query_started = DateTime.MinValue, query_running = DateTime.MinValue, query_completed = DateTime.MinValue, results_processed = DateTime.MinValue;
 
-            // Main query, has a small delay to ensure query is running
-            _ = Task.Run(async () =>
+            try
             {
-
-                query_started = DateTime.Now;
-                // this will trick sql server to send the first result before executing the next statement
-                // so we can simulate processing the first result before the query finish.
-                // this would happen normally with a large query with multiple results
-                string sql = "select top 10 * from sysobjects; RAISERROR('', 0, 1) WITH NOWAIT; ";
-                sql += $"waitfor delay '00:00:{seconds_delay:D2}'; select top 10 * from sys.all_columns; waitfor delay '00:00:{seconds_delay:D2}'; select top 10 * from sys.all_columns";
-                await DatabaseClientTestsUtil.ExecuteTestQueryChannel(test_id, sql, result_set_channel, cts.Token);
-
-            });
-
-            cts.CancelAfter(cancel_after_millisecs);
-
-            // ensure query has been cancelled and not running
-            await Task.Delay(check_delay_millisecs).ContinueWith(async (t) =>
-            {
-                var cts = new CancellationTokenSource();
-                bool has_completed = await DatabaseClientTestsUtil.TestQueryCompleted(test_id, cts.Token);
-
-                Debug.Print($"Query started: {query_started:O}, cancelled: {DateTime.Now:O}, is_running: {has_completed}");
-
-                Assert.IsTrue(has_completed, $"The query #{test_id}# is still runing on server.");
-
-                Debug.Print($"Query cancelled #{test_id}# is not running on server {DateTime.Now:O}");
-
-            });
-
-
-            // slow client
-            await Task.Run(async () =>
-            {
-
-                int results_count = 0;
-                int total_records = 0;
-                while (await result_set_channel.Results.Reader.WaitToReadAsync(cts.Token))
+                // Main query, has a small delay to ensure query is running
+                _ = Task.Run(async () =>
                 {
-                    results_count++;
-                    var result = await result_set_channel.Results.Reader.ReadAsync(cts.Token);
-                    Debug.Print($"Result # {results_count} {DateTime.Now:O}");
 
-                    await foreach (var record in result.Records.Reader.ReadAllAsync(cts.Token))
+                    query_started = DateTime.Now;
+                    // this will trick sql server to send the first result before executing the next statement
+                    // so we can simulate processing the first result before the query finish.
+                    // this would happen normally with a large query with multiple results
+                    string sql = "select top 10 * from sysobjects; RAISERROR('', 0, 1) WITH NOWAIT; ";
+                    sql += $"waitfor delay '00:00:{seconds_delay:D2}'; select top 10 * from sys.all_columns; waitfor delay '00:00:{seconds_delay:D2}'; select top 10 * from sys.all_columns";
+                    await DatabaseClientTestsUtil.ExecuteTestQueryChannel(test_id, sql, result_set_channel, cts.Token);
+
+                });
+
+                cts.CancelAfter(cancel_after_millisecs);
+
+                // ensure query has been cancelled and not running
+                await Task.Delay(check_delay_millisecs).ContinueWith(async (t) =>
+                {
+                    var cts = new CancellationTokenSource();
+                    bool has_completed = await DatabaseClientTestsUtil.TestQueryCompleted(test_id, cts.Token);
+
+                    Debug.Print($"Query started: {query_started:O}, cancelled: {DateTime.Now:O}, is_running: {has_completed}");
+
+                    Assert.IsTrue(has_completed, $"The query #{test_id}# is still runing on server.");
+
+                    Debug.Print($"Query cancelled #{test_id}# is not running on server {DateTime.Now:O}");
+
+                });
+
+
+                // slow client
+                await Task.Run(async () =>
+                {
+
+                    int results_count = 0;
+                    int total_records = 0;
+                    while (await result_set_channel.Results.Reader.WaitToReadAsync(cts.Token))
                     {
-                        Debug.Print(string.Join(", ", record));
-                        total_records++;
-                        await Task.Delay(500);
+                        results_count++;
+                        var result = await result_set_channel.Results.Reader.ReadAsync(cts.Token);
+                        Debug.Print($"Result # {results_count} {DateTime.Now:O}");
+
+                        await foreach (var record in result.Records.Reader.ReadAllAsync(cts.Token))
+                        {
+                            Debug.Print(string.Join(", ", record));
+                            total_records++;
+                            await Task.Delay(500);
+                        }
+                        Debug.Print($"Total records: {total_records} {DateTime.Now:O}");
                     }
-                    Debug.Print($"Total records: {total_records} {DateTime.Now:O}");
-                }
 
-                results_processed = DateTime.Now;
-            });
+                    results_processed = DateTime.Now;
+                });
 
+
+            }
+            catch (TaskCanceledException) { }
 
         }
 

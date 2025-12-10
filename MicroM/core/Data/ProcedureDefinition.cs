@@ -91,12 +91,6 @@ namespace MicroM.Data
         /// <summary>
         /// Takes a <see cref="ColumnBase"/> as a template and creates a <see cref="Column{T}"/> and adds it to the <see cref="Parms"/> collection.
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="col">The Column template</param>
-        /// <param name="strip_prefix">Will strip the prefix of a column, which parameters don't use. Ie. c_category_id will become category_id</param>
-        /// <param name="value">The value for the parameter</param>
-        /// <param name="output">Defines the SP parameter as OUTPUT</param>
-        /// <returns></returns>
         public virtual Column<T> AddParmFromCol<T>(Column<T> col, T value = default!, bool output = false)
         {
             //string new_name = col.SQLParameterName;
@@ -128,15 +122,6 @@ namespace MicroM.Data
         /// <summary>
         /// Creates a <see cref="Column{T}"/> and adds it to the <see cref="Parms"/> collection.
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="name">The name for the parameter</param>
-        /// <param name="sql_type">The SqlDbType for this parameter</param>
-        /// <param name="size">The size for the parameer</param>
-        /// <param name="precision">Precision for numeric parameters</param>
-        /// <param name="scale">Scale for numeric parameters</param>
-        /// <param name="value">The value for the parameter</param>
-        /// <param name="output">Defines the SP parameter as OUTPUT</param>
-        /// <returns></returns>
         public Column<T> AddParm<T>(string name, SqlDbType? sql_type, int size = 0, byte precision = 0, byte scale = 0, T value = default!, bool output = false, string? override_with = null)
         {
             Column<T> parm = new(name, value, sql_type, size, precision, scale, output, override_with: override_with);

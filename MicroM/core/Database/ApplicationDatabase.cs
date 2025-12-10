@@ -22,7 +22,7 @@ public class ApplicationDatabase
         {
             await app_ec.Connect(ct);
 
-            List<string> assemblies = [app.Def.vc_assembly1.Value, app.Def.vc_assembly2.Value, app.Def.vc_assembly3.Value, app.Def.vc_assembly4.Value, app.Def.vc_assembly5.Value];
+            List<string?> assemblies = [app.Def.vc_assembly1.Value, app.Def.vc_assembly2.Value, app.Def.vc_assembly3.Value, app.Def.vc_assembly4.Value, app.Def.vc_assembly5.Value];
 
             foreach (var assembly in assemblies)
             {
@@ -126,10 +126,6 @@ public class ApplicationDatabase
     /// <summary>
     /// Creates a new database for the application. It will use the app existing connection
     /// </summary>
-    /// <param name="app"></param>
-    /// <param name="drop_and_recreate"></param>
-    /// <param name="ct"></param>
-    /// <returns></returns>
     public static async Task<DBStatusResult> CreateAppDatabase(Applications app, bool drop_and_recreate, CancellationToken ct, MicroMOptions? options = null, Dictionary<string, object>? server_claims = null, IWebAPIServices? api = null)
     {
 

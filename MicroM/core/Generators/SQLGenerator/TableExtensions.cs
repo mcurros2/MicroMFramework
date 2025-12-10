@@ -31,10 +31,6 @@ namespace MicroM.Generators.SQLGenerator
         /// <summary>
         /// Returns a SQL script with the DDL to create the table and another script with indexes for each <see cref="EntityForeignKey{TParent, TChild}"/> (if they exist), for the <see cref="Entity{TDefinition}"/>
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="entity"></param>
-        /// <param name="force">forces generating code for Fake entities</param>
-        /// <returns></returns>
         public static List<string> AsCreateTable<T>(this T entity, bool force = false, bool table_and_primary_key_only = false) where T : EntityBase
         {
             List<string> result = [];
