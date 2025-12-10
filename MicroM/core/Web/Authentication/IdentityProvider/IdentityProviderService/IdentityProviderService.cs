@@ -30,7 +30,11 @@ public class IdentityProviderService(
     private static JsonSerializerOptions _jsonSerializationOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+        Converters =
+        {
+            new JsonStringEnumConverter()
+        }
     };
 
     private static string BuildWkCacheKey(string request_base)

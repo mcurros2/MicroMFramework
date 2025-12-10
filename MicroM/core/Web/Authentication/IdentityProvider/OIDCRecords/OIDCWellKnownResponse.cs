@@ -57,22 +57,22 @@ public enum OIDCKeyUse { sig, enc }
 [JsonConverter(typeof(JsonStringEnumConverter))]
 public enum OIDCKeyCurveValues
 {
-    [JsonPropertyName("P-256")]
+    [JsonStringEnumMemberName("P-256")]
     P256,
-    [JsonPropertyName("P-384")]
+    [JsonStringEnumMemberName("P-384")]
     P384,
-    [JsonPropertyName("P-521")]
+    [JsonStringEnumMemberName("P-521")]
     P521,
 }
 
 [JsonConverter(typeof(JsonStringEnumConverter))]
 public enum OIDCEncryptionAlg
 {
-    [JsonPropertyName("A128CBC-HS256")]
+    [JsonStringEnumMemberName("A128CBC-HS256")]
     A128CBC_HS256,
-    [JsonPropertyName("A192CBC-HS384")]
+    [JsonStringEnumMemberName("A192CBC-HS384")]
     A192CBC_HS384,
-    [JsonPropertyName("A256CBC-HS512")]
+    [JsonStringEnumMemberName("A256CBC-HS512")]
     A256CBC_HS512,
     A128GCM,
     A192GCM,
@@ -83,30 +83,30 @@ public enum OIDCEncryptionAlg
 public enum OIDCKeyEncryptionAlgorithm
 {
     RSA1_5,
-    [JsonPropertyName("RSA-OAEP")]
+    [JsonStringEnumMemberName("RSA-OAEP")]
     RSA_OAEP,
-    [JsonPropertyName("RSA-OAEP-256")]
+    [JsonStringEnumMemberName("RSA-OAEP-256")]
     RSA_OAEP_256,
     A128KW,
     A192KW,
     A256KW,
     dir,
-    [JsonPropertyName("ECDH-ES")]
+    [JsonStringEnumMemberName("ECDH-ES")]
     ECDH_ES,
-    [JsonPropertyName("ECDH-ES+A128KW")]
+    [JsonStringEnumMemberName("ECDH-ES+A128KW")]
     ECDH_ES_A128KW,
-    [JsonPropertyName("ECDH-ES+A192KW")]
+    [JsonStringEnumMemberName("ECDH-ES+A192KW")]
     ECDH_ES_A192KW,
-    [JsonPropertyName("ECDH-ES+A256KW")]
+    [JsonStringEnumMemberName("ECDH-ES+A256KW")]
     ECDH_ES_A256KW,
     A128GCMKW,
     A192GCMKW,
     A256GCMKW,
-    [JsonPropertyName("PBES2-HS256+A128KW")]
+    [JsonStringEnumMemberName("PBES2-HS256+A128KW")]
     PBES2_HS256_A128KW,
-    [JsonPropertyName("PBES2-HS384+A192KW")]
+    [JsonStringEnumMemberName("PBES2-HS384+A192KW")]
     PBES2_HS256_A192KW,
-    [JsonPropertyName("PBES2-HS512+A256KW")]
+    [JsonStringEnumMemberName("PBES2-HS512+A256KW")]
     PBES2_HS512_A256KW
 }
 

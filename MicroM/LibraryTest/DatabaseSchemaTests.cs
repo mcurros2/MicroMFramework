@@ -143,7 +143,7 @@ public class DatabaseSchemaCustomScriptTests
                 GO";
         var results = DatabaseSchemaCustomScripts.ClassifyCustomSQLScript(sql).ToList();
 
-        Assert.AreEqual(3, results.Count);
+        Assert.HasCount(3, results);
         Assert.AreEqual("TestProc1", results[0].ProcName);
         Assert.AreEqual(SQLScriptType.Procedure, results[0].ProcType);
         Assert.AreEqual("TestFunc1", results[1].ProcName);
