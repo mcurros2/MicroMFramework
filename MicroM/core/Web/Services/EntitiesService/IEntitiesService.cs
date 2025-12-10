@@ -8,20 +8,14 @@ namespace MicroM.Web.Services;
 public interface IEntitiesService
 {
     /// <summary>
-    /// Creates an Entity if exists in the configured assembly <see cref="LoadEntityTypes(Assembly)"/>.
+    /// Creates an Entity if exists in the configured assembly />.
     /// </summary>
-    /// <param name="app"></param>
-    /// <param name="entity_name"></param>
-    /// <param name="server_claims"></param>
-    /// <param name="ec"></param>
-    /// <returns></returns>
     public EntityBase? CreateEntity(ApplicationOption app, string entity_name, Dictionary<string, object>? server_claims, IEntityClient? ec = null);
     public EntityBase? CreateEntity(ApplicationOption app, string entity_name, Dictionary<string, object>? server_claims, CancellationToken ct);
 
     /// <summary>
     /// Connection factory for the webAPI.
     /// </summary>
-    /// <returns></returns>
     public IEntityClient CreateDbConnection(ApplicationOption app, Dictionary<string, object>? server_claims);
 
     public Task<IEntityClient> CreateDbConnection(ApplicationOption app, Dictionary<string, object>? server_claims, CancellationToken ct);

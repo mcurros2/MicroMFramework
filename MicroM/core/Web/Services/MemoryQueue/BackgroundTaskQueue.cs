@@ -75,10 +75,6 @@ namespace MicroM.Web.Services
         /// <summary>
         /// Queues a task. TaskName string is used to identify if there are two instances of the same function running when singleInstance is true
         /// </summary>
-        /// <param name="FunctionID"></param>
-        /// <param name="workItem"></param>
-        /// <param name="singleInstance"></param>
-        /// <returns></returns>
         public Guid Enqueue(string TaskName, Func<CancellationToken, Task<string>> workItem, bool singleInstance, TimeSpan? recurrenceInterval = null)
         {
             if (singleInstance)

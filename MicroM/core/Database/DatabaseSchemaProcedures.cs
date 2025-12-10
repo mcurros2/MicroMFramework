@@ -184,7 +184,7 @@ public static class DatabaseSchemaProcedures
 
             if (custom_procs != null)
             {
-                var custom_proc_scripts = ClassifyCustomSQLScripts(custom_procs);
+                CustomOrderedDictionary<CustomScript> custom_proc_scripts = ClassifyCustomSQLScripts(custom_procs);
 
                 // We don't use a foreach here as there may be update and iupdate / drop and idrop custom procs but the flag with_iupdate and with_idrop
                 // can be false. Custom procs should alwayes be created no matter what.
@@ -192,69 +192,69 @@ public static class DatabaseSchemaProcedures
                 // update
                 if (custom_proc_scripts.Contains(iupdate_proc_name))
                 {
-                    await ec.ExecuteSQLNonQuery(custom_proc_scripts[iupdate_proc_name].SQLText, ct);
+                    await ec.ExecuteSQLNonQuery(custom_proc_scripts[iupdate_proc_name]!.SQLText, ct);
                 }
                 else if (with_iupdate)
                 {
-                    await ec.ExecuteSQLNonQuery(generated_scripts[iupdate_proc_name], ct);
+                    await ec.ExecuteSQLNonQuery(generated_scripts[iupdate_proc_name]!, ct);
                 }
 
                 if (custom_proc_scripts.Contains(update_proc_name))
                 {
-                    await ec.ExecuteSQLNonQuery(custom_proc_scripts[update_proc_name].SQLText, ct);
+                    await ec.ExecuteSQLNonQuery(custom_proc_scripts[update_proc_name]!.SQLText, ct);
                 }
                 else
                 {
-                    await ec.ExecuteSQLNonQuery(generated_scripts[update_proc_name], ct);
+                    await ec.ExecuteSQLNonQuery(generated_scripts[update_proc_name]!, ct);
                 }
 
                 // get
                 if (custom_proc_scripts.Contains(get_proc_name))
                 {
-                    await ec.ExecuteSQLNonQuery(custom_proc_scripts[get_proc_name].SQLText, ct);
+                    await ec.ExecuteSQLNonQuery(custom_proc_scripts[get_proc_name]!.SQLText, ct);
                 }
                 else
                 {
-                    await ec.ExecuteSQLNonQuery(generated_scripts[get_proc_name], ct);
+                    await ec.ExecuteSQLNonQuery(generated_scripts[get_proc_name]!, ct);
                 }
 
                 // drop
                 if (custom_proc_scripts.Contains(idrop_proc_name))
                 {
-                    await ec.ExecuteSQLNonQuery(custom_proc_scripts[idrop_proc_name].SQLText, ct);
+                    await ec.ExecuteSQLNonQuery(custom_proc_scripts[idrop_proc_name]!.SQLText, ct);
                 }
                 else if (with_idrop)
                 {
-                    await ec.ExecuteSQLNonQuery(generated_scripts[idrop_proc_name], ct);
+                    await ec.ExecuteSQLNonQuery(generated_scripts[idrop_proc_name]!, ct);
                 }
 
                 if (custom_proc_scripts.Contains(drop_proc_name))
                 {
-                    await ec.ExecuteSQLNonQuery(custom_proc_scripts[drop_proc_name].SQLText, ct);
+                    await ec.ExecuteSQLNonQuery(custom_proc_scripts[drop_proc_name]!.SQLText, ct);
                 }
                 else
                 {
-                    await ec.ExecuteSQLNonQuery(generated_scripts[drop_proc_name], ct);
+                    await ec.ExecuteSQLNonQuery(generated_scripts[drop_proc_name]!, ct);
                 }
 
                 // lookup
                 if (custom_proc_scripts.Contains(lookup_proc_name))
                 {
-                    await ec.ExecuteSQLNonQuery(custom_proc_scripts[lookup_proc_name].SQLText, ct);
+                    await ec.ExecuteSQLNonQuery(custom_proc_scripts[lookup_proc_name]!.SQLText, ct);
                 }
                 else
                 {
-                    await ec.ExecuteSQLNonQuery(generated_scripts[lookup_proc_name], ct);
+                    await ec.ExecuteSQLNonQuery(generated_scripts[lookup_proc_name]!, ct);
                 }
 
                 // view
                 if (custom_proc_scripts.Contains(view_proc_name))
                 {
-                    await ec.ExecuteSQLNonQuery(custom_proc_scripts[view_proc_name].SQLText, ct);
+                    await ec.ExecuteSQLNonQuery(custom_proc_scripts[view_proc_name]!.SQLText, ct);
                 }
                 else
                 {
-                    await ec.ExecuteSQLNonQuery(generated_scripts[view_proc_name], ct);
+                    await ec.ExecuteSQLNonQuery(generated_scripts[view_proc_name]!, ct);
                 }
 
                 // create the rest of custom procs if requested
@@ -264,7 +264,7 @@ public static class DatabaseSchemaProcedures
                     {
                         if (!generated_scripts.Contains(key))
                         {
-                            await ec.ExecuteSQLNonQuery(custom_proc_scripts[key].SQLText, ct);
+                            await ec.ExecuteSQLNonQuery(custom_proc_scripts[key]!.SQLText, ct);
                         }
                     }
                 }

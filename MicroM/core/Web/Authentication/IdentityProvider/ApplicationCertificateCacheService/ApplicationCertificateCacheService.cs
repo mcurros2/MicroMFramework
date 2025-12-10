@@ -33,7 +33,10 @@ public class ApplicationCertificateCacheService : IApplicationCertificateCacheSe
 
         return _certificateCache.GetOrAdd($"{app.ApplicationID}_{app.OIDCCertificateUniqueID ?? "default"}", key =>
         {
-            var cert = new X509Certificate2(app.OIDCCertificateBlob, app.OIDCCertificatePassword, X509KeyStorageFlags.EphemeralKeySet | X509KeyStorageFlags.Exportable);
+            var cert = X509CertificateLoader.LoadPkcs12(
+                app.OIDCCertificateBlob,
+                app.OIDCCertificatePassword,
+                X509KeyStorageFlags.EphemeralKeySet | X509KeyStorageFlags.Exportable);
             return cert;
         });
     }

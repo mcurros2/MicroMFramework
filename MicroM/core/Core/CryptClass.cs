@@ -19,10 +19,14 @@ public class CryptClass
         return await EncryptText(to_encrypt, SecurityDefaults.TempEncryptionKey, SecurityDefaults.TempEncryptionIV);
     }
 
-    public static SymmetricSecurityKey GetSecurityKey(string password, string salt, int keySize = 256)
+    public static SymmetricSecurityKey GetSecurityKey(string password, string salt, int keySize = 256, int iterations = 210000)
     {
-        var pbkdf2 = new Rfc2898DeriveBytes(password, Encoding.UTF8.GetBytes(salt), 1000, HashAlgorithmName.SHA512);
-        var keyBytes = pbkdf2.GetBytes(keySize / 8);  // Divide by 8 to get byte count
+        byte[] keyBytes = Rfc2898DeriveBytes.Pbkdf2(
+        password: password,
+        salt: Encoding.UTF8.GetBytes(salt),
+        iterations: iterations,
+        hashAlgorithm: HashAlgorithmName.SHA512,
+        outputLength: keySize / 8);
 
         return new SymmetricSecurityKey(keyBytes);
     }
@@ -118,7 +122,10 @@ public class CryptClass
         // Export the certificate to a PFX file, to create with a password
         var pfx = certificate.Export(X509ContentType.Pkcs12, certificate_password);
 
-        var exported_certificate = new X509Certificate2(pfx, certificate_password, X509KeyStorageFlags.Exportable | X509KeyStorageFlags.PersistKeySet);
+        var exported_certificate = X509CertificateLoader.LoadPkcs12(
+                pfx,
+                certificate_password,
+                X509KeyStorageFlags.PersistKeySet | X509KeyStorageFlags.Exportable);
 
         // Import the PFX file into the X509Store
         using var store = new X509Store(StoreName.My, StoreLocation.CurrentUser);

@@ -11,13 +11,6 @@ public static class DataDictionaryExtensions
     /// Inserts into <see cref="ObjectsStatus"/> Data Dictionay each <see cref="Status"/> in <see cref="EntityDefinition.RelatedStatus"/> for the <see cref="Entity{TDefinition}"/>.
     /// This enables the use of the status by the entity and inserts its initial status value when creating a new record.
     /// </summary>
-    /// <typeparam name="T"></typeparam>
-    /// <param name="entity"></param>
-    /// <param name="ec"></param>
-    /// <param name="status_id"></param>
-    /// <param name="object_id"></param>
-    /// <param name="ct"></param>
-    /// <returns></returns>
     public async static Task AddStatusRelations(this EntityBase entity, IEntityClient ec, CancellationToken ct)
     {
         if (entity.Def.RelatedStatus.Count == 0) return;
@@ -37,13 +30,6 @@ public static class DataDictionaryExtensions
     /// Relates a category in the data dictionary to the specified entity.
     /// This enables the use of the category by the entity.
     /// </summary>
-    /// <typeparam name="T"></typeparam>
-    /// <param name="entity"></param>
-    /// <param name="ec"></param>
-    /// <param name="category_id"></param>
-    /// <param name="object_id"></param>
-    /// <param name="ct"></param>
-    /// <returns></returns>
     public async static Task AddCategoryRelations(this EntityBase entity, IEntityClient ec, CancellationToken ct)
     {
         if (entity.Def.RelatedCategories.Count == 0) return;

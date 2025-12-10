@@ -202,7 +202,6 @@ namespace MicroM.Data
         /// Opens a connection to the server. If the connection is already opened, returns without error
         /// If the connection state is not Closed, it closes the connection and opens a new one.
         /// </summary>
-        /// <param name="ct"></param>
         /// <returns>True if the connection was already opened</returns>
         /// <exception cref="DataAbstractionException"></exception>
         public async Task<bool> Connect(CancellationToken ct, bool throw_exception = true, bool rollback_on_errors = true, bool isolation_level_read_committed = true, bool set_nocount_on = true)
@@ -853,11 +852,6 @@ namespace MicroM.Data
         /// The record type provided must a have a paramerterless constructor. Optional you can provide a <see cref="MapResult{T}"/> custom mapper.
         /// If not it will use the default AutoMapper, that maps by the resulting query column names to the public members provided in T. If the query contains column names that are not in T, are ignored.
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="sql_text"></param>
-        /// <param name="ct"></param>
-        /// <param name="mapper"></param>
-        /// <returns></returns>
         public async Task<List<T>> ExecuteSQL<T>(string sql_text, CancellationToken ct, AutoMapperMode mode = AutoMapperMode.ByName, MapResult<T>? mapper = null) where T : class, new()
         {
             return await ExecuteSingleQuery(CommandType.Text, sql_text, ct, mode, mapper);
