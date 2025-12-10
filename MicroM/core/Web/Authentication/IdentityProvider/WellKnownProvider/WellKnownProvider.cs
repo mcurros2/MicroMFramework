@@ -116,6 +116,7 @@ public static class WellKnownProvider
             // Grant types & auth methods
             grant_types_supported: OIDCCryptoCapabilities.Idp.GrantTypes,
             token_endpoint_auth_methods_supported: OIDCCryptoCapabilities.Idp.TokenEndpointAuthMethods,
+            pushed_authorization_request_endpoint_auth_methods_supported: OIDCCryptoCapabilities.Idp.TokenEndpointAuthMethods,
 
             scopes_supported: [OIDCProfileScopes.openid, OIDCProfileScopes.profile, OIDCProfileScopes.email],
 

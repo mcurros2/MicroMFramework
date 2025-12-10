@@ -4,6 +4,8 @@ using MicroM.Web.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
+using Microsoft.IdentityModel.Tokens;
+using System.Security.Cryptography;
 
 namespace MicroM.Web.Authentication.SSO;
 
@@ -22,31 +24,54 @@ public class StateAndNonceService
         return $"m-oidc-stn-{app_config.ApplicationID}";
     }
 
-    public StateAndNonceContext EnsureStateAndNonce(IFormCollection original, string? providedState, string? providedNonce, string? providedDeviceId)
+    public StateAndNonceContext EnsureStateNonceAndPkce(
+        IFormCollection original,
+        string? providedDeviceId,
+        OIDCCodeChallengeMethod codeChallengeMethod,
+        string? targetLinkUri
+        )
     {
-        string state = string.IsNullOrWhiteSpace(providedState)
-            ? CryptClass.GenerateBase64UrlRandomCode(32)
-            : providedState;
-
-        // Changed: nonce now base64url random
-        string nonce = string.IsNullOrWhiteSpace(providedNonce)
-            ? CryptClass.GenerateBase64UrlRandomCode(32)
-            : providedNonce;
 
         string? deviceId = !string.IsNullOrWhiteSpace(providedDeviceId)
             ? providedDeviceId
             : (original.TryGetValue(WellknownIdentityConstants.LocalDeviceId, out var ldid) ? ldid.ToString() : null);
 
-        var dict = new Dictionary<string, StringValues>(StringComparer.Ordinal);
-        foreach (var kv in original) dict[kv.Key] = kv.Value;
-        dict[WellknownIdentityConstants.State] = new(state);
-        dict[WellknownIdentityConstants.Nonce] = new(nonce);
-        if (!string.IsNullOrWhiteSpace(deviceId))
+
+        // Generate cryptographically strong state / nonce
+        string state = CryptClass.GenerateBase64UrlRandomCode(32);
+        string nonce = CryptClass.GenerateBase64UrlRandomCode(32);
+
+        // Generate PKCE verifier
+        string codeVerifier = CryptClass.GenerateBase64UrlRandomCode(64);
+
+        // Compute challenge
+        string codeChallenge;
+        if (codeChallengeMethod == OIDCCodeChallengeMethod.S256)
         {
-            dict[WellknownIdentityConstants.LocalDeviceId] = new(deviceId);
+            var bytes = System.Text.Encoding.ASCII.GetBytes(codeVerifier);
+            var hash = SHA256.HashData(bytes);
+            codeChallenge = Base64UrlEncoder.Encode(hash);
+        }
+        else
+        {
+            codeChallenge = codeVerifier;
         }
 
-        var data = new StateAndNonceData(state, nonce, deviceId, DateTimeOffset.UtcNow.ToUnixTimeSeconds());
+        // Clone incoming form into a mutable dictionary
+        var dict = new Dictionary<string, StringValues>(StringComparer.Ordinal);
+        foreach (var kv in original) dict[kv.Key] = kv.Value;
+
+        // Inject state/nonce/PKCE into outgoing form
+        dict[WellknownIdentityConstants.State] = state;
+        dict[WellknownIdentityConstants.Nonce] = nonce;
+        dict[WellknownIdentityConstants.CodeChallenge] = codeChallenge;
+        dict[WellknownIdentityConstants.CodeChallengeMethod] = codeChallengeMethod.ToString();
+
+        if (!string.IsNullOrEmpty(targetLinkUri)) dict[WellknownIdentityConstants.TargetLinkUri] = new(targetLinkUri);
+
+        if (!string.IsNullOrWhiteSpace(deviceId)) dict[WellknownIdentityConstants.LocalDeviceId] = new(deviceId);
+
+        var data = new StateAndNonceData(state, nonce, deviceId, DateTimeOffset.UtcNow.ToUnixTimeSeconds(), codeVerifier, targetLinkUri);
         return new StateAndNonceContext(data, new FormCollection(dict));
     }
 

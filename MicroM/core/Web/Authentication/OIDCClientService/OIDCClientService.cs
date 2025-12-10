@@ -8,6 +8,8 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Headers;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Primitives;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
 using System.Net.Mime;
@@ -27,7 +29,8 @@ public class OIDCClientService(
     IOIDCReplayCacheService replay_cache,
     ILogger<OIDCClientService> log,
     IDeviceIdService deviceid_service,
-    IMicroMEncryption encryptor
+    IMicroMEncryption encryptor,
+    IOptions<MicroMOptions> microMOptions
 ) : IOIDCClientService
 {
     private readonly JsonSerializerOptions _jsonOptionsUnsafe = new()
@@ -36,6 +39,8 @@ public class OIDCClientService(
         DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull,
         Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
     };
+
+    private PathString _api_path => new($"/{microMOptions.Value.MicroMAPIBaseRootPath}/");
 
     // Scrub helper: never log raw tokens, only length & segment count
     private static string DescribeToken(string? token)
@@ -151,6 +156,32 @@ public class OIDCClientService(
             return new(502, false, MediaTypeNames.Application.Json, JsonSerializer.Serialize(new { error = "server_error", error_description = "IdP discovery failed" }));
         }
 
+        // Choose PKCE method based on IdP metadata
+        var challengeMethod = OIDCCodeChallengeMethod.S256;
+        var methods = wellknown_result.code_challenge_methods_supported;
+
+        if (methods != null && methods.Count > 0)
+        {
+            if (methods.Contains(OIDCCodeChallengeMethod.S256))
+            {
+                challengeMethod = OIDCCodeChallengeMethod.S256;
+            }
+            else if (methods.Contains(OIDCCodeChallengeMethod.plain))
+            {
+                challengeMethod = OIDCCodeChallengeMethod.plain;
+            }
+            else
+            {
+                log.LogWarning("IdP for app {app} does not support S256 or plain PKCE methods", app.ApplicationID);
+                return new(400, false, MediaTypeNames.Application.Json,
+                    JsonSerializer.Serialize(new
+                    {
+                        error = "unsupported_operation",
+                        error_description = "IdP PKCE methods are not compatible (no S256 or plain)"
+                    }));
+            }
+        }
+
         string? parEndpoint = wellknown_result.pushed_authorization_request_endpoint;
         if (string.IsNullOrEmpty(parEndpoint))
         {
@@ -158,25 +189,40 @@ public class OIDCClientService(
             return new(400, false, MediaTypeNames.Application.Json, JsonSerializer.Serialize(new { error = "unsupported_operation", error_description = "IdP does not expose a pushed_authorization_request_endpoint" }));
         }
 
-        // State and Nonce validation (if present)
-        string? providedState = form.TryGetValue(WellknownIdentityConstants.State, out var s) ? s.ToString() : null;
-        string? providedNonce = form.TryGetValue(WellknownIdentityConstants.Nonce, out var n) ? n.ToString() : null;
+        // Local device ID (optional)
         string? providedDeviceId = form.TryGetValue(WellknownIdentityConstants.LocalDeviceId, out var d) ? d.ToString() : null;
 
-        var stateContext = state_and_nonce_service.EnsureStateAndNonce(form, providedState, providedNonce, providedDeviceId);
+        // Optional target_link_uri
+        string? targetLinkUri = form.TryGetValue(WellknownIdentityConstants.TargetLinkUri, out var t) ? t.ToString() : null;
 
-        // Prepare PAR body - forward incoming form params
-        var form_result = PushedAuthorizationProvider.ValidateSignInForm(app, stateContext.AdjustedForm!);
-
-        if (form_result.error != null || form_result.valid_form == null)
+        if (!string.IsNullOrEmpty(targetLinkUri))
         {
-            log.LogWarning("Invalid OIDC SignIn form for app {app}: {error}", app.ApplicationID, form_result.error);
-            return new(400, false, MediaTypeNames.Application.Json, JsonSerializer.Serialize(form_result.error));
+            var (normalizedTargetLinkUri, targetLinkError) = OIDCClientServiceProvider.ValidateTargetLinkURIAllowed(targetLinkUri, app);
+            if (targetLinkError != null)
+            {
+                log.LogWarning("Target link error: {targetLinkError} - {desc}", targetLinkError.Value.error, targetLinkError.Value.error_description);
+                return new(400, false, MediaTypeNames.Application.Json, JsonSerializer.Serialize(targetLinkError.Value.error));
+            }
+            targetLinkUri = normalizedTargetLinkUri;
         }
 
-        var forward = form_result.valid_form;
+        // Prepare state, nonce, PKCE
+        var stateContext = state_and_nonce_service.EnsureStateNonceAndPkce(form, providedDeviceId, challengeMethod, targetLinkUri);
+
+        // Validate and Prepare IdP request PAR body - forward incoming form params
+        var (valid_form, form_error) = OIDCClientServiceProvider.ValidateClientSignInForm(app, stateContext.AdjustedForm!);
+
+        if (form_error != null || valid_form == null)
+        {
+            log.LogWarning("Invalid OIDC SignIn form for app {app}: {error}", app.ApplicationID, form_error);
+            return new(400, false, MediaTypeNames.Application.Json, JsonSerializer.Serialize(form_error?.error));
+        }
+
+        var forward = valid_form;
+
         // Remove local-only params
         forward.Remove(WellknownIdentityConstants.LocalDeviceId);
+        forward.Remove(WellknownIdentityConstants.TargetLinkUri);
 
         X509Certificate2? cert = certificate_cache.GetCertificate(app);
 
@@ -185,7 +231,7 @@ public class OIDCClientService(
             cert,
             parEndpoint,
             forward,
-            wellknown_result.token_endpoint_auth_methods_supported,
+            wellknown_result.pushed_authorization_request_endpoint_auth_methods_supported,
             wellknown_result.token_endpoint_auth_signing_alg_values_supported
             );
 
@@ -257,7 +303,7 @@ public class OIDCClientService(
             ApplicationOption app,
             string code,
             string redirectUri,
-            string codeVerifier,
+            string? codeVerifier,
             string state,
             string? authorizationResponseIssuer,
             CancellationToken ct)
@@ -265,7 +311,7 @@ public class OIDCClientService(
         if (string.IsNullOrWhiteSpace(app.OIDCWellKnownURL))
             return new(null, "IdP discovery URL not configured for this client app");
 
-        if (string.IsNullOrWhiteSpace(code) || string.IsNullOrWhiteSpace(redirectUri) || string.IsNullOrWhiteSpace(codeVerifier))
+        if (string.IsNullOrWhiteSpace(code) || string.IsNullOrWhiteSpace(redirectUri))
             return new(null, "Missing required parameters");
 
         // Validate state and consume cookie
@@ -276,120 +322,35 @@ public class OIDCClientService(
             return new(null, "invalid_state");
         }
 
-        // Discover IdP metadata
-        var (wellknown, wellknown_error) = await DiscoverWellKnown(app, ct);
-        if (wellknown_error != null || wellknown == null)
-            return new(null, wellknown_error ?? "Discovery failed");
-
-        var issuer = wellknown.issuer;
-        var tokenEndpoint = wellknown.token_endpoint;
-        var jwksUri = wellknown.jwks_uri;
-        if (string.IsNullOrEmpty(issuer) || string.IsNullOrEmpty(tokenEndpoint) || string.IsNullOrEmpty(jwksUri))
-            return new(null, "Invalid IdP discovery document");
-
-        // Mix-up mitigation: validate authorization response issuer ('iss' param) if present
-        if (!string.IsNullOrWhiteSpace(authorizationResponseIssuer) &&
-            !string.Equals(authorizationResponseIssuer, issuer, StringComparison.Ordinal))
+        // Prefer CodeVerifier from state cookie
+        var effectiveCodeVerifier = state_result.CodeVerifier ?? codeVerifier;
+        if (string.IsNullOrWhiteSpace(effectiveCodeVerifier))
         {
-            log.LogWarning("AUTH_RESPONSE_ISS_MISMATCH app={app} expected={expected} received={received}", app.ApplicationID, issuer, authorizationResponseIssuer);
-            return new(null, "invalid_authorization_response_iss");
+            return new(null, "Missing code_verifier");
         }
 
-        // Enforce token endpoint auth (prefer/require private_key_jwt)
-        var allowed = wellknown.token_endpoint_auth_methods_supported;
-        var allowPrivateKeyJwt = allowed == null || allowed.Count == 0 || allowed.Contains(OIDCTokenEndpointAuthMethod.private_key_jwt);
-        if (!allowPrivateKeyJwt)
-            return new(null, "IdP does not allow private_key_jwt for token endpoint");
+        var (get_result, get_error) = await GetToken(
+            app,
+            (cert, wk) => PushedAuthorizationProvider.BuildTokenExchangeFormPrivateKeyJwt(
+                cert,
+                clientId: app.ApplicationID,
+                wk.token_endpoint,
+                code,
+                redirectUri,
+                effectiveCodeVerifier,
+                wk.token_endpoint_auth_signing_alg_values_supported),
+            authorizationResponseIssuer,
+            ct
+            );
 
-        // Build token request with private_key_jwt
-        X509Certificate2? cert = certificate_cache.GetCertificate(app);
-        if (cert == null)
-            return new(null, "Client certificate not configured");
-
-        var clientId = app.ApplicationID;
-        var tokenForm = PushedAuthorizationProvider.BuildTokenExchangeFormPrivateKeyJwt(
-            cert,
-            clientId,
-            tokenEndpoint,
-            code,
-            redirectUri,
-            codeVerifier,
-            wellknown.token_endpoint_auth_signing_alg_values_supported
-        );
-
-        // Exchange authorization code for tokens
-        string id_token;
-        string? idpRefreshToken = null;
-        DateTimeOffset? idpRefreshExpirationUtc = null;
-
-        try
+        if (get_error != null || get_result == null || get_result.validate_result == null)
         {
-            var tokenResult = await oidcHttpClient.PostTokenAsync(tokenEndpoint, tokenForm, authorization: null, ct);
-            if (!tokenResult.IsSuccessStatusCode)
-            {
-                return new(null, $"Token exchange failed: {tokenResult.Body}. Error: {tokenResult.Error}");
-            }
-
-            using var doc = JsonDocument.Parse(tokenResult.Body);
-
-            id_token = doc.RootElement.TryGetProperty(WellknownIdentityConstants.IdToken, out var idt) ? idt.GetString() ?? "" : "";
-            if (string.IsNullOrEmpty(id_token))
-            {
-                return new(null, "Token response missing id_token");
-            }
-
-            // Scrubbed log (no raw token)
-            log.LogTrace("CLIENT_ID_TOKEN_RECEIVED app_id={appId} {meta}", app.ApplicationID, DescribeToken(id_token));
-
-            if (doc.RootElement.TryGetProperty(WellknownIdentityConstants.RefreshToken, out var rt))
-            {
-                idpRefreshToken = rt.GetString();
-            }
-
-            if (doc.RootElement.TryGetProperty(WellknownIdentityConstants.RefreshExpirationUtc, out var rexp))
-            {
-                var rexpStr = rexp.GetString();
-                if (!string.IsNullOrWhiteSpace(rexpStr) && DateTimeOffset.TryParse(rexpStr, out var parsed))
-                {
-                    idpRefreshExpirationUtc = parsed.ToUniversalTime();
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            return new(null, $"Token request error: {ex.Message}");
-        }
-
-        // Validate id_token via IdP JWKS
-        var clientDecryptCert = certificate_cache.GetCertificate(app);
-
-        var jwksResult = await JwksProvider.FetchAndCacheRemoteJwksAsync(jwksUri, oidcHttpClient, remote_jwks_cache, ct);
-
-        var header = JwksProvider.TryReadProtectedHeader(id_token);
-
-        var signingKeys = jwksResult.Keys.Values;
-
-        if (jwksResult.Keys.Count > 0 && header.Kid != null && !jwksResult.Keys.ContainsKey(header.Kid))
-        {
-            log.LogTrace("JWKS_HEADER_KID_NOT_FOUND - Client_id: {client_id} - refetching Jwks {jwksuri}", clientId, jwksUri);
-            var forced = await JwksProvider.FetchAndCacheRemoteJwksAsync(jwksUri, oidcHttpClient, remote_jwks_cache, ct);
-            signingKeys = forced.Keys.Values;
-        }
-
-        var effectiveAlgs = BuildEffectiveIdTokenAlgs(wellknown);
-
-        var (jwt_result, jwt_error) = await JwksProvider.ValidateIdTokenWithKeysAsync(
-            signingKeys, issuer, clientId, id_token, clientDecryptCert, header,
-            effectiveAlgs.AllowedSigningAlgs, effectiveAlgs.AllowedKeyMgmtAlgs, effectiveAlgs.AllowedEncAlgs,
-            ct);
-
-        if (jwt_error != null || jwt_result == null)
-        {
-            return new(null, jwt_error ?? "Invalid id_token");
+            log.LogTrace("ID_TOKEN_VALIDATION_FAILED: {app_id}, Error: {get_error}", app.ApplicationID, get_error);
+            return new(null, get_error ?? "Invalid id_token");
         }
 
         // Nonce verification against id_token
-        var nonceFromIdToken = jwt_result.Principal.FindFirst("nonce")?.Value;
+        var nonceFromIdToken = get_result.validate_result.Principal.FindFirst(WellknownIdentityConstants.Nonce)?.Value;
         if (!string.IsNullOrWhiteSpace(state_result.Nonce))
         {
             if (string.IsNullOrWhiteSpace(nonceFromIdToken) || nonceFromIdToken != state_result.Nonce)
@@ -398,8 +359,114 @@ public class OIDCClientService(
             }
         }
 
-        return new(new(jwt_result.Principal, jwt_result.ExpiresUtc, idpRefreshToken, state_result.DeviceId, idpRefreshExpirationUtc), null);
+        return new(
+            new(
+                get_result.validate_result.Principal,
+                get_result.validate_result.ExpiresUtc,
+                get_result.idp_refresh_token,
+                state_result.DeviceId,
+                get_result.refresh_expiration,
+                state_result.TargetLinkUri
+                ),
+            null);
     }
+
+    public async Task<ResultWithStatus<string, string>> HandleInitiateLoginAsync
+        (
+        ApplicationOption app,
+        OIDCInitiateLoginRequest request,
+        HttpRequest httpRequest,
+        CancellationToken ct
+        )
+    {
+        if (string.IsNullOrWhiteSpace(request.Iss))
+        {
+            return new(null, "missing_iss");
+        }
+
+        // 1) Discover IdP metadata
+        var (wk, wkErr) = await DiscoverWellKnown(app, ct);
+        if (wkErr != null || wk == null || string.IsNullOrWhiteSpace(wk.issuer))
+        {
+            return new(null, wkErr ?? "discovery_failed");
+        }
+
+        // 2) Validate iss against IdP issuer; target_link_uri
+        if (!string.Equals(wk.issuer, request.Iss, StringComparison.Ordinal))
+        {
+            log.LogWarning("INITIATE_LOGIN_ISS_MISMATCH app={app} expected_iss={expected} received_iss={received}",
+                app.ApplicationID, wk.issuer, request.Iss);
+
+            return new(null, "iss_mismatch");
+        }
+
+        var (normalizedTargetLinkUri, targetLinkError) = OIDCClientServiceProvider.ValidateTargetLinkURIAllowed(request.TargetLinkUri, app);
+        if (targetLinkError != null)
+        {
+            log.LogWarning("Target link error: {targetLinkError} - {desc}", targetLinkError.Value.error, targetLinkError.Value.error_description);
+            return new(null, targetLinkError.Value.error);
+        }
+
+        // 3) Build redirect_uri to client callback
+        //    For TP initiated login we will use the server-side endpoint:
+        //    GET/POST {app_id}/oidc-client/auth-callback
+        var redirectUri = $"{httpRequest.Scheme}://{httpRequest.Host}{_api_path}{app.ApplicationID}/oidc-client/auth-callback";
+
+        // 4) Build "form" for the PAR reusing the same logic as usual
+        var dict = new Dictionary<string, StringValues>(StringComparer.Ordinal)
+        {
+            [WellknownIdentityConstants.ResponseType] = WellknownIdentityConstants.Code,
+            [WellknownIdentityConstants.Scope] = WellknownIdentityConstants.OpenID,
+            [WellknownIdentityConstants.RedirectUri] = redirectUri,
+            [WellknownIdentityConstants.ClientId] = app.ApplicationID
+        };
+
+        if (!string.IsNullOrWhiteSpace(request.LoginHint))
+        {
+            dict[WellknownIdentityConstants.LoginHint] = request.LoginHint;
+        }
+
+        // target_link_uri as a local-only parameter so it ends up in the state cookie,
+        // it will be stripped before sending the PAR request to the IdP.
+        if (!string.IsNullOrWhiteSpace(normalizedTargetLinkUri))
+        {
+            dict[WellknownIdentityConstants.TargetLinkUri] = normalizedTargetLinkUri;
+        }
+
+        // LocalDeviceId is optional. We have no SPA here yet, so we don't send it.
+
+        var form = new FormCollection(dict);
+
+        // 5) Reuse HandleOidcClientPAR
+        var parResult = await HandleOidcClientPAR(app, httpRequest.Headers, form, ct);
+
+        if (!parResult.IsSuccessStatusCode)
+        {
+            log.LogWarning("INITIATE_LOGIN_PAR_FAILED app={app} status={status} error={error}",
+                app.ApplicationID, parResult.StatusCode, parResult.Error ?? "");
+
+            return new(null, $"par_failed:{parResult.StatusCode}");
+        }
+
+        // 6) Parse authorize_url from the PAR JSON response
+        try
+        {
+            using var doc = JsonDocument.Parse(parResult.Body);
+            var authorizeUrl = doc.RootElement.ReadString(WellknownIdentityConstants.AuthorizeUrl);
+            if (string.IsNullOrWhiteSpace(authorizeUrl))
+            {
+                return new(null, "par_response_authorize_url_empty");
+            }
+
+            return new(authorizeUrl, null);
+        }
+        catch (Exception ex)
+        {
+            log.LogWarning(ex, "INITIATE_LOGIN_PARSE_ERROR app={app}", app.ApplicationID);
+            return new(null, "par_response_invalid_json");
+        }
+    }
+
 
     public async Task<ResultWithStatus<OIDCFrontChannelLogoutInitiation, string>> BuildEndSessionRequest(ApplicationOption app, string idTokenHint, string? postLogoutRedirectUri, string? state, CancellationToken ct)
     {
@@ -579,125 +646,143 @@ public class OIDCClientService(
 
     }
 
-    private async Task<ResultWithStatus<OIDCClientCallbackResult, string>> RefreshBackchannelIdpTokens(
-        ApplicationOption app,
-        string idpRefreshToken,
-        CancellationToken ct)
+    private sealed record GetTokenResult(
+        string? id_token,
+        string? idp_refresh_token,
+        DateTimeOffset? refresh_expiration,
+        OIDCTokenResponse? token_result,
+        JWTTokenResult? validate_result
+        );
+
+    private async Task<ResultWithStatus<GetTokenResult?, string?>>
+    GetToken(
+       ApplicationOption app,
+       Func<X509Certificate2, OIDCWellKnownResponse, Dictionary<string, string>> tokenFormBuilder,
+       string? responseIssuer,
+       CancellationToken ct
+       )
     {
-        if (string.IsNullOrWhiteSpace(app.OIDCWellKnownURL))
-        {
-            return new(null, "IdP discovery URL not configured for this client app");
-        }
 
         // Discover IdP metadata
         var (wellknown, wellknown_error) = await DiscoverWellKnown(app, ct);
         if (wellknown_error != null || wellknown == null)
-        {
             return new(null, wellknown_error ?? "Discovery failed");
-        }
 
         var issuer = wellknown.issuer;
         var tokenEndpoint = wellknown.token_endpoint;
         var jwksUri = wellknown.jwks_uri;
         if (string.IsNullOrEmpty(issuer) || string.IsNullOrEmpty(tokenEndpoint) || string.IsNullOrEmpty(jwksUri))
-        {
             return new(null, "Invalid IdP discovery document");
+
+        // Mix-up mitigation: validate authorization response issuer ('iss' param) if present
+        if (!string.IsNullOrWhiteSpace(responseIssuer) &&
+            !string.Equals(responseIssuer, issuer, StringComparison.Ordinal))
+        {
+            log.LogWarning("TOKEN_RESPONSE_ISS_MISMATCH app={app} expected={expected} received={received}", app.ApplicationID, issuer, responseIssuer);
+            return new(null, "invalid_token_response_iss");
         }
 
         // Enforce token endpoint auth (prefer/require private_key_jwt)
         var allowed = wellknown.token_endpoint_auth_methods_supported;
         var allowPrivateKeyJwt = allowed == null || allowed.Count == 0 || allowed.Contains(OIDCTokenEndpointAuthMethod.private_key_jwt);
         if (!allowPrivateKeyJwt)
-        {
             return new(null, "IdP does not allow private_key_jwt for token endpoint");
-        }
-
-        // Build refresh token request with private_key_jwt
-        X509Certificate2? cert = certificate_cache.GetCertificate(app);
-        if (cert == null)
-        {
-            return new(null, "Client certificate not configured");
-        }
-
-        var refreshForm = PushedAuthorizationProvider.BuildRefreshTokenFormPrivateKeyJwt(
-            cert,
-            clientId: app.ApplicationID,
-            tokenEndpoint,
-            idpRefreshToken,
-            wellknown.token_endpoint_auth_signing_alg_values_supported
-        );
 
         // Call IdP token endpoint
         string id_token;
-        string? newIdpRefreshToken = null;
+        string? idpRefreshToken = null;
         DateTimeOffset? idpRefreshExpirationUtc = null;
 
-        try
+        X509Certificate2? cert = certificate_cache.GetCertificate(app);
+        if (cert == null)
+            return new(null, "Client certificate not configured");
+
+        var tokenForm = tokenFormBuilder(cert!, wellknown);
+
+        var (token_result, token_error) = await OIDCClientServiceProvider.PostToTokenEndpoint(oidcHttpClient, tokenEndpoint, tokenForm, ct);
+        if (!string.IsNullOrEmpty(token_error) || token_result == null)
         {
-            var refreshResult = await oidcHttpClient.PostTokenAsync(tokenEndpoint, refreshForm, authorization: null, ct);
-            if (!refreshResult.IsSuccessStatusCode)
-            {
-                return new(null, $"IdP refresh failed: {refreshResult.Body}. Error: {refreshResult.Error}");
-            }
-
-            using var doc = JsonDocument.Parse(refreshResult.Body);
-            id_token = doc.RootElement.TryGetProperty(WellknownIdentityConstants.IdToken, out var idt) ? idt.GetString() ?? "" : "";
-            if (string.IsNullOrEmpty(id_token))
-            {
-                return new(null, "IdP refresh response missing id_token");
-            }
-
-            // Scrubbed log (no raw token)
-            log.LogTrace("CLIENT_ID_TOKEN_REFRESH_RECEIVED app_id={appId} {meta}", app.ApplicationID, DescribeToken(id_token));
-
-            if (doc.RootElement.TryGetProperty(WellknownIdentityConstants.RefreshToken, out var rt))
-            {
-                newIdpRefreshToken = rt.GetString();
-            }
-
-            if (doc.RootElement.TryGetProperty(WellknownIdentityConstants.RefreshExpirationUtc, out var rexp))
-            {
-                var rexpStr = rexp.GetString();
-                if (!string.IsNullOrWhiteSpace(rexpStr) && DateTimeOffset.TryParse(rexpStr, out var parsed))
-                {
-                    idpRefreshExpirationUtc = parsed.ToUniversalTime();
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            return new(null, $"IdP refresh request error: {ex.Message}");
+            return new(null, token_error ?? "IdP token failed");
         }
 
-        // Validate refreshed id_token
-        var clientDecryptCert = certificate_cache.GetCertificate(app);
-
-        var jwksResult = await JwksProvider.FetchAndCacheRemoteJwksAsync(jwksUri, oidcHttpClient, remote_jwks_cache, ct);
-        var signingKeys = jwksResult.Keys.Values;
-
-        var header = JwksProvider.TryReadProtectedHeader(id_token);
-        if (jwksResult.Keys.Count > 0 && header.Kid != null && !jwksResult.Keys.ContainsKey(header.Kid))
+        id_token = token_result.id_token ?? "";
+        if (string.IsNullOrEmpty(id_token))
         {
-            var forced = await JwksProvider.FetchAndCacheRemoteJwksAsync(jwksUri, oidcHttpClient, remote_jwks_cache, ct);
-            signingKeys = forced.Keys.Values;
+            return new(null, "IdP token response missing id_token");
         }
 
-        var effectiveAlgs = BuildEffectiveIdTokenAlgs(wellknown);
+        idpRefreshToken = token_result.refresh_token;
 
-        var (jwt_result, jwt_error) = await JwksProvider.ValidateIdTokenWithKeysAsync(
-            signingKeys, issuer, app.ApplicationID, id_token, clientDecryptCert, header,
-            effectiveAlgs.AllowedSigningAlgs, effectiveAlgs.AllowedKeyMgmtAlgs, effectiveAlgs.AllowedEncAlgs,
+        var rexp = token_result.refresh_expiration_utc;
+        if (!string.IsNullOrWhiteSpace(rexp) && DateTimeOffset.TryParse(rexp, out var parsed))
+        {
+            idpRefreshExpirationUtc = parsed.ToUniversalTime();
+        }
+
+        log.LogTrace("TOKEN_RECEIVED app_id={appId} {meta} Refresh: {refresh} expiration: {exp}", app.ApplicationID, DescribeToken(id_token), DescribeToken(idpRefreshToken), idpRefreshExpirationUtc);
+
+        // Validate id_token via IdP JWKS
+        var (validate_result, validate_error) = await OIDCClientServiceProvider.ValidateToken(
+            certificate_cache,
+            app,
+            wellknown,
+            id_token,
+            oidcHttpClient,
+            remote_jwks_cache,
             ct);
 
-        if (jwt_error != null || jwt_result == null)
+        GetTokenResult result = new(
+            id_token,
+            idpRefreshToken,
+            idpRefreshExpirationUtc,
+            token_result,
+            validate_result
+            );
+
+        if (validate_error != null || validate_result == null)
         {
-            return new(null, jwt_error ?? "Invalid id_token");
+            log.LogTrace("ID_TOKEN_VALIDATION_FAILED: {app_id}, id_token: {meta}. Error: {validate_error}", app.ApplicationID, DescribeToken(id_token), validate_error);
+            return new(result, validate_error ?? "Invalid id_token");
+        }
+
+        return new(result, null);
+
+    }
+
+    private async Task<ResultWithStatus<OIDCClientCallbackResult, string>> RefreshBackchannelIdpTokens(
+        ApplicationOption app,
+        string idpRefreshToken,
+        CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(app.OIDCWellKnownURL))
+            return new(null, "IdP discovery URL not configured for this client app");
+
+        var (get_result, get_error) = await GetToken(
+            app,
+            (cert, wk) => PushedAuthorizationProvider.BuildRefreshTokenFormPrivateKeyJwt(
+                cert,
+                clientId: app.ApplicationID,
+                wk.token_endpoint,
+                idpRefreshToken,
+                wk.token_endpoint_auth_signing_alg_values_supported),
+            null,
+            ct
+            );
+
+        if (get_error != null || get_result == null || get_result.validate_result == null)
+        {
+            log.LogTrace("ID_TOKEN_REFRESH_FAILED: {app_id}, Error: {get_error}", app.ApplicationID, get_error);
+            return new(null, get_error ?? "Invalid id_token");
         }
 
         // Return principal and the (rotated) IdP refresh token info
+        var newIdpRefreshToken = get_result.idp_refresh_token;
+        var jwt_result = get_result.validate_result;
+        var idpRefreshExpirationUtc = get_result.refresh_expiration;
+
         var effectiveRefreshToken = string.IsNullOrWhiteSpace(newIdpRefreshToken) ? idpRefreshToken : newIdpRefreshToken;
 
-        return new(new(jwt_result.Principal, jwt_result.ExpiresUtc, effectiveRefreshToken, DeviceId: null, idpRefreshExpirationUtc), null);
+        return new(new(jwt_result.Principal, jwt_result.ExpiresUtc, effectiveRefreshToken, DeviceId: null, idpRefreshExpirationUtc, null), null);
     }
 
     public async Task<bool> RefreshIdpToken(
@@ -764,63 +849,5 @@ public class OIDCClientService(
         }
     }
 
-    private sealed record EffectiveIdTokenAlgs(
-        ISet<string> AllowedSigningAlgs,
-        ISet<string> AllowedKeyMgmtAlgs,
-        ISet<string> AllowedEncAlgs
-        );
-
-    private static EffectiveIdTokenAlgs BuildEffectiveIdTokenAlgs(OIDCWellKnownResponse wk)
-    {
-        // 1) SIGNING
-        var signing = new HashSet<string>();
-
-        if (wk.id_token_signing_alg_values_supported != null &&
-            wk.id_token_signing_alg_values_supported.Count > 0)
-        {
-            foreach (var jwtAlg in wk.id_token_signing_alg_values_supported)
-            {
-                string currentAlg = jwtAlg.ToString();
-                if (OIDCCryptoCapabilities.Client.AllowedIdTokenSigningAlgorithms.Contains(currentAlg))
-                {
-                    signing.Add(currentAlg);
-                }
-            }
-        }
-
-        // 2) KEY MGMT (alg)
-        var km = new HashSet<string>();
-
-        if (wk.id_token_encryption_alg_values_supported != null &&
-            wk.id_token_encryption_alg_values_supported.Count > 0)
-        {
-            foreach (var jwtAlg in wk.id_token_encryption_alg_values_supported)
-            {
-                string currentAlg = jwtAlg.ToAlgString();
-                if (OIDCCryptoCapabilities.Client.AllowedIdTokenKeyManagementAlgs.Contains(currentAlg))
-                {
-                    km.Add(currentAlg);
-                }
-            }
-        }
-
-        // 3) ENC (enc)
-        var enc = new HashSet<string>();
-
-        if (wk.id_token_encryption_enc_values_supported != null &&
-            wk.id_token_encryption_enc_values_supported.Count > 0)
-        {
-            foreach (var jwtEnc in wk.id_token_encryption_enc_values_supported)
-            {
-                string currentAlg = jwtEnc.ToAlgString();
-                if (OIDCCryptoCapabilities.Client.AllowedIdTokenContentEncryptionAlgs.Contains(currentAlg))
-                {
-                    enc.Add(currentAlg);
-                }
-            }
-        }
-
-        return new(signing, km, enc);
-    }
 
 }

@@ -1,4 +1,5 @@
 ﻿using MicroM.Core;
+using MicroM.Extensions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.WebUtilities;
 using System.Security.Cryptography;
@@ -7,7 +8,7 @@ using System.Text;
 namespace MicroM.Web.Authentication.SSO;
 
 // CORE DATA: canonical values persisted and validated
-public sealed record StateAndNonceData(string State, string Nonce, string? DeviceId, long Timestamp);
+public sealed record StateAndNonceData(string State, string Nonce, string? DeviceId, long Timestamp, string? CodeVerifier, string? TargetLinkUri);
 
 // CONTEXT: wraps data plus adjusted form used during PAR construction (not persisted)
 public sealed record StateAndNonceContext(StateAndNonceData Data, IFormCollection? AdjustedForm);
@@ -18,14 +19,21 @@ public sealed record StateAndNonceHashed
     string MacHash
 )
 {
-    private static string EncodeDeviceId(string? deviceId) => string.IsNullOrEmpty(deviceId) ? "" : Convert.ToBase64String(Encoding.UTF8.GetBytes(deviceId));
 
-    private static string CoreString(StateAndNonceData data) =>
-        string.Join('.',
+    private static string CoreString(StateAndNonceData data)
+    {
+        if (".".IsIn(data.State, data.Nonce, data.CodeVerifier))
+        {
+            throw new ArgumentException("State, Nonce and CodeVerifier values cannot contain '.' character.");
+        }
+        return string.Join('.',
             data.State,
             data.Nonce,
             data.Timestamp.ToString(),
-            EncodeDeviceId(data.DeviceId));
+            data.DeviceId.ToBase64(),
+            data.CodeVerifier ?? "",
+            data.TargetLinkUri.ToBase64());
+    }
 
     private static string ComputeHmacBase64Url(string keyMaterial, string data)
     {
@@ -44,7 +52,7 @@ public sealed record StateAndNonceHashed
         return WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(composite));
     }
 
-    private const int EXPECTED_SEGMENTS = 5;
+    private const int EXPECTED_SEGMENTS = 7;
     public static ResultWithStatus<StateAndNonceHashed, string> Decode(string hmacKey, string encoded)
     {
         if (string.IsNullOrWhiteSpace(encoded))
@@ -72,7 +80,9 @@ public sealed record StateAndNonceHashed
         var nonce = parts[1];
         var tsStr = parts[2];
         var encodedDeviceId = parts[3];
-        var mac = parts[4];
+        var codeVerifier = parts[4];
+        var encodedTargetLinkUri = parts[5];
+        var mac = parts[6];
 
         if (!long.TryParse(tsStr, out var ts))
         {
@@ -80,7 +90,7 @@ public sealed record StateAndNonceHashed
         }
 
         // Recreate core for MAC verification
-        var core = string.Join('.', state, nonce, tsStr, encodedDeviceId);
+        var core = string.Join('.', state, nonce, tsStr, encodedDeviceId, codeVerifier, encodedTargetLinkUri);
         var expectedMac = ComputeHmacBase64Url(hmacKey, core);
 
         if (!CryptographicOperations.FixedTimeEquals(
@@ -103,7 +113,20 @@ public sealed record StateAndNonceHashed
             }
         }
 
-        var data = new StateAndNonceData(state, nonce, deviceId, ts);
+        string? targetLinkUri = null;
+        if (!string.IsNullOrEmpty(encodedTargetLinkUri))
+        {
+            try
+            {
+                targetLinkUri = Encoding.UTF8.GetString(Convert.FromBase64String(encodedTargetLinkUri));
+            }
+            catch
+            {
+                return new(null, "target_link_uri_decode_error");
+            }
+        }
+
+        var data = new StateAndNonceData(state, nonce, deviceId, ts, string.IsNullOrEmpty(codeVerifier) ? null : codeVerifier, targetLinkUri);
         return new(new StateAndNonceHashed(data, mac), null);
     }
 
@@ -111,4 +134,3 @@ public sealed record StateAndNonceHashed
 
 
 }
-

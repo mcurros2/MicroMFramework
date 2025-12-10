@@ -1,4 +1,6 @@
-﻿namespace MicroM.Extensions;
+﻿using System.Text;
+
+namespace MicroM.Extensions;
 
 public static class StringExtensions
 {
@@ -30,12 +32,12 @@ public static class StringExtensions
 
     public static IEnumerable<string> Unquote(this IEnumerable<string> value)
     {
-        return value.Select(x => x.Unquote()).ToArray();
+        return [.. value.Select(x => x.Unquote())];
     }
 
     public static IEnumerable<string> Trim(this IEnumerable<string> value)
     {
-        return value.Select(x => x.Trim()).ToArray();
+        return [.. value.Select(x => x.Trim())];
     }
 
     public static string IfNullOrEmpty(this string value, string null_or_empty_value)
@@ -57,5 +59,36 @@ public static class StringExtensions
     public static string Mask(this string? value)
     {
         return string.IsNullOrEmpty(value) ? "empty" : $"<{value.Length} chars>";
+    }
+
+    public static bool IsContainedIn(this string? value, IEnumerable<string> list, StringComparison comparison = StringComparison.OrdinalIgnoreCase)
+    {
+        if (value == null) return false;
+        foreach (var item in list)
+        {
+            if (string.Equals(value, item, comparison))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static bool StartsWithAny(this string? value, IEnumerable<string> prefixes, StringComparison comparison = StringComparison.OrdinalIgnoreCase)
+    {
+        if (value == null) return false;
+        foreach (var prefix in prefixes)
+        {
+            if (value.StartsWith(prefix, comparison))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static string ToBase64(this string? value)
+    {
+        return string.IsNullOrEmpty(value) ? "" : Convert.ToBase64String(Encoding.UTF8.GetBytes(value));
     }
 }

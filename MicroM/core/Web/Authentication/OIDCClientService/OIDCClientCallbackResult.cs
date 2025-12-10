@@ -7,5 +7,6 @@ public sealed record OIDCClientCallbackResult(
     DateTimeOffset? ExpiresUtc,
     string? IdpRefreshToken,
     string? DeviceId,
-    DateTimeOffset? IdpRefreshExpirationUtc
+    DateTimeOffset? IdpRefreshExpirationUtc,
+    string? TargetLinkURI
 );

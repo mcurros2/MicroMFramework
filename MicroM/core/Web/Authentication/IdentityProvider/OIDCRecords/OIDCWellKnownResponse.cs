@@ -190,9 +190,11 @@ public sealed record OIDCWellKnownResponse
     IReadOnlyList<OIDCSigningAlg>? revocation_endpoint_auth_signing_alg_values_supported = null,
     IReadOnlyList<OIDCSigningAlg>? introspection_endpoint_auth_signing_alg_values_supported = null,
 
+
     IReadOnlyList<OIDCTokenEndpointAuthMethod>? revocation_endpoint_auth_methods_supported = null,
     IReadOnlyList<OIDCTokenEndpointAuthMethod>? token_endpoint_auth_methods_supported = null,
     IReadOnlyList<OIDCTokenEndpointAuthMethod>? introspection_endpoint_auth_methods_supported = null,
+    IReadOnlyList<OIDCTokenEndpointAuthMethod>? pushed_authorization_request_endpoint_auth_methods_supported = null,
 
     bool? authorization_response_iss_parameter_supported = null,
 
