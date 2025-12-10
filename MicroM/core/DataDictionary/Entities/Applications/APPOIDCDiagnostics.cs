@@ -16,7 +16,7 @@ public record APPOidcDiagnosticsResult : EntityActionResult
 public class APPOIDCDiagnostics : EntityActionBase
 {
 
-    public override async Task<EntityActionResult> Execute(EntityBase entity, DataWebAPIRequest parms, EntityDefinition def, MicroMOptions? Options, IWebAPIServices? API, IMicroMEncryption? encryptor, CancellationToken ct, string? app_id)
+    public override async Task<EntityActionResult> Execute(EntityBase entity, DataWebAPIRequest parms, EntityDefinition def, MicroMOptions? Options, IWebAPIServices? API, IMicroMEncryption? encryptor, string? app_id, CancellationToken ct)
     {
         var result = new APPOidcDiagnosticsResult();
         var c_application_id = parms.Values[nameof(ApplicationsDef.c_application_id)].ToString();

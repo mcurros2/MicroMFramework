@@ -41,10 +41,9 @@ public static class DatabaseSchemaProcedures
     public static async Task CreateGeneratedProcs<T>(
         T ent,
         IEntityClient ec,
-        CancellationToken ct,
         CustomOrderedDictionary<CustomScript>? classified_custom_procs,
-        bool create_or_alter
-
+        bool create_or_alter,
+        CancellationToken ct
         ) where T : EntityBase
     {
         bool should_close = !(ec.ConnectionState == System.Data.ConnectionState.Open);
@@ -120,8 +119,8 @@ public static class DatabaseSchemaProcedures
     public static async Task CreateProcs<T>(
         T ent,
         IEntityClient ec,
-        CancellationToken ct,
         bool create_or_alter,
+        CancellationToken ct,
         bool create_custom_procs = true
         ) where T : EntityBase
     {
@@ -289,8 +288,8 @@ public static class DatabaseSchemaProcedures
     public static async Task<T> CreateEntityAndProcs<T>(
     T? ent,
     IEntityClient ec,
-    CancellationToken ct,
     bool create_or_alter,
+    CancellationToken ct,
     bool create_custom_procs = true
     ) where T : EntityBase, new()
     {
@@ -309,7 +308,7 @@ public static class DatabaseSchemaProcedures
                 new_ent = ent;
             }
 
-            await CreateProcs(new_ent, ec, ct, create_or_alter, create_custom_procs);
+            await CreateProcs(new_ent, ec, create_or_alter, ct, create_custom_procs);
 
             return new_ent;
         }

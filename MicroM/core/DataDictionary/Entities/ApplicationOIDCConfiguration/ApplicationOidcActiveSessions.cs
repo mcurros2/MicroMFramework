@@ -219,7 +219,7 @@ public class ApplicationOidcActiveSessions : Entity<ApplicationOidcActiveSession
             entity.Def.c_application_id.Value = app_id;
             entity.Def.vc_oidc_session_id.Value = sid;
 
-            result = await entity.Data.ExecuteProc(ct, entity.Def.aos_getUserSessionsBySID, mapper: entity.MapSessionRecord);
+            result = await entity.Data.ExecuteProc(entity.Def.aos_getUserSessionsBySID, ct, mapper: entity.MapSessionRecord);
 
         }
         finally
@@ -240,7 +240,7 @@ public class ApplicationOidcActiveSessions : Entity<ApplicationOidcActiveSession
         {
             await ec.Connect(ct);
             entity.Def.vc_username.Value = username;
-            result = await entity.Data.ExecuteProc(ct, entity.Def.aos_getSessionsByUser, mapper: entity.MapSessionRecord);
+            result = await entity.Data.ExecuteProc(entity.Def.aos_getSessionsByUser, ct, mapper: entity.MapSessionRecord);
         }
         finally
         {
@@ -259,7 +259,7 @@ public class ApplicationOidcActiveSessions : Entity<ApplicationOidcActiveSession
         {
             await ec.Connect(ct);
             entity.Def.vc_oidc_sub.Value = sub;
-            result = await entity.Data.ExecuteProc(ct, entity.Def.aos_getSessionsBySUB, mapper: entity.MapSessionRecord);
+            result = await entity.Data.ExecuteProc(entity.Def.aos_getSessionsBySUB, ct, mapper: entity.MapSessionRecord);
         }
         finally
         {
@@ -282,7 +282,7 @@ public class ApplicationOidcActiveSessions : Entity<ApplicationOidcActiveSession
             // IMPORTANT: column is encrypted at rest; pass encrypted value for lookup.
             entity.Def.vc_oidc_refreshtoken.Value = encryptor != null ? encryptor.Encrypt(refresh_token) : refresh_token;
 
-            result = await entity.Data.ExecuteProc(ct, entity.Def.aos_getSessionByRefreshToken, mapper: entity.MapSessionRecord);
+            result = await entity.Data.ExecuteProc(entity.Def.aos_getSessionByRefreshToken, ct, mapper: entity.MapSessionRecord);
         }
         finally
         {
@@ -304,7 +304,7 @@ public class ApplicationOidcActiveSessions : Entity<ApplicationOidcActiveSession
             entity.Def.c_application_id.Value = client_id;
             entity.Def.vc_oidc_session_id.Value = sid;
 
-            result = await entity.Data.ExecuteProc(ct, entity.Def.aos_getSessionBySID, mapper: entity.MapSessionRecord);
+            result = await entity.Data.ExecuteProc(entity.Def.aos_getSessionBySID, ct, mapper: entity.MapSessionRecord);
         }
         finally
         {
@@ -325,7 +325,7 @@ public class ApplicationOidcActiveSessions : Entity<ApplicationOidcActiveSession
             entity.Def.c_application_id.Value = app_id;
             entity.Def.vc_oidc_sub.Value = sub;
             entity.Def.vc_oidc_session_id.Value = sid ?? "";
-            result = await entity.Data.ExecuteProcSingleColumn<string>(ct, entity.Def.aos_getUsernameFromSIDorSUB);
+            result = await entity.Data.ExecuteProcSingleColumn<string>(entity.Def.aos_getUsernameFromSIDorSUB, ct);
         }
         finally
         {
@@ -345,7 +345,7 @@ public class ApplicationOidcActiveSessions : Entity<ApplicationOidcActiveSession
             await ec.Connect(ct);
             entity.Def.c_application_id.Value = app_id;
             entity.Def.vc_oidc_session_id.Value = sid;
-            result = await entity.Data.ExecuteProcSingleColumn<string>(ct, entity.Def.aos_getSUBFromSID);
+            result = await entity.Data.ExecuteProcSingleColumn<string>(entity.Def.aos_getSUBFromSID, ct);
         }
         finally
         {
@@ -363,7 +363,7 @@ public class ApplicationOidcActiveSessions : Entity<ApplicationOidcActiveSession
         {
             await ec.Connect(ct);
             entity.Def.vc_oidc_sub.Value = sub;
-            return await entity.Data.ExecuteProcDBStatus(ct, entity.Def.aos_deleteSessionsBySUB);
+            return await entity.Data.ExecuteProcDBStatus(entity.Def.aos_deleteSessionsBySUB, ct);
         }
         finally
         {

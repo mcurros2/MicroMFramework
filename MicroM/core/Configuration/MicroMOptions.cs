@@ -16,7 +16,7 @@
 
         public string[]? AllowedUploadFileExtensions { get; set; } = null;
 
-        public string? MicroMAPIBaseRootPath { get; set; } = "microm";
+        public string MicroMAPIBaseRootPath { get; set; } = "microm";
 
         public string? DefaultSQLDatabaseCollation { get; set; } = null;
 

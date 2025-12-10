@@ -247,7 +247,7 @@ public class Applications : Entity<ApplicationsDef>
         try
         {
             await ec.Connect(ct);
-            result = await app.Data.ExecuteProc(ct, app.Def.app_GetConfiguration, set_parms_from_columns: false, mapper: async (IValueReader fv, string[] headers, string[] typeInfo, CancellationToken ct) =>
+            result = await app.Data.ExecuteProc(app.Def.app_GetConfiguration, ct, set_parms_from_columns: false, mapper: async (IValueReader fv, string[] headers, string[] typeInfo, CancellationToken ct) =>
             {
                 ApplicationOption app_result = new()
                 {
@@ -291,7 +291,7 @@ public class Applications : Entity<ApplicationsDef>
             });
 
             List<OIDCClientConfigurationOption> oidc_clients = [];
-            oidc_clients = await app.Data.ExecuteProc(ct, app.Def.app_GetOIDCClients, set_parms_from_columns: false, mapper: async (IValueReader fv, string[] headers, string[] typeInfo, CancellationToken ct) =>
+            oidc_clients = await app.Data.ExecuteProc(app.Def.app_GetOIDCClients, ct, set_parms_from_columns: false, mapper: async (IValueReader fv, string[] headers, string[] typeInfo, CancellationToken ct) =>
             {
                 OIDCClientConfigurationOption client_result = new()
                 {

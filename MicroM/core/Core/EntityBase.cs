@@ -39,7 +39,7 @@ namespace MicroM.Core
 
             if (act != null)
             {
-                result = (EntityActionResult?)await act.Execute(this, args, Def, Options, API, encryptor, ct, app_id);
+                result = (EntityActionResult?)await act.Execute(this, args, Def, Options, API, encryptor, app_id, ct);
             }
 
             return result;
@@ -52,9 +52,9 @@ namespace MicroM.Core
             return await Data.DeleteData(ct, throw_dbstat_exception);
         }
 
-        public virtual async Task<List<DataResult>> ExecuteView(CancellationToken ct, ViewDefinition view, int? row_limit = null, MicroMOptions? options = null, Dictionary<string, object>? server_claims = null, IWebAPIServices? api = null, string? app_id = null)
+        public virtual async Task<List<DataResult>> ExecuteView(ViewDefinition view, CancellationToken ct, int? row_limit = null, MicroMOptions? options = null, Dictionary<string, object>? server_claims = null, IWebAPIServices? api = null, string? app_id = null)
         {
-            return await Data.ExecuteView(ct, view, row_limit);
+            return await Data.ExecuteView(view, ct, row_limit);
         }
 
         public virtual async Task<bool> GetData(CancellationToken ct, MicroMOptions? options = null, Dictionary<string, object>? server_claims = null, IWebAPIServices? api = null, string? app_id = null)
@@ -82,29 +82,29 @@ namespace MicroM.Core
             return await Data.UpdateData(ct, throw_dbstat_exception);
         }
 
-        public virtual async Task<DBStatusResult> ExecuteProcessDBStatus(CancellationToken ct, ProcedureDefinition proc, bool set_parms_from_columns = true, bool throw_dbstat_exception = false, MicroMOptions? options = null, Dictionary<string, object>? server_claims = null, IWebAPIServices? api = null, string? app_id = null)
+        public virtual async Task<DBStatusResult> ExecuteProcessDBStatus(ProcedureDefinition proc, CancellationToken ct, bool set_parms_from_columns = true, bool throw_dbstat_exception = false, MicroMOptions? options = null, Dictionary<string, object>? server_claims = null, IWebAPIServices? api = null, string? app_id = null)
         {
-            return await Data.ExecuteProcDBStatus(ct, proc, set_parms_from_columns, throw_dbstat_exception);
+            return await Data.ExecuteProcDBStatus(proc, ct, set_parms_from_columns, throw_dbstat_exception);
         }
 
-        public virtual async Task<List<DataResult>> ExecuteProc(CancellationToken ct, ProcedureDefinition proc, int row_limit = 0, bool set_parms_from_columns = true, MicroMOptions? options = null, Dictionary<string, object>? server_claims = null, IWebAPIServices? api = null, string? app_id = null)
+        public virtual async Task<List<DataResult>> ExecuteProc(ProcedureDefinition proc, CancellationToken ct, int row_limit = 0, bool set_parms_from_columns = true, MicroMOptions? options = null, Dictionary<string, object>? server_claims = null, IWebAPIServices? api = null, string? app_id = null)
         {
-            return await Data.ExecuteProc(ct, proc, row_limit, set_parms_from_columns);
+            return await Data.ExecuteProc(proc, ct, row_limit, set_parms_from_columns);
         }
 
-        public virtual async Task<List<T>> ExecuteProc<T>(CancellationToken ct, ProcedureDefinition proc, int row_limit = 0, bool set_parms_from_columns = true, AutoMapperMode mode = AutoMapperMode.ByName, MapResult<T>? mapper = null, MicroMOptions? options = null, Dictionary<string, object>? server_claims = null, IWebAPIServices? api = null, string? app_id = null) where T : class, new()
+        public virtual async Task<List<T>> ExecuteProc<T>(ProcedureDefinition proc, CancellationToken ct, int row_limit = 0, bool set_parms_from_columns = true, AutoMapperMode mode = AutoMapperMode.ByName, MapResult<T>? mapper = null, MicroMOptions? options = null, Dictionary<string, object>? server_claims = null, IWebAPIServices? api = null, string? app_id = null) where T : class, new()
         {
-            return await Data.ExecuteProc<T>(ct, proc, row_limit, set_parms_from_columns, mode, mapper);
+            return await Data.ExecuteProc<T>(proc, ct, row_limit, set_parms_from_columns, mode, mapper);
         }
 
-        public virtual async Task<T?> ExecuteProcSingleColumn<T>(CancellationToken ct, ProcedureDefinition proc, int row_limit = 0, bool set_parms_from_columns = true, MicroMOptions? options = null, Dictionary<string, object>? server_claims = null, IWebAPIServices? api = null, string? app_id = null)
+        public virtual async Task<T?> ExecuteProcSingleColumn<T>(ProcedureDefinition proc, CancellationToken ct, int row_limit = 0, bool set_parms_from_columns = true, MicroMOptions? options = null, Dictionary<string, object>? server_claims = null, IWebAPIServices? api = null, string? app_id = null)
         {
-            return await Data.ExecuteProcSingleColumn<T>(ct, proc, row_limit, set_parms_from_columns);
+            return await Data.ExecuteProcSingleColumn<T>(proc, ct, row_limit, set_parms_from_columns);
         }
 
-        public virtual async Task<T?> ExecuteProcSingleRow<T>(CancellationToken ct, ProcedureDefinition proc, bool set_parms_from_columns = true, AutoMapperMode mode = AutoMapperMode.ByName, MapResult<T>? mapper = null, MicroMOptions? options = null, Dictionary<string, object>? server_claims = null, IWebAPIServices? api = null, string? app_id = null) where T : class, new()
+        public virtual async Task<T?> ExecuteProcSingleRow<T>(ProcedureDefinition proc, CancellationToken ct, bool set_parms_from_columns = true, AutoMapperMode mode = AutoMapperMode.ByName, MapResult<T>? mapper = null, MicroMOptions? options = null, Dictionary<string, object>? server_claims = null, IWebAPIServices? api = null, string? app_id = null) where T : class, new()
         {
-            return await Data.ExecuteProcSingleRow<T>(ct, proc, set_parms_from_columns, mode, mapper);
+            return await Data.ExecuteProcSingleRow<T>(proc, ct, set_parms_from_columns, mode, mapper);
         }
 
         #endregion

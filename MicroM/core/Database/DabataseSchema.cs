@@ -61,7 +61,7 @@ public static class DatabaseSchema
 
                     if (create_procs)
                     {
-                        await CreateProcs(ent, ec, ct, create_or_alter, create_custom_procs);
+                        await CreateProcs(ent, ec, create_or_alter, ct, create_custom_procs);
                     }
                 }
 
@@ -136,7 +136,7 @@ public static class DatabaseSchema
             // Standard generated procs are created if no custom proc replacing it exists
             foreach (var options in entities.Values)
             {
-                await CreateGeneratedProcs(options.EntityInstance, ec, ct, classified_custom_scripts, create_or_alter);
+                await CreateGeneratedProcs(options.EntityInstance, ec, classified_custom_scripts, create_or_alter, ct);
             }
 
             // the rest of the custom procs, in order

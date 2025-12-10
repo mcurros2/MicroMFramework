@@ -107,7 +107,7 @@ public class MicromUsers : Entity<MicromUsersDef>
 
         var proc = user.Def.usr_logoff;
         proc[nameof(MicromUsersDef.vc_username)].ValueObject = username;
-        return await user.Data.ExecuteProcDBStatus(ct, proc);
+        return await user.Data.ExecuteProcDBStatus(proc, ct);
     }
 
     public async static Task<LoginData?> GetUserData(string? username, string? user_id, string device_id, IEntityClient ec, CancellationToken ct)
@@ -118,7 +118,7 @@ public class MicromUsers : Entity<MicromUsersDef>
         if (username != null) proc[nameof(MicromUsersDef.vc_username)].ValueObject = username;
         if (user_id != null) proc[nameof(MicromUsersDef.c_user_id)].ValueObject = user_id;
         if (device_id != null) proc[nameof(device_id)].ValueObject = device_id;
-        var result = await user.Data.ExecuteProcSingleRow<LoginData>(ct, proc, set_parms_from_columns: false, mode: AutoMapperMode.ByNameLaxNotThrow);
+        var result = await user.Data.ExecuteProcSingleRow<LoginData>(proc, ct, set_parms_from_columns: false, mode: AutoMapperMode.ByNameLaxNotThrow);
 
         return result;
     }
@@ -127,7 +127,7 @@ public class MicromUsers : Entity<MicromUsersDef>
     {
         var proc = Def.usr_GetClientClaims;
 
-        var result = await Data.ExecuteProc(ct, proc, set_parms_from_columns: true);
+        var result = await Data.ExecuteProc(proc, ct, set_parms_from_columns: true);
 
         if (result.HasData())
         {
@@ -141,7 +141,7 @@ public class MicromUsers : Entity<MicromUsersDef>
     {
         var proc = Def.usr_GetServerClaims;
 
-        var result = await Data.ExecuteProc(ct, proc, set_parms_from_columns: true);
+        var result = await Data.ExecuteProc(proc, ct, set_parms_from_columns: true);
 
         if (result.HasData())
         {
@@ -192,7 +192,7 @@ public class MicromUsers : Entity<MicromUsersDef>
         proc[nameof(max_bad_logon_attempts)].ValueObject = max_bad_logon_attempts;
         proc[nameof(ipaddress)].ValueObject = ipaddress;
         proc[nameof(user_agent)].ValueObject = user_agent;
-        var dbstat = await user.Data.ExecuteProcDBStatus(ct, proc, false, false);
+        var dbstat = await user.Data.ExecuteProcDBStatus(proc, ct, set_parms_from_columns: false, throw_dbstat_exception: false);
 
         if (dbstat != null && dbstat.Results != null && dbstat.Results.Count > 0)
         {
@@ -215,7 +215,7 @@ public class MicromUsers : Entity<MicromUsersDef>
         proc[nameof(new_refresh_token)].ValueObject = new_refresh_token;
         proc[nameof(refresh_expiration_hours)].ValueObject = refresh_expiration_hours;
         proc[nameof(max_refresh_count)].ValueObject = max_refresh_count;
-        var result = await user.ExecuteProcSingleRow<RefreshTokenResult>(ct, proc, set_parms_from_columns: false, mode: AutoMapperMode.ByNameLaxNotThrow);
+        var result = await user.ExecuteProcSingleRow<RefreshTokenResult>(proc, ct, set_parms_from_columns: false, mode: AutoMapperMode.ByNameLaxNotThrow);
 
         return result;
     }
@@ -226,7 +226,7 @@ public class MicromUsers : Entity<MicromUsersDef>
 
         user.Def.vc_username.Value = username;
 
-        var result = await user.Data.ExecuteProcDBStatus(ct, user.Def.usr_GetRecoveryCode);
+        var result = await user.Data.ExecuteProcDBStatus(user.Def.usr_GetRecoveryCode, ct);
 
         if (result.Failed)
         {
@@ -244,7 +244,7 @@ public class MicromUsers : Entity<MicromUsersDef>
 
         user.Def.vc_username.Value = username;
 
-        var result = await user.Data.ExecuteProc(ct, user.Def.usr_GetRecoveryEmails);
+        var result = await user.Data.ExecuteProc(user.Def.usr_GetRecoveryEmails, ct);
 
         if (result == null) return [];
 
@@ -263,7 +263,7 @@ public class MicromUsers : Entity<MicromUsersDef>
         proc[nameof(MicromUsersDef.vc_recovery_code)].ValueObject = recovery_code;
         proc[nameof(MicromUsersDef.vc_pwhash)].ValueObject = UserPasswordHasher.HashPassword(new UserLogin { Username = username, Password = new_password }, new_password);
 
-        return await user.Data.ExecuteProcDBStatus(ct, proc, set_parms_from_columns: false);
+        return await user.Data.ExecuteProcDBStatus(proc, ct, set_parms_from_columns: false);
     }
 
 
@@ -276,7 +276,7 @@ public class MicromUsers : Entity<MicromUsersDef>
         proc[nameof(MicromUsersDef.vc_username)].ValueObject = username;
         proc[nameof(MicromUsersDef.vc_pwhash)].ValueObject = pwhash;
 
-        return await user.Data.ExecuteProcDBStatus(ct, proc);
+        return await user.Data.ExecuteProcDBStatus(proc, ct);
     }
 
     public async static Task<DBStatusResult> usr_resetPassword(string username, IEntityClient ec, CancellationToken ct)
@@ -287,7 +287,7 @@ public class MicromUsers : Entity<MicromUsersDef>
         var proc = user.Def.usr_resetPassword;
         proc[nameof(MicromUsersDef.vc_username)].ValueObject = username;
 
-        return await user.Data.ExecuteProcDBStatus(ct, proc);
+        return await user.Data.ExecuteProcDBStatus(proc, ct);
     }
 
 }
