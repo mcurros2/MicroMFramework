@@ -99,7 +99,7 @@ public class C_EntityTests
         Debug.Print($"Failed: {result.Failed}, {result.Results?[0]?.Message}");
 
         Assert.IsNotNull(result);
-        Assert.AreEqual(false, result.Failed);
+        Assert.IsFalse(result.Failed);
         Assert.AreEqual(1, result?.Results?.Count);
         Assert.AreEqual(DBStatusCodes.OK, result?.Results?[0].Status);
 
@@ -107,7 +107,6 @@ public class C_EntityTests
 
         var read_result = await read_cfg.GetData(cts.Token, options, claims);
 
-        Assert.IsNotNull(read_result);
         Assert.IsTrue(read_result);
 
         Debug.Print($"CertificateThumbprint: {read_cfg.Def.vc_certificatethumbprint.Value}");
@@ -137,12 +136,12 @@ public class C_EntityTests
 
         SecretsOptions secrets = new() { ConfigSQLUser = "test_user", ConfigSQLPassword = "test_password" };
 
-        string encrypted = CryptClass.EncryptObject(secrets, cert);
+        string encrypted = CryptClass.EncryptObject(secrets, cert!);
 
-        SecretsOptions unencrypted = CryptClass.DecryptObject<SecretsOptions>(encrypted, cert);
+        SecretsOptions? unencrypted = CryptClass.DecryptObject<SecretsOptions>(encrypted, cert!);
 
-        Assert.IsTrue(secrets.ConfigSQLUser == unencrypted.ConfigSQLUser);
-        Assert.IsTrue(secrets.ConfigSQLPassword == unencrypted.ConfigSQLPassword);
+        Assert.AreEqual(secrets.ConfigSQLUser, unencrypted?.ConfigSQLUser);
+        Assert.AreEqual(secrets.ConfigSQLPassword, unencrypted?.ConfigSQLPassword);
 
         CryptClass.DeleteCertificate(CertificateName);
         return Task.CompletedTask;
@@ -158,7 +157,7 @@ public class C_EntityTests
 
         var result = await client.ExecuteSQL("select db_name()", cts.Token);
         string db_name = "";
-        if (result.HasData()) db_name = result[0].records[0][0].ToString();
+        if (result.HasData()) db_name = result[0].records[0][0]!.ToString()!;
 
         Assert.AreEqual(db_name, DatabaseConfiguration.TestDatabase, $"Incorrect database found while creating schema. Expecting {DatabaseConfiguration.TestDatabase} found {db_name}");
 
@@ -184,7 +183,7 @@ public class C_EntityTests
 
         var result = await client.ExecuteSQL("select db_name()", cts.Token);
         string db_name = "";
-        if (result.HasData()) db_name = result[0].records[0][0].ToString();
+        if (result.HasData()) db_name = result[0].records[0][0]!.ToString()!;
 
         Assert.AreEqual(db_name, DatabaseConfiguration.TestDatabase, $"Incorrect database found while creating schema. Expecting {DatabaseConfiguration.TestDatabase} found {db_name}");
 
@@ -217,7 +216,7 @@ public class C_EntityTests
 
         var result = await client.ExecuteSQL("select db_name()", cts.Token);
         string db_name = "";
-        if (result.HasData()) db_name = result[0].records[0][0].ToString();
+        if (result.HasData()) db_name = result[0].records[0][0]!.ToString()!;
 
         Assert.AreEqual(db_name, DatabaseConfiguration.TestDatabase, $"Incorrect database found while creating schema. Expecting {DatabaseConfiguration.TestDatabase} found {db_name}");
 
@@ -250,7 +249,7 @@ public class C_EntityTests
 
         var result = await client.ExecuteSQL("select db_name()", cts.Token);
         string db_name = "";
-        if (result.HasData()) db_name = result[0].records[0][0].ToString();
+        if (result.HasData()) db_name = result[0].records[0][0]!.ToString()!;
 
         Assert.AreEqual(db_name, DatabaseConfiguration.TestDatabase, $"Incorrect database found while creating schema. Expecting {DatabaseConfiguration.TestDatabase} found {db_name}");
 
@@ -294,7 +293,7 @@ public class C_EntityTests
 
 
         Assert.AreEqual("Test 1", queue.Def.vc_description.Value);
-        Assert.AreEqual(nameof(QueueType.VALUE1), queue.Def.c_queuetype_id.Value.Trim());
+        Assert.AreEqual(nameof(QueueType.VALUE1), queue.Def.c_queuetype_id.Value?.Trim());
 
     }
 
@@ -344,7 +343,7 @@ public class C_EntityTests
 
         var queue = await TestQueue.CreateAndGet(client, "2", cts.Token);
 
-        Assert.AreEqual(null, queue.Def.vc_description.Value);
+        Assert.IsNull(queue.Def.vc_description.Value);
 
     }
 
@@ -362,9 +361,9 @@ public class C_EntityTests
         };
 
 
-        var res = (TestQueueActionResult)await test.ExecuteAction(nameof(test.Def.ACTTest), args, new MicroM.Configuration.MicroMOptions() { ConfigSQLServer = "test" }, null, null, cts.Token);
+        var res = (TestQueueActionResult?)await test.ExecuteAction(nameof(test.Def.ACTTest), args, new MicroMOptions() { ConfigSQLServer = "test" }, API: null, app_id: null, encryptor: null, ct: cts.Token);
 
-        TestQueueActionResult result = (TestQueueActionResult)res;
+        TestQueueActionResult result = res!;
 
         Assert.AreEqual("admin", result.AdminUser);
         Assert.AreEqual("123456", result.AdminPassword);

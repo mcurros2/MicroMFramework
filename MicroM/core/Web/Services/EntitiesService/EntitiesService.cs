@@ -231,7 +231,7 @@ public class EntitiesService : IEntitiesService
                         {
                             entity.SetKeyValues(parms.ParentKeys);
                         }
-                        result = await entity.ExecuteProc(ct, proc, options: _options, server_claims: parms.ServerClaims, api: _api, set_parms_from_columns: false, app_id: app_id);
+                        result = await entity.ExecuteProc(proc, ct, options: _options, server_claims: parms.ServerClaims, api: _api, set_parms_from_columns: false, app_id: app_id);
                     }
                     else
                     {
@@ -246,7 +246,7 @@ public class EntitiesService : IEntitiesService
                                 entity.SetKeyValues(parms.ParentKeys);
                             }
 
-                            var record_result = await entity.ExecuteProc(ct, proc, options: _options, server_claims: parms.ServerClaims, api: _api, set_parms_from_columns: false, app_id: app_id);
+                            var record_result = await entity.ExecuteProc(proc, ct, options: _options, server_claims: parms.ServerClaims, api: _api, set_parms_from_columns: false, app_id: app_id);
                             if (record_result != null)
                             {
                                 results.AddRange(record_result);
@@ -300,7 +300,7 @@ public class EntitiesService : IEntitiesService
                         {
                             entity.SetKeyValues(parms.ParentKeys);
                         }
-                        result = await entity.ExecuteProcessDBStatus(ct, proc, options: _options, server_claims: parms.ServerClaims, api: _api, set_parms_from_columns: false, app_id: app_id);
+                        result = await entity.ExecuteProcessDBStatus(proc, ct, options: _options, server_claims: parms.ServerClaims, api: _api, set_parms_from_columns: false, app_id: app_id);
                     }
                     else
                     {
@@ -316,7 +316,7 @@ public class EntitiesService : IEntitiesService
                                 entity.SetKeyValues(parms.ParentKeys);
                             }
 
-                            var record_result = await entity.ExecuteProcessDBStatus(ct, proc, options: _options, server_claims: parms.ServerClaims, api: _api, set_parms_from_columns: false, app_id: app_id);
+                            var record_result = await entity.ExecuteProcessDBStatus(proc, ct, options: _options, server_claims: parms.ServerClaims, api: _api, set_parms_from_columns: false, app_id: app_id);
                             if (record_result != null)
                             {
                                 if (record_result.Failed) failed = true;
@@ -376,7 +376,7 @@ public class EntitiesService : IEntitiesService
                         EnsureApplicationKeys(app_id, parms.ParentKeys);
                         entity.SetKeyValues(parms.ParentKeys);
                     }
-                    result = await entity.ExecuteView(ct, view, row_limit, options: _options, server_claims: parms.ServerClaims, api: _api, app_id: app_id);
+                    result = await entity.ExecuteView(view, ct, row_limit, options: _options, server_claims: parms.ServerClaims, api: _api, app_id: app_id);
                 }
                 else
                 {
@@ -468,7 +468,7 @@ public class EntitiesService : IEntitiesService
             else
             {
                 var sys = new SystemProcs(ec);
-                var new_offset = await sys.ExecuteProcSingleColumn<int>(ct, sys.Def.sys_GetTimeZoneOffset);
+                var new_offset = await sys.ExecuteProcSingleColumn<int>(sys.Def.sys_GetTimeZoneOffset, ct);
                 _ApplicationsTimeZoneOffset.TryAdd(app_id, new_offset);
                 return new_offset;
             }

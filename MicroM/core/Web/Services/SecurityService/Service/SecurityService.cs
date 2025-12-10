@@ -44,7 +44,7 @@ public class SecurityService(IMicroMAppConfiguration app_config, ILogger<Securit
 
             var groups = new MicromUsersGroups(dbc);
 
-            var result = await groups.ExecuteProc<GetAllGroupsAllowedRoutesResult>(ct, groups.Def.mug_GetAllGroupsAllowedRoutes);
+            var result = await groups.ExecuteProc<GetAllGroupsAllowedRoutesResult>(groups.Def.mug_GetAllGroupsAllowedRoutes, ct);
 
 
             if (result != null)

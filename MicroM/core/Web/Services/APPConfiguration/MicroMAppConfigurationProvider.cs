@@ -212,11 +212,11 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
             {
                 // Drop any unused assemblies first
                 var eas = new EntitiesAssemblies(client, _encryptor);
-                await eas.ExecuteProcessDBStatus(ct, eas.Def.eas_dropUnusedAssemblies, false, true);
+                await eas.ExecuteProcessDBStatus(eas.Def.eas_dropUnusedAssemblies, ct, set_parms_from_columns: false, throw_dbstat_exception: true);
 
                 var assemblies = new ApplicationsAssemblies(client, _encryptor);
 
-                var data = await assemblies.ExecuteProc(ct, assemblies.Def.apa_GetAssemblies);
+                var data = await assemblies.ExecuteProc(assemblies.Def.apa_GetAssemblies, ct);
 
                 if (data.HasData())
                 {
@@ -271,7 +271,7 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
                                 await dbc.Connect(ct);
 
                                 assembly_types.Def.c_assembly_id.Value = assembly_id;
-                                await assembly_types.ExecuteProcessDBStatus(ct, assembly_types.Def.eat_deleteAllTypes, throw_dbstat_exception: true);
+                                await assembly_types.ExecuteProcessDBStatus(assembly_types.Def.eat_deleteAllTypes, ct, throw_dbstat_exception: true);
 
                                 int count = 0;
                                 foreach (var type in types)

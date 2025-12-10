@@ -42,7 +42,7 @@ public record APTGetCodeResult : EntityActionResult
 
 public class APTGetCode : EntityActionBase
 {
-    public override async Task<EntityActionResult> Execute(EntityBase entity, DataWebAPIRequest parms, EntityDefinition def, MicroMOptions? Options, IWebAPIServices? API, IMicroMEncryption? encryptor, CancellationToken ct, string? api_app_id)
+    public override async Task<EntityActionResult> Execute(EntityBase entity, DataWebAPIRequest parms, EntityDefinition def, MicroMOptions? Options, IWebAPIServices? API, IMicroMEncryption? encryptor, string? api_app_id, CancellationToken ct)
     {
         if (entity is not ApplicationAssemblyTypes) throw new InvalidOperationException($"This action can only be executed from {nameof(ApplicationAssemblyTypes)} class.");
 
@@ -56,8 +56,8 @@ public class APTGetCode : EntityActionBase
         assembly_id.ThrowIfNullOrEmpty(nameof(assembly_id));
         assemblytype_id.ThrowIfNullOrEmpty(nameof(assemblytype_id));
 
+        ArgumentNullException.ThrowIfNull(parms.ServerClaims, nameof(parms.ServerClaims));
         var claims = parms.ServerClaims;
-        if (claims == null) throw new ArgumentNullException(nameof(parms.ServerClaims));
 
         // MMC: this is the logged in user to the control panel
         claims.TryGetValue(MicroMServerClaimTypes.MicroMUsername, out var admin_user_obj);
@@ -66,7 +66,7 @@ public class APTGetCode : EntityActionBase
         string? admin_user = (string?)admin_user_obj;
         string? admin_password = (string?)admin_password_obj;
 
-        if (string.IsNullOrEmpty(admin_user)) throw new ArgumentNullException(nameof(MicroMServerClaimTypes.MicroMUsername));
+        ArgumentException.ThrowIfNullOrEmpty(admin_user, nameof(MicroMServerClaimTypes.MicroMUsername));
 
         using IEntityClient admin_dbc = entity.Client.Clone(new_user: admin_user, new_password: admin_password ?? "");
 

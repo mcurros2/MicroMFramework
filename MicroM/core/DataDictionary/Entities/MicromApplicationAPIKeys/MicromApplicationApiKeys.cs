@@ -53,7 +53,7 @@ public class MicromApplicationApiKeys : Entity<MicromApplicationApiKeysDef>
 
     public async Task<bool> GetByAPIKey(CancellationToken ct)
     {
-        var result = await this.ExecuteProc(ct, this.Def.mak_getByAPIKey);
+        var result = await this.ExecuteProc(this.Def.mak_getByAPIKey, ct);
 
         bool ret = Data.MapGetColumns(result);
 

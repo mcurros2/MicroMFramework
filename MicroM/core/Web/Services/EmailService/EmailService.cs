@@ -43,7 +43,7 @@ namespace MicroM.Web.Services
 
                 esq.Def.vc_json_destination_and_tags.Value = send_item.Destinations != null ? JsonSerializer.Serialize<EmailServiceDestination[]>(send_item.Destinations) : "";
 
-                var result = await esq.ExecuteProc<SubmitToQueueResult>(ct, esq.Def.emq_SubmitToQueue);
+                var result = await esq.ExecuteProc<SubmitToQueueResult>(esq.Def.emq_SubmitToQueue, ct);
 
                 if (start_processing_queue)
                 {
@@ -195,7 +195,7 @@ namespace MicroM.Web.Services
 
                 int processed_emails = 0;
 
-                List<EmailQueuedItem>? result = await emq.ExecuteProc<EmailQueuedItem>(serviceCT, emq.Def.emq_qryGetQueuedItems);
+                List<EmailQueuedItem>? result = await emq.ExecuteProc<EmailQueuedItem>(emq.Def.emq_qryGetQueuedItems, serviceCT);
 
                 while (result?.Count > 0)
                 {
@@ -259,7 +259,7 @@ namespace MicroM.Web.Services
                             logger.LogWarning("EmailService.StartProcessingQueue [{app_id}]: Missing c_email_queue_id, empty email queue item", app_id);
                         }
                     }
-                    result = await emq.ExecuteProc<EmailQueuedItem>(serviceCT, emq.Def.emq_qryGetQueuedItems);
+                    result = await emq.ExecuteProc<EmailQueuedItem>(emq.Def.emq_qryGetQueuedItems, serviceCT);
                 }
 
                 //logger.LogInformation("EmailService.StartProcessingQueue: Processing Emails finished. Total emails processed: {processed_emails}", processed_emails);

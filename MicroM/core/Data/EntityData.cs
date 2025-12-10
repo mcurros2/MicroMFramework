@@ -234,17 +234,17 @@ namespace MicroM.Data
         /// <param name="view"></param>
         /// <param name="row_limit"></param>
         /// <returns></returns>
-        public async Task<List<DataResult>> ExecuteView(CancellationToken ct, ViewDefinition view, int? row_limit = null)
+        public async Task<List<DataResult>> ExecuteView(ViewDefinition view, CancellationToken ct, int? row_limit = null)
         {
             row_limit ??= DataDefaults.DefaultRowLimitForViews;
-            return await ExecuteProc(ct, view.Proc, (int)row_limit);
+            return await ExecuteProc(view.Proc, ct, (int)row_limit);
         }
 
         /// <summary>
         /// Executes the specified <paramref name="proc"/> for an entity. This method will execute stored procedure specified for the entity.
         /// If the client is not connected to the database server, it will open a new connection.
         /// </summary>
-        public async Task<DBStatusResult> ExecuteProcDBStatus(CancellationToken ct, ProcedureDefinition proc, bool set_parms_from_columns = true, bool throw_dbstat_exception = false)
+        public async Task<DBStatusResult> ExecuteProcDBStatus(ProcedureDefinition proc, CancellationToken ct, bool set_parms_from_columns = true, bool throw_dbstat_exception = false)
         {
             //proc.Parms.TryGetValue(SystemColumnNames.webusr, out ColumnBase? webusr);
             //if (webusr != null) webusr.ValueObject = EntityClient.WebUser;
@@ -281,7 +281,7 @@ namespace MicroM.Data
         /// Executes the specified <paramref name="proc"/> for an entity. This method will execute stored procedure specified for the entity.
         /// If the client is not connected to the database server, it will open a new connection.
         /// </summary>
-        public async Task<List<DataResult>> ExecuteProc(CancellationToken ct, ProcedureDefinition proc, int row_limit = 0, bool set_parms_from_columns = true)
+        public async Task<List<DataResult>> ExecuteProc(ProcedureDefinition proc, CancellationToken ct, int row_limit = 0, bool set_parms_from_columns = true)
         {
             if (row_limit != 0 && proc.ReadonlyLocks == false) throw new ArgumentException($"Procedure {proc.Name} is defined with {nameof(proc.ReadonlyLocks)} false and cannot specify a {nameof(row_limit)} at execution");
 
@@ -319,17 +319,17 @@ namespace MicroM.Data
             return result;
         }
 
-        public async Task<T?> ExecuteProcSingleRow<T>(CancellationToken ct, ProcedureDefinition proc, bool set_parms_from_columns = true, AutoMapperMode mode = AutoMapperMode.ByName, MapResult<T>? mapper = null) where T : class, new()
+        public async Task<T?> ExecuteProcSingleRow<T>(ProcedureDefinition proc, CancellationToken ct, bool set_parms_from_columns = true, AutoMapperMode mode = AutoMapperMode.ByName, MapResult<T>? mapper = null) where T : class, new()
         {
             T? result = null;
 
-            var result_list = await ExecuteProc<T>(ct, proc, 0, set_parms_from_columns, mode, mapper);
+            var result_list = await ExecuteProc<T>(proc, ct, row_limit: 0, set_parms_from_columns, mode, mapper);
             if (result_list?.Count > 0) result = result_list[0];
 
             return result;
         }
 
-        public async Task<List<T>> ExecuteProc<T>(CancellationToken ct, ProcedureDefinition proc, int row_limit = 0, bool set_parms_from_columns = true, AutoMapperMode mode = AutoMapperMode.ByName, MapResult<T>? mapper = null) where T : class, new()
+        public async Task<List<T>> ExecuteProc<T>(ProcedureDefinition proc, CancellationToken ct, int row_limit = 0, bool set_parms_from_columns = true, AutoMapperMode mode = AutoMapperMode.ByName, MapResult<T>? mapper = null) where T : class, new()
         {
             if (row_limit != 0 && proc.ReadonlyLocks == false) throw new ArgumentException($"Procedure {proc.Name} is defined with {nameof(proc.ReadonlyLocks)} false and cannot specify a {nameof(row_limit)} at execution");
 
@@ -366,7 +366,7 @@ namespace MicroM.Data
             return result;
         }
 
-        public async Task<T?> ExecuteProcSingleColumn<T>(CancellationToken ct, ProcedureDefinition proc, int row_limit = 0, bool set_parms_from_columns = true)
+        public async Task<T?> ExecuteProcSingleColumn<T>(ProcedureDefinition proc, CancellationToken ct, int row_limit = 0, bool set_parms_from_columns = true)
         {
             if (row_limit != 0 && proc.ReadonlyLocks == false) throw new ArgumentException($"Procedure {proc.Name} is defined with {nameof(proc.ReadonlyLocks)} false and cannot specify a {nameof(row_limit)} at execution");
 

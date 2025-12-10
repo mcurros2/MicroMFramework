@@ -39,7 +39,7 @@ public class ImportProcess : Entity<ImportProcessDef>
     {
         this.Def.ipr_UpdateStatus.SetParmsValues(this.Def.Columns);
         this.Def.ipr_UpdateStatus.Parms[this.Def.c_import_status_id.Name].ValueObject = status;
-        await this.ExecuteProc(ct, this.Def.ipr_UpdateStatus, set_parms_from_columns: false);
+        await this.ExecuteProc(this.Def.ipr_UpdateStatus, ct, set_parms_from_columns: false);
     }
 
 }
