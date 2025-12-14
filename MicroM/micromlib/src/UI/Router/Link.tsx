@@ -10,5 +10,5 @@ export function Link(props: LinkProps) {
     const { navigate } = useMicroMRouter();
     const { to, children } = props;
 
-    return <Anchor href={to} onClick={(e) => { e.preventDefault; navigate(to); } }>{children}</Anchor>;
+    return <Anchor href={to} onClick={(e) => { e.preventDefault(); navigate(to); } }>{children}</Anchor>;
 };

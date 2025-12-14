@@ -323,12 +323,18 @@ public class OIDCClientService(
             return new(null, "invalid_state");
         }
 
-        // Prefer CodeVerifier from state cookie
-        var effectiveCodeVerifier = state_result.CodeVerifier ?? codeVerifier;
+        // Get code verifier from state
+        var effectiveCodeVerifier = state_result.CodeVerifier;
         if (string.IsNullOrWhiteSpace(effectiveCodeVerifier))
         {
+            // We don't allow code_verifier from the callback directly for security reasons
+            if (!string.IsNullOrEmpty(codeVerifier))
+                return new(null, "code_verifier is not allowed as parameter");
+
             return new(null, "Missing code_verifier");
         }
+
+
 
         var (get_result, get_error) = await GetToken(
             app,
@@ -401,6 +407,8 @@ public class OIDCClientService(
             return new(null, "iss_mismatch");
         }
 
+        // request.TargetLinkUri should be an absolute URI. It will be validated against forntend URLs allowed for this app.
+        // normalizedTargetLinkUri will be a relative path for the IDPClient app.
         var (normalizedTargetLinkUri, targetLinkError) = OIDCClientServiceProvider.ValidateTargetLinkURIAllowed(request.TargetLinkUri, app);
         if (targetLinkError != null)
         {
@@ -409,7 +417,7 @@ public class OIDCClientService(
         }
 
         // 3) Build redirect_uri to client callback
-        //    For TP initiated login we will use the server-side endpoint:
+        //    For Third Party initiated login we will use the server-side endpoint:
         //    GET/POST {app_id}/oidc-client/auth-callback
         var redirectUri = $"{httpRequest.Scheme}://{httpRequest.Host}{_api_path}{app.ApplicationID}/oidc-client/auth-callback";
 

@@ -270,3 +270,12 @@ sequenceDiagram
 MicroM’s SLO design applies unconditional global user logout on any logout trigger. 
 This simplifies reasoning, guarantees consistent cross-device behavior, and preserves idempotency via 
 `jti` replay protection.
+
+## Single Logout (SLO) — Deterministic sid and target_link_uri
+
+- EndSession fan-out includes `logout_token` always with `sub`. `sid` is included when a server-side session is present.
+- When an RP includes `target_link_uri` in its previous authorization request and that PAR/authorize session is linked to a server-side session, the IdP will include (or allow) a post-logout redirect to the validated `target_link_uri` where appropriate.
+- Back-channel logouts will continue to be delivered to registered back-channel endpoints. Front-channel logout will redirect to the RP's logout callback; if `target_link_uri` was provided and validated, it will be considered as a post-logout target subject to the same origin rules as redirect URIs.
+- Logging and diagnostics:
+  - If `sid` is missing for a user when a logout fan-out runs, the IdP includes `sub` and proceeds (fan-out is still attempted).
+  - If `target_link_uri` is present but invalid for the client, the IdP will skip redirect to it and log `target_link_uri_invalid` (no sensitive data in logs).

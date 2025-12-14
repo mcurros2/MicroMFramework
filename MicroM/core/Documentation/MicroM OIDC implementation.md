@@ -4,7 +4,7 @@
 * Applications configuration is done in the control panel and stored in the configuration database.
 * The `ApplicationOption` class represents the configuration options for an application.
 * An applications can have an Identity Provider Role:
-  * *Disabled*: the application will use local authentication. Teh users will be create in the application database.
+  * *Disabled*: the application will use local authentication. The users will be create in the application database.
   * *Identity Provider Server*: the application will act as an Identity Provider
     * When acting as an IdP you need to configure authorized application clients
     * It will only accept PAR and private jwt authentication

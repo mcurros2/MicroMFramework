@@ -36,6 +36,8 @@ E — Security & hardening
 - PKCE ‘plain’ gated by `OIDCAllowPkcePlain`: COMPLETE
 - Encrypted IdP refresh tokens at rest: COMPLETE
 - Logging scrub (tokens, assertions, logout_token metadata only): COMPLETE
+- State/nonce/PKCE management: public JS client no longer generates `state`, `nonce`, `code_challenge`, or `code_challenge_method`. These are generated and persisted server-side as part of the `/oidc-client/par` → `/oauth2/par` pipeline. Client-provided values for these fields are ignored.
+
 
 F — Encrypted Tokens
 - Signed id_token always; optional JWE when client key supports: COMPLETE
@@ -108,28 +110,19 @@ Pending tasks (adjusted)
 - Documentation: crypto reductions, signing alg enforcement, kid-miss logic, explicit non-support for UserInfo / introspection / revocation.
 - Structured selection logging for id_token vs request object (negotiation trace records).
 - Key rotation handling for encrypted IdP refresh tokens (re-encryption or multi-key decryption strategy).
-
-Release readiness
-- Core flows, JWKS caching, logout, encryption policies: COMPLETE.
-- Blocking for next milestone: enhanced diagnostics, performance telemetry, documentation, tests (tests deferred until diagnostics complete).
-
-Status TL;DR
-- Foundations COMPLETE, JWKS caching COMPLETE.
-- Non-mandatory endpoints (UserInfo, introspection, revocation) explicitly OUT OF SCOPE.
-- Remaining focus: diagnostics depth, performance metrics, documentation & tests (tests deferred).
-
-H — Signing & encryption alignment
-- IdP signing based on cert: COMPLETE
-- client_assertion & request object signing enforcement (asymmetric only): COMPLETE
-- id_token JWS signing alg enforcement (no HS*/none): COMPLETE
-- UserInfo encryption/signing metadata: NOT APPLICABLE (endpoint out of scope)
-
-Next focus (adjusted)
-1. Confirm RSA-only stance and finalize request object negotiation diagnostics (trace records, exclusion reasons, candidate ordering).
-2. Encryption negotiation diagnostics (candidate set + selection + exclusion reasons).
-3. Performance telemetry only in diagnostics (crypto timings, payload size deltas, JWKS cache metrics).
-4. Documentation update (policy reductions, out-of-scope endpoints, alg enforcement, kid refresh flow).
-5. Negative/interop test suite (alg rejection, request object invalid cases, forced refresh scenarios) — DEFERRED until diagnostics complete; add minimal smoke tests before release.
+- target_link_uri support (client + server): IMPLEMENTED (Phase 1)
+  - Client: public client PAR endpoint (`/microm/{app_id}/oidc-client/par`) accepts optional `target_link_uri` parameter in the same form-encoded body as the rest of the authorization request.
+  - Server (IdP PAR): `/microm/{app_id}/oauth2/par` validates `target_link_uri` against the calling client application's registered redirect URIs using origin match (scheme + host + port). On success:
+    - persists `target_link_uri` together with the PAR record,
+    - uses it as the final return target after authorization completion.
+  - On validation failure:
+    - PAR request is rejected with `error = "invalid_request"` and `error_description` indicating `target_link_uri_invalid`,
+    - diagnostics reason code `target_link_uri_invalid` is recorded for the relevant PAR/authorize checks.
+- Make public client → PAR contract explicit in documentation (runtime IMPLEMENTED):
+  - Public client PAR endpoint: `/microm/{app_id}/oidc-client/par` (anonymous/browser-facing, uses MicroM client session and local_device_id).
+  - IdP-protected PAR endpoint: `/microm/{app_id}/oauth2/par` (protected by `IdPClientPolicy`, authenticates the MicroM app as OIDC client).
+  - Document mapping, security expectations, and which parameters are client-supplied vs. server-generated (state, nonce, PKCE).
+  - Update public client integration docs to clarify that `state`, `nonce`, `code_challenge`, `code_challenge_method`, `client_id`, and `request_uri` are server-managed when using `/microm/{app_id}/oidc-client/par`. Extra params with those names are ignored on the client and MUST NOT be relied upon by callers.
 
 Acceptance criteria (updated)
 - Well-known does not advertise UserInfo / introspection / revocation as supported (or includes clear documentation note if retained).
@@ -138,6 +131,8 @@ Acceptance criteria (updated)
 - Performance counters recorded and queryable (encryption timings, payload sizes, jwks cache hit ratios).
 - Tests assert rejection of ECDH, CBC-HS*, RSA1_5, HS*, none; verify kid-miss triggers single forced refresh — TESTS DEFERRED UNTIL DIAGNOSTICS COMPLETE.
 - Documentation explicitly lists out-of-scope endpoints and rationale.
+- `target_link_uri` end-to-end validated and persisted; rejected values produce structured diagnostic `target_link_uri_invalid`. (IMPLEMENTED; diagnostics still to be wired into Phase 1/2 client and IdP checks where applicable)
+- Public client PAR contract documented (public client endpoint vs IdP PAR endpoint), aligned with current MicroMClient implementation. (PENDING – docs only)
 
 ---
 
