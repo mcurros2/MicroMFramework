@@ -121,6 +121,11 @@ export class MicroMClient {
     }
 
     //*** OIDC flows
+    async oidcLoginAndRedirect(options: { redirectUri: string; scope?: string; extraParams?: Record<string, string> }) {
+        const authorizeUrl = await this.startOidcLogin(options);
+        window.location.href = authorizeUrl;
+    }
+
     async startOidcLogin(options: {
         redirectUri: string;
         scope?: string;
@@ -144,7 +149,7 @@ export class MicroMClient {
             params.set('scope', scope ?? 'openid profile email');
             params.set('redirect_uri', redirectUri);
 
-            params.set('LocalDeviceId', localDeviceId);
+            params.set('local_device_id', localDeviceId);
 
             if (extraParams) {
                 for (const [k, v] of Object.entries(extraParams)) {
@@ -339,7 +344,7 @@ export class MicroMClient {
             await this.#deleteEnabledMenus();
 
             if (this.#RECORD_PATHS) {
-                this.#saveAllRecordedAccess();
+                await this.#saveAllRecordedAccess();
             }
 
             const response = await fetch(`${this.#API_URL}/${this.#APP_ID}/auth/logoff`, {
@@ -840,16 +845,14 @@ export class MicroMClient {
 
         }
         catch (error) {
-            abort_signal = null;
-            if (this.#REDIRECT_ON_401) {
-                if ((error as MicroMError).status === 401) {
-                    console.warn(`${route} 401, redirecting to login page: ${this.#REDIRECT_ON_401}`);
-                    await this.localLogoff();
-                    window.location.href = this.#REDIRECT_ON_401;
-                }
-            } else {
-                throw error;
+            if (this.#REDIRECT_ON_401 && (error as MicroMError).status === 401) {
+                console.warn(`${route} 401, redirecting to login page: ${this.#REDIRECT_ON_401}`);
+                await this.localLogoff();
+                window.location.href = this.#REDIRECT_ON_401;
+                // return intentionally omitted
             }
+            // MMC: this line should never execute if the redirect happens. 
+            // In case the browser, webview or environment for any reason fails to redirect, we still throw the error to the caller.
             throw error;
         }
     }
@@ -876,7 +879,6 @@ export class MicroMClient {
         }
 
         const data = await res.json();
-        abort_signal = null;
 
         return data;
     }

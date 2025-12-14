@@ -54,7 +54,7 @@ Terminology
 - SPA proceeds with local session.
 - CLIENT maintains local sessions per device via its own refresh tokens (Strategy B) and minimizes calls to CENTRAL.
 
-2.1) Strategy B — Local refresh (per device) with optional IdP background refresh
+2.1) Local refresh (per device) with optional IdP background refresh
 - On successful CLIENT callback:
   - JIT provision user (if needed), create local cookie session (claims include `sub`, `sid`, `azp`), issue a CLIENT refresh token per device (MicromUsersDevices).
   - Upsert ApplicationOidcActiveSessions with (`c_application_id`, `vc_username` or `sub`, `c_device_id`, `ui_oidc_session_guid_id`), optionally `vc_oidc_refreshtoken` + `dt_refresh_expiration` if background IdP refresh is desired.
@@ -122,3 +122,19 @@ Terminology
 - CLIENT /auth/refresh failures:
   - If IdP refresh_token exists and refresh succeeds → update local session silently.
   - Otherwise, instruct the SPA to re-initiate OIDC via /oidc-client/par.
+
+## target_link_uri handling
+
+We support passing `target_link_uri` as part of the pushed authorization request (PAR). Purpose: when an RP needs the IdP to redirect the user to a different client-managed endpoint after authorization (for example application-specific deep links), the RP can include a validated `target_link_uri` in the PAR.
+
+Rules:
+- The RP may send `target_link_uri` in the PAR body to the public client endpoint `/microm/{app_id}/oidc-client/par`. The client-side wrapper forwards it to the IdP PAR pipeline.
+- The IdP will validate `target_link_uri`:
+  - Must be an absolute URI (scheme://host[:port]/path).
+  - Its origin (scheme + host + port) must match one of the client's registered redirect URIs or be explicitly allowed for that client.
+  - If validation fails, the PAR is rejected with a structured error using reason code `target_link_uri_invalid`.
+- If validated, `target_link_uri` is persisted with the PAR and consumed at authorization completion to produce the final redirect to the RP.
+
+Security notes:
+- Do not accept `target_link_uri` values that point to unknown origins or non-HTTPS origins in production.
+- Log only reason codes; never log full `target_link_uri` in diagnostics or telemetry to avoid leakage in logs.
