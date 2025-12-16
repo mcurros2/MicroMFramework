@@ -81,7 +81,7 @@ public class OIDCClientController(ILogger<OIDCClientController> log) : Controlle
     /// <summary>
     /// OIDC authorization code callback endpoint (client side).
     /// Accepts either GET query parameters or application/x-www-form-urlencoded POST body:
-    /// Required: code, redirect_uri, CodeVerifier
+    /// Required: code, redirect_uri, code_verifier
     /// Returns principal claims upon success.
     /// </summary>
     [AllowAnonymous]
@@ -117,7 +117,6 @@ public class OIDCClientController(ILogger<OIDCClientController> log) : Controlle
         // Extract parameters from query or form (POST)
         string? code = Request.Query[WellknownIdentityConstants.Code];
         string? redirectUri = Request.Query[WellknownIdentityConstants.RedirectUri];
-        string? codeVerifier = Request.Query[WellknownIdentityConstants.CodeVerifier];
         string? stateIncoming = Request.Query[WellknownIdentityConstants.State];
         string? authorizationResponseIssuer = Request.Query[WellknownIdentityConstants.IssuerClaim]; // 'iss' mix-up mitigation
 
@@ -128,7 +127,6 @@ public class OIDCClientController(ILogger<OIDCClientController> log) : Controlle
                 var form = await Request.ReadFormAsync(ct);
                 code = form[WellknownIdentityConstants.Code].ToString();
                 redirectUri = form[WellknownIdentityConstants.RedirectUri].ToString();
-                codeVerifier = form[WellknownIdentityConstants.CodeVerifier].ToString();
                 stateIncoming = form[WellknownIdentityConstants.State].ToString();
                 authorizationResponseIssuer = form[WellknownIdentityConstants.IssuerClaim].ToString();
             }
@@ -140,14 +138,21 @@ public class OIDCClientController(ILogger<OIDCClientController> log) : Controlle
 
         if (string.IsNullOrWhiteSpace(code) ||
             string.IsNullOrWhiteSpace(redirectUri) ||
-            string.IsNullOrWhiteSpace(stateIncoming)
+            string.IsNullOrWhiteSpace(stateIncoming) ||
+            string.IsNullOrWhiteSpace(authorizationResponseIssuer)
             )
         {
+            log.LogWarning("OIDC Callback missing required parameters for app {app} code: {code_present}, state: {state_present}, issuer: {issuer_present}",
+                app.ApplicationID,
+                !string.IsNullOrWhiteSpace(code),
+                !string.IsNullOrWhiteSpace(stateIncoming),
+                !string.IsNullOrWhiteSpace(authorizationResponseIssuer)
+                );
             return BadRequest(new { error = "invalid_request", error_description = "code, redirect_uri and state are required" });
         }
 
         var (callback_result, error) =
-            await clientService.HandleAuthorizationCallback(app, code, redirectUri, codeVerifier, stateIncoming, authorizationResponseIssuer, ct);
+            await clientService.HandleAuthorizationCallback(app, code, redirectUri, stateIncoming, authorizationResponseIssuer, ct);
 
         if (error != null || callback_result == null || callback_result.Principal == null)
         {
@@ -331,7 +336,7 @@ public class OIDCClientController(ILogger<OIDCClientController> log) : Controlle
             case OIDCLogoutProcessingStatus.Success:
             case OIDCLogoutProcessingStatus.Replay:
             case OIDCLogoutProcessingStatus.AlreadyProcessed:
-                return Ok(true);
+                return Ok();
 
             case OIDCLogoutProcessingStatus.InvalidSignature:
             case OIDCLogoutProcessingStatus.InvalidAudience:

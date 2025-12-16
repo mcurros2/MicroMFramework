@@ -6,6 +6,6 @@ public record OIDCTokenResponse(
     string access_token,
     string? refresh_token = null,
     string? id_token = null,
-    string scope = "openid",
+    string scope = WellknownIdentityConstants.OpenID,
     string? refresh_expiration_utc = null
 );

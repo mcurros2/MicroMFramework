@@ -304,16 +304,20 @@ public class OIDCClientService(
             ApplicationOption app,
             string code,
             string redirectUri,
-            string? codeVerifier,
             string state,
-            string? authorizationResponseIssuer,
+            string authorizationResponseIssuer,
             CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(app.OIDCWellKnownURL))
+        {
+            log.LogWarning("OIDC Callback requested for app {app} which has no IdP discovery URL configured", app.ApplicationID);
             return new(null, "IdP discovery URL not configured for this client app");
+        }
 
-        if (string.IsNullOrWhiteSpace(code) || string.IsNullOrWhiteSpace(redirectUri))
+        if (string.IsNullOrWhiteSpace(code) || string.IsNullOrWhiteSpace(redirectUri) || string.IsNullOrWhiteSpace(state) || string.IsNullOrWhiteSpace(authorizationResponseIssuer))
+        {
             return new(null, "Missing required parameters");
+        }
 
         // Validate state and consume cookie
         var (state_result, state_error) = state_and_nonce_service.ValidateAndConsumeStateCookie(app.ApplicationID, app.JWTKey, state);
@@ -323,29 +327,24 @@ public class OIDCClientService(
             return new(null, "invalid_state");
         }
 
-        // Get code verifier from state
-        var effectiveCodeVerifier = state_result.CodeVerifier;
-        if (string.IsNullOrWhiteSpace(effectiveCodeVerifier))
+        if (string.IsNullOrWhiteSpace(state_result.CodeVerifier))
         {
-            // We don't allow code_verifier from the callback directly for security reasons
-            if (!string.IsNullOrEmpty(codeVerifier))
-                return new(null, "code_verifier is not allowed as parameter");
-
             return new(null, "Missing code_verifier");
         }
 
-
-
         var (get_result, get_error) = await GetToken(
             app,
+
+            // Token form builder for PKCE private_key_jwt
             (cert, wk) => PushedAuthorizationProvider.BuildTokenExchangeFormPrivateKeyJwt(
                 cert,
                 clientId: app.ApplicationID,
                 wk.token_endpoint,
                 code,
                 redirectUri,
-                effectiveCodeVerifier,
+                state_result.CodeVerifier,
                 wk.token_endpoint_auth_signing_alg_values_supported),
+
             authorizationResponseIssuer,
             ct
             );
@@ -358,9 +357,9 @@ public class OIDCClientService(
 
         // Nonce verification against id_token
         var nonceFromIdToken = get_result.validate_result.Principal.FindFirst(WellknownIdentityConstants.Nonce)?.Value;
-        if (!string.IsNullOrWhiteSpace(state_result.Nonce))
+        if (!string.IsNullOrWhiteSpace(state_result.Nonce) || !string.IsNullOrWhiteSpace(nonceFromIdToken))
         {
-            if (string.IsNullOrWhiteSpace(nonceFromIdToken) || nonceFromIdToken != state_result.Nonce)
+            if (state_result.Nonce != nonceFromIdToken)
             {
                 return new(null, "invalid_nonce");
             }
@@ -667,10 +666,16 @@ public class OIDCClientService(
     GetToken(
        ApplicationOption app,
        Func<X509Certificate2, OIDCWellKnownResponse, Dictionary<string, string>> tokenFormBuilder,
-       string? responseIssuer,
+       string responseIssuer,
        CancellationToken ct
        )
     {
+
+        if (string.IsNullOrWhiteSpace(responseIssuer))
+        {
+            log.LogWarning("GetToken called with empty responseIssuer for app {app}", app.ApplicationID);
+            return new(null, "invalid_response_issuer");
+        }
 
         // Discover IdP metadata
         var (wellknown, wellknown_error) = await DiscoverWellKnown(app, ct);
@@ -680,12 +685,11 @@ public class OIDCClientService(
         var issuer = wellknown.issuer;
         var tokenEndpoint = wellknown.token_endpoint;
         var jwksUri = wellknown.jwks_uri;
-        if (string.IsNullOrEmpty(issuer) || string.IsNullOrEmpty(tokenEndpoint) || string.IsNullOrEmpty(jwksUri))
+        if (string.IsNullOrWhiteSpace(issuer) || string.IsNullOrWhiteSpace(tokenEndpoint) || string.IsNullOrWhiteSpace(jwksUri))
             return new(null, "Invalid IdP discovery document");
 
         // Mix-up mitigation: validate authorization response issuer ('iss' param) if present
-        if (!string.IsNullOrWhiteSpace(responseIssuer) &&
-            !string.Equals(responseIssuer, issuer, StringComparison.Ordinal))
+        if (!string.Equals(responseIssuer, issuer, StringComparison.Ordinal))
         {
             log.LogWarning("TOKEN_RESPONSE_ISS_MISMATCH app={app} expected={expected} received={received}", app.ApplicationID, issuer, responseIssuer);
             return new(null, "invalid_token_response_iss");
