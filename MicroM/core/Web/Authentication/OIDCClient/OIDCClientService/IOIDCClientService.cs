@@ -27,9 +27,8 @@ public interface IOIDCClientService
         ApplicationOption app,
         string code,
         string redirectUri,
-        string? codeVerifier,
         string state,
-        string? authorizationResponseIssuer,
+        string authorizationResponseIssuer,
         CancellationToken ct);
 
     // FRONT-CHANNEL LOGOUT INITIATION (Client side)
