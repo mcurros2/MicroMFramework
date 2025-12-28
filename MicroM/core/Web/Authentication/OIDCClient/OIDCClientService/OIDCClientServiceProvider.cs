@@ -1,6 +1,5 @@
 ﻿using MicroM.Configuration;
 using MicroM.Core;
-using MicroM.DataDictionary.CategoriesDefinitions;
 using MicroM.Extensions;
 using MicroM.Web.Extensions;
 using MicroM.Web.Services;
@@ -107,43 +106,24 @@ public static class OIDCClientServiceProvider
         return new(result.Result, result.Status);
     }
 
-    public static (Dictionary<string, string>? valid_form, (string? error, string? error_description)?) ValidateClientSignInForm(ApplicationOption client_app, IFormCollection form)
+    public static (Dictionary<string, string>? singin_form, (string? error, string? error_description)?)
+        CreateClientSignInForm(ApplicationOption client_app, string requestRootURL, IFormCollection pkceParms, IFormCollection form)
     {
 
-        if (client_app.IdentityProviderRoleType != nameof(IdentityProviderRole.IDPClient))
-            return (null, (error: "invalid_app", error_description: "Application is not configured as an Identity Provider Client"));
-
-        var forward = new Dictionary<string, string>(StringComparer.Ordinal);
-        foreach (var k in form.Keys)
+        var forward = new Dictionary<string, string>(StringComparer.Ordinal)
         {
-            forward[k] = form[k].ToString();
-        }
+            // override configured client parms
+            [WellknownIdentityConstants.ClientId] = client_app.ApplicationID,
+            [WellknownIdentityConstants.ResponseType] = WellknownIdentityConstants.Code,
+            [WellknownIdentityConstants.Scope] = WellknownIdentityConstants.OpenID,
+            [WellknownIdentityConstants.RedirectUri] = $"{requestRootURL}/{client_app.ApplicationID}/oidc-client/auth-callback",
 
-        if (!forward.TryGetValue(WellknownIdentityConstants.ResponseType, out var response_type) || response_type != WellknownIdentityConstants.Code)
-            return (null, (error: "invalid_request", error_description: "response_type must be 'code'"));
-
-        if (!forward.TryGetValue(WellknownIdentityConstants.ClientId, out var clientId) || string.IsNullOrWhiteSpace(clientId) || clientId != client_app.ApplicationID)
-            return (null, (error: "invalid_request", error_description: "Invalid client_id"));
-
-        if (!forward.TryGetValue(WellknownIdentityConstants.RedirectUri, out var redirectUri) || string.IsNullOrWhiteSpace(redirectUri))
-            return (null, (error: "invalid_request", error_description: "redirect_uri is required"));
-
-        if (!forward.TryGetValue(WellknownIdentityConstants.Scope, out var scope) || string.IsNullOrWhiteSpace(scope))
-            return (null, (error: "invalid_request", error_description: "scope is required"));
-
-        if (!forward.TryGetValue(WellknownIdentityConstants.CodeChallenge, out var codeChallenge) || string.IsNullOrWhiteSpace(codeChallenge))
-            return (null, (error: "invalid_request", error_description: "code_challenge is required"));
-
-        if (!forward.TryGetValue(WellknownIdentityConstants.CodeChallengeMethod, out var codeChallengeMethod) || string.IsNullOrWhiteSpace(codeChallengeMethod))
-            return (null, (error: "invalid_request", error_description: "code_challenge_method is required"));
-
-        forward.TryGetValue(WellknownIdentityConstants.State, out var state);
-        if (string.IsNullOrEmpty(state))
-            return (null, (error: "invalid_request", error_description: "state is required"));
-
-        forward.TryGetValue(WellknownIdentityConstants.Nonce, out var nonce);
-        if (string.IsNullOrEmpty(nonce))
-            return (null, (error: "invalid_request", error_description: "nonce is required"));
+            // pkce created parms
+            [WellknownIdentityConstants.CodeChallengeMethod] = pkceParms[WellknownIdentityConstants.CodeChallengeMethod]!,
+            [WellknownIdentityConstants.CodeChallenge] = pkceParms[WellknownIdentityConstants.CodeChallenge]!,
+            [WellknownIdentityConstants.State] = pkceParms[WellknownIdentityConstants.State]!,
+            [WellknownIdentityConstants.Nonce] = pkceParms[WellknownIdentityConstants.Nonce]!
+        };
 
         return (forward, null);
     }

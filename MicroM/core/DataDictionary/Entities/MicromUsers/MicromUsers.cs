@@ -57,6 +57,7 @@ public class MicromUsersDef : EntityDefinition
 
     protected override void DefineProcs()
     {
+        // Variables used for SP parameter names
         string success, account_lockout_mins, refresh_expiration_hours, max_bad_logon_attempts, new_refresh_token, device_id, user_agent, ipaddress;
 
         usr_updateLoginAttempt = new ProcedureDefinition();
@@ -267,7 +268,7 @@ public class MicromUsers : Entity<MicromUsersDef>
     }
 
 
-    public async static Task<DBStatusResult> usr_setPassword(string username, string pwhash, IEntityClient ec, CancellationToken ct)
+    public async static Task<DBStatusResult> SetPassword(string username, string pwhash, IEntityClient ec, CancellationToken ct)
     {
 
         MicromUsers user = new(ec);
@@ -279,7 +280,7 @@ public class MicromUsers : Entity<MicromUsersDef>
         return await user.Data.ExecuteProcDBStatus(proc, ct);
     }
 
-    public async static Task<DBStatusResult> usr_resetPassword(string username, IEntityClient ec, CancellationToken ct)
+    public async static Task<DBStatusResult> ResetPassword(string username, IEntityClient ec, CancellationToken ct)
     {
 
         MicromUsers user = new(ec);

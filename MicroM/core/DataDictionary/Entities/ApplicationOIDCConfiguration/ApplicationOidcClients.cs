@@ -45,16 +45,23 @@ public class ApplicationOidcClients : Entity<ApplicationOidcClientsDef>
     public ApplicationOidcClients() : base() { }
     public ApplicationOidcClients(IEntityClient ec, IMicroMEncryption? encryptor = null) : base(ec, encryptor) { }
 
-    public override Task<DBStatusResult> InsertData(CancellationToken ct, bool throw_dbstat_exception = false, MicroMOptions? options = null, Dictionary<string, object>? server_claims = null, IWebAPIServices? api = null, string? app_id = null)
+    public override async Task<DBStatusResult> InsertData(CancellationToken ct, bool throw_dbstat_exception = false, MicroMOptions? options = null, Dictionary<string, object>? server_claims = null, IWebAPIServices? api = null, string? app_id = null)
     {
         this.Def.vc_apikey.Value = Guid.NewGuid().ToString();
         this.Def.vc_secret.Value = CryptClass.CreateRandomPassword();
         this.Def.vc_oidc_subject_pepper.Value = CryptClass.CreateRandomPassword();
 
-        return base.InsertData(ct, throw_dbstat_exception, options, server_claims, api, app_id);
+        var result = await base.InsertData(ct, throw_dbstat_exception, options, server_claims, api, app_id);
+
+        if (!result.Failed && api != null)
+        {
+            await api.app_config.RefreshConfiguration(this.Def.c_application_id.Value.Trim(), ct);
+        }
+
+        return result;
     }
 
-    public override Task<DBStatusResult> UpdateData(CancellationToken ct, bool throw_dbstat_exception = false, MicroMOptions? options = null, Dictionary<string, object>? server_claims = null, IWebAPIServices? api = null, string? app_id = null)
+    public override async Task<DBStatusResult> UpdateData(CancellationToken ct, bool throw_dbstat_exception = false, MicroMOptions? options = null, Dictionary<string, object>? server_claims = null, IWebAPIServices? api = null, string? app_id = null)
     {
         if (this.Def.b_change_secret.Value == true)
         {
@@ -62,7 +69,14 @@ public class ApplicationOidcClients : Entity<ApplicationOidcClientsDef>
             this.Def.vc_secret.Value = CryptClass.CreateRandomPassword();
         }
 
-        return base.UpdateData(ct, throw_dbstat_exception, options, server_claims, api, app_id);
+        var result = await base.UpdateData(ct, throw_dbstat_exception, options, server_claims, api, app_id);
+
+        if (!result.Failed && api != null)
+        {
+            await api.app_config.RefreshConfiguration(this.Def.c_application_id.Value.Trim(), ct);
+        }
+
+        return result;
     }
 
 }

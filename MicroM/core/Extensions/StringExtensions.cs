@@ -91,4 +91,27 @@ public static class StringExtensions
     {
         return string.IsNullOrEmpty(value) ? "" : Convert.ToBase64String(Encoding.UTF8.GetBytes(value));
     }
+
+    extension(string)
+    {
+        /// <summary>
+        /// This method checks if any of the provided string values are null, empty, or consist only of white-space characters.
+        /// </summary>
+        /// <remarks>
+        /// TO AVOID CS8620 WARNING use like this: string.IsAnyNullOrWhiteSpace([str1, str2, str3]);
+        /// Remove this remark when bug is https://github.com/dotnet/roslyn/issues/81699?utm_source=chatgpt.com is fixed
+        /// </remarks>
+        public static bool IsAnyNullOrWhiteSpace(params string?[] values)
+        {
+            if (values == null || values.Length == 0) return false;
+
+            foreach (var value in values)
+            {
+                if (string.IsNullOrWhiteSpace(value?.ToString()))
+                    return true;
+            }
+            return false;
+        }
+    }
+
 }

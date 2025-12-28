@@ -141,8 +141,14 @@ public class OIDCClientService(
         }
     }
 
-    public async Task<OIDCHttpClientPostResponse> HandleOidcClientPAR(ApplicationOption app, IHeaderDictionary requestHeaders, IFormCollection form, CancellationToken ct)
+    public async Task<OIDCHttpClientPostResponse> HandleOidcClientPAR(ApplicationOption app, string requestRootUrl, IHeaderDictionary requestHeaders, IFormCollection form, CancellationToken ct)
     {
+        if (!form.TryGetValue(WellknownIdentityConstants.ClientId, out var clientId) || string.IsNullOrWhiteSpace(clientId) || clientId != app.ApplicationID)
+        {
+            log.LogTrace("OIDC SignIn requested for app {app} with incorrect client_id: {clientid}", app.ApplicationID, clientId);
+            return new(400, false, MediaTypeNames.Application.Json, JsonSerializer.Serialize(new { error = "invalid_request", error_description = "Invalid client_id" }));
+        }
+
         if (string.IsNullOrWhiteSpace(app.OIDCWellKnownURL))
         {
             log.LogWarning("OIDC SignIn requested for app {app} which has no IdP discovery URL configured", app.ApplicationID);
@@ -207,23 +213,19 @@ public class OIDCClientService(
             targetLinkUri = normalizedTargetLinkUri;
         }
 
-        // Prepare state, nonce, PKCE
-        var stateContext = state_and_nonce_service.EnsureStateNonceAndPkce(form, providedDeviceId, challengeMethod, targetLinkUri);
+        // Prepare state, nonce, PKCE, device ID and target link URI
+        var stateContext = state_and_nonce_service.CreateStateNonceAndPkce(form, providedDeviceId, challengeMethod, targetLinkUri);
 
-        // Validate and Prepare IdP request PAR body - forward incoming form params
-        var (valid_form, form_error) = OIDCClientServiceProvider.ValidateClientSignInForm(app, stateContext.AdjustedForm!);
+        // Prepare IdP request PAR body - create sign in form
+        var (signin_form, form_error) = OIDCClientServiceProvider.CreateClientSignInForm(app, requestRootUrl, stateContext.pkceForm!, form);
 
-        if (form_error != null || valid_form == null)
+        if (form_error != null || signin_form == null)
         {
             log.LogWarning("Invalid OIDC SignIn form for app {app}: {error}", app.ApplicationID, form_error);
             return new(400, false, MediaTypeNames.Application.Json, JsonSerializer.Serialize(form_error?.error));
         }
 
-        var forward = valid_form;
-
-        // Remove local-only params
-        forward.Remove(WellknownIdentityConstants.LocalDeviceId);
-        forward.Remove(WellknownIdentityConstants.TargetLinkUri);
+        var forward = signin_form;
 
         X509Certificate2? cert = certificate_cache.GetCertificate(app);
 
@@ -260,7 +262,7 @@ public class OIDCClientService(
 
                     if (!string.IsNullOrWhiteSpace(requestUri))
                     {
-                        var authorizeQuery = new Dictionary<string, string?>(StringComparer.Ordinal)
+                        var authorizeQuery = new Dictionary<string, string?>()
                         {
                             [WellknownIdentityConstants.ClientId] = app.ApplicationID,
                             [WellknownIdentityConstants.RequestUri] = requestUri
@@ -421,7 +423,7 @@ public class OIDCClientService(
         var redirectUri = $"{httpRequest.Scheme}://{httpRequest.Host}{_api_path}{app.ApplicationID}/oidc-client/auth-callback";
 
         // 4) Build "form" for the PAR reusing the same logic as usual
-        var dict = new Dictionary<string, StringValues>(StringComparer.Ordinal)
+        var dict = new Dictionary<string, StringValues>()
         {
             [WellknownIdentityConstants.ResponseType] = WellknownIdentityConstants.Code,
             [WellknownIdentityConstants.Scope] = WellknownIdentityConstants.OpenID,
@@ -446,7 +448,8 @@ public class OIDCClientService(
         var form = new FormCollection(dict);
 
         // 5) Reuse HandleOidcClientPAR
-        var parResult = await HandleOidcClientPAR(app, httpRequest.Headers, form, ct);
+        var clientUrlRoot = $"{httpRequest.Scheme}://{httpRequest.Host}";
+        var parResult = await HandleOidcClientPAR(app, clientUrlRoot, httpRequest.Headers, form, ct);
 
         if (!parResult.IsSuccessStatusCode)
         {
@@ -498,7 +501,7 @@ public class OIDCClientService(
         string effState = string.IsNullOrWhiteSpace(state) ? CryptClass.GenerateBase64UrlRandomCode(32) : state;
 
         // Build end_session URL
-        var query = new Dictionary<string, string?>(StringComparer.Ordinal)
+        var query = new Dictionary<string, string?>()
         {
             [WellknownIdentityConstants.IdTokenHint] = idTokenHint,
             [WellknownIdentityConstants.State] = effState
@@ -666,16 +669,10 @@ public class OIDCClientService(
     GetToken(
        ApplicationOption app,
        Func<X509Certificate2, OIDCWellKnownResponse, Dictionary<string, string>> tokenFormBuilder,
-       string responseIssuer,
+       string? responseIssuer,
        CancellationToken ct
        )
     {
-
-        if (string.IsNullOrWhiteSpace(responseIssuer))
-        {
-            log.LogWarning("GetToken called with empty responseIssuer for app {app}", app.ApplicationID);
-            return new(null, "invalid_response_issuer");
-        }
 
         // Discover IdP metadata
         var (wellknown, wellknown_error) = await DiscoverWellKnown(app, ct);
@@ -689,7 +686,7 @@ public class OIDCClientService(
             return new(null, "Invalid IdP discovery document");
 
         // Mix-up mitigation: validate authorization response issuer ('iss' param) if present
-        if (!string.Equals(responseIssuer, issuer, StringComparison.Ordinal))
+        if (!string.IsNullOrWhiteSpace(responseIssuer) && !string.Equals(responseIssuer, issuer, StringComparison.Ordinal))
         {
             log.LogWarning("TOKEN_RESPONSE_ISS_MISMATCH app={app} expected={expected} received={received}", app.ApplicationID, issuer, responseIssuer);
             return new(null, "invalid_token_response_iss");
