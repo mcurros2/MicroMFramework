@@ -21,6 +21,11 @@
         public string? DefaultSQLDatabaseCollation { get; set; } = null;
 
         public bool CreateConfigEntitiesCodeGen { get; set; } = false;
+
+        public bool AllowInvalidCertificatesOnLoopback { get; set; } = false;
+
+        public bool DisableRevocationCheckWhenAllowingInvalidLoopbackCerts { get; set; } = true;
+
     }
 
 }

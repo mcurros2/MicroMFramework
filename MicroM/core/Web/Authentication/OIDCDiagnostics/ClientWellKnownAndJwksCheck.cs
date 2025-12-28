@@ -52,7 +52,7 @@ internal class ClientWellKnownAndJwksCheck : IDiagnosticCheck<ClientDiagnosticsC
             _ = await httpClient.GetJwksJsonAsync(jwksUri, ct, ifNoneMatch: jw1Etag);
 
             // Optional: light cross-check between advertised sig algs and key types
-            HashSet<string> advertisedAlgs = new();
+            HashSet<string> advertisedAlgs = [];
             if (root.TryGetProperty(WellknownIdentityConstants.IdTokenSigningAlgValuesSupported, out var algsEl) && algsEl.ValueKind == JsonValueKind.Array)
             {
                 foreach (var algEl in algsEl.EnumerateArray())

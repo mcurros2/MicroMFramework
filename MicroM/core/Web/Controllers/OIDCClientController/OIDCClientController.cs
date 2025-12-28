@@ -1,4 +1,5 @@
 ﻿using MicroM.DataDictionary.CategoriesDefinitions;
+using MicroM.Extensions;
 using MicroM.Web.Authentication;
 using MicroM.Web.Authentication.SSO;
 using MicroM.Web.Services;
@@ -68,7 +69,11 @@ public class OIDCClientController(ILogger<OIDCClientController> log) : Controlle
         }
 
         var form = await Request.ReadFormAsync(ct);
-        var result = await clientService.HandleOidcClientPAR(app, Request.Headers, form, ct);
+
+        // get request root url
+        var rootUrl = $"{Request.Scheme}://{Request.Host.Value}";
+
+        var result = await clientService.HandleOidcClientPAR(app, rootUrl, Request.Headers, form, ct);
 
         return new ContentResult
         {
@@ -136,11 +141,13 @@ public class OIDCClientController(ILogger<OIDCClientController> log) : Controlle
             }
         }
 
-        if (string.IsNullOrWhiteSpace(code) ||
+        if
+        (
+            string.IsNullOrWhiteSpace(code) ||
             string.IsNullOrWhiteSpace(redirectUri) ||
             string.IsNullOrWhiteSpace(stateIncoming) ||
             string.IsNullOrWhiteSpace(authorizationResponseIssuer)
-            )
+        )
         {
             log.LogWarning("OIDC Callback missing required parameters for app {app} code: {code_present}, state: {state_present}, issuer: {issuer_present}",
                 app.ApplicationID,

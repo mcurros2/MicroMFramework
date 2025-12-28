@@ -24,18 +24,13 @@ public class StateAndNonceService
         return $"m-oidc-stn-{app_config.ApplicationID}";
     }
 
-    public StateAndNonceContext EnsureStateNonceAndPkce(
+    public StateAndNonceContext CreateStateNonceAndPkce(
         IFormCollection original,
         string? providedDeviceId,
         OIDCCodeChallengeMethod codeChallengeMethod,
         string? targetLinkUri
         )
     {
-
-        string? deviceId = !string.IsNullOrWhiteSpace(providedDeviceId)
-            ? providedDeviceId
-            : (original.TryGetValue(WellknownIdentityConstants.LocalDeviceId, out var ldid) ? ldid.ToString() : null);
-
 
         // Generate cryptographically strong state / nonce
         string state = CryptClass.GenerateBase64UrlRandomCode(32);
@@ -57,19 +52,22 @@ public class StateAndNonceService
             codeChallenge = codeVerifier;
         }
 
-        // Clone incoming form into a mutable dictionary
-        var dict = new Dictionary<string, StringValues>(StringComparer.Ordinal);
-        foreach (var kv in original) dict[kv.Key] = kv.Value;
+        string? deviceId = !string.IsNullOrWhiteSpace(providedDeviceId)
+            ? providedDeviceId
+            : (original.TryGetValue(WellknownIdentityConstants.LocalDeviceId, out var ldid) ? ldid.ToString() : null);
 
-        // Inject state/nonce/PKCE into outgoing form
-        dict[WellknownIdentityConstants.State] = state;
-        dict[WellknownIdentityConstants.Nonce] = nonce;
-        dict[WellknownIdentityConstants.CodeChallenge] = codeChallenge;
-        dict[WellknownIdentityConstants.CodeChallengeMethod] = codeChallengeMethod.ToString();
 
-        if (!string.IsNullOrEmpty(targetLinkUri)) dict[WellknownIdentityConstants.TargetLinkUri] = new(targetLinkUri);
+        var dict = new Dictionary<string, StringValues>(StringComparer.Ordinal)
+        {
+            [WellknownIdentityConstants.State] = state,
+            [WellknownIdentityConstants.Nonce] = nonce,
+            [WellknownIdentityConstants.CodeChallenge] = codeChallenge,
+            [WellknownIdentityConstants.CodeChallengeMethod] = codeChallengeMethod.ToString()
+        };
 
-        if (!string.IsNullOrWhiteSpace(deviceId)) dict[WellknownIdentityConstants.LocalDeviceId] = new(deviceId);
+        if (!string.IsNullOrEmpty(targetLinkUri)) dict[WellknownIdentityConstants.TargetLinkUri] = targetLinkUri;
+
+        if (!string.IsNullOrWhiteSpace(deviceId)) dict[WellknownIdentityConstants.LocalDeviceId] = deviceId;
 
         var data = new StateAndNonceData(state, nonce, deviceId, DateTimeOffset.UtcNow.ToUnixTimeSeconds(), codeVerifier, targetLinkUri);
         return new StateAndNonceContext(data, new FormCollection(dict));

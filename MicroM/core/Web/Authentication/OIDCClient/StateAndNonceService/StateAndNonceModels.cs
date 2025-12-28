@@ -11,7 +11,7 @@ namespace MicroM.Web.Authentication.SSO;
 public sealed record StateAndNonceData(string State, string Nonce, string? DeviceId, long Timestamp, string? CodeVerifier, string? TargetLinkUri);
 
 // CONTEXT: wraps data plus adjusted form used during PAR construction (not persisted)
-public sealed record StateAndNonceContext(StateAndNonceData Data, IFormCollection? AdjustedForm);
+public sealed record StateAndNonceContext(StateAndNonceData Data, IFormCollection? pkceForm);
 
 public sealed record StateAndNonceHashed
 (

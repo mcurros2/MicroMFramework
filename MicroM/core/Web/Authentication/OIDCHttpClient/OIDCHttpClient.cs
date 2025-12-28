@@ -14,8 +14,8 @@ public class OIDCHttpClient(IHttpClientFactory httpClientFactory, ILogger<OIDCHt
     {
         if (string.IsNullOrWhiteSpace(url)) return (null, (error: "invalid_request", error_description: $"{title} is empty"));
         if (!Uri.TryCreate(url, UriKind.Absolute, out var uri)) return (null, (error: "invalid_request", error_description: $"{title} is not an absolute URI"));
-        if (!uri.Scheme.Equals(Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase) && !uri.IsLoopback)
-            return (null, (error: "invalid_request", error_description: $"{title} must be HTTPS (non-loopback)"));
+        if (!uri.Scheme.Equals(Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase))
+            return (null, (error: "invalid_request", error_description: $"{title} must be HTTPS"));
 
         return (uri, (null, null));
     }
@@ -27,7 +27,7 @@ public class OIDCHttpClient(IHttpClientFactory httpClientFactory, ILogger<OIDCHt
 
         try
         {
-            using var client = httpClientFactory.CreateClient(ConfigurationDefaults.HTTPClientOidcName);
+            var client = httpClientFactory.CreateClient(ConfigurationDefaults.HTTPClientOidcName);
             using var req = new HttpRequestMessage(HttpMethod.Get, uri);
             req.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue(MediaTypeNames.Application.Json));
             req.Headers.AcceptCharset.Add(new StringWithQualityHeaderValue(UTF8Encoding.UTF8.WebName));
@@ -77,7 +77,7 @@ public class OIDCHttpClient(IHttpClientFactory httpClientFactory, ILogger<OIDCHt
 
         try
         {
-            using var client = httpClientFactory.CreateClient(ConfigurationDefaults.HTTPClientJwksName);
+            var client = httpClientFactory.CreateClient(ConfigurationDefaults.HTTPClientJwksName);
             using var req = new HttpRequestMessage(HttpMethod.Get, uri);
             req.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue(MediaTypeNames.Application.Json));
             req.Headers.AcceptCharset.Add(new StringWithQualityHeaderValue(UTF8Encoding.UTF8.WebName));
@@ -152,7 +152,7 @@ public class OIDCHttpClient(IHttpClientFactory httpClientFactory, ILogger<OIDCHt
 
         try
         {
-            using var client = httpClientFactory.CreateClient(namedClient);
+            var client = httpClientFactory.CreateClient(namedClient);
             using var req = new HttpRequestMessage(HttpMethod.Post, uri)
             {
                 Content = new FormUrlEncodedContent(form ?? [])

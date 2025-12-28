@@ -528,17 +528,14 @@ public static class WebAPIBaseExtensions
 
         services.AddAuthorizationBuilder()
             .AddPolicy(nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy), policy =>
-                policy.Requirements.Add(new MicroMPermissionsRequirement()));
-
-        // Add an authorization policy that requires IdP client authentication
-        services.AddAuthorization(options =>
-        {
-            options.AddPolicy(nameof(MicroMPermissionsConstants.IdPClientPolicy), policy =>
+                policy.Requirements.Add(new MicroMPermissionsRequirement())
+                )
+            // Add an authorization policy that requires IdP client authentication
+            .AddPolicy(nameof(MicroMPermissionsConstants.IdPClientPolicy), policy =>
             {
                 policy.AddAuthenticationSchemes(MicroMServicesConstants.IdPClientScheme);
                 policy.RequireAuthenticatedUser();
             });
-        });
 
         services.Configure<ApiBehaviorOptions>(options =>
         {
