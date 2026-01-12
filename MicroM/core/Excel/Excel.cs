@@ -14,18 +14,18 @@ public static class ExcelReader
         if (workbookPart == null)
             yield break;
 
-        var sheet = workbookPart.Workbook.Sheets?.Elements<Sheet>()
+        var sheet = workbookPart.Workbook?.Sheets?.Elements<Sheet>()
             .FirstOrDefault(s => (s.Name?.Value == sheetName) || sheetName == null);
 
         if (sheet == null || sheet.Id == null)
             yield break;
 
         var worksheetPart = (WorksheetPart)workbookPart.GetPartById(sheet.Id!);
-        var rows = worksheetPart.Worksheet.Descendants<Row>();
+        var rows = worksheetPart.Worksheet?.Descendants<Row>();
 
         var sharedStringTable = workbookPart.SharedStringTablePart?.SharedStringTable;
 
-        var headerRow = rows.FirstOrDefault(r => r.RowIndex?.Value == initialRow);
+        var headerRow = rows?.FirstOrDefault(r => r.RowIndex?.Value == initialRow);
         if (headerRow == null)
             yield break;
 
@@ -36,22 +36,25 @@ public static class ExcelReader
         yield return headers;
         await Task.Yield();
 
-        foreach (var row in rows.Where(r => r.RowIndex?.Value > initialRow))
+        if (rows != null)
         {
-
-            var cellElements = row.Elements<Cell>().ToArray();
-            var rowData = new object?[headers.Length];
-
-            for (int i = 0; i < headers.Length; i++)
+            foreach (var row in rows.Where(r => r.RowIndex?.Value > initialRow))
             {
-                if (i < cellElements.Length)
-                    rowData[i] = GetTypedCellValue(cellElements[i], sharedStringTable);
-                else
-                    rowData[i] = null;
-            }
 
-            yield return rowData;
-            await Task.Yield();
+                var cellElements = row.Elements<Cell>().ToArray();
+                var rowData = new object?[headers.Length];
+
+                for (int i = 0; i < headers.Length; i++)
+                {
+                    if (i < cellElements.Length)
+                        rowData[i] = GetTypedCellValue(cellElements[i], sharedStringTable);
+                    else
+                        rowData[i] = null;
+                }
+
+                yield return rowData;
+                await Task.Yield();
+            }
         }
     }
 
