@@ -139,16 +139,20 @@ public static class DataResultExcelExtensions
 
     private static int InsertSharedStringItem(string text, SharedStringTablePart sharedStringTablePart)
     {
-        var items = sharedStringTablePart.SharedStringTable.Elements<SharedStringItem>().ToList();
-        int index = items.FindIndex(item => item.InnerText == text);
+        var items = sharedStringTablePart?.SharedStringTable?.Elements<SharedStringItem>().ToList();
+        if (items != null)
+        {
+            int index = items.FindIndex(item => item.InnerText == text);
 
-        if (index >= 0)
-            return index;
+            if (index >= 0)
+                return index;
 
-        sharedStringTablePart.SharedStringTable.AppendChild(new SharedStringItem(new Text(text)));
-        sharedStringTablePart.SharedStringTable.Save();
+            sharedStringTablePart?.SharedStringTable?.AppendChild(new SharedStringItem(new Text(text)));
+            sharedStringTablePart?.SharedStringTable?.Save();
 
-        return items.Count;
+        }
+
+        return items?.Count ?? 0;
     }
 
 
