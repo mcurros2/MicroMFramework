@@ -3,7 +3,10 @@ using MicroM.Data;
 using MicroM.DataDictionary.CategoriesDefinitions;
 using MicroM.Extensions;
 using MicroM.Web.Authentication;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using System.Collections.Concurrent;
 
 namespace MicroM.Web.Services;
 
@@ -48,4 +51,41 @@ public static class MicroMAPPConfigurationExtensions
         return dbc;
     }
 
+    public static IServiceCollection AddMicroMApplicationServices(this IServiceCollection services, IMicroMAppConfiguration appConfig, IConfiguration configuration)
+    {
+
+        // Block once at startup to ensure caches are ready
+        var refreshed = appConfig.RefreshConfiguration(null, CancellationToken.None)
+                                 .ConfigureAwait(false)
+                                 .GetAwaiter()
+                                 .GetResult();
+
+        if (!refreshed)
+        {
+            throw new InvalidOperationException("MicroM app configuration refresh failed before registering application services.");
+        }
+
+        var discovered = new ConcurrentDictionary<Type, byte>();
+
+        foreach (var appId in appConfig.GetAppIDs())
+        {
+            foreach (var assembly in appConfig.GetAllAPPAssemblies(appId))
+            {
+                foreach (var registrarType in assembly.GetInterfaceTypes<IMicroMApplicationServices>())
+                {
+                    if (registrarType.IsAbstract || !discovered.TryAdd(registrarType, 0))
+                    {
+                        continue;
+                    }
+
+                    if (Activator.CreateInstance(registrarType) is IMicroMApplicationServices registrar)
+                    {
+                        registrar.RegisterServices(services, configuration);
+                    }
+                }
+            }
+        }
+
+        return services;
+    }
 }

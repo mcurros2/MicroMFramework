@@ -4,26 +4,25 @@ using MicroM.Web.Services.Security;
 using Microsoft.AspNetCore.Http;
 using System.Reflection;
 
-namespace MicroM.Web.Services
+namespace MicroM.Web.Services;
+
+public interface IMicroMAppConfiguration
 {
-    public interface IMicroMAppConfiguration
-    {
-        public ApplicationOption? GetAppConfiguration(string app_id);
+    public ApplicationOption? GetAppConfiguration(string app_id);
 
-        public Type? GetEntityType(string app_id, string entity_name);
+    public Type? GetEntityType(string app_id, string entity_name);
 
-        public List<Assembly> GetAllAPPAssemblies(string app_id);
+    public List<Assembly> GetAllAPPAssemblies(string app_id);
 
-        public Task<bool> RefreshConfiguration(string? app_id, CancellationToken ct);
+    public Task<bool> RefreshConfiguration(string? app_id, CancellationToken ct);
 
-        public DatabaseClient? GetDatabaseClient(string app_id, int connection_tiemout_secs = 5);
+    public DatabaseClient? GetDatabaseClient(string app_id, int connection_tiemout_secs = 5);
 
-        public List<string> GetAppIDs();
+    public List<string> GetAppIDs();
 
-        public PublicEndpointSecurityRecord? GetPublicAccessAllowedRoutes(string app_id);
+    public PublicEndpointSecurityRecord? GetPublicAccessAllowedRoutes(string app_id);
 
-        public bool IsCORSOriginAllowed(string? app_id, string origin);
+    public bool IsCORSOriginAllowed(string? app_id, string origin);
 
-        public string? GetTenantPath(HttpContext context);
-    }
+    public string? GetTenantPath(HttpContext context);
 }

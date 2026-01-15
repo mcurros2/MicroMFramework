@@ -64,7 +64,14 @@ namespace MicroM.Data
         internal bool IsInitialized = true;
         internal void CreateParmsFromNames(IReadonlyOrderedDictionary<ColumnBase> cols)
         {
-            if (_ColumnNames.Count == 0 || IsInitialized) return;
+            if (IsInitialized) return;
+
+            if (_ColumnNames.Count == 0)
+            {
+                AddDefaultParms();
+                IsInitialized = true;
+                return;
+            }
 
             int last_column = _ColumnNames.Count - 1;
 
@@ -82,6 +89,7 @@ namespace MicroM.Data
                 }
 
             }
+
             _ColumnNames.Clear();
             AddDefaultParms();
             IsInitialized = true;
@@ -131,7 +139,7 @@ namespace MicroM.Data
             // Get the column names from columns properties in the filters entity
             foreach (var col_name in filters_entity.FilterEntityType.GetColumnNames())
             {
-                if(!col_name.IsIn(SystemColumnNames.AsStringArray) && col_name != nameof(EntityDefinition.AutonumColumn) && !_ColumnNames.Contains(col_name)) _ColumnNames.Add(col_name);
+                if (!col_name.IsIn(SystemColumnNames.AsStringArray) && col_name != nameof(EntityDefinition.AutonumColumn) && !_ColumnNames.Contains(col_name)) _ColumnNames.Add(col_name);
             }
         }
 
