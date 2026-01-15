@@ -463,6 +463,13 @@ public static class WebAPIBaseExtensions
         services.AddAuthenticationService();
         services.AddEntitiesService();
 
+        // Register application-specific service configurators discovered via IMicroMApplicationServices
+        using (var tmp = services.BuildServiceProvider())
+        {
+            var appConfig = tmp.GetRequiredService<IMicroMAppConfiguration>();
+            services.AddMicroMApplicationServices(appConfig, configuration);
+        }
+
         // Register rate limiting policies
         services.AddMicroMRateLimitingPolicies();
 
