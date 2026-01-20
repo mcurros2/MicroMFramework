@@ -141,7 +141,7 @@ namespace MicroM.Web.Services
                             return _thumbnailService.CreateThumbnail(fullPath, maxSize ?? default, quality ?? default);
                         });
 
-                        _log.LogInformation("Thumbnail created at {ThumbnailPath} for file {FullPath}", thumbnailPath, fullPath);
+                        _log.LogDebug("Thumbnail created at {ThumbnailPath} for file {FullPath}", thumbnailPath, fullPath);
                     }
                     catch (Exception ex)
                     {
