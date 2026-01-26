@@ -195,7 +195,7 @@ public static class WebAPIBaseExtensions
                     partitionKey: key,
                     factory: _ => new SlidingWindowRateLimiterOptions
                     {
-                        PermitLimit = 300, // per app per minute
+                        PermitLimit = 10000, // per app per minute
                         Window = TimeSpan.FromMinutes(1),
                         SegmentsPerWindow = 3,
                         QueueLimit = 0,
@@ -206,16 +206,13 @@ public static class WebAPIBaseExtensions
             // Authentication
             options.AddPolicy(MicroMServicesConstants.RateLimitingRefreshPolicy, httpContext =>
             {
-                var device = DeviceId(httpContext);
-                var key = !string.IsNullOrWhiteSpace(device)
-                    ? $"refresh:app:{AppId(httpContext)}:dev:{device}"
-                    : $"refresh:app:{AppId(httpContext)}:ua:{UA(httpContext)}";
+                var key = $"refresh:app:{AppId(httpContext)}:ua:{UA(httpContext)}:deviceid:{DeviceId(httpContext)}";
 
                 return RateLimitPartition.GetSlidingWindowLimiter(
                     partitionKey: key,
                     factory: _ => new SlidingWindowRateLimiterOptions
                     {
-                        PermitLimit = 10,
+                        PermitLimit = 20,
                         Window = TimeSpan.FromMinutes(1),
                         SegmentsPerWindow = 3,
                         QueueLimit = 0,
@@ -225,7 +222,7 @@ public static class WebAPIBaseExtensions
 
             options.AddPolicy(MicroMServicesConstants.RateLimitingAuthLoginPolicy, httpContext =>
             {
-                var key = $"login:app:{AppId(httpContext)}:ua:{UA(httpContext)}";
+                var key = $"login:app:{AppId(httpContext)}:ua:{UA(httpContext)}:deviceid:{DeviceId(httpContext)}";
                 return RateLimitPartition.GetFixedWindowLimiter(
                     partitionKey: key,
                     factory: _ => new FixedWindowRateLimiterOptions
@@ -240,7 +237,7 @@ public static class WebAPIBaseExtensions
 
             options.AddPolicy(MicroMServicesConstants.RateLimitingAuthRecoveryPolicy, httpContext =>
             {
-                var key = $"recovery:app:{AppId(httpContext)}:ua:{UA(httpContext)}";
+                var key = $"recovery:app:{AppId(httpContext)}:ua:{UA(httpContext)}:deviceid:{DeviceId(httpContext)}";
                 return RateLimitPartition.GetFixedWindowLimiter(
                     partitionKey: key,
                     factory: _ => new FixedWindowRateLimiterOptions
@@ -255,17 +252,14 @@ public static class WebAPIBaseExtensions
 
             options.AddPolicy(MicroMServicesConstants.RateLimitingAuthIsLoggedInPolicy, httpContext =>
             {
-                var user = UserId(httpContext);
-                var key = string.IsNullOrWhiteSpace(user) || user == "unknown"
-                    ? $"isloggedin:app:{AppId(httpContext)}"
-                    : $"isloggedin:app:{AppId(httpContext)}:usr:{user}";
+                var key = $"isloggedin:app:{AppId(httpContext)}:usr:{UserId(httpContext)}:deviceid:{DeviceId(httpContext)}";
 
                 return RateLimitPartition.GetFixedWindowLimiter(
                     partitionKey: key,
                     factory: _ => new FixedWindowRateLimiterOptions
                     {
                         AutoReplenishment = true,
-                        PermitLimit = 60,
+                        PermitLimit = 100,
                         Window = TimeSpan.FromMinutes(1),
                         QueueLimit = 0,
                         QueueProcessingOrder = QueueProcessingOrder.OldestFirst
@@ -274,10 +268,7 @@ public static class WebAPIBaseExtensions
 
             options.AddPolicy(MicroMServicesConstants.RateLimitingAuthLogoffPolicy, httpContext =>
             {
-                var user = UserId(httpContext);
-                var key = string.IsNullOrWhiteSpace(user) || user == "unknown"
-                    ? $"logoff:app:{AppId(httpContext)}"
-                    : $"logoff:app:{AppId(httpContext)}:usr:{user}";
+                var key = $"logoff:app:{AppId(httpContext)}:usr:{UserId(httpContext)}:deviceid:{DeviceId(httpContext)}";
 
                 return RateLimitPartition.GetFixedWindowLimiter(
                     partitionKey: key,
@@ -376,7 +367,7 @@ public static class WebAPIBaseExtensions
                     factory: _ => new FixedWindowRateLimiterOptions
                     {
                         AutoReplenishment = true,
-                        PermitLimit = 5,
+                        PermitLimit = 30,
                         Window = TimeSpan.FromMinutes(1),
                         QueueLimit = 0,
                         QueueProcessingOrder = QueueProcessingOrder.OldestFirst
@@ -385,7 +376,7 @@ public static class WebAPIBaseExtensions
 
             options.AddPolicy(MicroMServicesConstants.RateLimitingFrontchannelLogoutPolicy, httpContext =>
             {
-                var key = $"frontlogout:app:{AppId(httpContext)}:ua:{UA(httpContext)}";
+                var key = $"frontlogout:app:{AppId(httpContext)}:ua:{UA(httpContext)}:deviceid:{DeviceId(httpContext)}";
                 return RateLimitPartition.GetFixedWindowLimiter(
                     partitionKey: key,
                     factory: _ => new FixedWindowRateLimiterOptions
@@ -401,7 +392,7 @@ public static class WebAPIBaseExtensions
             // Public endpoints
             options.AddPolicy(MicroMServicesConstants.RateLimitingPublicGetPolicy, httpContext =>
             {
-                var key = $"public:get:app:{AppId(httpContext)}:ua:{UA(httpContext)}";
+                var key = $"public:get:app:{AppId(httpContext)}:ua:{UA(httpContext)}:deviceid:{DeviceId(httpContext)}";
                 return RateLimitPartition.GetSlidingWindowLimiter(
                     partitionKey: key,
                     factory: _ => new SlidingWindowRateLimiterOptions
@@ -416,7 +407,7 @@ public static class WebAPIBaseExtensions
 
             options.AddPolicy(MicroMServicesConstants.RateLimitingPublicMutationPolicy, httpContext =>
             {
-                var key = $"public:mut:app:{AppId(httpContext)}:ua:{UA(httpContext)}";
+                var key = $"public:mut:app:{AppId(httpContext)}:ua:{UA(httpContext)}:deviceid:{DeviceId(httpContext)}";
                 return RateLimitPartition.GetFixedWindowLimiter(
                     partitionKey: key,
                     factory: _ => new FixedWindowRateLimiterOptions
