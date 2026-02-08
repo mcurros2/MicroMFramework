@@ -3,20 +3,20 @@ using Microsoft.Extensions.Logging;
 
 namespace MicroM.Web.Services
 {
-    public interface IMemoryQueueHostedService : IHostedService, IBackgroundTaskQueue { }
+    public interface IBackgroundTaskQueueHostedService : IHostedService, IBackgroundTaskQueue { }
 
 
-    public class MemoryQueueHostedService : IMemoryQueueHostedService, IDisposable
+    public class BackgroundTaskQueueHostedService : IBackgroundTaskQueueHostedService, IDisposable
     {
         private readonly BackgroundTaskQueue _taskQueue;
         private CancellationTokenSource _queueCts = new();
 
-        private readonly ILogger<MemoryQueueHostedService> _logger;
+        private readonly ILogger<BackgroundTaskQueueHostedService> _logger;
         private bool disposedValue;
 
         public CancellationToken QueueCT => _taskQueue.QueueCT;
 
-        public MemoryQueueHostedService(ILogger<MemoryQueueHostedService> logger, ILogger<BackgroundTaskQueue> queueLogger)
+        public BackgroundTaskQueueHostedService(ILogger<BackgroundTaskQueueHostedService> logger, ILogger<BackgroundTaskQueue> queueLogger)
         {
             _logger = logger;
             _taskQueue = new BackgroundTaskQueue(maxConcurrency: 50, maxRetainedStatuses: 1000, queueLogger, _queueCts.Token);
@@ -24,14 +24,14 @@ namespace MicroM.Web.Services
 
         public Task StartAsync(CancellationToken cancellationToken)
         {
-            _logger.LogInformation("MemoryQueueHostedService is starting.");
+            _logger.LogInformation("BackgroundTaskQueueHostedService is starting.");
             cancellationToken.Register(() => _queueCts.Cancel());
             return Task.CompletedTask;
         }
 
         public Task StopAsync(CancellationToken cancellationToken)
         {
-            _logger.LogInformation("MemoryQueueHostedService is stopping.");
+            _logger.LogInformation("BackgroundTaskQueueHostedService is stopping.");
             // cancel all running tasks
             _queueCts.Cancel();
             _taskQueue.CancelAllTasks();
@@ -47,7 +47,7 @@ namespace MicroM.Web.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError("MemoryQueueHostedService: Error queuing task {name}.\n{ex}", TaskName, ex.ToString());
+                _logger.LogError("BackgroundTaskQueueHostedService: Error queuing task {name}.\n{ex}", TaskName, ex.ToString());
             }
             return Guid.Empty;
         }
