@@ -193,12 +193,6 @@ namespace MicroM.Web.Services
                                 var waited = queuedItem.TaskStatus.Started - queuedItem.TaskStatus.Queued;
                                 logger.LogInformation("Task {name} with ID {id} changed status to Completed. Waited: {waited} Duration {duration}, result {result}", item.Name, item.TaskID, waited?.ToHumanDuration(), duration?.ToHumanDuration(), item.TaskStatus.StatusMessage);
 
-                                if (item.RecurrenceInterval.HasValue)
-                                {
-                                    await Task.Delay(item.RecurrenceInterval.Value, queueCT);
-                                    logger.LogInformation("Task {name} re-queued by recurring interval every {recurrence}.", item.Name, item.RecurrenceInterval?.ToHumanDuration());
-                                    Enqueue(item.Name, item.WorkItem, item.SingleInstance, recurrenceInterval: item.RecurrenceInterval);
-                                }
                             }
                             catch (OperationCanceledException)
                             {
@@ -216,6 +210,13 @@ namespace MicroM.Web.Services
                             }
                             finally
                             {
+                                if (item.RecurrenceInterval.HasValue)
+                                {
+                                    await Task.Delay(item.RecurrenceInterval.Value, queueCT);
+                                    logger.LogInformation("Task {name} re-queued by recurring interval every {recurrence}.", item.Name, item.RecurrenceInterval?.ToHumanDuration());
+                                    Enqueue(item.Name, item.WorkItem, item.SingleInstance, recurrenceInterval: item.RecurrenceInterval);
+                                }
+
                                 Interlocked.Decrement(ref _runningCount);
                                 item.CTS?.Dispose();
                                 MaxConcurrencyRelease();
@@ -321,8 +322,8 @@ namespace MicroM.Web.Services
             {
                 if (disposing)
                 {
-                    _maxConcurrency.Dispose();
-                    _signal.Dispose();
+                    _maxConcurrency?.Dispose();
+                    _signal?.Dispose();
                     foreach (var item in _statuses.Values)
                     {
                         item.CTS?.Dispose();

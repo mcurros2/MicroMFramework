@@ -103,9 +103,9 @@ public static class WebAPIBaseExtensions
     // Hosted services
     public static IServiceCollection AddMemoryQueue(this IServiceCollection services)
     {
-        services.AddSingleton<MemoryQueueHostedService>();
-        services.AddHostedService(provider => provider.GetRequiredService<MemoryQueueHostedService>());
-        services.AddSingleton<IBackgroundTaskQueue>(provider => provider.GetRequiredService<MemoryQueueHostedService>());
+        services.AddSingleton<BackgroundTaskQueueHostedService>();
+        services.AddHostedService(provider => provider.GetRequiredService<BackgroundTaskQueueHostedService>());
+        services.AddSingleton<IBackgroundTaskQueue>(provider => provider.GetRequiredService<BackgroundTaskQueueHostedService>());
 
         return services;
     }
