@@ -12,7 +12,7 @@ using System.Text.Json;
 
 namespace MicroM.Web.Services
 {
-    public class EmailService(ILogger<EmailService> logger, IBackgroundTaskQueue btq, IMicroMAppConfiguration app_config, IMicroMEncryption encryptor, CancellationToken serviceCT) : IEmailService
+    public class EmailService(ILogger<EmailService> logger, IBackgroundTaskQueue btq, IMicroMAppConfiguration app_config, IMicroMEncryption encryptor) : IEmailService
     {
 
         public async Task<List<SubmitToQueueResult>> QueueEmail(string app_id, EmailServiceItem send_item, CancellationToken ct, bool start_processing_queue = false)
@@ -195,13 +195,13 @@ namespace MicroM.Web.Services
 
                 int processed_emails = 0;
 
-                List<EmailQueuedItem>? result = await emq.ExecuteProc<EmailQueuedItem>(emq.Def.emq_qryGetQueuedItems, serviceCT);
+                List<EmailQueuedItem>? result = await emq.ExecuteProc<EmailQueuedItem>(emq.Def.emq_qryGetQueuedItems, ct);
 
                 while (result?.Count > 0)
                 {
                     foreach (var item in result)
                     {
-                        if (serviceCT.IsCancellationRequested)
+                        if (ct.IsCancellationRequested)
                         {
                             return $"Processing Emails for app [{app_id}] cancelled. Total emails processed: {processed_emails}";
                         }
@@ -210,11 +210,11 @@ namespace MicroM.Web.Services
                         {
                             try
                             {
-                                await UpdateQueueStatus(emq, item, nameof(EmailStatus.PROCESSING), null, serviceCT);
+                                await UpdateQueueStatus(emq, item, nameof(EmailStatus.PROCESSING), null, ct);
 
                                 if (!config.TryGetValue(item.c_email_configuration_id, out var smtp_config))
                                 {
-                                    smtp_config = await GetEmailConfiguration(item.c_email_configuration_id, dbc, serviceCT);
+                                    smtp_config = await GetEmailConfiguration(item.c_email_configuration_id, dbc, ct);
                                     if (smtp_config != null)
                                     {
                                         config[item.c_email_configuration_id] = smtp_config;
@@ -222,34 +222,34 @@ namespace MicroM.Web.Services
                                     else
                                     {
                                         logger.LogWarning("EmailService.StartProcessingQueue [{app_id}]: Can't get email configuration for {email_configuration_id}", app_id, item.c_email_configuration_id);
-                                        await UpdateQueueStatus(emq, item, nameof(EmailStatus.ERROR), "Can't get email configuration", serviceCT);
+                                        await UpdateQueueStatus(emq, item, nameof(EmailStatus.ERROR), "Can't get email configuration", ct);
                                         continue;
                                     }
                                 }
 
-                                var send_result = await SendEmail(item, smtp_config, serviceCT);
+                                var send_result = await SendEmail(item, smtp_config, ct);
 
                                 if (send_result.failed)
                                 {
                                     if (send_result.should_retry)
                                     {
-                                        await UpdateQueueStatus(emq, item, nameof(EmailStatus.RETRY), send_result.last_error, serviceCT);
+                                        await UpdateQueueStatus(emq, item, nameof(EmailStatus.RETRY), send_result.last_error, ct);
                                     }
                                     else
                                     {
-                                        await UpdateQueueStatus(emq, item, nameof(EmailStatus.ERROR), send_result.last_error, serviceCT);
+                                        await UpdateQueueStatus(emq, item, nameof(EmailStatus.ERROR), send_result.last_error, ct);
                                     }
                                 }
                                 else
                                 {
-                                    await UpdateQueueStatus(emq, item, nameof(EmailStatus.SENT), null, serviceCT);
+                                    await UpdateQueueStatus(emq, item, nameof(EmailStatus.SENT), null, ct);
                                 }
 
                             }
                             catch (Exception ex)
                             {
                                 logger.LogError(ex, "EmailService.StartProcessingQueue [{app_id}]: Error sending email for email_queue_id {email_queue_id}", app_id, item.c_email_queue_id);
-                                await UpdateQueueStatus(emq, item, nameof(EmailStatus.ERROR), ex.ToString(), serviceCT);
+                                await UpdateQueueStatus(emq, item, nameof(EmailStatus.ERROR), ex.ToString(), ct);
                             }
 
                             processed_emails++;
@@ -259,7 +259,7 @@ namespace MicroM.Web.Services
                             logger.LogWarning("EmailService.StartProcessingQueue [{app_id}]: Missing c_email_queue_id, empty email queue item", app_id);
                         }
                     }
-                    result = await emq.ExecuteProc<EmailQueuedItem>(emq.Def.emq_qryGetQueuedItems, serviceCT);
+                    result = await emq.ExecuteProc<EmailQueuedItem>(emq.Def.emq_qryGetQueuedItems, ct);
                 }
 
                 //logger.LogInformation("EmailService.StartProcessingQueue: Processing Emails finished. Total emails processed: {processed_emails}", processed_emails);

@@ -36,7 +36,7 @@ The MicroM framework is designed with a modular architecture to facilitate the d
 - Is composed by these entities:
     - SystemProcs
     - Categories
-    - CategoriesValues>
+    - CategoriesValues
     - Status
     - StatusValues
     - MicromRoutes

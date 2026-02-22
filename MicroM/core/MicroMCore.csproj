@@ -200,11 +200,16 @@
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>
     </None>
+    <None Include="C:\disco n\Desarrollo\MicroMFramework\MicroM\core\.editorconfig" />
   </ItemGroup>
 
   <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
     <Exec Command="del /Q &quot;$(PackageOutputPath)*.nupkg&quot;" />
   </Target>
+
+  <ItemGroup>
+    <EditorConfigFiles Remove="C:\disco n\Desarrollo\MicroMFramework\MicroM\core\.editorconfig" />
+  </ItemGroup>
 
 
 </Project>

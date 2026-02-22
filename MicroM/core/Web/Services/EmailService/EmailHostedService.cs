@@ -52,7 +52,7 @@ public class EmailHostedService : IHostedService, IEmailService, IDisposable
     {
         logger.LogInformation("EmailServiceHostedService is starting.");
         _serviceCTS = CancellationTokenSource.CreateLinkedTokenSource(btq.QueueCT, cancellationToken);
-        _emailService = new EmailService(emailLogger, btq, app_config, encryptor, _serviceCTS.Token);
+        _emailService = new EmailService(emailLogger, btq, app_config, encryptor);
 
         // start processing the queue for all apps
         foreach (var app_id in app_config.GetAppIDs())

@@ -1,6 +1,6 @@
 import { ActionIcon, Button, Group, Loader, Select, SelectItem, SelectProps, useComponentDefaultProps, useMantineTheme } from "@mantine/core"
 import { IconSelector } from "@tabler/icons-react"
-import { forwardRef, useEffect, useState } from "react"
+import { forwardRef, ReactNode, useEffect, useState } from "react"
 import { Entity, EntityColumn, EntityColumnFlags, EntityDefinition } from "../../Entity"
 import { DBStatusResult, DataResult, OperationStatus, Value, ValuesObject } from "../../client"
 import { ActionIconVariant, ButtonVariant } from "../Core"
@@ -27,15 +27,9 @@ export interface LookupSelectOptions {
     includeKeyInDescription?: boolean,
     withinPortal?: boolean,
     zIndex?: number,
-    editButtonVariant?: ButtonVariant
+    editButtonVariant?: ButtonVariant,
+    breadCrumbs?: ReactNode,
 }
-
-/*
-    editIcon: <IconPencil size="1rem" stroke="1.5" />,
-    editIconVariant: "light",
-
-*/
-
 
 export const LookupSelectDefaultProps: Partial<LookupSelectOptions> = {
     enableEdit: false,
@@ -51,7 +45,6 @@ export const LookupSelectDefaultProps: Partial<LookupSelectOptions> = {
         searchable: true,
         maxDropdownHeight: 260,
         clearable: true,
-        //w: "40rem",
     }
 }
 
@@ -61,7 +54,7 @@ export const LookupSelect = forwardRef<HTMLInputElement, LookupSelectOptions>(fu
         entityForm, entity, lookupDefName, enableEdit,
         editIcon, editIconVariant, selectProps, maxItems,
         requiredLabel, editLabel, includeKeyInDescription,
-        withinPortal, zIndex
+        withinPortal, zIndex, breadCrumbs
     } = useComponentDefaultProps('LookupSelect', LookupSelectDefaultProps, props);
 
     const theme = useMantineTheme();
@@ -70,7 +63,7 @@ export const LookupSelect = forwardRef<HTMLInputElement, LookupSelectOptions>(fu
     const selectDataState = useState<SelectItem[]>([]);
     const [selectData] = selectDataState;
 
-    const lookupSelectAPI = useLookupSelect({ parentKeys, selectDataState, triggerRefreshState, column, entityForm, entity, lookupDefName, maxItems, includeKeyInDescription });
+    const lookupSelectAPI = useLookupSelect({ parentKeys, selectDataState, triggerRefreshState, column, entityForm, entity, lookupDefName, maxItems, includeKeyInDescription, breadCrumbs });
 
     const [showDescription,] = entityForm.showDescriptionState;
 
