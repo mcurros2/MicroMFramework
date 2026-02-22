@@ -62,7 +62,7 @@ function AddressSearchInternal(props: AddressSearchProps & ReturnType<typeof use
         if (found.place.geometry?.location) {
             const currentPos = { lat: found.place.geometry.location.lat(), lng: found.place.geometry.location.lng() };
 
-            setMarkerActualPos({position: currentPos, mappedAddressType: found.address?.mappedAddressType});
+            setMarkerActualPos({ position: currentPos, mappedAddressType: found.address?.mappedAddressType });
             setLastFormattedAddress(found.suggestionDescription || found.place.formatted_address);
         }
         else {

@@ -1,17 +1,17 @@
-import React, { ButtonHTMLAttributes, CSSProperties, FC, forwardRef, useLayoutEffect } from "react";
-import { PureComponent, useRef, useState } from "react";
-import { Cropper, CropperImage, CropperPreview, CropperPreviewRef, CropperRef, CropperState, CropperTransitions, Size, getBackgroundStyle, getPreviewStyle, mergeRefs } from "react-advanced-cropper";
 import "react-advanced-cropper/dist/style.css";
 import "./ImageEditor.scss";
-import { IconBrightnessUp, IconCircleCheckFilled, IconColorFilter, IconContrast, IconCrop, IconDropletHalf2Filled, IconRestore } from "@tabler/icons-react";
 import { ColorScheme, useMantineColorScheme } from "@mantine/core";
+import { IconBrightnessUp, IconCircleCheckFilled, IconColorFilter, IconContrast, IconCrop, IconDropletHalf2Filled, IconRestore } from "@tabler/icons-react";
+import React, { ButtonHTMLAttributes, CSSProperties, FC, forwardRef, useLayoutEffect } from "react";
+import { PureComponent, useRef, useState } from "react";
+import { Cropper, CropperImage, CropperPreview, CropperPreviewRef, CropperRef, CropperState, CropperTransitions, getBackgroundStyle, getPreviewStyle, mergeRefs, Size } from "react-advanced-cropper";
 
 interface ImageEditorProps {
     src:string,
     onOk:(imageBlob:Blob) => void
   }
 
-export const ImageEditor = ({src, onOk}:ImageEditorProps) => {
+export const ImageEditor = ({ src, onOk }:ImageEditorProps) => {
     const cropperRef = useRef<CropperRef>(null);
     const previewRef = useRef<CropperPreviewRef>(null);
     const { colorScheme } = useMantineColorScheme();
@@ -108,7 +108,7 @@ export const ImageEditor = ({src, onOk}:ImageEditorProps) => {
           {mode !== "crop" && (
             <Slider
               className="image-editor__slider"
-              value={(adjustments as Record<string,number>)[mode]}
+              value={(adjustments as Record<string, number>)[mode]}
               onChange={onChangeValue}
             />
           )}
@@ -570,7 +570,7 @@ interface DesiredCropperRef {
 
   const hasOwn = {}.hasOwnProperty;
 
-  function classNames(...args: (string | number | Record<string,string> | boolean | undefined)[]): string {
+  function classNames(...args: (string | number | Record<string, string> | boolean | undefined)[]): string {
       let classes = '';
   
       for (let i = 0; i < args.length; i++) {
@@ -585,7 +585,7 @@ interface DesiredCropperRef {
   
   const cn = classNames;
   
-  function parseValue(arg: string | number | Record<string,string> | boolean | undefined): string {
+  function parseValue(arg: string | number | Record<string, string> | boolean | undefined): string {
       if (typeof arg === 'string' || typeof arg === 'number') {
           return arg.toString();
       }

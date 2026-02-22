@@ -1,4 +1,4 @@
-import { NavLink, Navbar, ScrollArea, useComponentDefaultProps, useMantineTheme } from "@mantine/core";
+import { Navbar, NavLink, ScrollArea, useComponentDefaultProps, useMantineTheme } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import { useSpotlight } from "@mantine/spotlight";
 import { IconProps, IconSearch } from "@tabler/icons-react";

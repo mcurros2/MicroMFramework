@@ -1,5 +1,5 @@
-import { DefaultColumns, EntityColumn, EntityDefinition, CommonFlags as c } from "../../Entity";
 import { MicroMClient, ValuesObject } from "../../client";
+import { CommonFlags as c, DefaultColumns, EntityColumn, EntityDefinition } from "../../Entity";
 import { FileStoreProcess } from "../FileStoreProcess";
 
 const columns = () =>
@@ -13,7 +13,7 @@ const columns = () =>
 const views = () =>
 (
     {
-        ipr_brwStandard: { name: 'ipd_brwStandard', keyMappings: {c_import_process: 0 } }
+        ipr_brwStandard: { name: 'ipd_brwStandard', keyMappings: { c_import_process: 0 } }
     }
 )
 

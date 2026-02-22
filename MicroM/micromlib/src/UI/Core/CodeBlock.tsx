@@ -13,7 +13,7 @@ export function CodeBlock(props: CodeBlockProps) {
         codeText, language
     } = useComponentDefaultProps('CodeBlock', defaultProps, props);
     return (
-        <Prism styles={{ scrollArea: { flexGrow: 1, minHeight: '60vh'} }} mih="60vh" mah="60vh" sx={{ display: "flex" }} language={language}>
+        <Prism styles={{ scrollArea: { flexGrow: 1, minHeight: '60vh' } }} mih="60vh" mah="60vh" sx={{ display: "flex" }} language={language}>
             {codeText ?? ''}
         </Prism>
     )

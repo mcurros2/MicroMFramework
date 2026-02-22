@@ -1,8 +1,8 @@
 import { useMantineColorScheme } from "@mantine/core";
 import { useEffect, useId, useMemo, useRef } from "react";
 import { DefaultGridColumnProps, DefaultGridProps, GridColumn, GridImperative, GridOptions } from "../Grid";
-import { w2column, w2columnAutoResizeEvent, w2event, w2grid, w2record } from "./W2Grid";
 import { useW2ColumnRender } from "./useW2ColumnRender";
+import { w2column, w2columnAutoResizeEvent, w2event, w2grid, w2record } from "./W2Grid";
 
 export function useGrid({
     columns, rows, selectionMode, onDoubleClick, preserveSelection, onSelectionChanged, showSelectCheckbox,

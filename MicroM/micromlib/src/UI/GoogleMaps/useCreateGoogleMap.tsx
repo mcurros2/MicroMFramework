@@ -2,7 +2,6 @@ import { Children, isValidElement, useCallback, useEffect, useMemo, useRef, useS
 import { GoogleMapProps } from "./GoogleMap";
 import { GoogleMapRegionSelector } from "./GoogleMapRegionSelector";
 import { GoogleMarker } from "./GoogleMarker";
-import { DEFAULT_MAP_CENTER } from "./Mapping.types";
 
 export function useCreateGoogleMap({ mapOptions, children, setInfoWindowContent, infoWindowContentRef }: GoogleMapProps) {
     const containerRef = useRef<HTMLDivElement>(null);

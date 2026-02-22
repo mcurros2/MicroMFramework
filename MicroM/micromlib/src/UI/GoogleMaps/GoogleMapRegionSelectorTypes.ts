@@ -1,6 +1,6 @@
 import { Dispatch, SetStateAction } from "react";
-import { useGoogleMapsAPI } from "../../GoogleMapsAPI";
 import { ValuesObject } from "../../client";
+import { useGoogleMapsAPI } from "../../GoogleMapsAPI";
 import { GoogleMapHighZoomStyleDefaultProps, GoogleMapLowZoomStyleDefaultProps, GoogleMapMediumZoomStyleDefaultProps, GoogleMapZoomFeatureStyles } from "./GoogleMapRegionsSelectorStyles";
 import { GoogleMapsErrorStatus } from "./Mapping.types";
 

@@ -1,11 +1,11 @@
-import { w2grid as w2grid_original, w2event as w2event_original } from "../../../libs/w2ui/w2ui.es6";
+import { w2event as w2event_original, w2grid as w2grid_original } from "../../../libs/w2ui/w2ui.es6";
 import { GridColumnFormat, GridColumnRender } from "./Grid";
 
-export type w2record = Record<string,unknown> & { recid:number }
+export type w2record = Record<string, unknown> & { recid:number }
 
 export type w2recordId = string | number
 
-export type w2event<TDetail = Record<string,unknown>> = w2event_original & {
+export type w2event<TDetail = Record<string, unknown>> = w2event_original & {
     detail: TDetail,
 }
 export type w2columnAutoResizeEvent = w2event<{ maxWidth:number, originalEvent:Event, target:string, column:w2column }>
@@ -30,7 +30,7 @@ export type w2column = {
     sizeType? : "px" | "%",  // px or %
     hidden? : boolean, // indicates if column is hidden
     sortable? : boolean, // indicates if column is sortable
-    sortMode? : "default"|"natural"|"i18n"|((a:string,b:string) => number),  // sort mode ('default'|'natural'|'i18n') or custom compare function
+    sortMode? : "default"|"natural"|"i18n"|((a:string, b:string) => number),  // sort mode ('default'|'natural'|'i18n') or custom compare function
     searchable? : boolean|string|object, // bool/string: int,float,date,... or an object to create search field
     resizable? : boolean,  // indicates if column is resizable
     hideable? : boolean,  // indicates if column can be hidden

@@ -1,8 +1,8 @@
-import { Group, MantineSize, PinInput, PinInputProps, Stack, Text, getSize, rem, useComponentDefaultProps, useMantineTheme } from "@mantine/core";
+import { getSize, Group, MantineSize, PinInput, PinInputProps, rem, Stack, Text, useComponentDefaultProps, useMantineTheme } from "@mantine/core";
 import { ReactNode } from "react";
+import { Value } from "../../client";
 import { EntityColumn, EntityColumnFlags } from "../../Entity";
 import { ValidatorConfiguration } from "../../Validation";
-import { Value } from "../../client";
 import { UseEntityFormReturnType, useFieldConfiguration } from "../Form";
 import { useTextTransform, useTextTransformProps } from "./useTextTransform";
 

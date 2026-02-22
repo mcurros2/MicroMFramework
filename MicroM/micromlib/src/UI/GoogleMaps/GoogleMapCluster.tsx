@@ -1,10 +1,10 @@
 import { MarkerClustererOptions } from "@googlemaps/markerclusterer";
 import { DefaultProps, Paper, useComponentDefaultProps } from "@mantine/core";
 import { Dispatch, PropsWithChildren, ReactNode, RefObject, SetStateAction } from "react";
+import { MarkerProps } from "./GoogleMarker";
+import { MapOptions } from "./Mapping.types";
 import { useCreateGoogleMapCluster } from "./useCreateGoogleMapCluster";
 import { GoogleMapContext } from "./useGoogleMap";
-import { MapOptions } from "./Mapping.types";
-import { MarkerProps } from "./GoogleMarker";
 
 
 export interface MapClusterOptions extends Omit<MarkerClustererOptions, 'map' | 'markers'> { }

@@ -1,7 +1,7 @@
 import { useComponentDefaultProps } from "@mantine/core";
 import { useEffect, useRef } from "react";
-import { Entity, EntityDefinition } from "../../Entity";
 import { DBStatusResult, MicroMClient, OperationStatus } from "../../client";
+import { Entity, EntityDefinition } from "../../Entity";
 import { FormMode, MicroMModalSize, useOpenForm } from "../Core";
 
 

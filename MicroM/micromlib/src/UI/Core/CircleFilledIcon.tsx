@@ -1,5 +1,5 @@
 import { MantineColor, useComponentDefaultProps, useMantineTheme } from "@mantine/core";
-import { ReactNode, forwardRef } from "react";
+import { forwardRef, ReactNode } from "react";
 
 export interface CircleFilledIconProps {
     backColor?: MantineColor,

@@ -1,8 +1,8 @@
 import { useComponentDefaultProps } from "@mantine/core";
 import { useCallback, useEffect, useState } from "react";
-import { EntityColumn } from "../../Entity";
 import { MicroMClient } from "../../client";
-import { useFileUpload, useFilesUploadForm } from "../FileUploader";
+import { EntityColumn } from "../../Entity";
+import { useFilesUploadForm, useFileUpload } from "../FileUploader";
 import { UseEntityFormReturnType } from "../Form";
 
 export interface useAvatarUploaderProps {

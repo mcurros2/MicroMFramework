@@ -1,6 +1,6 @@
 import { ReactNode } from "react";
-import { ModalContextType } from "../UI";
 import { ValuesObject } from "../client";
+import { ModalContextType } from "../UI";
 import { Entity } from "./Entity";
 
 export interface EntityClientActionOnClickProps {

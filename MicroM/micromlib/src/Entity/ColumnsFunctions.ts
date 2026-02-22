@@ -1,3 +1,4 @@
+import dayjs from 'dayjs';
 import { SQLType, Value, ValuesObject } from "../client";
 import { SYSTEM_COLUMNS_NAMES } from "./DefaultColumns";
 import { EntityColumn } from "./EntityColumn";
@@ -5,8 +6,6 @@ import { ColumnsFilter, EntityColumnFlags } from "./EntityColumn.types";
 import { ColumnsObject } from "./EntityColumnCollection.types";
 import { hasValue } from "./EntityColumnFunctions";
 import { isIn } from "./GenericFunctions";
-
-import dayjs from 'dayjs';
 
 
 export function areArraysContentsEqual(a: string[] | undefined, b: string[] | undefined): boolean {

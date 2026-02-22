@@ -1,6 +1,6 @@
+import { useComponentDefaultProps } from "@mantine/core";
 import { IconAt } from "@tabler/icons-react";
 import { TextField, TextFieldProps } from "./TextField";
-import { useComponentDefaultProps } from "@mantine/core";
 
 export interface EmailFieldProps extends Omit<TextFieldProps, 'validate'> {
     invalidMessage?: string

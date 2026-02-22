@@ -1,5 +1,5 @@
-import { Entity } from "../../Entity";
 import { MicroMClient } from "../../client";
+import { Entity } from "../../Entity";
 import { CategoriesValuesDef } from "../Categories";
 
 export class catUserTypes extends Entity<CategoriesValuesDef> {

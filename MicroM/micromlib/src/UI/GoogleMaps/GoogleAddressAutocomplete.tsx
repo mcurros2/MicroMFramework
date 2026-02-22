@@ -1,8 +1,8 @@
 import { Autocomplete, AutocompleteProps, Box, Group, MantineColor, SelectItemProps, Text, useComponentDefaultProps } from "@mantine/core";
-import { ReactNode, forwardRef } from "react";
+import { forwardRef, ReactNode } from "react";
+import { latLng } from "../Core";
 import { AddressMappingRule, MappedAddressResult } from "./Mapping.types";
 import { useGoogleAddressAutocomplete } from "./useGoogleAddressAutocomplete";
-import { latLng } from "../Core";
 
 
 export interface AddressFoundResult {

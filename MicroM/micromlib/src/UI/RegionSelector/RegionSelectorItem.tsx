@@ -14,7 +14,7 @@ export function RegionSelectorItem({ onCloseClick, children, ...rest }: RegionSe
     )
 
     return (
-        <Badge size="md" {...rest} rightSection={onCloseClick && removeButton} styles={{ root: {width: 'fit-content'} } }>
+        <Badge size="md" {...rest} rightSection={onCloseClick && removeButton} styles={{ root: { width: 'fit-content' } }}>
             {children}
         </Badge>
     )

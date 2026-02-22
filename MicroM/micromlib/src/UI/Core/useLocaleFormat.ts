@@ -1,7 +1,7 @@
 import { useComponentDefaultProps } from "@mantine/core";
 import { useCallback, useState } from "react";
-import { EntityColumn } from "../../Entity";
 import { SQLType, Value } from "../../client";
+import { EntityColumn } from "../../Entity";
 import { convertToNativeValue, formatSQLValue } from "./formatting";
 
 export interface UseLocaleFormatProps {

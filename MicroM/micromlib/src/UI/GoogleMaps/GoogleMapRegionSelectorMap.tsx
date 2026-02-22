@@ -25,7 +25,7 @@ export function GoogleMapRegionSelectorMap(props: GoogleMapRegionSelectorMapProp
                             <GoogleMapRegionSelector {...regionSelectorProps} googleMapsAPI={API} />
                             {children}
                         </GoogleMap>
-                        <div style={{display: "none"}} ref={API.attributionsRef}></div>
+                        <div style={{ display: "none" }} ref={API.attributionsRef}></div>
                     </>
                 )
                 :

@@ -1,7 +1,7 @@
 import { Skeleton } from "@mantine/core";
 import { useEffect } from "react";
-import { Entity, EntityDefinition } from "../../Entity";
 import { DataResult, ValuesObject } from "../../client";
+import { Entity, EntityDefinition } from "../../Entity";
 import { AlertError, useExecuteProc } from "../Core";
 import { ClickedRegionData, SelectedRegionData } from "../GoogleMaps";
 import { RegionSelector, RegionSelectorProps } from "../RegionSelector";

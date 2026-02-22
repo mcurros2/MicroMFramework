@@ -1,7 +1,7 @@
 import { Button, Group, Stack, Text, useComponentDefaultProps } from "@mantine/core";
 import { IconAlertCircle, IconBoxMultiple } from "@tabler/icons-react";
-import { Entity, EntityDefinition } from "../../Entity";
 import { DBStatusResult } from "../../client";
+import { Entity, EntityDefinition } from "../../Entity";
 import { ConfirmAndExecutePanel, FakeProgressBar, MicroMModalSize, useModal } from "../Core";
 import { DataGridDefaultProps, DataGridSelectionKeys } from "../DataGrid";
 import { LookupForm } from "./LookupForm";

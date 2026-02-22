@@ -4,7 +4,6 @@ import { AlertError, useExecuteView, useViewState } from "../Core";
 import { DataGridToolbar } from "../DataGrid";
 import { DataGridActionsToolbar } from "../DataGrid/DataGridActionsToolbar";
 import { DataViewCardContainer, DataViewProps, useDataView } from "../DataView";
-import { useDataGrid } from "../DataGrid/useDatagrid";
 
 export const DataGridViewDefaultProps: Partial<DataViewProps> = {
     search: [],

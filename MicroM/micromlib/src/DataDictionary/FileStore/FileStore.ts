@@ -1,5 +1,5 @@
-import { Entity } from "../../Entity";
 import { MicroMClient } from "../../client";
+import { Entity } from "../../Entity";
 import { FileStoreDef } from "./FileStoreDef";
 
 export class FileStore extends Entity<FileStoreDef> {

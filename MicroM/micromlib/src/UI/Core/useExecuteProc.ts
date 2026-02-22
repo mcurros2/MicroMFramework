@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Entity, EntityDefinition, EntityProc, areValuesObjectsEqual } from "../../Entity";
-import { DataResult, OperationStatus, ValuesObject, toMicroMError } from "../../client";
+import { DataResult, OperationStatus, toMicroMError, ValuesObject } from "../../client";
+import { areValuesObjectsEqual, Entity, EntityDefinition, EntityProc } from "../../Entity";
 
 export function useExecuteProc(entity: Entity<EntityDefinition>, proc: EntityProc) {
     const [status, setStatus] = useState<OperationStatus<DataResult[]>>({ loading: false, operationType: 'proc' });

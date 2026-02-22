@@ -4,7 +4,9 @@
   "plugins": [
     "react",
     "@typescript-eslint",
-    "node"
+    "node",
+    "unused-imports",
+    "simple-import-sort"
   ],
   "extends": [
     "plugin:react/recommended",
@@ -15,7 +17,34 @@
     "react/react-in-jsx-scope": "off",
     "@typescript-eslint/explicit-module-boundary-types": "off",
     "@typescript-eslint/no-unused-vars": "warn",
-    "prefer-const": "warn"
+    "prefer-const": "warn",
+    "comma-spacing": [
+      "error",
+      {
+        "before": false,
+        "after": true
+      }
+    ],
+    "object-curly-spacing": [ "error", "always" ],
+    "simple-import-sort/imports": [
+      "error",
+      {
+        "groups": [
+          [ "^\\u0000", "^@?\\w", "^\\." ]
+        ]
+      }
+    ],
+    "no-unused-vars": "off",
+    "unused-imports/no-unused-imports": "error",
+    "unused-imports/no-unused-vars": [
+      "warn",
+      {
+        "vars": "all",
+        "varsIgnorePattern": "^_",
+        "args": "after-used",
+        "argsIgnorePattern": "^_"
+      }
+    ]
   },
   "settings": {
     "react": {

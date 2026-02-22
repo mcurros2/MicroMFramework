@@ -31,6 +31,7 @@
   ],
   "scripts": {
     "lint": "eslint src --ext .js,.ts,.tsx",
+    "lint:fix": "eslint src --ext .js,.ts,.tsx --fix",
     "start": "(if exist dist rd /s /q dist) & (if exist .parcel-cache rd /s /q .parcel-cache) & parcel test/index.html --cert ../SSL/localhost.crt --key ../SSL/localhost.key --no-cache",
     "build": "(if exist dist rd /s /q dist) & (if exist .parcel-cache rd /s /q .parcel-cache) & parcel build --no-cache src/index.ts",
     "publish:patch": "npm version patch -m \"Upgrade to %s\" && npm publish",
@@ -83,6 +84,8 @@
     "eslint-plugin-node": "^11.1.0",
     "eslint-plugin-react": "^7.33.1",
     "eslint-plugin-react-hooks": "^4.6.0",
+    "eslint-plugin-simple-import-sort": "^12.1.1",
+    "eslint-plugin-unused-imports": "^4.4.1",
     "parcel": "^2.16.3",
     "process": "^0.11.10",
     "react": "^18.2.0",

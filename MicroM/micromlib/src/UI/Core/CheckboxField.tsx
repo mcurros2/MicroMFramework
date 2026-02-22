@@ -1,7 +1,7 @@
 import { Checkbox, CheckboxProps } from "@mantine/core";
 import { ReactNode } from "react";
-import { EntityColumn, EntityColumnFlags } from "../../Entity";
 import { Value } from "../../client";
+import { EntityColumn, EntityColumnFlags } from "../../Entity";
 import { UseEntityFormReturnType, useFieldConfiguration } from "../Form";
 
 export interface CheckboxFieldProps extends CheckboxProps {

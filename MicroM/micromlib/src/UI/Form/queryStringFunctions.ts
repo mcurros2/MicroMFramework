@@ -1,5 +1,5 @@
-import { ColumnsObject, convertValueFromString } from "../../Entity";
 import { Value, ValuesObject } from "../../client";
+import { ColumnsObject, convertValueFromString } from "../../Entity";
 
 export function getWindowLocationQueryStringAsObject(): Record<string, string> {
     const searchParams = new URLSearchParams(window.location.search);

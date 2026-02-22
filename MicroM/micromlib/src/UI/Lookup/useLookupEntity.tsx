@@ -1,6 +1,6 @@
 import { useMemo, useRef } from "react";
-import { Entity, EntityDefinition, EntityLookup } from "../../Entity";
 import { ValuesObject } from "../../client";
+import { Entity, EntityDefinition, EntityLookup } from "../../Entity";
 
 export interface UseLookupEntityOptions {
     parentKeys?: ValuesObject

@@ -1,6 +1,6 @@
+import { useComponentDefaultProps } from "@mantine/core";
 import { ReactNode, useEffect, useRef } from "react";
 import { useGoogleMap } from "./useGoogleMap";
-import { useComponentDefaultProps } from "@mantine/core";
 
 
 export type MarkerOptions = Omit<google.maps.MarkerOptions, "map">

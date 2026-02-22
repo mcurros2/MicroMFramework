@@ -1,8 +1,8 @@
 import { Group, Text } from "@mantine/core";
 import { IconX } from "@tabler/icons-react";
-import { MicromUsersGroupsMenus } from ".";
 import { EntityClientAction } from "../../Entity";
 import { CircleFilledIcon, ConfirmAndExecutePanel } from "../../UI";
+import { MicromUsersGroupsMenus } from ".";
 
 export const MicromUsersGroupsMenusDisableMenusLabels = {
     denyAccessToSelectedMenuItems: 'Deny access to selected menu items',
