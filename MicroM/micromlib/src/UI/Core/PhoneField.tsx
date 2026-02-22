@@ -1,8 +1,8 @@
 import { ActionIcon, Group, useComponentDefaultProps, useMantineTheme } from "@mantine/core";
 import { IconBrandWhatsapp, IconPhoneOutgoing } from "@tabler/icons-react";
 import { useEffect, useRef } from "react";
-import { TextField, TextFieldProps } from "./TextField";
 import { Value } from "../../client";
+import { TextField, TextFieldProps } from "./TextField";
 
 export interface PhoneFieldProps extends Omit<TextFieldProps, 'validate'> {
     invalidMessage?: string,

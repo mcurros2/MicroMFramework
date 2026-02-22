@@ -1,8 +1,8 @@
 import { MantineTheme, Skeleton, useComponentDefaultProps } from "@mantine/core";
 import { SpotlightAction } from "@mantine/spotlight";
 import { Dispatch, ReactNode, SetStateAction, useCallback, useEffect, useMemo, useState } from "react";
-import { isPromise } from "../../Entity";
 import { MicroMClient, MicroMClientClaimTypes } from "../../client";
+import { isPromise } from "../../Entity";
 import { MenuItem } from "./MenuItem";
 
 export interface MenuContentProps {

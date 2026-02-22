@@ -1,10 +1,10 @@
 import { Group, MantineTheme, Select, SelectItem, Stack, Tabs, Text, useComponentDefaultProps, useMantineTheme } from "@mantine/core";
 import { IconGridDots, IconMap } from "@tabler/icons-react";
 import { ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ValuesRecord } from "../../client";
 import { Entity, EntityDefinition } from "../../Entity";
 import { useGoogleMapsAPI } from "../../GoogleMapsAPI";
-import { ValuesRecord } from "../../client";
-import { FakeProgressBar, ModalContextType, latLng, useEntityUI, useExecuteView, useModal, useViewState } from "../Core";
+import { FakeProgressBar, latLng, ModalContextType, useEntityUI, useExecuteView, useModal, useViewState } from "../Core";
 import { DataGridDefaultProps, DataGridProps, DataGridToolbar } from "../DataGrid";
 import { DataGridActionsToolbar } from "../DataGrid/DataGridActionsToolbar";
 import { useDataGrid } from "../DataGrid/useDatagrid";
@@ -14,7 +14,7 @@ import { DefaultMapClusterProps, GoogleMapCluster, MapClusterOptions, SelectedMa
 import { GoogleMapsInfoWindow } from "../GoogleMaps/GoogleMapsInfoWindow";
 import { GridSelection } from "../Grid";
 import { DataMapGrid } from "./DataMapGrid";
-import { MapMarkerGroupDefaultFillColor, MapMarkerGroupDefaultLabelOrigin, MapMarkerGroupDefaultSVGIcon, UseCreateMarkerOptionsProps, useCreateMarkerOptions } from "./useCreateMarkerOptions";
+import { MapMarkerGroupDefaultFillColor, MapMarkerGroupDefaultLabelOrigin, MapMarkerGroupDefaultSVGIcon, useCreateMarkerOptions, UseCreateMarkerOptionsProps } from "./useCreateMarkerOptions";
 import { LocationGroup, RecordGroupManager, useRecordGroupManager } from "./useRecordGroupManager";
 
 

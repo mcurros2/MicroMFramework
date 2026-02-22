@@ -1,8 +1,8 @@
 import { Text } from "@mantine/core";
 import { ModalSettings } from "@mantine/modals/lib/context";
 import { ReactNode, useRef } from "react";
-import { Entity, EntityDefinition } from "../../Entity";
 import { ValuesObject } from "../../client";
+import { Entity, EntityDefinition } from "../../Entity";
 import { useModal } from "../Core";
 import { GridSelectionMode } from "../Grid";
 import { LookupForm } from "../Lookup";

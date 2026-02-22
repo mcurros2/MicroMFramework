@@ -1,9 +1,9 @@
-import { Accordion, ActionIcon, Badge, BadgeVariant, Group, MantineNumberSize, MantineSize, Menu, SelectItem, Stack, Text, rem, useComponentDefaultProps, useMantineTheme } from "@mantine/core";
+import { Accordion, ActionIcon, Badge, BadgeVariant, Group, MantineNumberSize, MantineSize, Menu, rem, SelectItem, Stack, Text, useComponentDefaultProps, useMantineTheme } from "@mantine/core";
 import { AccordionVariant } from "@mantine/core/lib/Accordion/Accordion.types";
 import { IconCloudUpload, IconDownload, IconEyeCog, IconFilter, IconFilterOff, IconPencil, IconReload, IconSquareCheck, IconSquareCheckFilled, IconX } from "@tabler/icons-react";
 import { Dispatch, ReactNode, SetStateAction, useRef } from "react";
-import { ColumnsObject, EntityConstructor } from "../../Entity";
 import { MicroMClient, ValuesObject } from "../../client";
+import { ColumnsObject, EntityConstructor } from "../../Entity";
 import { ActionIconVariant, SearchFilterInput, ToggleActionIcon } from "../Core";
 import { getToolbarSizes } from "./ToolBarFunctions";
 import { useDataGridToolbarFilters } from "./useDataGridToolbarFilters";

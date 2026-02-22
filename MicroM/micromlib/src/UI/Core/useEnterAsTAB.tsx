@@ -1,4 +1,4 @@
-import { useRef, useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 export function useEnterAsTab<T extends HTMLElement>() {
     const ref = useRef<T | null>(null);

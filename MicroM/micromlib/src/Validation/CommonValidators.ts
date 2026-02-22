@@ -1,11 +1,11 @@
 import { hasLength, isInRange, isNotEmpty, matches, matchesField } from "@mantine/form";
+import { ReactNode } from "react";
 import { isValidCUIT } from "./CUITValidator";
+import { CustomValidator } from "./CustomValidator";
 import { isValidEmail } from "./EmailValidator";
 import { isPhone } from "./PhoneValidator";
 import { isURL } from "./UrlValidator";
 import { ValidatorFunction } from "./validationTypes";
-import { CustomValidator } from "./CustomValidator";
-import { ReactNode } from "react";
 
 export const CommonValidators = {
     // Custom Regex

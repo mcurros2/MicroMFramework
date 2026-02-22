@@ -1,5 +1,5 @@
-import { EntityColumn, EntityColumnFlags, CommonFlags as c } from "../../Entity"
 import { MicroMClient, ValuesObject } from "../../client";
+import { CommonFlags as c, EntityColumn, EntityColumnFlags } from "../../Entity"
 import { MicromUsersGroups } from "../MicromUsersGroups";
 
 export interface IMicromUserStatusPanelColums {

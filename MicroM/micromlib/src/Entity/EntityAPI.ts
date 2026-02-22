@@ -1,4 +1,4 @@
-import { DBStatusResult, DataResult, ImpDataResult, MicroMClient, ValuesObject } from "../client";
+import { DataResult, DBStatusResult, ImpDataResult, MicroMClient, ValuesObject } from "../client";
 import * as cf from "./ColumnsFunctions";
 import { EntityColumnFlags } from "./EntityColumn.types";
 import { ColumnsObject } from "./EntityColumnCollection.types";

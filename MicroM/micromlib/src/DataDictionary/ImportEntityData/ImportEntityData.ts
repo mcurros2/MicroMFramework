@@ -1,7 +1,7 @@
 import { IconCloudUpload, IconProps } from "@tabler/icons-react";
 import { ReactNode } from "react";
-import { Entity } from "../../Entity";
 import { MicroMClient } from "../../client";
+import { Entity } from "../../Entity";
 import { ImportEntityDataDef } from "./ImportEntityDataDef";
 
 export interface ImportEntityDataLabels {

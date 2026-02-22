@@ -1,13 +1,12 @@
 import { useCallback } from "react";
-import { Entity, EntityDefinition } from "../../Entity";
-import { FormMode, MicroMModalSize, openEntityForm, useModal } from "../Core";
-
+import { DBStatusResult } from "../../client/client.types";
+import { OperationStatus } from "../../client/OperationStatus";
 // MMC: TODO parcel BUG, if imported in the same line when using the library it breaks
 // import { ImportEntityData, ImportEntityDataFormPropsImportEntityDataFormProps } from "../../DataDictionary/ImportEntityData";
 import { ImportEntityData } from "../../DataDictionary/ImportEntityData/ImportEntityData";
 import { ImportEntityDataFormProps } from "../../DataDictionary/ImportEntityData/ImportEntityDataForm";
-import { OperationStatus } from "../../client/OperationStatus";
-import { DBStatusResult } from "../../client/client.types";
+import { Entity, EntityDefinition } from "../../Entity";
+import { FormMode, MicroMModalSize, openEntityForm, useModal } from "../Core";
 
 export interface UseImportDataProps {
     initialFormMode: FormMode,

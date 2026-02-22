@@ -1,8 +1,8 @@
-import { ComponentType } from "react";
-import { DataMapProps, EntityCardProps, GridColumnsOverrides } from "../UI";
-import { ValuesObject } from "../client";
-import { EntityConstructor } from "./EntityLookup";
 import { MantineTheme } from "@mantine/core";
+import { ComponentType } from "react";
+import { ValuesObject } from "../client";
+import { DataMapProps, EntityCardProps, GridColumnsOverrides } from "../UI";
+import { EntityConstructor } from "./EntityLookup";
 
 export interface EntityView {
     name: string;

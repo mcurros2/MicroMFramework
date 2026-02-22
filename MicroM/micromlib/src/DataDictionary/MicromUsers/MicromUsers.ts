@@ -1,5 +1,5 @@
-import { Entity } from "../../Entity";
 import { MicroMClient } from "../../client";
+import { Entity } from "../../Entity";
 import { MicromUsersDef } from "./MicromUsersDef";
 
 export class MicromUsers extends Entity<MicromUsersDef> {

@@ -1,9 +1,9 @@
-import { DefaultColumns, EntityColumn, EntityColumnFlags, EntityDefinition, CommonFlags as c } from "../../Entity";
+import { CommonFlags as c, DefaultColumns, EntityColumn, EntityColumnFlags, EntityDefinition } from "../../Entity";
 
 const columns = () =>
 (
     {
-        c_email_configuration_id: new EntityColumn<string>({ name: 'c_email_configuration_id', type: 'char', length: 20, flags: c.PK, prompt: 'Email Configuration Id'}),
+        c_email_configuration_id: new EntityColumn<string>({ name: 'c_email_configuration_id', type: 'char', length: 20, flags: c.PK, prompt: 'Email Configuration Id' }),
         vc_smtp_host: new EntityColumn<string>({
             name: 'vc_smtp_host', type: 'varchar', length: 2048, flags: c.Edit | EntityColumnFlags.nullable, prompt: 'Smtp Host',
             description: 'The host of the smtp server', placeholder: 'smtp.gmail.com'

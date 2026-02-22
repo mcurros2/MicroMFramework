@@ -1,4 +1,4 @@
-﻿import { UseEntityFormOptions, useEntityForm } from "../Form";
+﻿import { useEntityForm, UseEntityFormOptions } from "../Form";
 
 export interface UseViewFiltersProps extends Omit<UseEntityFormOptions, 'noSaveOnSubmit'> {
 

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { Entity, EntityDefinition, areValuesObjectsEqual, copyValuesObject } from "../../Entity";
 import { ValuesObject } from "../../client";
+import { areValuesObjectsEqual, copyValuesObject, Entity, EntityDefinition } from "../../Entity";
 import { UseEntityFormReturnType } from "../Form";
 
 export interface UseParentKeysProps {

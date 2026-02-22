@@ -1,8 +1,8 @@
 import { DefaultProps, Paper, useComponentDefaultProps } from "@mantine/core";
 import { Dispatch, PropsWithChildren, ReactNode, RefObject, SetStateAction } from "react";
+import { MapOptions } from "./Mapping.types";
 import { useCreateGoogleMap } from "./useCreateGoogleMap";
 import { GoogleMapContext } from "./useGoogleMap";
-import { MapOptions } from "./Mapping.types";
 
 export type GoogleMapProps = DefaultProps & PropsWithChildren<{
     mapOptions: MapOptions,

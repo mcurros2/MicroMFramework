@@ -1,6 +1,6 @@
 import { ActionIcon, TextInput, TextInputProps, useComponentDefaultProps, useMantineTheme } from '@mantine/core';
-import { ActionIconVariant } from '../Core';
 import { IconArrowLeft, IconArrowRight, IconSearch } from '@tabler/icons-react';
+import { ActionIconVariant } from '../Core';
 
 export interface SearchInputProps extends TextInputProps {
     onSearchClick: React.MouseEventHandler,

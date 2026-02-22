@@ -1,10 +1,10 @@
 import { ActionIcon, useComponentDefaultProps } from "@mantine/core";
 import { TimeInput, TimeInputProps } from "@mantine/dates";
 import { IconClock } from "@tabler/icons-react";
-import { ReactNode, forwardRef, useImperativeHandle, useRef } from "react";
+import { forwardRef, ReactNode, useImperativeHandle, useRef } from "react";
+import { Value } from "../../client";
 import { EntityColumn, EntityColumnFlags } from "../../Entity";
 import { ValidatorConfiguration } from "../../Validation";
-import { Value } from "../../client";
 import { UseEntityFormReturnType, useFieldConfiguration } from "../Form";
 
 export interface TimeFieldProps extends Omit<TimeInputProps, 'validate'> {

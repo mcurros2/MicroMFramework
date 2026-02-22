@@ -1,5 +1,5 @@
-import { Entity, EntityClientAction, EntityDefinition } from "../../Entity";
 import { ValuesObject } from "../../client";
+import { Entity, EntityClientAction, EntityDefinition } from "../../Entity";
 import { DataViewRecord } from "../DataView/DataView.types";
 
 export interface EntityCardProps<T extends ValuesObject> {

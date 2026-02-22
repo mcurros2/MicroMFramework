@@ -1,7 +1,7 @@
 import { ActionIcon, MultiSelect, MultiSelectProps, useComponentDefaultProps, useMantineTheme } from '@mantine/core';
 import { IconArrowLeft, IconArrowRight, IconSearch } from '@tabler/icons-react';
-import { ActionIconVariant } from '../Core';
 import { forwardRef } from 'react';
+import { ActionIconVariant } from '../Core';
 
 export interface SearchFilterInputProps extends MultiSelectProps {
     onSearchClick: React.MouseEventHandler,

@@ -1,8 +1,8 @@
 import { Accordion, Card, Stack, Text, ThemeIcon, Title, useComponentDefaultProps, useMantineTheme } from "@mantine/core";
 import { IconHelp } from "@tabler/icons-react";
 import { ReactNode, useRef } from "react";
-import { Entity, EntityDefinition } from "../../Entity";
 import { MicroMClient } from "../../client";
+import { Entity, EntityDefinition } from "../../Entity";
 import { FormMode } from "../Core";
 import { DataGrid } from "./DataGrid";
 import { DataGridProps } from "./DataGrid.types";

@@ -1,7 +1,7 @@
 import { MantineColor, Notification, NotificationProps, useComponentDefaultProps } from "@mantine/core";
-import { EntityColumn } from "../../Entity";
 import { IconCheck, IconX } from "@tabler/icons-react";
 import { ReactNode } from "react";
+import { EntityColumn } from "../../Entity";
 
 export interface NotifyBitFieldProps extends NotificationProps {
     column: EntityColumn<boolean>

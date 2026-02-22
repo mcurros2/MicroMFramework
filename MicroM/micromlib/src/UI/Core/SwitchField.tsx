@@ -1,7 +1,7 @@
 import { Switch, SwitchProps } from "@mantine/core";
 import { ReactNode } from "react";
-import { EntityColumn } from "../../Entity";
 import { Value } from "../../client";
+import { EntityColumn } from "../../Entity";
 import { UseEntityFormReturnType, useFieldConfiguration } from "../Form";
 
 export interface SwitchFieldProps extends SwitchProps {

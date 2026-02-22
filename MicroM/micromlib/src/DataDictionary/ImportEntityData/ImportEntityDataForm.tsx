@@ -1,15 +1,15 @@
 import { Accordion, Button, Card, Group, List, Stack, Table, Text, Title, useComponentDefaultProps, useMantineTheme } from "@mantine/core";
 import { IconCheck, IconCircleCheck, IconCircleNumber1, IconCircleNumber2, IconCircleX, IconX } from "@tabler/icons-react";
 import { useCallback, useMemo, useState } from "react";
+import { Value } from "../../client";
 import { Entity, EntityColumn, EntityDefinition, getRequiredColumns } from "../../Entity";
 import { AlertError } from "../../UI/Core/AlertError";
 import { CircleFilledIcon } from "../../UI/Core/CircleFilledIcon";
 import { FakeProgressBar } from "../../UI/Core/FakeProgressBar";
 import { FormOptions } from "../../UI/Core/types";
-import { FileUploaderDefaultProps, FilesUploadForm } from "../../UI/FileUploader";
+import { FilesUploadForm, FileUploaderDefaultProps } from "../../UI/FileUploader";
 import { EntityForm, EntityFormDefaultProps, useEntityForm } from "../../UI/Form";
 import { useEntityCSVImportValidation, useImportData } from "../../UI/ImportData";
-import { Value } from "../../client";
 import { ImportEntityData } from "./ImportEntityData";
 
 export interface ImportEntityDataFormProps extends FormOptions<ImportEntityData> {

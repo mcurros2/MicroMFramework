@@ -1,4 +1,4 @@
-import { DefaultColumns, EntityColumn, EntityDefinition, CommonFlags as c } from "../../Entity";
+import { CommonFlags as c, DefaultColumns, EntityColumn, EntityDefinition } from "../../Entity";
 
 
 const columns = () =>

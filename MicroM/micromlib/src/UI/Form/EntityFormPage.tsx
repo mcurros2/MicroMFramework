@@ -1,8 +1,8 @@
 import { Skeleton, useComponentDefaultProps } from "@mantine/core";
 import { ReactNode, useEffect, useRef, useState } from "react";
-import { Entity, EntityDefinition } from "../../Entity";
 import { MicroMClient } from "../../client";
-import { FormOptions, createEntityForm } from "../Core";
+import { Entity, EntityDefinition } from "../../Entity";
+import { createEntityForm, FormOptions } from "../Core";
 
 export interface EntityFormPageProps extends Omit<FormOptions<Entity<any>>, 'entity'> {
     entityConstructor: (client: MicroMClient) => Entity<EntityDefinition>,

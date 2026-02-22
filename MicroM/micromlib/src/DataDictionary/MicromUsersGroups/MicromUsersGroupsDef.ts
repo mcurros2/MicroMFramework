@@ -1,5 +1,5 @@
-import { DefaultColumns, EntityColumn, EntityColumnFlags, EntityDefinition, CommonFlags as c } from "../../Entity";
 import { MicroMClient, ValuesObject } from "../../client";
+import { CommonFlags as c, DefaultColumns, EntityColumn, EntityColumnFlags, EntityDefinition } from "../../Entity";
 import { MicromUsers } from "../MicromUsers";
 
 const columns = () =>

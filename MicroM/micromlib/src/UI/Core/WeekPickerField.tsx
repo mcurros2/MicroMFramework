@@ -1,10 +1,10 @@
-import { Accordion, AccordionProps, Group, MantineSize, Stack, Text, getSize, rem, useComponentDefaultProps, useMantineTheme } from "@mantine/core";
+import { Accordion, AccordionProps, getSize, Group, MantineSize, rem, Stack, Text, useComponentDefaultProps, useMantineTheme } from "@mantine/core";
 import { IconCalendar } from "@tabler/icons-react";
 import { ReactNode, useState } from "react";
-import { WeekPicker, WeekPickerProps, useLocaleFormat } from ".";
 import { EntityColumn, EntityColumnFlags } from "../../Entity";
 import { ValidatorConfiguration } from "../../Validation";
 import { UseEntityFormReturnType, useFieldConfiguration } from "../Form";
+import { useLocaleFormat, WeekPicker, WeekPickerProps } from ".";
 
 export interface WeekPickerFieldProps extends Omit<WeekPickerProps, 'weekStartDatevalue' | 'setWeekStartValue' | 'setWeekEndValue'> {
     weekStartDateColumn: EntityColumn<Date | null>,

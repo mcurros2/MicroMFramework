@@ -1,8 +1,8 @@
 import { IconProps } from "@tabler/icons-react";
 import { ComponentType } from "react";
-import { FormOptions } from "../UI/Core/types";
-import { MicroMClient } from "../client/MicromClient";
 import { ValuesObject } from "../client/client.types";
+import { MicroMClient } from "../client/MicromClient";
+import { FormOptions } from "../UI/Core/types";
 import { EntityAPI } from "./EntityAPI";
 import { EntityDefinition } from "./EntityDefinition";
 

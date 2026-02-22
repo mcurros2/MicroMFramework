@@ -1,7 +1,7 @@
 import { Button, ButtonProps } from "@mantine/core";
 import { ValuesObject } from "../../client";
-import { useModal } from "../Core";
 import { Entity, EntityClientAction, EntityDefinition } from "../../Entity";
+import { useModal } from "../Core";
 
 export interface EntityActionButtonProps extends Omit<ButtonProps, 'leftIcon'> {
     entity: Entity<EntityDefinition>,

@@ -1,8 +1,8 @@
-import { Group, TextInput, TextInputProps, useComponentDefaultProps, px } from "@mantine/core";
-import { ReactNode, forwardRef, useCallback } from "react";
+import { Group, px, TextInput, TextInputProps, useComponentDefaultProps } from "@mantine/core";
+import { forwardRef, ReactNode, useCallback } from "react";
+import { Value } from "../../client";
 import { EntityColumn, EntityColumnFlags } from "../../Entity";
 import { ValidatorConfiguration } from "../../Validation";
-import { Value } from "../../client";
 import { UseEntityFormReturnType, useFieldConfiguration } from "../Form";
 import { useTextTransform, useTextTransformProps } from "./useTextTransform";
 

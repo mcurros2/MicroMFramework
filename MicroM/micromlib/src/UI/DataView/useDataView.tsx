@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { EntityClientAction, convertRecordToValuesObject, exportToExcel, toCamelCase } from "../../Entity";
-import { DBStatusResult, DataResult, OperationStatus, SQLType, Value, ValuesObject, ValuesRecord } from "../../client";
+import { DataResult, DBStatusResult, OperationStatus, SQLType, Value, ValuesObject, ValuesRecord } from "../../client";
+import { convertRecordToValuesObject, EntityClientAction, exportToExcel, toCamelCase } from "../../Entity";
 import { useEntityUI, useLocaleFormat } from "../Core";
 import { DataGridStateProps } from "../DataGrid/DataGrid.types";
 import { DataViewProps, DataViewRecord, DataViewSelection, DataViewSelectionChangedHandler } from "./DataView.types";
@@ -43,7 +43,7 @@ export function useDataView(props: DataViewProps, stateProps: DataGridStateProps
         onDataRefresh
     } = props;
 
-    const localeFormat = useLocaleFormat({timeZoneOffset: entity?.API.client.TIMEZONE_OFFSET || 0});
+    const localeFormat = useLocaleFormat({ timeZoneOffset: entity?.API.client.TIMEZONE_OFFSET || 0 });
 
     const { setRefresh, setSearchText, executeViewState } = stateProps;
 

@@ -1,4 +1,4 @@
-import { RefObject, createContext, useContext } from "react";
+import { createContext, RefObject, useContext } from "react";
 
 export interface GoogleMapContextType {
     map: google.maps.Map | null,
