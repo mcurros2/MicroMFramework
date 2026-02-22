@@ -65,7 +65,6 @@ namespace MicroM.Web.Services
         private readonly SemaphoreSlim _signal = new(0);
 
         private int _runningCount = 0;
-        private readonly object _lock_queue = new();
         private bool _isProcessing = false;
         private bool disposedValue;
 
@@ -105,9 +104,8 @@ namespace MicroM.Web.Services
             _statuses[item.TaskID] = item;
             _signal.Release();
 
-            if (!_isProcessing)
+            if (Interlocked.CompareExchange(ref _isProcessing, true, false) == false)
             {
-                _isProcessing = true;
                 Task.Run(() => ProcessQueueAsync(), queueCT);
             }
 
@@ -116,8 +114,6 @@ namespace MicroM.Web.Services
             logger.LogInformation("Task {name} with ID {id} has been enqueued. Tasks Queued: {queued} Tasks running {running}", item.Name, item.TaskID, _workItems.Count, _runningCount);
             return item.TaskID;
         }
-
-        private readonly object _lock_status = new();
 
         private void MaxConcurrencyRelease()
         {
@@ -134,7 +130,6 @@ namespace MicroM.Web.Services
         private async Task ProcessQueueAsync()
         {
             logger.LogInformation("Initiated processing queue");
-            var runningTasks = new List<Task>();
 
             try
             {
@@ -160,6 +155,7 @@ namespace MicroM.Web.Services
                             if (_statuses.Values.Any(q =>
                                 q.Name == item.Name && q.TaskStatus.Status == QueueTaskStatus.Running && q.TaskID != item.TaskID))
                             {
+                                _maxConcurrency.Release();
                                 logger.LogWarning("Task {name} with ID {id} is already running. Skipping.", item.Name, item.TaskID);
                                 _singleInstanceNames.TryRemove(item.Name, out _);
                                 continue;
@@ -191,11 +187,42 @@ namespace MicroM.Web.Services
                                 queuedItem.TaskStatus.Finished = DateTime.Now;
                                 var duration = queuedItem.TaskStatus.Finished - queuedItem.TaskStatus.Started;
                                 var waited = queuedItem.TaskStatus.Started - queuedItem.TaskStatus.Queued;
-                                logger.LogInformation("Task {name} with ID {id} changed status to Completed. Waited: {waited} Duration {duration}, result {result}", item.Name, item.TaskID, waited?.ToHumanDuration(), duration?.ToHumanDuration(), item.TaskStatus.StatusMessage);
+                                logger.LogInformation("Task {name} with ID {id} changed status to Completed. Waited: {waited} Duration {duration}, result: {result}, recurrence: {recurrence}",
+                                    item.Name, item.TaskID, waited?.ToHumanDuration(), duration?.ToHumanDuration(), item.TaskStatus.StatusMessage, item.RecurrenceInterval?.ToHumanDuration());
 
+                                Interlocked.Decrement(ref _runningCount);
+                                item.CTS?.Dispose();
+                                item.CTS = null;
+                                MaxConcurrencyRelease();
+
+                                if (item.SingleInstance)
+                                    _singleInstanceNames.TryRemove(item.Name, out _);
+
+
+                                if (item.RecurrenceInterval.HasValue)
+                                {
+                                    try
+                                    {
+                                        await Task.Delay(item.RecurrenceInterval.Value, queueCT);
+                                        logger.LogInformation("Task {name} re-queued by recurring interval every {recurrence}.", item.Name, item.RecurrenceInterval?.ToHumanDuration());
+                                        Enqueue(item.Name, item.WorkItem, item.SingleInstance, recurrenceInterval: item.RecurrenceInterval);
+                                    }
+                                    catch (OperationCanceledException)
+                                    {
+                                        logger.LogInformation("Task {name} recurrence skipped due to queue cancellation.", item.Name);
+                                    }
+                                }
                             }
                             catch (OperationCanceledException)
                             {
+                                Interlocked.Decrement(ref _runningCount);
+                                item.CTS?.Dispose();
+                                item.CTS = null;
+                                MaxConcurrencyRelease();
+
+                                if (item.SingleInstance)
+                                    _singleInstanceNames.TryRemove(item.Name, out _);
+
                                 queuedItem.TaskStatus.Status = QueueTaskStatus.Cancelled;
                                 queuedItem.TaskStatus.StatusMessage = $"Task {item.TaskID} was cancelled.";
                                 queuedItem.TaskStatus.Finished = DateTime.Now;
@@ -203,44 +230,29 @@ namespace MicroM.Web.Services
                             }
                             catch (Exception ex)
                             {
+                                Interlocked.Decrement(ref _runningCount);
+                                item.CTS?.Dispose();
+                                item.CTS = null;
+                                MaxConcurrencyRelease();
+
+                                if (item.SingleInstance)
+                                    _singleInstanceNames.TryRemove(item.Name, out _);
+
                                 queuedItem.TaskStatus.Status = QueueTaskStatus.Failed;
                                 queuedItem.TaskStatus.StatusMessage = $"Task {item.TaskID} Error: {ex.Message}";
                                 queuedItem.TaskStatus.Finished = DateTime.Now;
                                 logger.LogError("ERROR: Task {name} with ID {id}\n. Error {}", item.Name, item.TaskID, ex.ToString());
                             }
-                            finally
-                            {
-                                if (item.RecurrenceInterval.HasValue)
-                                {
-                                    await Task.Delay(item.RecurrenceInterval.Value, queueCT);
-                                    logger.LogInformation("Task {name} re-queued by recurring interval every {recurrence}.", item.Name, item.RecurrenceInterval?.ToHumanDuration());
-                                    Enqueue(item.Name, item.WorkItem, item.SingleInstance, recurrenceInterval: item.RecurrenceInterval);
-                                }
-
-                                Interlocked.Decrement(ref _runningCount);
-                                item.CTS?.Dispose();
-                                MaxConcurrencyRelease();
-
-                                if (item.SingleInstance)
-                                    _singleInstanceNames.TryRemove(item.Name, out _);
-                            }
                         }, queueCT);
 
-                        runningTasks.Add(task);
 
-                        // If we've reached maxConcurrency, wait for any to finish before starting more
-                        if (runningTasks.Count >= _maxConcurrency.CurrentCount)
-                        {
-                            var finished = await Task.WhenAny(runningTasks);
-                            runningTasks.Remove(finished);
-                        }
                     }
 
                 }
             }
             finally
             {
-                _isProcessing = false;
+                Interlocked.Exchange(ref _isProcessing, false);
                 logger.LogInformation("Finished processing queue");
             }
         }
@@ -259,8 +271,8 @@ namespace MicroM.Web.Services
                 }
                 else
                 {
-                    item.CTS.Cancel();
-                    item.CTS.Dispose();
+                    item.CTS?.Cancel();
+                    item.CTS?.Dispose();
                     item.CTS = null;
                 }
             }
@@ -308,11 +320,19 @@ namespace MicroM.Web.Services
 
         private void TrimOldestStatus()
         {
-            if (_statuses.Count > maxRetainedStatuses)
+            if (_statuses.Count <= maxRetainedStatuses) return;
+
+            var terminal = _statuses
+                .Where(kv => kv.Value.TaskStatus.Status is QueueTaskStatus.Completed
+                                                   or QueueTaskStatus.Failed
+                                                   or QueueTaskStatus.Cancelled)
+                .OrderBy(kv => kv.Value.TaskStatus.Queued)
+                .Select(kv => kv.Key)
+                .FirstOrDefault();
+
+            if (terminal != Guid.Empty && _statuses.TryRemove(terminal, out _))
             {
-                var oldestKey = _statuses.Keys.OrderBy(key => _statuses[key].TaskStatus.Queued).FirstOrDefault();
-                logger.LogInformation("Trimming old status. Oldest key {key}", oldestKey);
-                _statuses.TryRemove(oldestKey, out _);
+                logger.LogInformation("Trimming old terminal status. Oldest key {key}", terminal);
             }
         }
 
