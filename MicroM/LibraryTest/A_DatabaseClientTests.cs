@@ -95,7 +95,7 @@ namespace LibraryTest
 
             var result_set = new DataResultSetChannel();
 
-            await client.ExecuteSQLChannel("select top 10 * from sysobjects\nselect top 10 * from sysobjects", result_set, cts.Token);
+            await client.ExecuteSQLChannel("select top 10 * from sysobjects\nselect top 10 * from sysobjects", result_set, 500, cts.Token);
 
             int results_count = 0;
             int total_records = 0;
@@ -105,7 +105,7 @@ namespace LibraryTest
                 var result = await result_set.Results.Reader.ReadAsync(cts.Token);
                 Debug.Print($"Result # {results_count} {DateTime.Now:O}");
 
-                await foreach (var record in result.Records.Reader.ReadAllAsync(cts.Token))
+                await foreach (var record in result.records.Reader.ReadAllAsync(cts.Token))
                 {
                     Debug.Print(string.Join(", ", record));
                     total_records++;
@@ -207,7 +207,7 @@ namespace LibraryTest
                     var result = await result_set_channel.Results.Reader.ReadAsync(cts.Token);
                     Debug.Print($"Result # {results_count} {DateTime.Now:O}");
 
-                    await foreach (var record in result.Records.Reader.ReadAllAsync(cts.Token))
+                    await foreach (var record in result.records.Reader.ReadAllAsync(cts.Token))
                     {
                         Debug.Print(string.Join(", ", record));
                         total_records++;
@@ -270,7 +270,7 @@ namespace LibraryTest
                     var result = await result_set_channel.Results.Reader.ReadAsync(cts.Token);
                     Debug.Print($"Result # {results_count} {DateTime.Now:O}");
 
-                    await foreach (var record in result.Records.Reader.ReadAllAsync(cts.Token))
+                    await foreach (var record in result.records.Reader.ReadAllAsync(cts.Token))
                     {
                         Debug.Print(string.Join(", ", record));
                         total_records++;
@@ -351,7 +351,7 @@ namespace LibraryTest
                         var result = await result_set_channel.Results.Reader.ReadAsync(cts.Token);
                         Debug.Print($"Result # {results_count} {DateTime.Now:O}");
 
-                        await foreach (var record in result.Records.Reader.ReadAllAsync(cts.Token))
+                        await foreach (var record in result.records.Reader.ReadAllAsync(cts.Token))
                         {
                             Debug.Print(string.Join(", ", record));
                             total_records++;
@@ -425,7 +425,7 @@ namespace LibraryTest
             var parms = new DatabaseClientTestsUtil.SPHELPParameters();
             parms.objname.Value = "sp_who";
 
-            await client.ExecuteSPChannel("sp_help", parms.Columns, result_set, cts.Token);
+            await client.ExecuteSPChannel("sp_help", parms.Columns, result_set, 500, cts.Token);
 
             int results_count = 0;
             int total_records = 0;
@@ -435,7 +435,7 @@ namespace LibraryTest
                 var result = await result_set.Results.Reader.ReadAsync(cts.Token);
                 Debug.Print($"Result # {results_count} {DateTime.Now:O}");
 
-                await foreach (var record in result.Records.Reader.ReadAllAsync(cts.Token))
+                await foreach (var record in result.records.Reader.ReadAllAsync(cts.Token))
                 {
                     Debug.Print(string.Join(", ", record));
                     total_records++;

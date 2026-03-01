@@ -1,26 +1,34 @@
 ﻿using MicroM.Configuration;
 using System.Threading.Channels;
 
-namespace MicroM.Data
+namespace MicroM.Data;
+
+public class DataResultChannel
 {
-    public class DataResultChannel
+    public string[] Header { get; private set; }
+    public string[] typeInfo { get; private set; }
+
+    public Channel<object?[]> records { get; private set; }
+
+    public DataResultChannel(int columns, int? records_capacity = null, string[]? headers = null, string[]? type_info = null)
     {
-        public readonly string[] Header;
-        public Channel<object[]> Records { get; private set; }
+        records_capacity ??= DataDefaults.DefaultChannelRecordsBuffer;
+        Header = headers ?? new string[columns];
+        typeInfo = type_info ?? new string[columns];
 
-        public DataResultChannel(int columns, int? buffer_records = null)
+        if (Header.Length != typeInfo.Length)
         {
-            buffer_records ??= DataDefaults.DefaultChannelRecordsBuffer;
-            Header = new string[columns];
-
-            var options = new BoundedChannelOptions(buffer_records.Value);
-            options.FullMode = BoundedChannelFullMode.Wait;
-            options.SingleReader = true;
-            options.SingleWriter = true;
-            options.AllowSynchronousContinuations = false;
-
-            Records = Channel.CreateBounded<object[]>(options);
-
+            throw new ArgumentException("The headers and type_info arrays must have the same length");
         }
+
+        var options = new BoundedChannelOptions(records_capacity.Value)
+        {
+            FullMode = BoundedChannelFullMode.Wait,
+            SingleReader = true,
+            SingleWriter = true,
+            AllowSynchronousContinuations = false
+        };
+
+        records = Channel.CreateBounded<object?[]>(options);
     }
 }

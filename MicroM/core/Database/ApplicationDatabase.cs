@@ -72,6 +72,12 @@ public class ApplicationDatabase
         finally
         {
             await app_ec.Disconnect();
+
+            // Force free memory of generated sql scripts
+            System.Runtime.GCSettings.LargeObjectHeapCompactionMode = System.Runtime.GCLargeObjectHeapCompactionMode.CompactOnce;
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            GC.Collect();
         }
     }
 

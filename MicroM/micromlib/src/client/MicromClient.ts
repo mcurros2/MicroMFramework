@@ -10,7 +10,7 @@ import { PublicEndpoint } from "./PublicEndpoint";
 import { TimeoutSignal } from "./TimeoutSignal";
 import { TokenStorage, TokenWebStorage } from "./TokenStorage";
 
-export type APIAction = "get" | "insert" | "update" | "delete" | "lookup" | "view" | "action" | "upload" | "proc" | "process" | "import" | "timezoneoffset";
+export type APIAction = "get" | "insert" | "update" | "delete" | "lookup" | "view" | "viewstream" | "action" | "upload" | "proc" | "procstream" | "process" | "import" | "timezoneoffset";
 
 export interface FileUploadResponse {
     ErrorMessage?: string,
@@ -224,7 +224,7 @@ export class MicroMClient {
                 return response.ok;
             }
         }
-        catch (error) {
+        catch {
             //console.log(error);
         }
         finally {
@@ -237,7 +237,7 @@ export class MicroMClient {
         try {
             await this.#checkAndRefreshToken();
         }
-        catch (error) {
+        catch {
             //console.log(error)
         }
         return !!this.#TOKEN?.access_token && new Date() < new Date(this.#TOKEN.expiration);
@@ -754,19 +754,19 @@ export class MicroMClient {
     async view(entity_name: string, parent_keys: ValuesObject | null, values: ValuesObject, view_name: string, abort_signal: AbortSignal | null = null): Promise<DataResult[]> {
         this.#recordAccess({ entityName: entity_name, access: AllowedRouteFlags.Views, views: [view_name] });
 
-        if (!this.#TOKEN && this.#isPublicAPI(entity_name, "view", view_name)) {
-            return this.#submitToPublicAPI(entity_name, parent_keys, values, [], "view", abort_signal, view_name);
+        if (!this.#TOKEN && this.#isPublicAPI(entity_name, "viewstream", view_name)) {
+            return this.#submitToPublicAPI(entity_name, parent_keys, values, [], "viewstream", abort_signal, view_name);
         }
-        return this.#submitToAPI(entity_name, parent_keys, values, [], "view", abort_signal, view_name);
+        return this.#submitToAPI(entity_name, parent_keys, values, [], "viewstream", abort_signal, view_name);
     }
 
     async proc(entity_name: string, parent_keys: ValuesObject | null, values: ValuesObject, recordsSelection: ValuesObject[] | null, proc_name: string, abort_signal: AbortSignal | null = null): Promise<DataResult[]> {
         this.#recordAccess({ entityName: entity_name, access: AllowedRouteFlags.Procs, procs: [proc_name] });
 
-        if (!this.#TOKEN && this.#isPublicAPI(entity_name, "proc", proc_name)) {
-            return this.#submitToPublicAPI(entity_name, parent_keys, values, recordsSelection, "proc", abort_signal, proc_name);
+        if (!this.#TOKEN && this.#isPublicAPI(entity_name, "procstream", proc_name)) {
+            return this.#submitToPublicAPI(entity_name, parent_keys, values, recordsSelection, "procstream", abort_signal, proc_name);
         }
-        return this.#submitToAPI(entity_name, parent_keys, values, recordsSelection, "proc", abort_signal, proc_name);
+        return this.#submitToAPI(entity_name, parent_keys, values, recordsSelection, "procstream", abort_signal, proc_name);
     }
 
     async process(entity_name: string, parent_keys: ValuesObject | null, values: ValuesObject, recordsSelection: ValuesObject[] | null, proc_name: string, abort_signal: AbortSignal | null = null): Promise<DBStatusResult> {

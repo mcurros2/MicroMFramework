@@ -272,6 +272,64 @@ public class EntitiesService : IEntitiesService
 
         return result;
 
+    }
+
+    public async Task HandleExecuteProcChannel(ApplicationOption app, string entity_name, string proc_name, DataWebAPIRequest parms, IEntityClient ec, DataResultSetChannel result_channel, CancellationToken ct)
+    {
+        try
+        {
+            string app_id = app.ApplicationID;
+
+            var entity = CreateEntity(app, entity_name, parms.ServerClaims, ec);
+            if (entity != null)
+            {
+                if (entity.Def.Procs.ContainsKey(proc_name))
+                {
+                    var proc = entity.Def.Procs[proc_name];
+
+                    EnsureApplicationKeys(app_id, parms.Values);
+                    if (parms.ParentKeys != null && parms.ParentKeys.Count > 0) EnsureApplicationKeys(app_id, parms.ParentKeys);
+
+                    if (parms.RecordsSelection == null || parms.RecordsSelection.Count == 0)
+                    {
+                        proc.SetParmsValues(parms.Values);
+                        if (parms.ParentKeys != null && parms.ParentKeys.Count > 0)
+                        {
+                            entity.SetKeyValues(parms.ParentKeys);
+                        }
+                        await entity.ExecuteProcChannel(proc, result_channel, ct, options: _options, server_claims: parms.ServerClaims, api: _api, set_parms_from_columns: false, app_id: app_id);
+                    }
+                    else
+                    {
+                        foreach (var keys in parms.RecordsSelection)
+                        {
+                            EnsureApplicationKeys(app_id, keys);
+                            proc.SetParmsValues(parms.Values);
+                            proc.SetParmsValues(keys);
+                            if (parms.ParentKeys != null && parms.ParentKeys.Count > 0)
+                            {
+                                entity.SetKeyValues(parms.ParentKeys);
+                            }
+
+                            await entity.ExecuteProcChannel(proc, result_channel, ct, options: _options, server_claims: parms.ServerClaims, api: _api, set_parms_from_columns: false, app_id: app_id);
+                        }
+                    }
+                }
+                else
+                {
+                    _api.log.LogError("ExecuteProcChannel ERROR: Entity: {entity_name} Mneo: {entity_def} Proc: {proc_name} not found in entity definition.", entity_name, entity.Def.Mneo, proc_name);
+                }
+            }
+            else
+            {
+                _api.log.LogError("ExecuteProcChannel ERROR: {entity_name} not found in entities type cache.", entity_name);
+            }
+        }
+        finally
+        {
+            await ec.Disconnect();
+        }
+
 
     }
 
@@ -395,6 +453,54 @@ public class EntitiesService : IEntitiesService
 
         return result;
 
+    }
+
+    public async Task HandleExecuteViewChannel(ApplicationOption app, string entity_name, string view_name, DataWebAPIRequest parms, IEntityClient ec, DataResultSetChannel result_channel, CancellationToken ct)
+    {
+        try
+        {
+            string app_id = app.ApplicationID;
+            var entity = CreateEntity(app, entity_name, parms.ServerClaims, ec);
+
+            if (entity != null)
+            {
+                if (entity.Def.Views.ContainsKey(view_name))
+                {
+                    int row_limit = DataDefaults.DefaultRowLimitForViews;
+                    // MMC: Extract special parameter @row_limit
+                    if (parms.Values.TryGetValue(DataDefaults.RowLimitParameterName, out object? value))
+                    {
+                        if (value is JsonElement element) element.TryConvertFromJsonElement<int>(out row_limit);
+                        else int.TryParse((string)value, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out row_limit);
+
+                        parms.Values.Remove(DataDefaults.RowLimitParameterName);
+                    }
+
+                    var view = entity.Def.Views[view_name];
+                    EnsureApplicationKeys(app_id, parms.Values);
+                    view.Proc.SetParmsValues(parms.Values);
+                    if (parms.ParentKeys != null && parms.ParentKeys.Count > 0)
+                    {
+                        EnsureApplicationKeys(app_id, parms.ParentKeys);
+                        entity.SetKeyValues(parms.ParentKeys);
+                    }
+
+                    await entity.ExecuteViewChannel(view, result_channel, ct, row_limit, options: _options, server_claims: parms.ServerClaims, api: _api, app_id: app_id);
+                }
+                else
+                {
+                    _api.log.LogError("ExecuteViewChannel ERROR: Entity: {entity_name} Mneo: {entity_def} View: {view_name} not found in entity definition.", entity_name, entity.Def.Mneo, view_name);
+                }
+            }
+            else
+            {
+                _api.log.LogError("ExecuteView ERROR: {entity_name} not found in entities type cache.", entity_name);
+            }
+        }
+        finally
+        {
+            await ec.Disconnect();
+        }
     }
 
     public async Task<Dictionary<string, object?>?> HandleGetEntity(ApplicationOption app, string entity_name, DataWebAPIRequest parms, IEntityClient ec, CancellationToken ct)

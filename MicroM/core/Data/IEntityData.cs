@@ -22,6 +22,7 @@ namespace MicroM.Data
         Task<string?> LookupData(CancellationToken ct, string? lookup_name = null);
         Task<DBStatusResult> UpdateData(CancellationToken ct, bool throw_dbstat_exception = false);
         Task<T?> GetData<T>(CancellationToken ct, AutoMapperMode mode = AutoMapperMode.ByNameLaxNotThrow, MapResult<T>? mapper = null) where T : class, new();
-
+        Task ExecuteProcChannel(ProcedureDefinition proc, DataResultSetChannel result_channel, CancellationToken ct, int row_limit = 0, bool set_parms_from_columns = true, int? records_channel_capacity = null);
+        Task ExecuteViewChannel(ViewDefinition view, DataResultSetChannel result_channel, CancellationToken ct, int? row_limit = null, int? records_channel_capacity = null);
     }
 }
