@@ -52,7 +52,6 @@ namespace MicroM.Data
         Task<List<T>> ExecuteSP<T>(string sp_name, CancellationToken ct, AutoMapperMode mode = AutoMapperMode.ByName, IEnumerable<ColumnBase>? parms = null, MapResult<T>? mapper = null) where T : class, new();
         Task<T?> ExecuteSPSingleColumn<T>(string sp_name, CancellationToken ct, IEnumerable<ColumnBase>? parms = null);
 
-        Task ExecuteSPChannel(string sp_name, IEnumerable<ColumnBase>? parms, DataResultSetChannel result, CancellationToken ct);
         Task ExecuteSPNonQuery(string sp_name, IEnumerable<ColumnBase>? parms, CancellationToken ct);
 
         Task<List<DataResult>> ExecuteSQL(string sql_text, CancellationToken ct);
@@ -61,7 +60,9 @@ namespace MicroM.Data
 
         Task<T?> ExecuteSQLSingleColumn<T>(string sql_text, CancellationToken ct, IEnumerable<ColumnBase>? parms = null);
 
-        Task ExecuteSQLChannel(string sql_text, DataResultSetChannel result, CancellationToken ct);
+        Task ExecuteSQLChannel(string sql_text, DataResultSetChannel result, int records_channel_capacity, CancellationToken ct);
+        Task ExecuteSPChannel(string sp_name, IEnumerable<ColumnBase>? parms, DataResultSetChannel result, int records_channel_capacity, CancellationToken ct);
+
         Task ExecuteSQLNonQuery(string sql_text, CancellationToken ct);
         Task ExecuteSQLNonQuery(List<string> sql_scripts, CancellationToken ct);
 

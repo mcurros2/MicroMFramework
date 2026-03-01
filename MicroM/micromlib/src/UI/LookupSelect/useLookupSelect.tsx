@@ -47,7 +47,11 @@ export const useLookupSelect = (props: UseLookupSelectOptions) => {
     };
 
     const handleEditClick = () => {
-        openEditModal({ entity: lookupEntity!, parentKeys, viewName: lookupViewName, onClosed: handleEditOnClosed, onOK: handleOnOK, selectionMode: 'single', breadCrumbs: breadCrumbs })
+        openEditModal({
+            entity: lookupEntity!,
+            enableAdd: true, enableEdit: true, enableDelete: true, enableView: true,
+            parentKeys, viewName: lookupViewName, onClosed: handleEditOnClosed, onOK: handleOnOK, selectionMode: 'single', breadCrumbs: breadCrumbs
+        })
     }
 
     const status = useExecuteView(lookupEntity, parentKeys, lookupViewName, undefined, maxItems?.toString(), triggerRefresh);

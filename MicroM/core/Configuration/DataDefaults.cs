@@ -18,12 +18,12 @@
         /// Max items for the channel that holds records for a result.
         /// If max items is reached the writer will wait until items are read from the channel.
         /// </summary>
-        public static int DefaultChannelRecordsBuffer { get; set; } = 500;
+        public static int DefaultChannelRecordsBuffer { get; set; } = 5000;
         /// <summary>
         /// Max items for the channel that holds DataResultChannel in a DataResultSetChannel.
         /// If max items is reached the writer will wait until items are read from the channel.
         /// </summary>
-        public static int DefaultChannelResultsBuffer { get; set; } = 10;
+        public static int DefaultChannelResultsBuffer { get; set; } = 2;
         /// <summary>
         /// Indicates to append the string "dbo." to a stored procedure if owner is not specified. Default = true
         /// </summary>

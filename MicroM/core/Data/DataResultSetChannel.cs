@@ -1,23 +1,25 @@
 ﻿using MicroM.Configuration;
 using System.Threading.Channels;
 
-namespace MicroM.Data
+namespace MicroM.Data;
+
+public class DataResultSetChannel
 {
-    public class DataResultSetChannel
+    public Channel<DataResultChannel> Results { get; private set; }
+
+    public DataResultSetChannel(int? capacity = null)
     {
-        public Channel<DataResultChannel> Results { get; private set; }
-
-        public DataResultSetChannel(int? buffer_results = null)
+        capacity ??= DataDefaults.DefaultChannelRecordsBuffer;
+        var options = new BoundedChannelOptions(capacity.Value)
         {
-            buffer_results ??= DataDefaults.DefaultChannelResultsBuffer;
-            var options = new BoundedChannelOptions(buffer_results.Value);
-            options.FullMode = BoundedChannelFullMode.Wait;
-            options.SingleReader = true;
-            options.SingleWriter = true;
-            options.AllowSynchronousContinuations = false;
+            FullMode = BoundedChannelFullMode.Wait,
+            SingleReader = true,
+            SingleWriter = true,
+            AllowSynchronousContinuations = false
+        };
 
-            Results = Channel.CreateBounded<DataResultChannel>(options);
+        Results = Channel.CreateBounded<DataResultChannel>(options);
 
-        }
     }
+
 }

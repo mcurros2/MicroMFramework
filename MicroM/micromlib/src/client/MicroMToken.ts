@@ -26,7 +26,7 @@ export class MicroMToken {
         this.expires_in = expires_in;
         this.refresh_token = refresh_token;
         this.token_type = token_type;
-        this.claims = Object.fromEntries(Object.entries(claims).filter(([key, value]) => {
+        this.claims = Object.fromEntries(Object.entries(claims).filter(([key]) => {
             const exclude = ['access_token', 'expires_in', 'refresh-token', 'token_type'];
             return !exclude.includes(key);
         }));

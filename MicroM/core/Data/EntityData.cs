@@ -241,6 +241,24 @@ namespace MicroM.Data
         }
 
         /// <summary>
+        /// Executes the specified view definition asynchronously and sends the resulting data to the provided result
+        /// channel.
+        /// </summary>
+        /// <remarks>If the row limit is not provided, the method uses a default value defined by the
+        /// system. This method enables streaming of results to the specified channel as they are produced.</remarks>
+        /// <param name="view">The view definition that specifies the procedure to execute and the data to retrieve.</param>
+        /// <param name="result_channel">The channel to which the results of the view execution will be sent.</param>
+        /// <param name="ct">A cancellation token that can be used to cancel the operation.</param>
+        /// <param name="row_limit">An optional limit on the number of rows to return. If not specified, a system-defined default limit is used.</param>
+        /// <param name="records_channel_capacity"></param>
+        /// <returns>A task that represents the asynchronous operation of executing the view and sending results to the channel.</returns>
+        public async Task ExecuteViewChannel(ViewDefinition view, DataResultSetChannel result_channel, CancellationToken ct, int? row_limit = null, int? records_channel_capacity = null)
+        {
+            row_limit ??= DataDefaults.DefaultRowLimitForViews;
+            await ExecuteProcChannel(view.Proc, result_channel, ct, (int)row_limit, records_channel_capacity: records_channel_capacity);
+        }
+
+        /// <summary>
         /// Executes the specified <paramref name="proc"/> for an entity. This method will execute stored procedure specified for the entity.
         /// If the client is not connected to the database server, it will open a new connection.
         /// </summary>
@@ -286,7 +304,7 @@ namespace MicroM.Data
             if (row_limit != 0 && proc.ReadonlyLocks == false) throw new ArgumentException($"Procedure {proc.Name} is defined with {nameof(proc.ReadonlyLocks)} false and cannot specify a {nameof(row_limit)} at execution");
 
             proc.Parms.TryGetValue(SystemColumnNames.webusr, out ColumnBase? webusr);
-            if (webusr != null) webusr.ValueObject = EntityClient.WebUser;
+            webusr?.ValueObject = EntityClient.WebUser;
 
             List<DataResult> result;
 
@@ -318,6 +336,62 @@ namespace MicroM.Data
 
             return result;
         }
+
+        /// <summary>
+        /// Executes a stored procedure asynchronously with the specified parameters and streams the results through the
+        /// provided data channel.
+        /// </summary>
+        /// <remarks>If the procedure is defined with readonly locks, the method temporarily sets the
+        /// transaction isolation level to read uncommitted and applies the specified row limit for the duration of the
+        /// execution. The connection is automatically opened and closed as needed.</remarks>
+        /// <param name="proc">The definition of the stored procedure to execute, including its parameters and execution settings. Cannot
+        /// specify a nonzero row limit if the procedure is not defined with readonly locks.</param>
+        /// <param name="result_channel">The channel used to receive the results of the stored procedure execution.</param>
+        /// <param name="ct">A cancellation token that can be used to cancel the operation.</param>
+        /// <param name="row_limit">The maximum number of rows to return from the stored procedure. Must be zero if the procedure is not defined
+        /// with readonly locks.</param>
+        /// <param name="set_parms_from_columns">Indicates whether to set parameter values from the columns of the result set before execution. Set to <see
+        /// langword="true"/> to enable automatic parameter assignment.</param>
+        /// <param name="records_channel_capacity"></param>
+        /// <returns>A task that represents the asynchronous operation of executing the stored procedure and streaming the
+        /// results.</returns>
+        /// <exception cref="ArgumentException">Thrown when a nonzero row limit is specified for a procedure that is not defined with readonly locks.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when attempting to execute a procedure with readonly locks inside an open transaction.</exception>
+        public async Task ExecuteProcChannel(ProcedureDefinition proc, DataResultSetChannel result_channel, CancellationToken ct, int row_limit = 0, bool set_parms_from_columns = true, int? records_channel_capacity = null)
+        {
+            if (row_limit != 0 && proc.ReadonlyLocks == false) throw new ArgumentException($"Procedure {proc.Name} is defined with {nameof(proc.ReadonlyLocks)} false and cannot specify a {nameof(row_limit)} at execution");
+
+            proc.Parms.TryGetValue(SystemColumnNames.webusr, out ColumnBase? webusr);
+            webusr?.ValueObject = EntityClient.WebUser;
+
+            bool should_close = (EntityClient.ConnectionState != ConnectionState.Open);
+
+            await EntityClient.Connect(ct);
+
+            try
+            {
+                if (proc.ReadonlyLocks)
+                {
+                    if (EntityClient.isTransactionOpen) throw new InvalidOperationException($"The stored procedure {proc.Name} has {nameof(proc.ReadonlyLocks)} true and is not supported inside transactions.");
+                    await EntityClient.ExecuteSQLNonQuery($"set transaction isolation level read uncommitted; set rowcount {row_limit};", ct);
+                }
+
+                if (set_parms_from_columns) proc.SetParmsValues(def.Columns);
+
+                await EntityClient.ExecuteSPChannel(proc.Name, proc.Parms.Values, result_channel, records_channel_capacity ?? DataDefaults.DefaultChannelRecordsBuffer, ct);
+            }
+            finally
+            {
+                if (proc.ReadonlyLocks)
+                {
+                    await EntityClient.ExecuteSQLNonQuery($"set transaction isolation level read committed; set rowcount 0;", ct);
+                }
+            }
+
+            if (should_close) await EntityClient.Disconnect();
+        }
+
+
 
         public async Task<T?> ExecuteProcSingleRow<T>(ProcedureDefinition proc, CancellationToken ct, bool set_parms_from_columns = true, AutoMapperMode mode = AutoMapperMode.ByName, MapResult<T>? mapper = null) where T : class, new()
         {

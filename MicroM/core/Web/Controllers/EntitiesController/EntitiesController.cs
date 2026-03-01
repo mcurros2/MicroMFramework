@@ -4,13 +4,16 @@ using MicroM.Web.Authentication;
 using MicroM.Web.Services;
 using MicroM.Web.Services.Security;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using System.Runtime.CompilerServices;
+using System.Threading.Channels;
 using static MicroM.Web.Controllers.MicroMControllersMessages;
 
 namespace MicroM.Web.Controllers;
 
 [ApiController]
-public class EntitiesController : ControllerBase, IEntitiesController
+public class EntitiesController() : ControllerBase, IEntitiesController
 {
     [AllowAnonymous]
     [HttpGet("entities-api-status")]
@@ -312,4 +315,73 @@ public class EntitiesController : ControllerBase, IEntitiesController
         }
     }
 
+    private async IAsyncEnumerable<object?[]> StreamRows(ChannelReader<object?[]> rows, [EnumeratorCancellation] CancellationToken ct)
+    {
+        await foreach (var row in rows.ReadAllAsync(ct))
+        {
+            yield return row;
+        }
+    }
+
+    [Authorize(policy: nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy))]
+    [HttpPost("{app_id}/ent/{entityName}/viewstream/{viewName}")]
+    public async IAsyncEnumerable<object> ViewStream([FromServices] IAuthenticationProvider auth, [FromServices] IMicroMAppConfiguration app_config, [FromServices] IEntitiesService ents, string app_id, string entityName, string viewName, [FromBody] DataWebAPIRequest parms, [EnumeratorCancellation] CancellationToken ct)
+    {
+        var app = auth.GetAppAndUnencryptClaims(app_config, app_id, parms, User.Claims.ToClaimsDictionary());
+        if (app == null)
+        {
+            Response.StatusCode = StatusCodes.Status400BadRequest;
+            yield break;
+        }
+
+        using var ec = await ents.CreateDbConnection(app, parms.ServerClaims, ct);
+        var result_channel = new DataResultSetChannel(capacity: 2);
+
+        Task producerTask = ents.HandleExecuteViewChannel(app, entityName, viewName, parms, ec, result_channel, ct);
+
+        await foreach (var resultSet in result_channel.Results.Reader.ReadAllAsync(ct))
+        {
+            yield return new
+            {
+                resultSet.Header,
+                resultSet.typeInfo,
+                records = StreamRows(resultSet.records.Reader, ct)
+            };
+        }
+
+        // We let errors bubble on purpose. If the producer task threw an error, we want that to be observed and not silently ignored.
+        // The client will see the error as a stream termination with an error status code.
+        await producerTask;
+    }
+
+    [Authorize(policy: nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy))]
+    [HttpPost("{app_id}/ent/{entityName}/procstream/{procName}")]
+    public async IAsyncEnumerable<object> ProcStream([FromServices] IAuthenticationProvider auth, [FromServices] IMicroMAppConfiguration app_config, [FromServices] IEntitiesService ents, string app_id, string entityName, string procName, [FromBody] DataWebAPIRequest parms, [EnumeratorCancellation] CancellationToken ct)
+    {
+        var app = auth.GetAppAndUnencryptClaims(app_config, app_id, parms, User.Claims.ToClaimsDictionary());
+        if (app == null)
+        {
+            Response.StatusCode = StatusCodes.Status400BadRequest;
+            yield break;
+        }
+
+        using var ec = await ents.CreateDbConnection(app, parms.ServerClaims, ct);
+        var result_channel = new DataResultSetChannel(capacity: 2);
+
+        Task producerTask = ents.HandleExecuteProcChannel(app, entityName, procName, parms, ec, result_channel, ct);
+
+        await foreach (var resultSet in result_channel.Results.Reader.ReadAllAsync(ct))
+        {
+            yield return new
+            {
+                resultSet.Header,
+                resultSet.typeInfo,
+                records = StreamRows(resultSet.records.Reader, ct)
+            };
+        }
+
+        // We let errors bubble on purpose. If the producer task threw an error, we want that to be observed and not silently ignored.
+        // The client will see the error as a stream termination with an error status code.
+        await producerTask;
+    }
 }

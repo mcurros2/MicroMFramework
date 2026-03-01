@@ -236,10 +236,23 @@ export const useLookup = ({
             if ((entityForm.formMode === 'edit' || entityForm.formMode === 'view') && entityForm.status.operationType === 'get' && !entityForm.status.loading && entity.def.columns[column].value) {
                 const result = await performLookup(column, entity.def.columns[column].value, false);
                 updateLookupType(result);
-            };
+            }
         }
         initialLookup();
     }, [column, entity.def.columns, entityForm.formMode, entityForm.status.loading, entityForm.status.operationType, parentKeys]);
+
+    // MMC: perform initial lookup when add
+    const initialAddLookup = useRef<boolean>(true);
+    useEffect(() => {
+        const initialLookup = async () => {
+            if (entityForm.formMode === 'add' && initialAddLookup.current && entity.def.columns[column].value) {
+                const result = await performLookup(column, entity.def.columns[column].value, false);
+                updateLookupType(result);
+                initialAddLookup.current = false;
+            }
+        }
+        initialLookup();
+    }, [entity.def.columns[column].value, entityForm.formMode]);
 
     return {
         status,
