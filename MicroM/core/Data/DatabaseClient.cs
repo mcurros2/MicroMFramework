@@ -764,12 +764,15 @@ public class DatabaseClient : IDisposable, IAsyncDisposable, IEntityClient
 
                 object?[] record = await ReadRecord(reader, field_count, ret.typeInfo, ct);
 
-                if (!ret.records.Writer.TryWrite(record))
-                {
-                    var error = new InternalBufferOverflowException();
-                    ret.records.Writer.TryComplete(error);
-                    throw error;
-                }
+                //if (!ret.records.Writer.TryWrite(record))
+                //{
+                //    var error = new InternalBufferOverflowException();
+                //    ret.records.Writer.TryComplete(error);
+                //    throw error;
+                //}
+
+                // Apply Backpressure
+                await ret.records.Writer.WriteAsync(record, ct);
             }
 
             ret?.records.Writer.Complete();

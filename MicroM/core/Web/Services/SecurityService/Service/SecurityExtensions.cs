@@ -82,7 +82,7 @@ public static class SecurityExtensions
             {
                 if ((views != null && views.Contains(view.Proc.Name)) || route_flags == AllowedRouteFlags.All)
                 {
-                    paths.AddRange([$"{entity_name}/view/{view.Proc.Name}", $"{entity_name}/viewstream/{view.Proc.Name}", $"{entity_name}/view/{view.Proc.Name}/export-excel"]);
+                    paths.AddRange([$"{entity_name}/view/{view.Proc.Name}", $"{entity_name}/viewstream/{view.Proc.Name}", $"{entity_name}/viewtoexcel/{view.Proc.Name}"]);
                 }
             }
         }
@@ -101,7 +101,7 @@ public static class SecurityExtensions
                     {
                         paths.AddRange([
                             $"{entity_name}/proc/{proc.Name}",
-                            $"{entity_name}/proc/{proc.Name}/export-excel",
+                            $"{entity_name}/proctoexcel/{proc.Name}",
                             $"{entity_name}/procstream/{proc.Name}",
                             $"{entity_name}/process/{proc.Name}"
                         ]);
