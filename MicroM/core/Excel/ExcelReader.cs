@@ -58,7 +58,7 @@ public static class ExcelReader
         }
     }
 
-    private static object? GetTypedCellValue(Cell cell, SharedStringTable? sst)
+    public static object? GetTypedCellValue(Cell cell, SharedStringTable? sst)
     {
         var value = cell.CellValue?.Text;
         if (value == null)
@@ -85,7 +85,7 @@ public static class ExcelReader
         return value;
     }
 
-    private static string? GetCellValue(Cell cell, SharedStringTable? sst)
+    public static string? GetCellValue(Cell cell, SharedStringTable? sst)
     {
         var value = cell.CellValue?.Text;
         if (cell.DataType != null && cell.DataType == CellValues.SharedString)

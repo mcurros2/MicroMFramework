@@ -1,11 +1,10 @@
-﻿namespace MicroM.Core
+﻿namespace MicroM.Core;
+
+//public record EmptyActionResult : EntityActionResult
+//{
+
+//}
+
+public abstract record EntityActionResult
 {
-    public record EmptyActionResult : EntityActionResult
-    {
-
-    }
-
-    public abstract record EntityActionResult
-    {
-    }
 }
