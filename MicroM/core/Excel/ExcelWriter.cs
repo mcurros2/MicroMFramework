@@ -1,6 +1,7 @@
 ﻿using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
+using MicroM.Configuration;
 using MicroM.Data;
 using Microsoft.AspNetCore.Mvc;
 using static System.ArgumentNullException;
@@ -9,9 +10,16 @@ namespace MicroM.Excel;
 
 public static class ExcelWriter
 {
-    public static void WriteSharedStringCell(OpenXmlWriter writer, string value, SharedStringTablePart sharedStringTablePart)
+    public static void WriteStringCell(OpenXmlWriter writer, string text)
     {
-        int index = InsertSharedStringItem(value, sharedStringTablePart);
+        writer.WriteStartElement(new Cell { DataType = CellValues.InlineString });
+        writer.WriteElement(new InlineString(new Text(text)));
+        writer.WriteEndElement();
+    }
+
+    public static void WriteSharedStringCell(OpenXmlWriter writer, string value, SharedStringTablePart sharedStringTablePart, Dictionary<string, int> sharedStringCache)
+    {
+        int index = InsertSharedStringItem(value, sharedStringTablePart, sharedStringCache);
         var cell = new Cell
         {
             DataType = CellValues.SharedString,
@@ -20,7 +28,7 @@ public static class ExcelWriter
         writer.WriteElement(cell);
     }
 
-    public static void WriteCell(OpenXmlWriter writer, object? value, SharedStringTablePart sharedStringTablePart)
+    public static void WriteCell(OpenXmlWriter writer, object? value, SharedStringTablePart sharedStringTablePart, Dictionary<string, int> sharedStringCache)
     {
         if (value == null)
         {
@@ -67,7 +75,7 @@ public static class ExcelWriter
             default:
                 var text = value?.ToString();
 
-                if (string.IsNullOrEmpty(text))
+                if (text == null)
                 {
                     // Empty or null string: write empty cell directly
                     writer.WriteElement(new Cell());
@@ -75,30 +83,28 @@ public static class ExcelWriter
                 else
                 {
                     // Non-empty string: add to shared strings
-                    WriteSharedStringCell(writer, text, sharedStringTablePart);
+                    WriteSharedStringCell(writer, text, sharedStringTablePart, sharedStringCache);
                 }
                 break;
         }
     }
 
-    public static int InsertSharedStringItem(string text, SharedStringTablePart sharedStringTablePart)
+    public static int InsertSharedStringItem(string text, SharedStringTablePart sharedStringTablePart, Dictionary<string, int> sharedStringCache)
     {
-        var items = sharedStringTablePart?.SharedStringTable?.Elements<SharedStringItem>().ToList();
-        if (items != null)
+        if (sharedStringCache.TryGetValue(text, out int index))
         {
-            int index = items.FindIndex(item => item.InnerText == text);
-
-            if (index >= 0) return index;
-
-            sharedStringTablePart?.SharedStringTable?.AppendChild(new SharedStringItem(new Text(text)));
-            sharedStringTablePart?.SharedStringTable?.Save();
-
+            return index;
         }
+        var sharedStringTable = sharedStringTablePart.SharedStringTable;
+        sharedStringTable!.AppendChild(new SharedStringItem(new Text(text)));
 
-        return items?.Count ?? 0;
+        index = sharedStringCache.Count;
+        sharedStringCache[text] = index;
+
+        return index;
     }
 
-    public static async Task WriteSheetAsync(uint sheetId, string sheetName, WorkbookPart workbookPart, SharedStringTablePart sharedStringTablePart, DataResultChannel resultSet, CancellationToken ct)
+    public static async Task WriteSheetAsync(uint sheetId, string sheetName, WorkbookPart workbookPart, SharedStringTablePart sharedStringTablePart, DataResultChannel resultSet, Dictionary<string, int> sharedStringCache, CancellationToken ct)
     {
         ThrowIfNull(workbookPart.Workbook, nameof(workbookPart.Workbook));
 
@@ -113,7 +119,7 @@ public static class ExcelWriter
         writer.WriteStartElement(new Row { RowIndex = rowIndex });
         foreach (var header in resultSet.Header)
         {
-            WriteSharedStringCell(writer, header ?? string.Empty, sharedStringTablePart);
+            WriteSharedStringCell(writer, header ?? string.Empty, sharedStringTablePart, sharedStringCache);
         }
         writer.WriteEndElement(); // </Row>
 
@@ -122,7 +128,7 @@ public static class ExcelWriter
             writer.WriteStartElement(new Row { RowIndex = ++rowIndex });
             foreach (var cell in record)
             {
-                WriteCell(writer, cell, sharedStringTablePart);
+                WriteCell(writer, cell, sharedStringTablePart, sharedStringCache);
             }
             writer.WriteEndElement(); // </Row>
         }
@@ -143,10 +149,12 @@ public static class ExcelWriter
 
     public static async Task<FileStreamResult> ExportExcelFromChannelAsync(string baseSheetName, DataResultSetChannel resultChannel, Task producerTask, CancellationToken ct)
     {
-        var stream = new MemoryStream();
 
-        using (var document = SpreadsheetDocument.Create(stream, SpreadsheetDocumentType.Workbook, true))
+        using var stream = new MemoryStream(DataDefaults.DefaultExportToExcelFileStreamCapacity);
+        using (var document = SpreadsheetDocument.Create(stream, SpreadsheetDocumentType.Workbook, false))
         {
+            var sharedStringTableCache = new Dictionary<string, int>(DataDefaults.DefaultExportToExcelSharedStringDictionaryCapacity, StringComparer.Ordinal);
+
             var workbookPart = document.AddWorkbookPart();
             workbookPart.Workbook = new Workbook();
             var sharedStringTablePart = workbookPart.AddNewPart<SharedStringTablePart>();
@@ -157,7 +165,7 @@ public static class ExcelWriter
             await foreach (var resultSet in resultChannel.Results.Reader.ReadAllAsync(ct))
             {
                 var sheetName = sheetId == 1 ? baseSheetName : $"{baseSheetName}_{sheetId}";
-                await WriteSheetAsync(sheetId, sheetName, workbookPart, sharedStringTablePart, resultSet, ct);
+                await WriteSheetAsync(sheetId, sheetName, workbookPart, sharedStringTablePart, resultSet, sharedStringTableCache, ct);
                 sheetId++;
             }
 
@@ -166,6 +174,8 @@ public static class ExcelWriter
 
             sharedStringTablePart.SharedStringTable.Save();
             workbookPart.Workbook.Save();
+
+            sharedStringTableCache.Clear();
         }
 
         stream.Position = 0;
@@ -174,6 +184,9 @@ public static class ExcelWriter
         {
             FileDownloadName = fileName
         };
+
     }
+
+
 
 }

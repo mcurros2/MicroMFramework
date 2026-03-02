@@ -274,7 +274,7 @@ public class EntitiesService : IEntitiesService
 
     }
 
-    public async Task HandleExecuteProcChannel(ApplicationOption app, string entity_name, string proc_name, DataWebAPIRequest parms, IEntityClient ec, DataResultSetChannel result_channel, CancellationToken ct)
+    public async Task HandleExecuteProcChannel(ApplicationOption app, string entity_name, string proc_name, DataWebAPIRequest parms, IEntityClient ec, DataResultSetChannel result_channel, CancellationToken ct, int? records_channel_capacity = null)
     {
         try
         {
@@ -311,7 +311,7 @@ public class EntitiesService : IEntitiesService
                                 entity.SetKeyValues(parms.ParentKeys);
                             }
 
-                            await entity.ExecuteProcChannel(proc, result_channel, ct, options: _options, server_claims: parms.ServerClaims, api: _api, set_parms_from_columns: false, app_id: app_id);
+                            await entity.ExecuteProcChannel(proc, result_channel, ct, options: _options, server_claims: parms.ServerClaims, api: _api, set_parms_from_columns: false, app_id: app_id, records_channel_capacity: records_channel_capacity);
                         }
                     }
                 }
@@ -455,7 +455,7 @@ public class EntitiesService : IEntitiesService
 
     }
 
-    public async Task HandleExecuteViewChannel(ApplicationOption app, string entity_name, string view_name, DataWebAPIRequest parms, IEntityClient ec, DataResultSetChannel result_channel, CancellationToken ct)
+    public async Task HandleExecuteViewChannel(ApplicationOption app, string entity_name, string view_name, DataWebAPIRequest parms, IEntityClient ec, DataResultSetChannel result_channel, CancellationToken ct, int? records_channel_capacity = null)
     {
         try
         {
@@ -485,7 +485,7 @@ public class EntitiesService : IEntitiesService
                         entity.SetKeyValues(parms.ParentKeys);
                     }
 
-                    await entity.ExecuteViewChannel(view, result_channel, ct, row_limit, options: _options, server_claims: parms.ServerClaims, api: _api, app_id: app_id);
+                    await entity.ExecuteViewChannel(view, result_channel, ct, row_limit, options: _options, server_claims: parms.ServerClaims, api: _api, app_id: app_id, records_channel_capacity: records_channel_capacity);
                 }
                 else
                 {

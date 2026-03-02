@@ -387,7 +387,7 @@ public class EntitiesController() : ControllerBase, IEntitiesController
     }
 
     [Authorize(policy: nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy))]
-    [HttpPost("{app_id}/ent/{entityName}/view/{viewName}/export-excel")]
+    [HttpPost("{app_id}/ent/{entityName}/viewtoexcel/{viewName}")]
     public async Task<IActionResult> ExportViewExcel([FromServices] IAuthenticationProvider auth, [FromServices] IMicroMAppConfiguration app_config, [FromServices] IEntitiesService ents, string app_id, string entityName, string viewName, [FromBody] DataWebAPIRequest parms, CancellationToken ct)
     {
         var app = auth.GetAppAndUnencryptClaims(app_config, app_id, parms, User.Claims.ToClaimsDictionary());
@@ -396,14 +396,14 @@ public class EntitiesController() : ControllerBase, IEntitiesController
         using var ec = await ents.CreateDbConnection(app, parms.ServerClaims, ct);
         var resultChannel = new DataResultSetChannel(capacity: 2);
 
-        Task producerTask = ents.HandleExecuteViewChannel(app, entityName, viewName, parms, ec, resultChannel, ct);
+        Task producerTask = ents.HandleExecuteViewChannel(app, entityName, viewName, parms, ec, resultChannel, ct, records_channel_capacity: DataDefaults.DefaultChannelExportToExcelBuffer);
 
         var fileResult = await ExportExcelFromChannelAsync($"{entityName}_export", resultChannel, producerTask, ct);
         return fileResult;
     }
 
     [Authorize(policy: nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy))]
-    [HttpPost("{app_id}/ent/{entityName}/proc/{procName}/export-excel")]
+    [HttpPost("{app_id}/ent/{entityName}/proctoexcel/{procName}")]
     public async Task<IActionResult> ExportProcExcel([FromServices] IAuthenticationProvider auth, [FromServices] IMicroMAppConfiguration app_config, [FromServices] IEntitiesService ents, string app_id, string entityName, string procName, [FromBody] DataWebAPIRequest parms, CancellationToken ct)
     {
         var app = auth.GetAppAndUnencryptClaims(app_config, app_id, parms, User.Claims.ToClaimsDictionary());
@@ -412,7 +412,7 @@ public class EntitiesController() : ControllerBase, IEntitiesController
         using var ec = await ents.CreateDbConnection(app, parms.ServerClaims, ct);
         var resultChannel = new DataResultSetChannel(capacity: 2);
 
-        Task producerTask = ents.HandleExecuteProcChannel(app, entityName, procName, parms, ec, resultChannel, ct);
+        Task producerTask = ents.HandleExecuteProcChannel(app, entityName, procName, parms, ec, resultChannel, ct, records_channel_capacity: DataDefaults.DefaultChannelExportToExcelBuffer);
 
         var fileResult = await ExportExcelFromChannelAsync($"{entityName}_export", resultChannel, producerTask, ct);
         return fileResult;

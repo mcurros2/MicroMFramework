@@ -10,7 +10,7 @@ import { PublicEndpoint } from "./PublicEndpoint";
 import { TimeoutSignal } from "./TimeoutSignal";
 import { TokenStorage, TokenWebStorage } from "./TokenStorage";
 
-export type APIAction = "get" | "insert" | "update" | "delete" | "lookup" | "view" | "viewstream" | "action" | "upload" | "proc" | "procstream" | "process" | "import" | "timezoneoffset";
+export type APIAction = "get" | "insert" | "update" | "delete" | "lookup" | "view" | "viewstream" | "action" | "upload" | "proc" | "procstream" | "process" | "import" | "viewtoexcel" | "proctoexcel" | "timezoneoffset";
 
 export interface FileUploadResponse {
     ErrorMessage?: string,
@@ -751,6 +751,12 @@ export class MicroMClient {
         return this.#submitToAPI(entity_name, parent_keys, values, [], "lookup", abort_signal, lookup_name);
     }
 
+    async viewtoexcel(entity_name: string, parent_keys: ValuesObject | null, values: ValuesObject, view_name: string, abort_signal: AbortSignal | null = null): Promise<Blob> {
+        this.#recordAccess({ entityName: entity_name, access: AllowedRouteFlags.Views, views: [view_name] });
+
+        return this.#submitToAPIBlob(entity_name, parent_keys, values, [], "viewtoexcel", abort_signal, view_name);
+    }
+
     async view(entity_name: string, parent_keys: ValuesObject | null, values: ValuesObject, view_name: string, abort_signal: AbortSignal | null = null): Promise<DataResult[]> {
         this.#recordAccess({ entityName: entity_name, access: AllowedRouteFlags.Views, views: [view_name] });
 
@@ -767,6 +773,12 @@ export class MicroMClient {
             return this.#submitToPublicAPI(entity_name, parent_keys, values, recordsSelection, "procstream", abort_signal, proc_name);
         }
         return this.#submitToAPI(entity_name, parent_keys, values, recordsSelection, "procstream", abort_signal, proc_name);
+    }
+
+    async proctoexcel(entity_name: string, parent_keys: ValuesObject | null, values: ValuesObject, recordsSelection: ValuesObject[] | null, proc_name: string, abort_signal: AbortSignal | null = null): Promise<Blob> {
+        this.#recordAccess({ entityName: entity_name, access: AllowedRouteFlags.Procs, procs: [proc_name] });
+
+        return this.#submitToAPIBlob(entity_name, parent_keys, values, recordsSelection, "proctoexcel", abort_signal, proc_name);
     }
 
     async process(entity_name: string, parent_keys: ValuesObject | null, values: ValuesObject, recordsSelection: ValuesObject[] | null, proc_name: string, abort_signal: AbortSignal | null = null): Promise<DBStatusResult> {
@@ -797,6 +809,50 @@ export class MicroMClient {
 
         return this.#submitToAPI(entity_name, parent_keys, values, [], "import", abort_signal, import_procname);
     }
+
+    async #submitToAPIBlob(entity_name: string, parent_keys: ValuesObject | null, values: ValuesObject | null
+        , recordsSelection: ValuesObject[] | null, action: APIAction, abort_signal: AbortSignal | null = null, additional_route: string | null = null) {
+
+        const extra_route = (additional_route !== null) ? `/${additional_route}` : '';
+        const route = `${this.#API_URL}/${this.#APP_ID}/ent/${entity_name}/${action}${extra_route}`;
+
+        try {
+            await this.#checkAndRefreshToken();
+            if (!this.#TOKEN) { throw { status: 401, statusMessage: `Can't execute request: Not logged in`, url: route } as MicroMError; }
+
+            const body = JSON.stringify({ ParentKeys: parent_keys, Values: values, RecordsSelection: recordsSelection }, JSONDateWithTimezoneReplacer);
+            const res = await fetch(route, {
+                method: 'POST',
+                headers: { "Content-Type": "application/json; charset=utf-8", "Authorization": `Bearer ${this.#TOKEN.access_token}` },
+                mode: this.#REQUEST_MODE,
+                cache: 'no-store',
+                credentials: 'include',
+                referrerPolicy: 'strict-origin-when-cross-origin',
+                signal: abort_signal,
+                body: body
+            });
+
+            if (!res.ok) {
+                throw { status: res?.status, statusMessage: res?.statusText, message: res?.statusText, url: res?.url } as MicroMError;
+            }
+
+            const data = await res.blob();
+            return data;
+
+        }
+        catch (error) {
+            if (this.#REDIRECT_ON_401 && (error as MicroMError).status === 401) {
+                console.warn(`${route} 401, redirecting to login page: ${this.#REDIRECT_ON_401}`);
+                await this.localLogoff();
+                window.location.href = this.#REDIRECT_ON_401;
+                // return intentionally omitted
+            }
+            // MMC: this line should never execute if the redirect happens. 
+            // In case the browser, webview or environment for any reason fails to redirect, we still throw the error to the caller.
+            throw error;
+        }
+    }
+
 
     async #submitToAPI(entity_name: string, parent_keys: ValuesObject | null, values: ValuesObject | null
         , recordsSelection: ValuesObject[] | null, action: APIAction, abort_signal: AbortSignal | null = null, additional_route: string | null = null) {

@@ -24,6 +24,8 @@ public static class DataResultExcelExtensions
 
         using (var writer = OpenXmlWriter.Create(worksheetPart))
         {
+            var sharedStringTableCache = new Dictionary<string, int>(50000, StringComparer.Ordinal);
+
             writer.WriteStartElement(new Worksheet());
             writer.WriteStartElement(new SheetData());
 
@@ -32,7 +34,7 @@ public static class DataResultExcelExtensions
             writer.WriteStartElement(new Row() { RowIndex = rowIndex });
             foreach (var header in data.Header)
             {
-                WriteSharedStringCell(writer, header, sharedStringTablePart);
+                WriteSharedStringCell(writer, header, sharedStringTablePart, sharedStringTableCache);
             }
             writer.WriteEndElement(); // </Row>
 
@@ -41,7 +43,7 @@ public static class DataResultExcelExtensions
                 writer.WriteStartElement(new Row() { RowIndex = ++rowIndex });
                 foreach (var cell in record)
                 {
-                    WriteCell(writer, cell, sharedStringTablePart);
+                    WriteCell(writer, cell, sharedStringTablePart, sharedStringTableCache);
                 }
                 writer.WriteEndElement(); // </Row>
             }
