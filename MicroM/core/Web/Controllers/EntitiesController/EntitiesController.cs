@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
+using static MicroM.Excel.ExcelWriter;
 using static MicroM.Web.Controllers.MicroMControllersMessages;
 
 namespace MicroM.Web.Controllers;
@@ -383,5 +384,37 @@ public class EntitiesController() : ControllerBase, IEntitiesController
         // We let errors bubble on purpose. If the producer task threw an error, we want that to be observed and not silently ignored.
         // The client will see the error as a stream termination with an error status code.
         await producerTask;
+    }
+
+    [Authorize(policy: nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy))]
+    [HttpPost("{app_id}/ent/{entityName}/view/{viewName}/export-excel")]
+    public async Task<IActionResult> ExportViewExcel([FromServices] IAuthenticationProvider auth, [FromServices] IMicroMAppConfiguration app_config, [FromServices] IEntitiesService ents, string app_id, string entityName, string viewName, [FromBody] DataWebAPIRequest parms, CancellationToken ct)
+    {
+        var app = auth.GetAppAndUnencryptClaims(app_config, app_id, parms, User.Claims.ToClaimsDictionary());
+        if (app == null) return BadRequest(APPLICATION_NOT_FOUND);
+
+        using var ec = await ents.CreateDbConnection(app, parms.ServerClaims, ct);
+        var resultChannel = new DataResultSetChannel(capacity: 2);
+
+        Task producerTask = ents.HandleExecuteViewChannel(app, entityName, viewName, parms, ec, resultChannel, ct);
+
+        var fileResult = await ExportExcelFromChannelAsync($"{entityName}_export", resultChannel, producerTask, ct);
+        return fileResult;
+    }
+
+    [Authorize(policy: nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy))]
+    [HttpPost("{app_id}/ent/{entityName}/proc/{procName}/export-excel")]
+    public async Task<IActionResult> ExportProcExcel([FromServices] IAuthenticationProvider auth, [FromServices] IMicroMAppConfiguration app_config, [FromServices] IEntitiesService ents, string app_id, string entityName, string procName, [FromBody] DataWebAPIRequest parms, CancellationToken ct)
+    {
+        var app = auth.GetAppAndUnencryptClaims(app_config, app_id, parms, User.Claims.ToClaimsDictionary());
+        if (app == null) return BadRequest(APPLICATION_NOT_FOUND);
+
+        using var ec = await ents.CreateDbConnection(app, parms.ServerClaims, ct);
+        var resultChannel = new DataResultSetChannel(capacity: 2);
+
+        Task producerTask = ents.HandleExecuteProcChannel(app, entityName, procName, parms, ec, resultChannel, ct);
+
+        var fileResult = await ExportExcelFromChannelAsync($"{entityName}_export", resultChannel, producerTask, ct);
+        return fileResult;
     }
 }
