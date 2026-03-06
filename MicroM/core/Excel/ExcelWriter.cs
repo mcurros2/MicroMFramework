@@ -17,9 +17,14 @@ public static class ExcelWriter
         writer.WriteEndElement();
     }
 
-    public static void WriteSharedStringCell(OpenXmlWriter writer, string value, SharedStringTablePart sharedStringTablePart, Dictionary<string, int> sharedStringCache)
+    public static void WriteSharedStringCell(OpenXmlWriter writer, string value, Dictionary<string, int> sharedStringCache)
     {
-        int index = InsertSharedStringItem(value, sharedStringTablePart, sharedStringCache);
+        if (!sharedStringCache.TryGetValue(value, out int index))
+        {
+            index = sharedStringCache.Count;
+            sharedStringCache[value] = index;
+        }
+
         var cell = new Cell
         {
             DataType = CellValues.SharedString,
@@ -28,7 +33,7 @@ public static class ExcelWriter
         writer.WriteElement(cell);
     }
 
-    public static void WriteCell(OpenXmlWriter writer, object? value, SharedStringTablePart sharedStringTablePart, Dictionary<string, int> sharedStringCache)
+    public static void WriteCell(OpenXmlWriter writer, object? value, Dictionary<string, int> sharedStringCache)
     {
         if (value == null)
         {
@@ -83,7 +88,7 @@ public static class ExcelWriter
                 else
                 {
                     // Non-empty string: add to shared strings
-                    WriteSharedStringCell(writer, text, sharedStringTablePart, sharedStringCache);
+                    WriteSharedStringCell(writer, text, sharedStringCache);
                 }
                 break;
         }
@@ -104,7 +109,7 @@ public static class ExcelWriter
         return index;
     }
 
-    public static async Task WriteSheetAsync(uint sheetId, string sheetName, WorkbookPart workbookPart, SharedStringTablePart sharedStringTablePart, DataResultChannel resultSet, Dictionary<string, int> sharedStringCache, CancellationToken ct)
+    public static async Task WriteSheetAsync(uint sheetId, string sheetName, WorkbookPart workbookPart, DataResultChannel resultSet, Dictionary<string, int> sharedStringCache, CancellationToken ct)
     {
         ThrowIfNull(workbookPart.Workbook, nameof(workbookPart.Workbook));
 
@@ -119,7 +124,7 @@ public static class ExcelWriter
         writer.WriteStartElement(new Row { RowIndex = rowIndex });
         foreach (var header in resultSet.Header)
         {
-            WriteSharedStringCell(writer, header ?? string.Empty, sharedStringTablePart, sharedStringCache);
+            WriteSharedStringCell(writer, header ?? string.Empty, sharedStringCache);
         }
         writer.WriteEndElement(); // </Row>
 
@@ -128,7 +133,7 @@ public static class ExcelWriter
             writer.WriteStartElement(new Row { RowIndex = ++rowIndex });
             foreach (var cell in record)
             {
-                WriteCell(writer, cell, sharedStringTablePart, sharedStringCache);
+                WriteCell(writer, cell, sharedStringCache);
             }
             writer.WriteEndElement(); // </Row>
         }
@@ -145,60 +150,79 @@ public static class ExcelWriter
         });
     }
 
+    public static void WriteSharedStringTablePart(WorkbookPart workbookPart, Dictionary<string, int> sharedStringCache)
+    {
+        var sharedStringTablePart = workbookPart.AddNewPart<SharedStringTablePart>();
+
+        using var writer = OpenXmlWriter.Create(sharedStringTablePart);
+
+        writer.WriteStartElement(new SharedStringTable { Count = (uint)sharedStringCache.Count, UniqueCount = (uint)sharedStringCache.Count });
+
+        foreach (var text in sharedStringCache.OrderBy(x => x.Value).Select(x => x.Key))
+        {
+            writer.WriteStartElement(new SharedStringItem());
+            writer.WriteElement(new Text(text));
+            writer.WriteEndElement(); // </SharedStringItem>
+        }
+
+        writer.WriteEndElement(); // </SharedStringTable>
+    }
+
     public const string ExcelContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 
     public static async Task<FileStreamResult> ExportExcelFromChannelAsync(string baseSheetName, DataResultSetChannel resultChannel, Task producerTask, CancellationToken ct)
     {
         var tempPath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.xlsx");
 
-        using var writeStream = new FileStream(
+        using (var writeStream = new FileStream(
                    tempPath,
                    FileMode.CreateNew,
                    FileAccess.ReadWrite,
                    FileShare.None,
                    bufferSize: DataDefaults.DefaultExportToExcelFileStreamCapacity,
-                   options: FileOptions.Asynchronous | FileOptions.SequentialScan);
-
-        using var document = SpreadsheetDocument.Create(writeStream, SpreadsheetDocumentType.Workbook, false);
-
-        var sharedStringTableCache = new Dictionary<string, int>(DataDefaults.DefaultExportToExcelSharedStringDictionaryCapacity, StringComparer.Ordinal);
-
-        var workbookPart = document.AddWorkbookPart();
-        workbookPart.Workbook = new Workbook();
-        var sharedStringTablePart = workbookPart.AddNewPart<SharedStringTablePart>();
-        sharedStringTablePart.SharedStringTable = new SharedStringTable();
-
-        uint sheetId = 1;
-
-        await foreach (var resultSet in resultChannel.Results.Reader.ReadAllAsync(ct))
+                   options: FileOptions.Asynchronous | FileOptions.SequentialScan))
         {
-            var sheetName = sheetId == 1 ? baseSheetName : $"{baseSheetName}_{sheetId}";
-            await WriteSheetAsync(sheetId, sheetName, workbookPart, sharedStringTablePart, resultSet, sharedStringTableCache, ct);
-            sheetId++;
+
+
+            using var document = SpreadsheetDocument.Create(writeStream, SpreadsheetDocumentType.Workbook, false);
+
+            var workbookPart = document.AddWorkbookPart();
+            workbookPart.Workbook = new Workbook();
+
+            uint sheetId = 1;
+
+            var sharedStringTableCache = new Dictionary<string, int>(DataDefaults.DefaultExportToExcelSharedStringDictionaryCapacity, StringComparer.Ordinal);
+            await foreach (var resultSet in resultChannel.Results.Reader.ReadAllAsync(ct))
+            {
+                var sheetName = sheetId == 1 ? baseSheetName : $"{baseSheetName}_{sheetId}";
+                await WriteSheetAsync(sheetId, sheetName, workbookPart, resultSet, sharedStringTableCache, ct);
+                sheetId++;
+            }
+
+            // Propagate producer errors
+            await producerTask;
+
+            WriteSharedStringTablePart(workbookPart, sharedStringTableCache);
+            workbookPart.Workbook.Save();
+
+            sharedStringTableCache.Clear();
         }
-
-        // Propagate producer errors
-        await producerTask;
-
-        sharedStringTablePart.SharedStringTable.Save();
-        workbookPart.Workbook.Save();
-
-        sharedStringTableCache.Clear();
 
         // Reopen the temp file for read; DeleteOnClose ensures cleanup when the response ends.
         var readStream = new FileStream(
-            tempPath,
-            FileMode.Open,
-            FileAccess.Read,
-            FileShare.Read,
-            bufferSize: DataDefaults.DefaultExportToExcelFileStreamCapacity,
-            options: FileOptions.Asynchronous | FileOptions.SequentialScan | FileOptions.DeleteOnClose);
+                tempPath,
+                FileMode.Open,
+                FileAccess.Read,
+                FileShare.Read,
+                bufferSize: DataDefaults.DefaultExportToExcelFileStreamCapacity,
+                options: FileOptions.Asynchronous | FileOptions.SequentialScan | FileOptions.DeleteOnClose);
 
         var fileName = $"{baseSheetName}_{DateTime.Now}.xlsx";
         return new FileStreamResult(readStream, ExcelContentType)
         {
             FileDownloadName = fileName
         };
-    }
 
+    }
 }
+
