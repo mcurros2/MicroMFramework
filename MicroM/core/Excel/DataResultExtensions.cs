@@ -9,7 +9,7 @@ namespace MicroM.Excel;
 
 public static class DataResultExcelExtensions
 {
-    public static async Task SaveAsExcelToStreamAsync(this DataResult data, Stream outputStream, string sheetName)
+    public static async Task SaveAsExcelToStreamAsync(this DataResult data, Stream outputStream, string sheetName, bool use_inline_strings)
     {
         using var document = SpreadsheetDocument.Create(outputStream, SpreadsheetDocumentType.Workbook, true);
         var workbookPart = document.AddWorkbookPart();
@@ -19,7 +19,7 @@ public static class DataResultExcelExtensions
         workbookPart.Workbook.AppendChild(new Sheets());
         workbookPart.AddPart(worksheetPart);
 
-        var sharedStringTableCache = new Dictionary<string, int>(DataDefaults.DefaultExportToExcelSharedStringDictionaryCapacity, StringComparer.Ordinal);
+        var sharedStringTableCache = !use_inline_strings ? new Dictionary<string, int>(DataDefaults.DefaultExportToExcelSharedStringDictionaryCapacity, StringComparer.Ordinal) : null;
         using (var writer = OpenXmlWriter.Create(worksheetPart))
         {
 
@@ -31,7 +31,8 @@ public static class DataResultExcelExtensions
             writer.WriteStartElement(new Row() { RowIndex = rowIndex });
             foreach (var header in data.Header)
             {
-                WriteSharedStringCell(writer, header, sharedStringTableCache);
+
+                WriteCell(writer, header, sharedStringTableCache, use_inline_strings);
             }
             writer.WriteEndElement(); // </Row>
 
@@ -40,12 +41,10 @@ public static class DataResultExcelExtensions
                 writer.WriteStartElement(new Row() { RowIndex = ++rowIndex });
                 foreach (var cell in record)
                 {
-                    WriteCell(writer, cell, sharedStringTableCache);
+                    WriteCell(writer, cell, sharedStringTableCache, use_inline_strings);
                 }
                 writer.WriteEndElement(); // </Row>
             }
-
-
 
             writer.WriteEndElement(); // </SheetData>
             writer.WriteEndElement(); // </Worksheet>
@@ -60,7 +59,7 @@ public static class DataResultExcelExtensions
             Name = sheetName
         });
 
-        WriteSharedStringTablePart(workbookPart, sharedStringTableCache);
+        if (!use_inline_strings) WriteSharedStringTablePart(workbookPart, sharedStringTableCache!);
 
         workbookPart.Workbook.Save();
         await outputStream.FlushAsync();

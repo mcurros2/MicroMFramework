@@ -41,6 +41,11 @@
         public static int DefaultExportToExcelSharedStringDictionaryCapacity { get; set; } = 64 * 1024;
 
         /// <summary>
+        /// Gets or sets a value indicating whether inline strings are used when exporting data to Excel.
+        /// </summary>
+        public static bool DefaultExportExcelUseInlineStrings { get; set; } = false;
+
+        /// <summary>
         /// Max items for the channel that holds DataResultChannel in a DataResultSetChannel.
         /// If max items is reached the writer will wait until items are read from the channel.
         /// </summary>

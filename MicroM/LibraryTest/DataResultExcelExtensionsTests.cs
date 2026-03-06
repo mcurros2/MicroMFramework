@@ -20,7 +20,7 @@ namespace LibraryTest
 
             using var memoryStream = new MemoryStream();
 
-            await dataResult.SaveAsExcelToStreamAsync(memoryStream, "Sheet1");
+            await dataResult.SaveAsExcelToStreamAsync(memoryStream, "Sheet1", false);
 
             Assert.IsTrue(memoryStream.Length > 0);
 
