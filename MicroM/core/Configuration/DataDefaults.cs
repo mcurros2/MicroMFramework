@@ -20,25 +20,25 @@
         /// </summary>
         public static int DefaultChannelRecordsBuffer { get; set; } = 5000;
         /// <summary>
-        /// Gets or sets the default buffer size, in bytes, used when exporting data to Excel channels.
+        /// Gets or sets the default buffer size, in rows, used when exporting data to Excel channels.
         /// </summary>
         /// <remarks>Adjusting this value can affect the performance and memory usage of the export
         /// operation. Larger buffer sizes may improve performance for large data sets but increase memory consumption.
         /// Set this value based on the expected size of the data being exported and available system
         /// resources.</remarks>
-        public static int DefaultChannelExportToExcelBuffer { get; set; } = 10000;
+        public static int DefaultChannelExportToExcelBuffer { get; set; } = 10240;
 
         /// <summary>
         /// Gets or sets the default initial capacity, in bytes, for the file stream used when exporting data to an
         /// Excel file.
         /// </summary>
-        public static int DefaultExportToExcelFileStreamCapacity { get; set; } = 50000;
+        public static int DefaultExportToExcelFileStreamCapacity { get; set; } = 64 * 1024;
 
         /// <summary>
         /// Gets or sets the default initial capacity of the shared string dictionary used during Excel export
         /// operations.
         /// </summary>
-        public static int DefaultExportToExcelSharedStringDictionaryCapacity { get; set; } = 50000;
+        public static int DefaultExportToExcelSharedStringDictionaryCapacity { get; set; } = 64 * 1024;
 
         /// <summary>
         /// Max items for the channel that holds DataResultChannel in a DataResultSetChannel.

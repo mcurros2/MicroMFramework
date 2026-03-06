@@ -149,44 +149,56 @@ public static class ExcelWriter
 
     public static async Task<FileStreamResult> ExportExcelFromChannelAsync(string baseSheetName, DataResultSetChannel resultChannel, Task producerTask, CancellationToken ct)
     {
+        var tempPath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.xlsx");
 
-        using var stream = new MemoryStream(DataDefaults.DefaultExportToExcelFileStreamCapacity);
-        using (var document = SpreadsheetDocument.Create(stream, SpreadsheetDocumentType.Workbook, false))
+        using var writeStream = new FileStream(
+                   tempPath,
+                   FileMode.CreateNew,
+                   FileAccess.ReadWrite,
+                   FileShare.None,
+                   bufferSize: DataDefaults.DefaultExportToExcelFileStreamCapacity,
+                   options: FileOptions.Asynchronous | FileOptions.SequentialScan);
+
+        using var document = SpreadsheetDocument.Create(writeStream, SpreadsheetDocumentType.Workbook, false);
+
+        var sharedStringTableCache = new Dictionary<string, int>(DataDefaults.DefaultExportToExcelSharedStringDictionaryCapacity, StringComparer.Ordinal);
+
+        var workbookPart = document.AddWorkbookPart();
+        workbookPart.Workbook = new Workbook();
+        var sharedStringTablePart = workbookPart.AddNewPart<SharedStringTablePart>();
+        sharedStringTablePart.SharedStringTable = new SharedStringTable();
+
+        uint sheetId = 1;
+
+        await foreach (var resultSet in resultChannel.Results.Reader.ReadAllAsync(ct))
         {
-            var sharedStringTableCache = new Dictionary<string, int>(DataDefaults.DefaultExportToExcelSharedStringDictionaryCapacity, StringComparer.Ordinal);
-
-            var workbookPart = document.AddWorkbookPart();
-            workbookPart.Workbook = new Workbook();
-            var sharedStringTablePart = workbookPart.AddNewPart<SharedStringTablePart>();
-            sharedStringTablePart.SharedStringTable = new SharedStringTable();
-
-            uint sheetId = 1;
-
-            await foreach (var resultSet in resultChannel.Results.Reader.ReadAllAsync(ct))
-            {
-                var sheetName = sheetId == 1 ? baseSheetName : $"{baseSheetName}_{sheetId}";
-                await WriteSheetAsync(sheetId, sheetName, workbookPart, sharedStringTablePart, resultSet, sharedStringTableCache, ct);
-                sheetId++;
-            }
-
-            // Propagate producer errors
-            await producerTask;
-
-            sharedStringTablePart.SharedStringTable.Save();
-            workbookPart.Workbook.Save();
-
-            sharedStringTableCache.Clear();
+            var sheetName = sheetId == 1 ? baseSheetName : $"{baseSheetName}_{sheetId}";
+            await WriteSheetAsync(sheetId, sheetName, workbookPart, sharedStringTablePart, resultSet, sharedStringTableCache, ct);
+            sheetId++;
         }
 
-        stream.Position = 0;
+        // Propagate producer errors
+        await producerTask;
+
+        sharedStringTablePart.SharedStringTable.Save();
+        workbookPart.Workbook.Save();
+
+        sharedStringTableCache.Clear();
+
+        // Reopen the temp file for read; DeleteOnClose ensures cleanup when the response ends.
+        var readStream = new FileStream(
+            tempPath,
+            FileMode.Open,
+            FileAccess.Read,
+            FileShare.Read,
+            bufferSize: DataDefaults.DefaultExportToExcelFileStreamCapacity,
+            options: FileOptions.Asynchronous | FileOptions.SequentialScan | FileOptions.DeleteOnClose);
+
         var fileName = $"{baseSheetName}_{DateTime.Now}.xlsx";
-        return new FileStreamResult(stream, ExcelContentType)
+        return new FileStreamResult(readStream, ExcelContentType)
         {
             FileDownloadName = fileName
         };
-
     }
-
-
 
 }
