@@ -398,7 +398,9 @@ public class EntitiesController() : ControllerBase, IEntitiesController
 
         Task producerTask = ents.HandleExecuteViewChannel(app, entityName, viewName, parms, ec, resultChannel, ct, records_channel_capacity: DataDefaults.DefaultChannelExportToExcelBuffer);
 
-        var fileResult = await ExportExcelFromChannelAsync($"{entityName}_export", resultChannel, producerTask, ct);
+        // we prefer Sylvan for now as it consumes less memory than OpenXML
+        var fileResult = await ExportSylvanFromChannelAsync($"{entityName}_export", resultChannel, producerTask, ct);
+
         return fileResult;
     }
 
@@ -414,8 +416,8 @@ public class EntitiesController() : ControllerBase, IEntitiesController
 
         Task producerTask = ents.HandleExecuteProcChannel(app, entityName, procName, parms, ec, resultChannel, ct, records_channel_capacity: DataDefaults.DefaultChannelExportToExcelBuffer);
 
-        var fileResult = await ExportExcelFromChannelAsync($"{entityName}_export", resultChannel, producerTask, ct);
-
+        // we prefer Sylvan for now as it consumes less memory than OpenXML
+        var fileResult = await ExportSylvanFromChannelAsync($"{entityName}_export", resultChannel, producerTask, ct);
 
 
         return fileResult;

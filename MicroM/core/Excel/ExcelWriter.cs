@@ -4,6 +4,8 @@ using DocumentFormat.OpenXml.Spreadsheet;
 using MicroM.Configuration;
 using MicroM.Data;
 using Microsoft.AspNetCore.Mvc;
+using Sylvan.Data.Excel;
+using System.IO.Compression;
 using static System.ArgumentNullException;
 
 namespace MicroM.Excel;
@@ -33,8 +35,13 @@ public static class ExcelWriter
         writer.WriteElement(cell);
     }
 
-    public static void WriteCell(OpenXmlWriter writer, object? value, Dictionary<string, int> sharedStringCache)
+    public static void WriteCell(OpenXmlWriter writer, object? value, Dictionary<string, int>? sharedStringCache, bool use_inline_strings)
     {
+        if (!use_inline_strings && sharedStringCache == null)
+        {
+            throw new ArgumentNullException(nameof(sharedStringCache), "Shared string cache cannot be null when use_inline_strings is false.");
+        }
+
         if (value == null)
         {
             writer.WriteElement(new Cell());
@@ -85,10 +92,13 @@ public static class ExcelWriter
                     // Empty or null string: write empty cell directly
                     writer.WriteElement(new Cell());
                 }
+                else if (use_inline_strings)
+                {
+                    WriteStringCell(writer, text);
+                }
                 else
                 {
-                    // Non-empty string: add to shared strings
-                    WriteSharedStringCell(writer, text, sharedStringCache);
+                    WriteSharedStringCell(writer, text, sharedStringCache!);
                 }
                 break;
         }
@@ -109,7 +119,7 @@ public static class ExcelWriter
         return index;
     }
 
-    public static async Task WriteSheetAsync(uint sheetId, string sheetName, WorkbookPart workbookPart, DataResultChannel resultSet, Dictionary<string, int> sharedStringCache, CancellationToken ct)
+    public static async Task WriteSheetAsync(uint sheetId, string sheetName, WorkbookPart workbookPart, DataResultChannel resultSet, Dictionary<string, int>? sharedStringCache, bool use_inline_strings, CancellationToken ct)
     {
         ThrowIfNull(workbookPart.Workbook, nameof(workbookPart.Workbook));
 
@@ -124,7 +134,7 @@ public static class ExcelWriter
         writer.WriteStartElement(new Row { RowIndex = rowIndex });
         foreach (var header in resultSet.Header)
         {
-            WriteSharedStringCell(writer, header ?? string.Empty, sharedStringCache);
+            WriteCell(writer, header ?? string.Empty, sharedStringCache, use_inline_strings);
         }
         writer.WriteEndElement(); // </Row>
 
@@ -133,7 +143,7 @@ public static class ExcelWriter
             writer.WriteStartElement(new Row { RowIndex = ++rowIndex });
             foreach (var cell in record)
             {
-                WriteCell(writer, cell, sharedStringCache);
+                WriteCell(writer, cell, sharedStringCache, use_inline_strings);
             }
             writer.WriteEndElement(); // </Row>
         }
@@ -170,7 +180,7 @@ public static class ExcelWriter
 
     public const string ExcelContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 
-    public static async Task<FileStreamResult> ExportExcelFromChannelAsync(string baseSheetName, DataResultSetChannel resultChannel, Task producerTask, CancellationToken ct)
+    public static async Task<FileStreamResult> ExportExcelFromChannelAsync(string baseSheetName, DataResultSetChannel resultChannel, Task producerTask, bool use_inline_strings, CancellationToken ct)
     {
         var tempPath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.xlsx");
 
@@ -191,22 +201,28 @@ public static class ExcelWriter
 
             uint sheetId = 1;
 
-            var sharedStringTableCache = new Dictionary<string, int>(DataDefaults.DefaultExportToExcelSharedStringDictionaryCapacity, StringComparer.Ordinal);
+            var sharedStringTableCache = !use_inline_strings ? new Dictionary<string, int>(DataDefaults.DefaultExportToExcelSharedStringDictionaryCapacity, StringComparer.Ordinal) : null;
+
             await foreach (var resultSet in resultChannel.Results.Reader.ReadAllAsync(ct))
             {
                 var sheetName = sheetId == 1 ? baseSheetName : $"{baseSheetName}_{sheetId}";
-                await WriteSheetAsync(sheetId, sheetName, workbookPart, resultSet, sharedStringTableCache, ct);
+                await WriteSheetAsync(sheetId, sheetName, workbookPart, resultSet, sharedStringTableCache, use_inline_strings, ct);
                 sheetId++;
             }
 
             // Propagate producer errors
             await producerTask;
 
-            WriteSharedStringTablePart(workbookPart, sharedStringTableCache);
+            if (!use_inline_strings) WriteSharedStringTablePart(workbookPart, sharedStringTableCache!);
             workbookPart.Workbook.Save();
 
-            sharedStringTableCache.Clear();
+            sharedStringTableCache?.Clear();
         }
+
+        // We need agressive GC as this will create memory backpressure when multiple concurrent exports happen
+        GC.Collect(2, GCCollectionMode.Aggressive, true, true);
+        GC.WaitForPendingFinalizers();
+        GC.Collect();
 
         // Reopen the temp file for read; DeleteOnClose ensures cleanup when the response ends.
         var readStream = new FileStream(
@@ -224,5 +240,60 @@ public static class ExcelWriter
         };
 
     }
+
+    ///////////////// SYLVAN /////////////////////////
+    public static async Task<FileStreamResult> ExportSylvanFromChannelAsync(string baseSheetName, DataResultSetChannel resultChannel, Task producerTask, CancellationToken ct)
+    {
+        var tempPath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.xlsx");
+
+        var streamOptions = new FileStreamOptions
+        {
+            Mode = FileMode.CreateNew,
+            Access = FileAccess.ReadWrite,
+            Share = FileShare.None,
+            BufferSize = DataDefaults.DefaultExportToExcelFileStreamCapacity,
+            Options = FileOptions.Asynchronous | FileOptions.SequentialScan
+        };
+
+        using (var writeStream = new FileStream(tempPath, streamOptions))
+        {
+            var sylvanOptions = new ExcelDataWriterOptions
+            {
+                CompressionLevel = CompressionLevel.Optimal
+            };
+            using var writer = ExcelDataWriter.Create(writeStream, ExcelWorkbookType.ExcelXml, sylvanOptions);
+
+            uint sheetId = 1;
+
+            await foreach (var resultSet in resultChannel.Results.Reader.ReadAllAsync(ct))
+            {
+                var sheetName = sheetId == 1 ? baseSheetName : $"{baseSheetName}_{sheetId}";
+
+                using var dataReader = new DataResultChannelDataReader(resultSet);
+
+                await writer.WriteAsync(dataReader, sheetName, ct);
+
+                sheetId++;
+            }
+        }
+
+        await producerTask;
+
+        var readStream = new FileStream(
+            tempPath,
+            FileMode.Open,
+            FileAccess.Read,
+            FileShare.Read,
+            bufferSize: DataDefaults.DefaultExportToExcelFileStreamCapacity,
+            options: FileOptions.Asynchronous | FileOptions.SequentialScan | FileOptions.DeleteOnClose);
+
+        var fileName = $"{baseSheetName}_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
+
+        return new FileStreamResult(readStream, ExcelContentType)
+        {
+            FileDownloadName = fileName
+        };
+    }
+
 }
 
