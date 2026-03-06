@@ -1,6 +1,7 @@
 ﻿using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
+using MicroM.Configuration;
 using MicroM.Data;
 using static MicroM.Excel.ExcelWriter;
 
@@ -14,17 +15,13 @@ public static class DataResultExcelExtensions
         var workbookPart = document.AddWorkbookPart();
         workbookPart.Workbook = new Workbook();
 
-        // Create Shared String Table
-        var sharedStringTablePart = workbookPart.AddNewPart<SharedStringTablePart>();
-        sharedStringTablePart.SharedStringTable = new SharedStringTable();
-
         var worksheetPart = workbookPart.AddNewPart<WorksheetPart>();
         workbookPart.Workbook.AppendChild(new Sheets());
         workbookPart.AddPart(worksheetPart);
 
+        var sharedStringTableCache = new Dictionary<string, int>(DataDefaults.DefaultExportToExcelSharedStringDictionaryCapacity, StringComparer.Ordinal);
         using (var writer = OpenXmlWriter.Create(worksheetPart))
         {
-            var sharedStringTableCache = new Dictionary<string, int>(50000, StringComparer.Ordinal);
 
             writer.WriteStartElement(new Worksheet());
             writer.WriteStartElement(new SheetData());
@@ -34,7 +31,7 @@ public static class DataResultExcelExtensions
             writer.WriteStartElement(new Row() { RowIndex = rowIndex });
             foreach (var header in data.Header)
             {
-                WriteSharedStringCell(writer, header, sharedStringTablePart, sharedStringTableCache);
+                WriteSharedStringCell(writer, header, sharedStringTableCache);
             }
             writer.WriteEndElement(); // </Row>
 
@@ -43,17 +40,16 @@ public static class DataResultExcelExtensions
                 writer.WriteStartElement(new Row() { RowIndex = ++rowIndex });
                 foreach (var cell in record)
                 {
-                    WriteCell(writer, cell, sharedStringTablePart, sharedStringTableCache);
+                    WriteCell(writer, cell, sharedStringTableCache);
                 }
                 writer.WriteEndElement(); // </Row>
             }
 
+
+
             writer.WriteEndElement(); // </SheetData>
             writer.WriteEndElement(); // </Worksheet>
         }
-
-        // Save shared string table
-        sharedStringTablePart.SharedStringTable.Save();
 
         var sheets = workbookPart.Workbook.GetFirstChild<Sheets>();
 
@@ -63,6 +59,8 @@ public static class DataResultExcelExtensions
             SheetId = 1,
             Name = sheetName
         });
+
+        WriteSharedStringTablePart(workbookPart, sharedStringTableCache);
 
         workbookPart.Workbook.Save();
         await outputStream.FlushAsync();
