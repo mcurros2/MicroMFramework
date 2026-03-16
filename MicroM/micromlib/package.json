@@ -38,13 +38,11 @@
     "publish:alpha": "npm version prepatch -m \"Upgrade to %s\" && npm publish --tag alpha"
   },
   "peerDependencies": {
-    "@emotion/react": "^11.11.1",
     "@googlemaps/js-api-loader": "^1.16.2",
     "@googlemaps/markerclusterer": "^2.5.3",
     "@mantine/core": "^8.3.16",
     "@mantine/dates": "^8.3.16",
     "@mantine/dropzone": "^8.3.16",
-    "@mantine/emotion": "^8.3.16",
     "@mantine/form": "^8.3.16",
     "@mantine/hooks": "^8.3.16",
     "@mantine/modals": "^8.3.16",
@@ -61,11 +59,9 @@
     "react-dom": "^18.2.0"
   },
   "devDependencies": {
-    "@emotion/react": "^11.11.1",
     "@mantine/core": "^8.3.16",
     "@mantine/dates": "^8.3.16",
     "@mantine/dropzone": "^8.3.16",
-    "@mantine/emotion": "^8.3.16",
     "@mantine/form": "^8.3.16",
     "@mantine/hooks": "^8.3.16",
     "@mantine/modals": "^8.3.16",
