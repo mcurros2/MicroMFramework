@@ -1,4 +1,4 @@
-import { Accordion, Card, Stack, Text, ThemeIcon, Title, useComponentDefaultProps, useMantineTheme } from "@mantine/core";
+import { Accordion, Card, Stack, Text, ThemeIcon, Title, useProps, useComputedColorScheme, useMantineTheme } from "@mantine/core";
 import { IconHelp } from "@tabler/icons-react";
 import { ReactNode, useMemo, useRef } from "react";
 import { MicroMClient } from "../../client";
@@ -26,9 +26,10 @@ export const DataMapPageDefaultProps: Partial<DataMapPageProps> = {
 export function DataMapPage(props: DataMapPageProps) {
     const {
         showTitle, entityConstructor, client, formMode, title, icon, helpText, dataGridProps, ...others
-    } = useComponentDefaultProps('DataMapPage', props, DataMapPageDefaultProps);
+    } = useProps('DataMapPage', props, DataMapPageDefaultProps);
 
     const theme = useMantineTheme();
+    const isDark = useComputedColorScheme() === 'dark';
 
     const entity = useRef<Entity<EntityDefinition>>(entityConstructor(client));
 
@@ -67,7 +68,7 @@ export function DataMapPage(props: DataMapPageProps) {
                     </Accordion.Item>
                 </Accordion>
             }
-            <Card shadow="sm" withBorder={theme.colorScheme === 'dark' ? false : true}>
+            <Card shadow="sm" withBorder={isDark ? false : true}>
                 <DataMap
                     dataGridProps={dgProps}
                     {...others}
@@ -76,3 +77,7 @@ export function DataMapPage(props: DataMapPageProps) {
         </Stack>
     );
 }
+
+
+
+

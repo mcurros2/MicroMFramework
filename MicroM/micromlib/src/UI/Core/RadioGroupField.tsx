@@ -1,4 +1,4 @@
-import { Radio, useComponentDefaultProps } from "@mantine/core";
+﻿import { Radio, useProps } from "@mantine/core";
 import { ComponentPropsWithoutRef, forwardRef, ReactNode, useCallback } from "react";
 import { Value } from "../../client/client.types";
 import { EntityColumn, EntityColumnFlags } from "../../Entity";
@@ -27,7 +27,7 @@ export const RadioGroupField = forwardRef<HTMLInputElement, RadioGroupFieldProps
         entityForm, column, validationContainer, validate, required, requiredMessage, readOnly,
         onChange, onBlur, onFocus, children, withAsterisk, label, description, showDescription,
         ...others
-    } = useComponentDefaultProps('RadioGroupField', RadioGroupFieldDefaultProps, props);
+    } = useProps('RadioGroupField', RadioGroupFieldDefaultProps, props);
 
     useFieldConfiguration({ entityForm, column, validationContainer, validate, required, requiredMessage, readOnly });
 
@@ -67,3 +67,4 @@ export const RadioGroupField = forwardRef<HTMLInputElement, RadioGroupFieldProps
         </Radio.Group>
     )
 });
+

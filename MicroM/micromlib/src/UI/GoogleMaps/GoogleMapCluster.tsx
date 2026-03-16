@@ -1,5 +1,5 @@
-import { MarkerClustererOptions } from "@googlemaps/markerclusterer";
-import { DefaultProps, Paper, useComponentDefaultProps } from "@mantine/core";
+﻿import { MarkerClustererOptions } from "@googlemaps/markerclusterer";
+import { Paper, PaperProps, useProps } from "@mantine/core";
 import { Dispatch, PropsWithChildren, ReactNode, RefObject, SetStateAction } from "react";
 import { MarkerProps } from "./GoogleMarker";
 import { MapOptions } from "./Mapping.types";
@@ -11,7 +11,7 @@ export interface MapClusterOptions extends Omit<MarkerClustererOptions, 'map' | 
 
 export type SelectedMarkerProps = Record<string, Record<number, MarkerProps>>
 
-export type GoogleMapClusterProps = DefaultProps & PropsWithChildren<{
+export type GoogleMapClusterProps = PaperProps & PropsWithChildren<{
     mapOptions: MapOptions,
     InitialMarkerClustererOptions?: MapClusterOptions,
     infoWindowContentRef?: RefObject<HTMLDivElement>,
@@ -32,7 +32,7 @@ export const DefaultMapClusterProps: Partial<GoogleMapClusterProps> = {
 }
 
 export function GoogleMapCluster(props: GoogleMapClusterProps) {
-    props = useComponentDefaultProps('GoogleMapCluster', DefaultMapClusterProps, props);
+    props = useProps('GoogleMapCluster', DefaultMapClusterProps, props);
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { mapOptions, InitialMarkerClustererOptions, children, infoWindowContentRef, setInfoWindowContent, markers, labels, selectedMarkers, ...rest } = props;
 
@@ -47,4 +47,5 @@ export function GoogleMapCluster(props: GoogleMapClusterProps) {
         </>
     );
 }
+
 

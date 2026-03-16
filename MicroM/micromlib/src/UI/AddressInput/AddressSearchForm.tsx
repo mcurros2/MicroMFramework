@@ -1,4 +1,4 @@
-import { Button, Card, Group, Text, useComponentDefaultProps, useMantineTheme } from "@mantine/core";
+import { Button, Card, Group, Text, useProps, useComputedColorScheme, useMantineTheme } from "@mantine/core";
 import { IconCircleCheck, IconCircleX, IconInfoCircle } from "@tabler/icons-react";
 import { useCallback, useState } from "react";
 import { latLng } from "../Core";
@@ -35,10 +35,11 @@ export const AddressSearchFormDefaultProps: Partial<AddressSearchFormProps> = {
 
 export function AddressSearchForm(props: AddressSearchFormProps) {
     const theme = useMantineTheme();
+    const isDark = useComputedColorScheme() === 'dark';
 
     const {
         helpMessage, okLabel, onOK, onCancel, cancelLabel, countries, initialSearchAddress, currentPosition, mappingRules, draggable
-    } = useComponentDefaultProps('AddressSearchForm', AddressSearchFormDefaultProps, props);
+    } = useProps('AddressSearchForm', AddressSearchFormDefaultProps, props);
 
     const [address, setAddress] = useState<AddressFoundResult>();
     const [position, setPosition] = useState<latLng>();
@@ -58,9 +59,9 @@ export function AddressSearchForm(props: AddressSearchFormProps) {
 
     return (
         <>
-            <Card shadow="sm" withBorder={theme.colorScheme === 'dark' ? false : true}>
-                <Card.Section p="xs" bg={theme.colorScheme === 'dark' ? theme.colors.dark[5] : theme.colors[theme.primaryColor][3]} mb="1rem">
-                    <Group sx={{ gap: "0.25rem" }}>
+            <Card shadow="sm" withBorder={isDark ? false : true}>
+                <Card.Section p="xs" bg={isDark ? theme.colors.dark[5] : theme.colors[theme.primaryColor][3]} mb="1rem">
+                    <Group style={{ gap: "0.25rem" }}>
                         <IconInfoCircle size="1.1rem" />
                         <Text fz="xs" c="dimmed">{helpMessage}</Text>
                     </Group>
@@ -74,11 +75,16 @@ export function AddressSearchForm(props: AddressSearchFormProps) {
                     mappingRules={mappingRules}
                     draggable={draggable}
                 />
-            </Card><Group mt="md" position="right">
-                <Button variant="light" leftIcon={<IconCircleX size="1.5rem" />} onClick={() => (onCancel) ? onCancel() : null}>{cancelLabel}</Button>
-                <Button onClick={handleOK} color={theme.colors.green[5]} leftIcon={<IconCircleCheck size="1.5rem" />}>{okLabel}</Button>
+            </Card><Group mt="md" justify="right">
+                <Button variant="light" leftSection={<IconCircleX size="1.5rem" />} onClick={() => (onCancel) ? onCancel() : null}>{cancelLabel}</Button>
+                <Button onClick={handleOK} color={theme.colors.green[5]} leftSection={<IconCircleCheck size="1.5rem" />}>{okLabel}</Button>
             </Group>
         </>
     );
 
 }
+
+
+
+
+

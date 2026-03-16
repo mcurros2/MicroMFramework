@@ -1,4 +1,4 @@
-import { Box, Group, Select, SelectItem, Space, Text, useComponentDefaultProps, useMantineTheme } from "@mantine/core";
+﻿import { Box, Group, Select, ComboboxItem, Space, Text, useProps, useMantineTheme } from "@mantine/core";
 import { useMemo, useRef, useState } from "react";
 import { AlertError, FakeProgressBar, useExecuteView, useFirstVisible, useViewState } from "../../UI/Core";
 import { DataViewLimitData } from "../DataView/DataView.types";
@@ -63,7 +63,7 @@ export const DataGridDefaultProps: Partial<DataGridProps> = {
 }
 
 export function DataGrid(props: DataGridProps) {
-    props = useComponentDefaultProps('DataGrid', DataGridDefaultProps, props);
+    props = useProps('DataGrid', DataGridDefaultProps, props);
     const {
         entity, selectionMode, gridHeight, preserveSelection, autoSelectFirstRow, autoFocus, toolbarIconVariant, actionsButtonVariant,
         enableAdd, enableEdit, enableDelete, enableView, enableExport, columnBorders, autoSizeColumnsOnLoad, rowBorders, withBorder,
@@ -77,7 +77,7 @@ export function DataGrid(props: DataGridProps) {
     const visibilityDivRef = useRef<HTMLDivElement>(null);
     const isFirstVisible = useFirstVisible(visibilityDivRef);
 
-    const [searchData, setSearchData] = useState<SelectItem[]>(search?.map(s => { return { value: s, label: s } }) as SelectItem[]);
+    const [searchData, setSearchData] = useState<ComboboxItem[]>(search?.map(s => { return { value: s, label: s } }) as ComboboxItem[]);
 
     const viewState = useViewState(search, limit);
 
@@ -209,7 +209,7 @@ export function DataGrid(props: DataGridProps) {
                             {executeViewState && !executeViewState.error &&
                                 <>
                                     <Text fz="sm">{labels?.limitLabel}</Text>
-                                    <Select size="xs" sx={{ maxWidth: '7rem' }}
+                                    <Select size="xs" style={{ maxWidth: '7rem' }}
                                         data={DataViewLimitData(labels!.rowsLabel, labels!.unlimitedLabel)}
                                         value={viewState.limitRows}
                                         onChange={viewState.setLimitRows}
@@ -226,3 +226,4 @@ export function DataGrid(props: DataGridProps) {
         </>
     );
 }
+

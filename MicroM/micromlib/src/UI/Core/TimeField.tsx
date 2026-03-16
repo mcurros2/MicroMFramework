@@ -1,4 +1,4 @@
-import { ActionIcon, useComponentDefaultProps } from "@mantine/core";
+﻿import { ActionIcon, useProps } from "@mantine/core";
 import { TimeInput, TimeInputProps } from "@mantine/dates";
 import { IconClock } from "@tabler/icons-react";
 import { forwardRef, ReactNode, useImperativeHandle, useRef } from "react";
@@ -37,7 +37,7 @@ export const TimeField = forwardRef<TimeFieldRef, TimeFieldProps>(function TimeF
         entityForm, column, validationContainer, validate, required, requiredMessage, readOnly, showTimePicker,
         label, placeholder, description, withAsterisk, autoFocus,
         ...others
-    } = useComponentDefaultProps('TimeField', TimeFieldDefaultProps, props);
+    } = useProps('TimeField', TimeFieldDefaultProps, props);
 
     useFieldConfiguration({ entityForm, column, validationContainer, validate, required, requiredMessage, readOnly });
 
@@ -70,3 +70,4 @@ export const TimeField = forwardRef<TimeFieldRef, TimeFieldProps>(function TimeF
         />
     );
 });
+

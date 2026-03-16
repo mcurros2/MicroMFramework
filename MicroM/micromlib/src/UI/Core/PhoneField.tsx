@@ -1,4 +1,4 @@
-import { ActionIcon, Group, useComponentDefaultProps, useMantineTheme } from "@mantine/core";
+﻿import { ActionIcon, Group, useProps, useMantineTheme } from "@mantine/core";
 import { IconBrandWhatsapp, IconPhoneOutgoing } from "@tabler/icons-react";
 import { useEffect, useRef } from "react";
 import { Value } from "../../client";
@@ -18,7 +18,7 @@ export const PhoneFieldDefaultProps: Partial<PhoneFieldProps> = {
 }
 
 export function PhoneField(props: PhoneFieldProps) {
-    const { invalidMessage, entityForm, column, showWhatsappIcon, showCallIcon, ...others } = useComponentDefaultProps('PhoneField', PhoneFieldDefaultProps, props);
+    const { invalidMessage, entityForm, column, showWhatsappIcon, showCallIcon, ...others } = useProps('PhoneField', PhoneFieldDefaultProps, props);
 
     const theme = useMantineTheme();
 
@@ -48,7 +48,7 @@ export function PhoneField(props: PhoneFieldProps) {
             column={column}
             validate={{ phone: { message: invalidMessage } }}
             rightSection={(showCallIcon || showWhatsappIcon) &&
-                <Group spacing="xs">
+                <Group gap="xs">
                     {showCallIcon && <ActionIcon component="a" {...callHref.current} rel="noopener noreferrer" color={theme.primaryColor} variant="light"><IconPhoneOutgoing size="1rem" /></ActionIcon>}
                     {showWhatsappIcon && <ActionIcon component="a" {...whatsappHref.current} rel="noopener noreferrer" color={theme.primaryColor} variant="light"><IconBrandWhatsapp size="1rem" /></ActionIcon>}
                 </Group>

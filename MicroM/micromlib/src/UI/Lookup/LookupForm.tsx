@@ -1,4 +1,4 @@
-import { Breadcrumbs, Button, Card, Group, Stack, Text, useComponentDefaultProps, useMantineTheme } from "@mantine/core";
+import { Breadcrumbs, Button, Card, Group, Stack, Text, useProps, useComputedColorScheme, useMantineTheme } from "@mantine/core";
 import { IconCircleCheck, IconCircleX, IconInfoCircle } from "@tabler/icons-react";
 import { ReactNode, useCallback, useRef } from "react";
 import { DataGrid, DataGridProps, DataGridSelectionKeys } from "../DataGrid";
@@ -24,9 +24,10 @@ export const LookupFormDefaultProps: Partial<LookupFormProps> = {
 export function LookupForm(props: LookupFormProps) {
     const {
         dataGridProps, onOK, onCancel, okLabel, cancelLabel, helpMessage, breadCrumbs
-    } = useComponentDefaultProps('LookupForm', LookupFormDefaultProps, props);
+    } = useProps('LookupForm', LookupFormDefaultProps, props);
 
     const theme = useMantineTheme();
+    const isDark = useComputedColorScheme() === 'dark';
     const selectionKeys = useRef<DataGridSelectionKeys>([]);
 
     const handleSelectionChanged = useCallback((selection: GridSelection, keys: DataGridSelectionKeys) => {
@@ -42,19 +43,24 @@ export function LookupForm(props: LookupFormProps) {
     return (
         <Stack>
             {breadCrumbs && <Breadcrumbs>{breadCrumbs}</Breadcrumbs>}
-            <Card shadow="sm" withBorder={theme.colorScheme === 'dark' ? false : true}>
-                <Card.Section p="xs" bg={theme.colorScheme === 'dark' ? theme.colors.dark[5] : theme.colors[theme.primaryColor][3]} mb="1rem">
-                    <Group sx={{ gap: "0.25rem" }}>
+            <Card shadow="sm" withBorder={isDark ? false : true}>
+                <Card.Section p="xs" bg={isDark ? theme.colors.dark[5] : theme.colors[theme.primaryColor][3]} mb="1rem">
+                    <Group style={{ gap: "0.25rem" }}>
                         <IconInfoCircle size="1.1rem" />
                         <Text fz="xs" c="dimmed">{helpMessage}</Text>
                     </Group>
                 </Card.Section>
                 <DataGrid {...dataGridProps} onSelectionChanged={handleSelectionChanged} autoFocus />
             </Card>
-            <Group mt="md" position="right">
-                <Button variant="light" leftIcon={<IconCircleX size="1.5rem" />} onClick={() => (onCancel) ? onCancel() : null}>{cancelLabel}</Button>
-                <Button onClick={handleOK} color={theme.colors.green[5]} leftIcon={<IconCircleCheck size="1.5rem" />}>{okLabel}</Button>
+            <Group mt="md" justify="right">
+                <Button variant="light" leftSection={<IconCircleX size="1.5rem" />} onClick={() => (onCancel) ? onCancel() : null}>{cancelLabel}</Button>
+                <Button onClick={handleOK} color={theme.colors.green[5]} leftSection={<IconCircleCheck size="1.5rem" />}>{okLabel}</Button>
             </Group>
         </Stack>
     );
 }
+
+
+
+
+

@@ -1,4 +1,4 @@
-import { Button, Group, Text } from "@mantine/core";
+﻿import { Button, Group, Text } from "@mantine/core";
 import { IconAlertCircle, IconAlertTriangle } from "@tabler/icons-react";
 import { useCallback, useRef } from "react";
 import { DBStatusResult, OperationStatus, ValuesObject } from "../../client";
@@ -285,7 +285,7 @@ export function useEntityUI(props: UseEntityUIProps) {
                         <Text size="sm" mb="xs">
                             {labels?.YouMustSelectOneOrMoreRecordsToDelete}
                         </Text>
-                        <Group mt="xs" position="right">
+                        <Group mt="xs" justify="right">
                             <Button onClick={async () => await modals.close()}>{labels?.closeLabel}</Button>
                         </Group>
                     </>
@@ -365,7 +365,7 @@ export function useEntityUI(props: UseEntityUIProps) {
                         <Text size="sm" mb="xs">
                             {message}
                         </Text>
-                        <Group mt="xs" position="right">
+                        <Group mt="xs" justify="right">
                             <Button onClick={
                                 async () => {
                                     await modals.close();

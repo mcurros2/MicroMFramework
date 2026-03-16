@@ -1,4 +1,4 @@
-import { getSize, Group, MantineSize, PinInput, PinInputProps, rem, Stack, Text, useComponentDefaultProps, useMantineTheme } from "@mantine/core";
+import { getSize, Group, MantineSize, PinInput, PinInputProps, rem, Stack, Text, useProps, useComputedColorScheme, useMantineTheme } from "@mantine/core";
 import { ReactNode } from "react";
 import { Value } from "../../client";
 import { EntityColumn, EntityColumnFlags } from "../../Entity";
@@ -10,6 +10,7 @@ export interface PinFieldProps extends Omit<PinInputProps, 'validate'>, Omit<use
     column: EntityColumn<Value>,
     entityForm: UseEntityFormReturnType,
     validate?: ValidatorConfiguration,
+    required?: boolean,
     requiredMessage?: React.ReactNode,
     validationContainer?: React.ComponentType<{ children: ReactNode }>
     autoFocus?: boolean,
@@ -32,11 +33,12 @@ function isArrayOfStrings(value: ReactNode): value is string[] {
 export function PinField(props: PinFieldProps) {
     const {
         entityForm, column, validationContainer, validate, required, requiredMessage, readOnly,
-        placeholder, autoFocus, transform, autoTrim, size, description, label,
+        placeholder, autoFocus, transform, autoTrim, size, description, label, hiddenInputProps, getInputProps,
         ...others
-    } = useComponentDefaultProps('PinField', PinFieldDefaultProps, props);
+    } = useProps('PinField', PinFieldDefaultProps, props);
 
     const theme = useMantineTheme();
+    const isDark = useComputedColorScheme() === 'dark';
 
     useFieldConfiguration({ entityForm, column, validationContainer, validate, required, requiredMessage, readOnly });
 
@@ -48,16 +50,17 @@ export function PinField(props: PinFieldProps) {
 
     const controlSize = getSize({ size: size ?? "sm", sizes: theme.fontSizes });
     const descriptionSize = getSize({ size: size ?? "sm", sizes: theme.fontSizes });
-    const labelColor = theme.colorScheme === 'dark' ? theme.colors.dark[0] : theme.colors.gray[9];
-    const descriptionColor = theme.colorScheme === 'dark' ? theme.colors.dark[2] : theme.colors.gray[6];
+    const labelColor = isDark ? theme.colors.dark[0] : theme.colors.gray[9];
+    const descriptionColor = isDark ? theme.colors.dark[2] : theme.colors.gray[6];
+    const isRequired = required ?? (!readOnly && !(entityForm.formMode === 'view') && !column.hasFlag(EntityColumnFlags.nullable));
 
     const { form } = entityForm;
 
     return (
         <Stack style={{ gap: "0.1rem" }}>
             <Group style={{ gap: "0.2rem" }}>
-                <Text size={controlSize} weight="500" color={labelColor}>{label ?? column.prompt}</Text>
-                {(required ?? (!readOnly && !(entityForm.formMode === 'view') && !column.hasFlag(EntityColumnFlags.nullable))) && <Text size={controlSize} weight="500" color={theme.colors.red[5]}>*</Text>}
+                <Text size={controlSize} fw="500" c={labelColor}>{label ?? column.prompt}</Text>
+                {isRequired && <Text size={controlSize} fw="500" c={theme.colors.red[5]}>*</Text>}
             </Group>
             {(description ?? column.description) &&
                 <Text style={{ fontSize: `calc(${descriptionSize} - ${rem(2)})`, lineHeight: 1.2 }} color={descriptionColor}>{description ?? column.description}</Text>
@@ -68,7 +71,15 @@ export function PinField(props: PinFieldProps) {
                 placeholder={placeholder ?? column.placeholder}
                 autoFocus={autoFocus}
                 onComplete={handleOnComplete}
-                required={required ?? !column.hasFlag(EntityColumnFlags.nullable)}
+                // TODO: desde upgrade a v8 de Mantine no existe mas la prop required, se implementa manualmente por ahora
+                hiddenInputProps={{
+                    ...hiddenInputProps,
+                    required: isRequired,
+                }}
+                getInputProps={(index) => ({
+                    ...(getInputProps ? getInputProps(index) : {}),
+                    'aria-required': isRequired,
+                })}
                 mt="xs"
             />
             {form.errors[column.name] &&
@@ -90,3 +101,8 @@ export function PinField(props: PinFieldProps) {
         </Stack>
     )
 }
+
+
+
+
+

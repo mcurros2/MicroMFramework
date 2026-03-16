@@ -1,4 +1,4 @@
-import { Box, Group, Select, Text, useComponentDefaultProps } from "@mantine/core";
+﻿import { Box, Group, Select, Text, useProps } from "@mantine/core";
 import { useRef } from "react";
 import { DataResult, OperationStatus } from "../../client";
 import { AlertError, FakeProgressBar, FormMode, useFirstVisible, useViewState } from "../Core";
@@ -28,7 +28,7 @@ export function DataMapGrid(props: DataMapGridProps) {
         actionsButtonVariant, showActions, entity,
         renderOnlyWhenVisible, gridHeight,
         executeViewState, dataGridAPI, viewState, formMode,
-    } = useComponentDefaultProps('DataMapGrid', DataMapGridDefaultProps, props);
+    } = useProps('DataMapGrid', DataMapGridDefaultProps, props);
 
     const visibilityDivRef = useRef<HTMLDivElement>(null);
     const isFirstVisible = useFirstVisible(visibilityDivRef);
@@ -95,7 +95,7 @@ export function DataMapGrid(props: DataMapGridProps) {
                         {executeViewState && !executeViewState.error &&
                             <>
                                 <Text fz="sm">{labels?.limitLabel}</Text>
-                                <Select size="xs" sx={{ maxWidth: '7rem' }}
+                                <Select size="xs" style={{ maxWidth: '7rem' }}
                                     data={DataViewLimitData(labels!.rowsLabel, labels!.unlimitedLabel)}
                                     value={viewState.limitRows}
                                     onChange={viewState.setLimitRows}

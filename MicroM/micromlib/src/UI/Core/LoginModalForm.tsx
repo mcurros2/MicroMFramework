@@ -1,4 +1,4 @@
-import { Modal, OverlayProps, TransitionProps, useComponentDefaultProps } from "@mantine/core";
+﻿import { Modal, OverlayProps, TransitionProps, useProps } from "@mantine/core";
 import { useDisclosure, useMediaQuery } from "@mantine/hooks";
 import { useEffect } from "react";
 import { MicroMClient, MicroMClientClaimTypes, MicroMToken, OperationStatus } from "../../client";
@@ -28,7 +28,7 @@ export function LoginModalForm(props: LoginModalFormProps) {
     const {
         client, title, onClose, onLoggedIn, openState, withCloseButton, closeOnClickOutside, closeOnEscape, overlayProps,
         transitionProps, centered
-    } = useComponentDefaultProps('LoginModalForm', LoginModalFormDefaultProps, props);
+    } = useProps('LoginModalForm', LoginModalFormDefaultProps, props);
     const [opened, { open, close }] = useDisclosure(false);
 
     const statusCompletedHandler = (status: OperationStatus<MicroMToken>) => {

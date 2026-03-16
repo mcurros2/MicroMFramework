@@ -1,4 +1,4 @@
-import { MantineNumberSize, SelectItem, Stack, Tabs, useComponentDefaultProps, useMantineTheme } from "@mantine/core";
+﻿import { MantineSize, ComboboxItem, Stack, Tabs, useProps, useMantineTheme } from "@mantine/core";
 import { IconMap, IconProps } from "@tabler/icons-react";
 import { ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { useGoogleMapsAPI } from "../../GoogleMapsAPI";
@@ -41,7 +41,7 @@ export interface MultiDataMapProps {
     autoFocus?: boolean,
     toolbarIconVariant?: ActionIconVariant,
     toolbarSize?: DataGridToolbarSizes,
-    filtersFormSize?: MantineNumberSize,
+    filtersFormSize?: MantineSize,
     selectionMode?: GridSelectionMode,
 
     mapStyle?: google.maps.MapTypeStyle[],
@@ -99,7 +99,7 @@ export function MultiDataMap(props: MultiDataMapProps) {
         dataMapView1, dataMapView2, dataMapView3, dataMapView4, dataMapView5,
         labels: dataMapLabels, search, limit, enableExport, autoFocus, toolbarIconVariant, toolbarSize, filtersFormSize, selectionMode,
         mapOptions, mapStyle, mapHeight, centerMarker, clearSelectionOnActionExecuted, formMode
-    } = useComponentDefaultProps('MultiDataMap', MultiDataMapDefaultProps, props);
+    } = useProps('MultiDataMap', MultiDataMapDefaultProps, props);
 
     const theme = useMantineTheme();
 
@@ -120,7 +120,7 @@ export function MultiDataMap(props: MultiDataMapProps) {
     // Common grid properties
 
     //toolbar
-    const [searchData, setSearchData] = useState<SelectItem[]>(search?.map(s => { return { value: s, label: s } }) as SelectItem[]);
+    const [searchData, setSearchData] = useState<ComboboxItem[]>(search?.map(s => { return { value: s, label: s } }) as ComboboxItem[]);
 
     // TODO: add support for setInitialFiltersFromColumns
     const viewState = useViewState(search, limit);
@@ -294,21 +294,21 @@ export function MultiDataMap(props: MultiDataMapProps) {
             />
             <Tabs pt="xs" defaultValue={TN.map}>
                 <Tabs.List>
-                    <Tabs.Tab value={TN.map} icon={TN.mapIcon} >{dataMapLabels?.mapTabLabel}</Tabs.Tab>
+                    <Tabs.Tab value={TN.map} leftSection={TN.mapIcon} >{dataMapLabels?.mapTabLabel}</Tabs.Tab>
                     {data1.dgProps.entity &&
-                        <Tabs.Tab value={TN.tab1} icon={TN.tab1Icon} >{data1.dgProps.tabLabel ?? data1.dgProps.entity.Title}</Tabs.Tab>
+                        <Tabs.Tab value={TN.tab1} leftSection={TN.tab1Icon} >{data1.dgProps.tabLabel ?? data1.dgProps.entity.Title}</Tabs.Tab>
                     }
                     {data2.dgProps.entity &&
-                        <Tabs.Tab value={TN.tab2} icon={TN.tab2Icon} >{data2.dgProps.tabLabel ?? data2.dgProps.entity.Title}</Tabs.Tab>
+                        <Tabs.Tab value={TN.tab2} leftSection={TN.tab2Icon} >{data2.dgProps.tabLabel ?? data2.dgProps.entity.Title}</Tabs.Tab>
                     }
                     {data3.dgProps.entity &&
-                        <Tabs.Tab value={TN.tab3} icon={TN.tab3Icon} >{data3.dgProps.tabLabel ?? data3.dgProps.entity.Title}</Tabs.Tab>
+                        <Tabs.Tab value={TN.tab3} leftSection={TN.tab3Icon} >{data3.dgProps.tabLabel ?? data3.dgProps.entity.Title}</Tabs.Tab>
                     }
                     {data4.dgProps.entity &&
-                        <Tabs.Tab value={TN.tab4} icon={TN.tab4Icon} >{data4.dgProps.tabLabel ?? data4.dgProps.entity.Title}</Tabs.Tab>
+                        <Tabs.Tab value={TN.tab4} leftSection={TN.tab4Icon} >{data4.dgProps.tabLabel ?? data4.dgProps.entity.Title}</Tabs.Tab>
                     }
                     {data5.dgProps.entity &&
-                        <Tabs.Tab value={TN.tab5} icon={TN.tab5Icon} >{data5.dgProps.tabLabel ?? data5.dgProps.entity.Title}</Tabs.Tab>
+                        <Tabs.Tab value={TN.tab5} leftSection={TN.tab5Icon} >{data5.dgProps.tabLabel ?? data5.dgProps.entity.Title}</Tabs.Tab>
                     }
                 </Tabs.List>
                 {data1.dgProps.entity &&
@@ -402,7 +402,7 @@ export function MultiDataMap(props: MultiDataMapProps) {
                     </Tabs.Panel>
                 }
                 <Tabs.Panel value={TN.map} pt='xs'>
-                    <Stack spacing="sm">
+                    <Stack gap="sm">
                         <MultiDataMapActionsToolbar
                             data1={data1}
                             data2={data2}
@@ -435,3 +435,4 @@ export function MultiDataMap(props: MultiDataMapProps) {
         </>
     )
 }
+

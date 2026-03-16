@@ -1,4 +1,4 @@
-import { Button, useComponentDefaultProps, useMantineTheme } from "@mantine/core";
+﻿import { Button, useProps, useMantineTheme } from "@mantine/core";
 import { IconMapPin } from "@tabler/icons-react";
 import { useCallback } from "react";
 import { ActionIconVariant, latLng } from "../Core";
@@ -27,7 +27,7 @@ export function AddressLookup(props: AddressLookupProps) {
         countries, icon, iconVariant, column, entityForm, currentPosition, onAddressFound,
         mappingRules, iconLabel, rightSectionWidth,
         ...rest
-    } = useComponentDefaultProps('AddressLookup', AddressLookupDefaultProps, props);
+    } = useProps('AddressLookup', AddressLookupDefaultProps, props);
 
     const theme = useMantineTheme();
     const search = useAddressSearchForm();
@@ -63,7 +63,7 @@ export function AddressLookup(props: AddressLookupProps) {
                 countries={countries}
 
                 onAddressFound={onAddressFound}
-                rightSection={<Button color={theme.primaryColor} onClick={handleSearch} variant={iconVariant} size="xs" leftIcon={icon}>{iconLabel}</Button>}
+                rightSection={<Button color={theme.primaryColor} onClick={handleSearch} variant={iconVariant} size="xs" leftSection={icon}>{iconLabel}</Button>}
                 rightSectionWidth={rightSectionWidth}
             />
         </>

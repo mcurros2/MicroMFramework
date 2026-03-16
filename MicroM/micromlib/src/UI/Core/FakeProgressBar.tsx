@@ -1,7 +1,7 @@
 import { Progress, ProgressProps } from '@mantine/core';
 import { useEffect, useRef, useState } from 'react';
 
-export function FakeProgressBar(props: ProgressProps) {
+export function FakeProgressBar(props: Omit<ProgressProps, 'value'>) {
     const [value, setValue] = useState(0);
     const initialDelay = 10;
     const maxWait = 360000; // 1 hour

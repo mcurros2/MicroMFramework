@@ -1,4 +1,4 @@
-import { MantineNumberSize } from "@mantine/core";
+﻿import { MantineSize } from "@mantine/core";
 import { DataResult, OperationStatus, ValuesObject } from "../../client";
 import { ActionIconVariant, ButtonVariant, EntityUILabels, FormMode, UseEntityUIProps } from "../Core";
 import { DataViewLimit } from "../DataView/DataView.types";
@@ -41,7 +41,7 @@ export interface DataGridProps extends UseEntityUIProps {
     enableDelete?: boolean,
     enableView?: boolean,
     enableExport?: boolean,
-    filtersFormSize?: MantineNumberSize,
+    filtersFormSize?: MantineSize,
     showActions?: boolean,
     setInitialFiltersFromColumns?: boolean,
     visibleFilters?: string[],
@@ -74,4 +74,5 @@ export interface DataGridProps extends UseEntityUIProps {
 }
 
 export type DataGridSelectionKeys = ValuesObject[]
+
 

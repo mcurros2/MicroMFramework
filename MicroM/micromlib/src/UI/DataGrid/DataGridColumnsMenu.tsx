@@ -1,4 +1,4 @@
-import { Menu, ScrollArea } from "@mantine/core";
+﻿import { Menu, ScrollArea } from "@mantine/core";
 import { IconCircleCheck, IconCircleDashedCheck } from "@tabler/icons-react";
 import { GridColumn } from "../Grid/Grid";
 
@@ -17,7 +17,7 @@ export function DataGridColumnsMenu(props: DataGridColumnsMenuProps) {
                     return (
                         <Menu.Item
                             key={`gridColumnsMenu-${index}`}
-                            icon={column.hidden ? <IconCircleDashedCheck size="1rem" /> : <IconCircleCheck size="1rem" />}
+                            leftSection={column.hidden ? <IconCircleDashedCheck size="1rem" /> : <IconCircleCheck size="1rem" />}
                             onClick={(e) => {
                                 column.hidden = !column.hidden;
                                 setColumns([...columns]);
@@ -32,3 +32,4 @@ export function DataGridColumnsMenu(props: DataGridColumnsMenuProps) {
         </Menu.Dropdown>
     )
 }
+

@@ -1,4 +1,4 @@
-import { Button, ButtonProps } from "@mantine/core";
+﻿import { Button, ButtonProps } from "@mantine/core";
 import { ValuesObject } from "../../client";
 import { Entity, EntityClientAction, EntityDefinition } from "../../Entity";
 import { useModal } from "../Core";
@@ -32,7 +32,7 @@ export function EntityActionButton(props: EntityActionButtonProps) {
 
 
     return (
-        <Button leftIcon={action.icon} onClick={async () => {
+        <Button leftSection={action.icon} onClick={async () => {
             await action.onClick({
                 entity, modal, selectedKeys, onClose
             });

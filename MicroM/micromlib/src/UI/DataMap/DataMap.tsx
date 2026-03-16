@@ -1,4 +1,4 @@
-import { Group, MantineTheme, Select, SelectItem, Stack, Tabs, Text, useComponentDefaultProps, useMantineTheme } from "@mantine/core";
+﻿import { Group, MantineTheme, Select, ComboboxItem, Stack, Tabs, Text, useProps, useMantineTheme } from "@mantine/core";
 import { IconGridDots, IconMap } from "@tabler/icons-react";
 import { ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ValuesRecord } from "../../client";
@@ -103,9 +103,9 @@ export function DataMap(props: DataMapProps) {
         dataGridProps, labels: dataMapLabels,
         mapOptions, mapStyle, mapHeight, markerRenderer, InfoWindowRenderer,
         latitudRecordIndex, longitudRecordIndex, groupMarkerRenderer, selectRecordsRenderer, centerMarker
-    } = useComponentDefaultProps('DataMap', DataMapDefaultProps, props);
+    } = useProps('DataMap', DataMapDefaultProps, props);
 
-    const effectiveDatagridProps = useComponentDefaultProps('DataGrid', DataMapDefaultDataGridProps, dataGridProps);
+    const effectiveDatagridProps = useProps('DataGrid', DataMapDefaultDataGridProps, dataGridProps);
 
     const {
         search, limit, entity, parentKeys, viewName, labels,
@@ -136,7 +136,7 @@ export function DataMap(props: DataMapProps) {
     // Grid
 
     //toolbar
-    const [searchData, setSearchData] = useState<SelectItem[]>(search?.map(s => { return { value: s, label: s } }) as SelectItem[]);
+    const [searchData, setSearchData] = useState<ComboboxItem[]>(search?.map(s => { return { value: s, label: s } }) as ComboboxItem[]);
     const [selectedRows, setSelectedRows] = useState<GridSelection>([]);
 
     const viewState = useViewState(search, limit);
@@ -414,8 +414,8 @@ export function DataMap(props: DataMapProps) {
             />
             <Tabs pt="xs" defaultValue={TN.map}>
                 <Tabs.List>
-                    <Tabs.Tab value={TN.map} icon={TN.mapIcon} >{dataMapLabels?.mapTabLabel}</Tabs.Tab>
-                    <Tabs.Tab value={TN.grid} icon={TN.gridIcon} >{dataMapLabels?.gridTabLabel}</Tabs.Tab>
+                    <Tabs.Tab value={TN.map} leftSection={TN.mapIcon} >{dataMapLabels?.mapTabLabel}</Tabs.Tab>
+                    <Tabs.Tab value={TN.grid} leftSection={TN.gridIcon} >{dataMapLabels?.gridTabLabel}</Tabs.Tab>
                 </Tabs.List>
                 <Tabs.Panel value={TN.grid} pt="xs">
                     <DataMapGrid
@@ -432,7 +432,7 @@ export function DataMap(props: DataMapProps) {
                     />
                 </Tabs.Panel>
                 <Tabs.Panel value={TN.map} pt='xs'>
-                    <Stack spacing="sm">
+                    <Stack gap="sm">
                         <DataGridActionsToolbar
                             {...labels!}
                             size={toolbarSize}
@@ -476,7 +476,7 @@ export function DataMap(props: DataMapProps) {
                             {executeViewState && !executeViewState.error &&
                                 <>
                                     <Text fz="sm">{labels?.limitLabel}</Text>
-                                    <Select size="xs" sx={{ maxWidth: '7rem' }}
+                                    <Select size="xs" style={{ maxWidth: '7rem' }}
                                         data={DataViewLimitData(labels!.rowsLabel, labels!.unlimitedLabel)}
                                         value={viewState.limitRows}
                                         onChange={viewState.setLimitRows}

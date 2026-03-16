@@ -1,4 +1,4 @@
-import { MantineNumberSize, Skeleton, Stack, useComponentDefaultProps } from "@mantine/core";
+﻿import { Skeleton, Stack, useProps } from "@mantine/core";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useGoogleMapsAPI } from "../../GoogleMapsAPI";
 import { AlertError, AlertInfo, latLng } from "../Core";
@@ -21,7 +21,7 @@ export interface AddressMapMarkerProps {
     errorMessage?: string,
     markerInfoTitle?: string,
     markerInfoMessage?: string,
-    mapHeight?: MantineNumberSize,
+    mapHeight?: string | number,
     showErrors?: boolean,
 
     draggable?: boolean,
@@ -47,7 +47,7 @@ export function AddressMapMarker(props: AddressMapMarkerProps) {
 
     const { mapReady, placesReady, geocoderReady } = googleMapsAPI;
 
-    const addressProps = useComponentDefaultProps('AddressMapMarker', AddressMapMarkerDefaultProps, props);
+    const addressProps = useProps('AddressMapMarker', AddressMapMarkerDefaultProps, props);
 
     return (
         <>
@@ -137,3 +137,4 @@ function AddressMapMarkerInternal(props: AddressMapMarkerProps & ReturnType<type
             {showErrors && errorStatus && <AlertError title={errorTitle}>{errorMessage} {errorStatus.status} ({errorStatus.origin})</AlertError>}
         </>)
 }
+

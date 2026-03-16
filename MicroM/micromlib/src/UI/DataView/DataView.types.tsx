@@ -1,4 +1,4 @@
-import { MantineNumberSize, SelectItem } from "@mantine/core";
+﻿import { MantineSize, ComboboxItem } from "@mantine/core";
 import { ComponentType, CSSProperties, PropsWithChildren } from "react";
 import { DataResult, OperationStatus, ValuesObject } from "../../client";
 import { ActionIconVariant, ButtonVariant, EntityUILabels, FormMode, UseEntityUIProps } from "../Core";
@@ -16,7 +16,7 @@ export const DataViewLimitData = (rowsLabel: string, unlimitedLabel: string) => 
         { value: "1000", label: `1000 ${rowsLabel}` },
         { value: "10000", label: `10000 ${rowsLabel}` },
         { value: "0", label: unlimitedLabel },
-    ] as SelectItem[]
+    ] as ComboboxItem[]
 }
 
 export type DataViewSelection = number[];
@@ -63,7 +63,7 @@ export interface DataViewProps extends Omit<UseEntityUIProps, 'labels'> {
     enableDelete?: boolean,
     enableView?: boolean,
     enableExport?: boolean,
-    filtersFormSize?: MantineNumberSize,
+    filtersFormSize?: MantineSize,
     setInitialFiltersFromColumns?: boolean,
     visibleFilters?: string[],
 
@@ -101,4 +101,6 @@ export interface DataViewProps extends Omit<UseEntityUIProps, 'labels'> {
 
 
 }
+
+
 

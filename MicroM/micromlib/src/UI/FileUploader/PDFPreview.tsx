@@ -1,4 +1,4 @@
-import { Button, Group, Stack, Text, useComponentDefaultProps } from "@mantine/core";
+﻿import { Button, Group, Stack, Text, useProps } from "@mantine/core";
 import { FilePreviewProps } from "./ImagePreview";
 
 
@@ -7,7 +7,7 @@ export const PDFPreviewDefaultProps: Partial<FilePreviewProps> = {
 }
 
 export function PDFPreview(props: FilePreviewProps) {
-    const { documentURL, onClose, closeText, filePreviewError } = useComponentDefaultProps('PDFPreview', PDFPreviewDefaultProps, props);
+    const { documentURL, onClose, closeText, filePreviewError } = useProps('PDFPreview', PDFPreviewDefaultProps, props);
 
 
     return (
@@ -17,9 +17,10 @@ export function PDFPreview(props: FilePreviewProps) {
                     <Text size="sm" color="dimmed">{filePreviewError}</Text>
                 </object>
             </div>
-            <Group position="right">
+            <Group justify="right">
                 <Button onClick={onClose}>{closeText}</Button>
             </Group>
         </Stack>
     )
 }
+

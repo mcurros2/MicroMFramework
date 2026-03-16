@@ -1,4 +1,4 @@
-import { MantineNumberSize, SelectItem } from "@mantine/core";
+﻿import { MantineSize, ComboboxItem } from "@mantine/core";
 import { Dispatch, RefObject, SetStateAction, useCallback, useEffect, useState } from "react";
 import { MicroMClient, ValuesObject } from "../../client";
 import { ColumnsObject, EntityConstructor, setValues, SYSTEM_COLUMNS_NAMES } from "../../Entity";
@@ -14,12 +14,12 @@ export interface UseDataGridToolbarFiltersProps {
     client?: MicroMClient,
     parentKeys?: ValuesObject,
     FiltersEntity?: EntityConstructor,
-    searchData: SelectItem[],
-    setSearchData: Dispatch<SetStateAction<SelectItem[]>>,
+    searchData: ComboboxItem[],
+    setSearchData: Dispatch<SetStateAction<ComboboxItem[]>>,
     setSearchText: Dispatch<SetStateAction<string[] | undefined>>,
     onRefreshClick: (searchText: string[] | undefined) => void,
     onSearchTextChange?: (text: string[] | undefined) => void,
-    filtersFormSize: MantineNumberSize,
+    filtersFormSize: MantineSize,
     visibleFilters?: string[],
 
     initialColumnFilters?: ColumnsObject,
@@ -175,3 +175,4 @@ export function useDataGridToolbarFilters(props: UseDataGridToolbarFiltersProps)
         updateFilterValuesAndDescription
     }
 }
+

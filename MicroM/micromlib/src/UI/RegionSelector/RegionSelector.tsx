@@ -1,4 +1,4 @@
-import { ActionIcon, Card, Group, Loader, MantineNumberSize, Skeleton, Stack, Text, useComponentDefaultProps } from "@mantine/core";
+﻿import { ActionIcon, Card, Group, Loader, Skeleton, Stack, Text, useProps } from "@mantine/core";
 import { IconX } from "@tabler/icons-react";
 import { useCallback, useMemo, useState } from "react";
 import { useGoogleMapsAPI } from "../../GoogleMapsAPI";
@@ -19,7 +19,7 @@ export interface RegionSelectorProps extends Omit<GoogleMapRegionSelectorProps, 
     onAPIError?: (status: GoogleMapsErrorStatus) => void,
     errorTitle?: string,
     errorMessage?: string,
-    mapHeight?: MantineNumberSize,
+    mapHeight?: string | number,
     showErrors?: boolean,
     searchLabel?: string,
     loadingLabel?: string,
@@ -52,7 +52,7 @@ export const RegionSelectorDefaultProps: Partial<RegionSelectorProps> = {
 export function RegionSelector(props: RegionSelectorProps) {
     const { mapReady, placesReady, geocoderReady } = useGoogleMapsAPI();
 
-    const selectorProps = useComponentDefaultProps('RegionSelector', RegionSelectorDefaultProps, props);
+    const selectorProps = useProps('RegionSelector', RegionSelectorDefaultProps, props);
 
     return (
         <>
@@ -197,7 +197,7 @@ function RegionSelectorInternal(props: RegionSelectorProps) {
     }, [setClickedRegions]);
 
     return (
-        <Stack spacing="md">
+        <Stack gap="md">
             <GoogleAddressAutocomplete
                 label={searchLabel}
                 restrictions={autocompleteRestrictions}
@@ -208,14 +208,14 @@ function RegionSelectorInternal(props: RegionSelectorProps) {
                 data-autofocus={autoFocus}
                 autoFocus={autoFocus}
             />
-            <Stack spacing="0.2rem">
-                <Text size="xs" weight={600} color="dimmed">{mapHelpLabel}</Text>
+            <Stack gap="0.2rem">
+                <Text size="xs" fw={600} color="dimmed">{mapHelpLabel}</Text>
                 <GoogleMapRegionSelectorMap style={{ height: mapHeight, resize: "vertical", flexGrow: 1 }} mapOptions={mapOptions} regionSelectorProps={selectorProps}>
                     <GoogleMarker key="address-marker" markerOptions={addressMarkerOptions} />
                 </GoogleMapRegionSelectorMap>
             </Stack>
             <Card withBorder>
-                <Stack spacing="xs">
+                <Stack gap="xs">
                     <Group>
                         {// check to see if any selected regions are loading and show a loader
                             (Object.keys(clickedRegions).length !== Object.keys(selectedRegions).length) && <Loader size="xs" />
@@ -225,7 +225,7 @@ function RegionSelectorInternal(props: RegionSelectorProps) {
                             <IconX size="0.75rem" />
                         </ActionIcon>
                     </Group>
-                    <Group spacing="xs">
+                    <Group gap="xs">
                         {
                             groupedRegions.map((group) => (
                                 <RegionSelectorItem
@@ -260,3 +260,5 @@ function RegionSelectorInternal(props: RegionSelectorProps) {
         </Stack>
     )
 }
+
+

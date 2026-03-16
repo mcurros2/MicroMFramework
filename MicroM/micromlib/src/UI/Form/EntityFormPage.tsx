@@ -1,4 +1,4 @@
-import { Skeleton, useComponentDefaultProps } from "@mantine/core";
+﻿import { Skeleton, useProps } from "@mantine/core";
 import { ReactNode, useEffect, useRef, useState } from "react";
 import { MicroMClient } from "../../client";
 import { Entity, EntityDefinition } from "../../Entity";
@@ -19,7 +19,7 @@ export function EntityFormPage(props: EntityFormPageProps) {
     const {
         entityConstructor, client, defaultLoadingComponent,
         ...rest
-    } = useComponentDefaultProps('EntityFormPage', EntityFormPagePropsDefaultProps, props);
+    } = useProps('EntityFormPage', EntityFormPagePropsDefaultProps, props);
 
     const [entityForm, setEntityForm] = useState<React.ReactNode | null>(null);
 

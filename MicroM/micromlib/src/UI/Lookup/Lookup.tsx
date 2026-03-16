@@ -1,4 +1,4 @@
-import { ActionIcon, getSize, Group, Loader, MantineSize, rem, Stack, Text, TextInput, useComponentDefaultProps, useMantineTheme } from "@mantine/core";
+import { ActionIcon, getSize, Group, Loader, MantineSize, rem, Stack, Text, TextInput, useProps, useComputedColorScheme, useMantineTheme } from "@mantine/core";
 import { isNotEmpty } from "@mantine/form";
 import { IconSearch } from "@tabler/icons-react";
 import React, { useEffect, useRef } from "react";
@@ -48,10 +48,11 @@ export function Lookup(props: LookupProps) {
     const {
         entityForm, entity, lookupDefName, autoFocus, label, parentKeys, column, required, readonly, disabled, idMaxWidth, icon, iconVariant,
         requiredLabel, description, size, onLookupPerformed, enableAdd, enableEdit, enableDelete, enableView
-    } = useComponentDefaultProps('Lookup', LookupDefaultProps, props);
+    } = useProps('Lookup', LookupDefaultProps, props);
 
 
     const theme = useMantineTheme();
+    const isDark = useComputedColorScheme('light') === 'dark';
     const HTMLDescriptionRef = useRef(null);
 
 
@@ -71,7 +72,11 @@ export function Lookup(props: LookupProps) {
 
     useEffect(() => {
         if (required ?? !column.hasFlag(EntityColumnFlags.nullable)) {
-            entityForm.configureField(column, isNotEmpty(requiredLabel));
+            const requiredValidator = isNotEmpty(requiredLabel ?? "A value is required");
+            entityForm.configureField(column, (value) => {
+                const result = requiredValidator(value);
+                return result === false ? null : result ?? null;
+            });
         }
         else {
             entityForm.removeValidation(column);
@@ -80,8 +85,8 @@ export function Lookup(props: LookupProps) {
 
     const controlSize = getSize({ size: size ?? "sm", sizes: theme.fontSizes });
     const descriptionSize = getSize({ size: size ?? "sm", sizes: theme.fontSizes });
-    const labelColor = theme.colorScheme === 'dark' ? theme.colors.dark[0] : theme.colors.gray[9];
-    const descriptionColor = theme.colorScheme === 'dark' ? theme.colors.dark[2] : theme.colors.gray[6];
+    const labelColor = isDark ? theme.colors.dark[0] : theme.colors.gray[9];
+    const descriptionColor = isDark ? theme.colors.dark[2] : theme.colors.gray[6];
 
     // MMC: set the binding column description value
     useEffect(() => {
@@ -97,13 +102,13 @@ export function Lookup(props: LookupProps) {
     return (
         <Stack style={{ gap: "0.1rem", flexGrow: "1" }}>
             <Group style={{ gap: "0.2rem" }}>
-                <Text size={controlSize} weight="500" color={labelColor}>{label ?? column.prompt}</Text>
-                {(required ?? (!readonly && !(entityForm.formMode === 'view') && !column.hasFlag(EntityColumnFlags.nullable))) && <Text size={controlSize} weight="500" color={theme.colors.red[5]}>*</Text>}
+                <Text size={controlSize} fw="500" color={labelColor}>{label ?? column.prompt}</Text>
+                {(required ?? (!readonly && !(entityForm.formMode === 'view') && !column.hasFlag(EntityColumnFlags.nullable))) && <Text size={controlSize} fw="500" color={theme.colors.red[5]}>*</Text>}
             </Group>
             {(description ?? column.description) &&
                 <Text style={{ fontSize: `calc(${descriptionSize} - ${rem(2)})`, lineHeight: 1.2 }} color={descriptionColor}>{description ?? column.description}</Text>
             }
-            <Group style={{ marginTop: `calc(${theme.spacing.xs} / 2)` }} align="flex-start">
+            <Group style={{ marginTop: `calc(${theme.spacing.xs} / 2)` }}>
                 <TextInput
                     size={size}
                     maw={idMaxWidth}
@@ -134,7 +139,7 @@ export function Lookup(props: LookupProps) {
                         value={lookupAPI.lookupResult?.description}
                         rightSection={lookupAPI.status.loading && <Loader size="xs" variant="bars" />}
                         ref={HTMLDescriptionRef}
-                        sx={{ flexGrow: 1 }}
+                        style={{ flexGrow: 1 }}
                     />
                 </Group>
             </Group>
@@ -147,3 +152,6 @@ export function Lookup(props: LookupProps) {
 
     )
 }
+
+
+

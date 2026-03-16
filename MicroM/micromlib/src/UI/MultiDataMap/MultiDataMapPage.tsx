@@ -1,4 +1,4 @@
-import { Accordion, Card, Stack, Text, ThemeIcon, Title, useComponentDefaultProps, useMantineTheme } from "@mantine/core";
+import { Accordion, Card, Stack, Text, ThemeIcon, Title, useProps, useComputedColorScheme, useMantineTheme } from "@mantine/core";
 import { IconHelp } from "@tabler/icons-react";
 import { ReactNode, useMemo, useRef } from "react";
 import { MicroMClient } from "../../client";
@@ -31,9 +31,10 @@ export const MultiDataMapPageDefaultProps: Partial<MultiDataMapPageProps> = {
 export function MultiDataMapPage(props: MultiDataMapPageProps) {
     const {
         showTitle, client, formMode, title, icon, helpText, dataMapView1, dataMapView2, dataMapView3, dataMapView4, dataMapView5, ...others
-    } = useComponentDefaultProps('MultiDataMapPage', props, MultiDataMapPageDefaultProps);
+    } = useProps('MultiDataMapPage', props, MultiDataMapPageDefaultProps);
 
     const theme = useMantineTheme();
+    const isDark = useComputedColorScheme() === 'dark';
 
     const entity1 = useRef<Entity<EntityDefinition>>(dataMapView1.entityConstructor(client));
     const entity2 = useRef<Entity<EntityDefinition> | undefined>(dataMapView2?.entityConstructor(client));
@@ -102,7 +103,7 @@ export function MultiDataMapPage(props: MultiDataMapPageProps) {
                     </Accordion.Item>
                 </Accordion>
             }
-            <Card shadow="sm" withBorder={theme.colorScheme === 'dark' ? false : true}>
+            <Card shadow="sm" withBorder={isDark ? false : true}>
                 <MultiDataMap
                     dataMapView1={newDataMapView1!}
                     dataMapView2={newDataMapView2}
@@ -116,3 +117,7 @@ export function MultiDataMapPage(props: MultiDataMapPageProps) {
         </Stack>
     );
 }
+
+
+
+

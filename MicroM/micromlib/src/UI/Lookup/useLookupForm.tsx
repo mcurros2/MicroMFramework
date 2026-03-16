@@ -1,5 +1,5 @@
 import { Text } from "@mantine/core";
-import { ModalSettings } from "@mantine/modals/lib/context";
+import { ModalSettings } from "../Core/ModalSettings";
 import { ReactNode, useRef } from "react";
 import { ValuesObject } from "../../client";
 import { Entity, EntityDefinition } from "../../Entity";

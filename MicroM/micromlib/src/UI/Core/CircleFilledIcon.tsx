@@ -1,4 +1,4 @@
-import { MantineColor, useComponentDefaultProps, useMantineTheme } from "@mantine/core";
+﻿import { MantineColor, useProps, useMantineTheme } from "@mantine/core";
 import { forwardRef, ReactNode } from "react";
 
 export interface CircleFilledIconProps {
@@ -19,7 +19,7 @@ export const CircleFilledIconDefaultProps: Partial<CircleFilledIconProps> = {
 export const CircleFilledIcon = forwardRef<HTMLInputElement, CircleFilledIconProps>(function CircleFilledIcon(props: CircleFilledIconProps, ref) {
     const {
         backColor, color, width, icon, mr, minWidth
-    } = useComponentDefaultProps('CircleFilledIcon', CircleFilledIconDefaultProps, props);
+    } = useProps('CircleFilledIcon', CircleFilledIconDefaultProps, props);
 
     const theme = useMantineTheme();
 

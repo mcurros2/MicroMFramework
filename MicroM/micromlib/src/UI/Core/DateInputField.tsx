@@ -1,4 +1,4 @@
-import { Group, useComponentDefaultProps } from "@mantine/core";
+﻿import { Group, useProps } from "@mantine/core";
 import { DateInput, DateInputProps } from "@mantine/dates";
 import { IconCalendar } from "@tabler/icons-react";
 import dayjs from "dayjs";
@@ -23,7 +23,7 @@ export interface DateInputFieldProps extends DateInputProps {
 export const DateInputFieldDefaultProps: Partial<DateInputFieldProps> = {
     validationContainer: Group,
     maw: '20rem',
-    icon: <IconCalendar size="1rem" />,
+    leftSection: <IconCalendar size="1rem" />,
     allowDeselect: true,
     valueFormat: 'YYYY-MM-DD',
     popoverProps: {
@@ -35,7 +35,7 @@ export const DateInputField = forwardRef<HTMLInputElement, DateInputFieldProps>(
     const {
         column, entityForm, validate, validationContainer, required, requiredMessage, readOnly, label,
         placeholder, description, withAsterisk, autoFocus, clearable, valueFormat, ...others
-    } = useComponentDefaultProps('DateInputField', DateInputFieldDefaultProps, props);
+    } = useProps('DateInputField', DateInputFieldDefaultProps, props);
 
     useFieldConfiguration({ entityForm, column, validationContainer, validate, required, requiredMessage, readOnly });
 

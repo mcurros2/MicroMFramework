@@ -1,4 +1,4 @@
-import { Stack, Text } from "@mantine/core";
+﻿import { Stack, Text } from "@mantine/core";
 import { useRef } from "react";
 import { EntityForm, MicroMClient, useEntityForm } from "../../src";
 import { RingProgressField } from "../../src/UI/Stats";
@@ -39,7 +39,7 @@ export function RingProgressFieldTest() {
                     column={cols.i_demorados}
                     maxValue={maxValue}
                     displayPercent="none"
-                    centerLabel={<Text align="center" weight="bold" size="xs">D</Text>}
+                    centerLabel={<Text ta="center" fw="bold" size="xs">D</Text>}
                 />
             </Stack>
         </EntityForm>

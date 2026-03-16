@@ -1,4 +1,4 @@
-import { MantineTheme, useComponentDefaultProps, useMantineTheme } from "@mantine/core";
+﻿import { MantineTheme, useProps, useMantineTheme } from "@mantine/core";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ValuesRecord } from "../../client";
 import { latLng, useEntityUI, useExecuteView, useModal, useViewState } from "../Core";
@@ -30,7 +30,7 @@ export function useMultiDataMapGrid({
     const [selectedMarkers, setSelectedMarkers] = useState<SelectedMarkerProps>({});
     const [showOnMap, setShowOnMap] = useState(true);
 
-    const defaultProps = useComponentDefaultProps('MultiDataMapView', DataMapDefaultDataGridProps, dataMapView);
+    const defaultProps = useProps('MultiDataMapView', DataMapDefaultDataGridProps, dataMapView);
 
     // Handler for clearingSelection after executing an action
     const handleActionExecuted = useCallback((actionName: string, result?: boolean) => {

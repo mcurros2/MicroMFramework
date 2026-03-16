@@ -1,4 +1,4 @@
-import { ActionIcon, Button, Group, Loader, Select, SelectItem, SelectProps, useComponentDefaultProps, useMantineTheme } from "@mantine/core"
+﻿import { ActionIcon, Button, Group, Loader, Select, ComboboxItem, SelectProps, useProps, useMantineTheme } from "@mantine/core"
 import { IconSelector } from "@tabler/icons-react"
 import { forwardRef, ReactNode, useEffect, useState } from "react"
 import { DataResult, DBStatusResult, OperationStatus, Value, ValuesObject } from "../../client"
@@ -55,12 +55,12 @@ export const LookupSelect = forwardRef<HTMLInputElement, LookupSelectOptions>(fu
         editIcon, editIconVariant, selectProps, maxItems,
         requiredLabel, editLabel, includeKeyInDescription,
         withinPortal, zIndex, breadCrumbs
-    } = useComponentDefaultProps('LookupSelect', LookupSelectDefaultProps, props);
+    } = useProps('LookupSelect', LookupSelectDefaultProps, props);
 
     const theme = useMantineTheme();
 
     const triggerRefreshState = useState<boolean>(true);
-    const selectDataState = useState<SelectItem[]>([]);
+    const selectDataState = useState<ComboboxItem[]>([]);
     const [selectData] = selectDataState;
 
     const lookupSelectAPI = useLookupSelect({ parentKeys, selectDataState, triggerRefreshState, column, entityForm, entity, lookupDefName, maxItems, includeKeyInDescription, breadCrumbs });
@@ -94,18 +94,17 @@ export const LookupSelect = forwardRef<HTMLInputElement, LookupSelectOptions>(fu
         <Select
             {...selectProps}
             withAsterisk={selectProps!.withAsterisk ?? (!selectProps!.readOnly && !(entityForm.formMode === 'view') && (selectProps!.required ?? !column.hasFlag(EntityColumnFlags.nullable)))}
-            withinPortal={withinPortal}
-            zIndex={zIndex}
-            icon={lookupSelectAPI.status.loading ? <Loader size="xs" /> : selectProps?.icon}
+            comboboxProps={{ withinPortal, zIndex }}
+            leftSection={lookupSelectAPI.status.loading ? <Loader size="xs" /> : selectProps?.leftSection}
             data={selectData}
             readOnly={selectProps?.readOnly || entityForm.formMode === 'view' || lookupSelectAPI.status.loading || formStatus?.loading ? true : false}
             error={lookupSelectAPI.status.error ? lookupSelectAPI.status.error.message : null}
             // MMC: this is how we hack the styles let the chevron work showing the list and the edit button be clickable
-            styles={() => ({
-                rightSection: { pointerEvents: (editIcon ? "none" : "all") }
-            })}
+            styles={{
+                section: { pointerEvents: (editIcon ? "none" : "all") }
+            }}
             rightSection={enableEdit &&
-                <Group spacing="xs">
+                <Group gap="xs">
                     <IconSelector size="1rem" />
                     {editIcon &&
                         <ActionIcon style={{ pointerEvents: 'all' }} size="md" color={theme.primaryColor} variant={editIconVariant} onClick={lookupSelectAPI.onEditClick}>
@@ -123,3 +122,5 @@ export const LookupSelect = forwardRef<HTMLInputElement, LookupSelectOptions>(fu
         />
     )
 });
+
+

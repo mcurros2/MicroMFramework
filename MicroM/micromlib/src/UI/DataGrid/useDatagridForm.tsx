@@ -1,5 +1,5 @@
 ﻿import { Text } from "@mantine/core";
-import { ModalSettings } from '@mantine/modals/lib/context';
+import { ModalSettings } from '../Core/ModalSettings';
 import { Entity, EntityDefinition } from "../../Entity";
 import { FormMode, useModal } from "../Core";
 import { DataGridForm } from "../DataGrid";

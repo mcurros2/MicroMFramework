@@ -1,6 +1,6 @@
-import { ActionIcon, Group, MantineNumberSize, Modal, ModalBaseOverlayProps, Skeleton } from '@mantine/core';
+﻿import { ActionIcon, Group, MantineSize, Modal, ModalBaseOverlayProps, Skeleton } from '@mantine/core';
 import { randomId, useViewportSize } from '@mantine/hooks';
-import { ModalSettings } from '@mantine/modals/lib/context';
+import { ModalSettings } from './ModalSettings';
 import { IconArrowsDiagonal, IconArrowsDiagonalMinimize2 } from '@tabler/icons-react';
 import { createContext, PropsWithChildren, ReactNode, useCallback, useContext, useState } from 'react';
 import { isPromise } from '../../Entity';
@@ -16,7 +16,7 @@ export const ModalsManagerDefaultProps = {
     withFullscreenButton: true
 }
 
-export type MicroMModalSize = MantineNumberSize | 'fullscreen';
+export type MicroMModalSize = NonNullable<ModalSettings['size']> | 'fullscreen';
 
 
 
@@ -153,14 +153,17 @@ export const ModalsManager = ({ modalProps, animationDuration, children }: Modal
         }
     }, [isClosing]);
 
-    const getModalSize = useCallback((size?: MicroMModalSize): { size?: MantineNumberSize, fullscreen?: boolean } => {
-        if (size === 'fullscreen' || size === '100%' || (viewportWidth < 768 && (['md', 'lg', 'xl', 'fullscreen'] as MicroMModalSize[]).includes(size ?? ''))) return { fullscreen: true, size: undefined };
-
-        let new_size = size;
-        if (size && NEW_SIZES[size]) {
-            new_size = NEW_SIZES[size] as MantineNumberSize;
+    const getModalSize = useCallback((size?: MicroMModalSize): { size?: ModalSettings['size'], fullscreen?: boolean } => {
+        const mobileSizes = ['md', 'lg', 'xl', 'fullscreen'];
+        if (size === 'fullscreen' || (viewportWidth < 768 && typeof size === 'string' && mobileSizes.includes(size))) {
+            return { fullscreen: true, size: undefined };
         }
-        return { size: new_size, fullscreen: undefined };
+
+        let newSize: ModalSettings['size'] | undefined = size as ModalSettings['size'];
+        if (typeof size === 'string' && NEW_SIZES[size]) {
+            newSize = NEW_SIZES[size];
+        }
+        return { size: newSize, fullscreen: undefined };
     }, [viewportWidth]);
 
     const close = useCallback(() => {
@@ -205,7 +208,7 @@ export const ModalsManager = ({ modalProps, animationDuration, children }: Modal
             {
                 modals.map((modal, index) => {
                     const computedSizes = getModalSize(modal.props.size);
-                    const mobileSize = (viewportWidth < 768 && (['md', 'lg', 'xl', 'fullscreen'] as MicroMModalSize[]).includes(modal.initialSize ?? ''));
+                    const mobileSize = (viewportWidth < 768 && typeof modal.initialSize === 'string' && ['md', 'lg', 'xl', 'fullscreen'].includes(modal.initialSize));
 
                     return (
                         <Modal.Root
@@ -223,7 +226,7 @@ export const ModalsManager = ({ modalProps, animationDuration, children }: Modal
                             <Modal.Overlay {...((index === modals.length - 1) ? modalProps.overlayProps : transparentOverlay)} />
 
                             <Modal.Content
-                                sx={{
+                                style={{
                                     height: computedSizes.fullscreen ? '100dvh' : undefined,
                                 }}
                             >
@@ -231,7 +234,7 @@ export const ModalsManager = ({ modalProps, animationDuration, children }: Modal
                                     <Modal.Title>
                                         {modal.props.title}
                                     </Modal.Title>
-                                    <Group position="right">
+                                    <Group justify="right">
                                         {modal.withFullscreenButton && mobileSize === false &&
                                             <ActionIcon
                                                 onClick={(e) => {
@@ -241,12 +244,9 @@ export const ModalsManager = ({ modalProps, animationDuration, children }: Modal
                                                             if (i !== index) return m;
                                                             const original = m.initialSize ?? 'lg';
                                                             const currentSize = m.props.size;
-                                                            const newSize =
-                                                                (currentSize === 'fullscreen' || currentSize === '100%')
-                                                                    ? (original === 'fullscreen' || original === '100%')
-                                                                        ? 'lg'
-                                                                        : original
-                                                                    : 'fullscreen';
+                                                            const newSize = currentSize === 'fullscreen'
+                                                                ? (original === 'fullscreen' ? 'lg' : original)
+                                                                : 'fullscreen';
 
                                                             return {
                                                                 ...m,
@@ -295,3 +295,6 @@ export const useModal = (): ModalContextType => {
     }
     return context;
 };
+
+
+

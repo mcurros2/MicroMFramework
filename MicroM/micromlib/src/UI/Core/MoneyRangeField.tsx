@@ -1,9 +1,9 @@
-import { useComponentDefaultProps } from "@mantine/core";
-import { useCallback, useMemo } from "react";
+﻿import { useProps } from "@mantine/core";
+import { useEffect, useMemo } from "react";
 import { NumberField, NumberFieldProps } from "./NumberField";
-import { moneyFormatter, moneyParser } from "./numberInputFormatters";
+import { moneyFormatter } from "./numberInputFormatters";
 
-export interface MoneyRangeFieldProps extends Omit<NumberFieldProps, 'parser' | 'formatter'> {
+export interface MoneyRangeFieldProps extends NumberFieldProps {
     currencySymbol?: string,
     millionsStep?: number,
     thousandsStep?: number,
@@ -19,13 +19,13 @@ export const MoneyRangeFieldDefaultProps: Partial<MoneyRangeFieldProps> = {
 export function MoneyRangeField(props: MoneyRangeFieldProps) {
     const {
         currencySymbol, entityForm, column, millionsStep, thousandsStep, step, ...rest
-    } = useComponentDefaultProps('MoneyRangeField', MoneyRangeFieldDefaultProps, props);
+    } = useProps('MoneyRangeField', MoneyRangeFieldDefaultProps, props);
 
-    const formatter = useCallback((value: string) => {
-        const formattedValue = moneyFormatter(value, '');
+    useEffect(() => {
+        const rawValue = entityForm.form.values[column.name];
+        const formattedValue = moneyFormatter((rawValue ?? '').toString(), '');
         column.valueDescription = `${currencySymbol} ${formattedValue}`;
-        return formattedValue;
-    }, [currencySymbol]);
+    }, [column, currencySymbol, entityForm.form.values]);
 
     const variable_step = useMemo(
         () => {
@@ -40,12 +40,10 @@ export function MoneyRangeField(props: MoneyRangeFieldProps) {
             {...rest}
             column={column}
             entityForm={entityForm}
-            parser={moneyParser}
-            formatter={formatter}
             step={variable_step}
             stepHoldDelay={500}
             stepHoldInterval={(t) => Math.max(1000 / t ** 2, 25)}
-            icon={currencySymbol}
+            prefix={currencySymbol}
         />
     )
 }

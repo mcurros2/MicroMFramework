@@ -1,4 +1,4 @@
-import { Skeleton, Stack, useComponentDefaultProps } from "@mantine/core";
+﻿import { Skeleton, Stack, useProps } from "@mantine/core";
 import { useCallback, useMemo, useState } from "react";
 import { useGoogleMapsAPI } from "../../GoogleMapsAPI";
 import { AlertError } from "../Core";
@@ -26,7 +26,7 @@ export function AddressSearch(props: AddressSearchProps) {
 
     const { mapReady, placesReady, geocoderReady } = googleMapsAPI;
 
-    const addressProps = useComponentDefaultProps('AddressSearch', AddressSearchDefaultProps, props);
+    const addressProps = useProps('AddressSearch', AddressSearchDefaultProps, props);
 
     return (
         <>

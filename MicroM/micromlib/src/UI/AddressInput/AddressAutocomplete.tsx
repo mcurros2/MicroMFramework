@@ -1,4 +1,4 @@
-import { ReactNode, useCallback, useEffect } from "react";
+﻿import { ReactNode, useCallback, useEffect } from "react";
 import { Value } from "../../client";
 import { EntityColumn, EntityColumnFlags } from "../../Entity";
 import { ValidatorConfiguration } from "../../Validation";
@@ -27,7 +27,7 @@ export interface AddressAutocompleteProps extends Omit<GoogleAddressAutocomplete
 }
 
 export function AddressAutocomplete(props: AddressAutocompleteProps) {
-    //const { } = useComponentDefaultProps('AddressAutocomplete', {}, props);
+    //const { } = useProps('AddressAutocomplete', {}, props);
     const {
         column, entityForm, validate, requiredMessage, validationContainer, countries, required, readOnly, onAddressFound,
         withAsterisk, label, placeholder, description, maxLength, autoFocus,

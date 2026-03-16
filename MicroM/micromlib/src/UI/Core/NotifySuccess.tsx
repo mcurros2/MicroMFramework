@@ -1,4 +1,4 @@
-import { Notification, NotificationProps, useComponentDefaultProps } from "@mantine/core";
+﻿import { Notification, NotificationProps, useProps } from "@mantine/core";
 import { IconCheck } from "@tabler/icons-react";
 
 export const NotifySuccessDefaultProps: Partial<NotificationProps> = {
@@ -7,7 +7,7 @@ export const NotifySuccessDefaultProps: Partial<NotificationProps> = {
 }
 
 export function NotifySuccess(props: NotificationProps) {
-    const { title, color } = useComponentDefaultProps('NotifySuccess', NotifySuccessDefaultProps, props);
+    const { title, color } = useProps('NotifySuccess', NotifySuccessDefaultProps, props);
 
 
     return (

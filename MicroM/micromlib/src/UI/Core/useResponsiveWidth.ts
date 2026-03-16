@@ -6,8 +6,8 @@ export function useResponsiveWidth(maxWidthRem: string, paddingRem: string): str
     const [width, setWidth] = useState<string>(maxWidthRem);
 
     useEffect(() => {
-        const desiredWidth = px(maxWidthRem);
-        const totalPadding = (px(paddingRem) * 2);
+        const desiredWidth = Number(px(maxWidthRem));
+        const totalPadding = Number(px(paddingRem)) * 2;
         const availableWidth = viewportSize.width - totalPadding;
 
         if (availableWidth < desiredWidth) {

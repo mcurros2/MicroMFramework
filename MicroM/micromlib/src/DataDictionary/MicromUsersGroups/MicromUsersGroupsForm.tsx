@@ -1,4 +1,4 @@
-import { Stack, Tabs, useComponentDefaultProps } from "@mantine/core";
+﻿import { Stack, Tabs, useProps } from "@mantine/core";
 import { IconListCheck, IconUsers, IconUsersGroup } from "@tabler/icons-react";
 import { useRef } from "react";
 import { DataGridForm, EntityForm, FormOptions, LookupMultiSelect, TextField, useEntityForm, useParentKeys } from "../../UI";
@@ -31,7 +31,7 @@ export function MicromUsersGroupsForm(props: MicromUsersGroupsFormProps) {
     const {
         entity, initialFormMode, getDataOnInit, onSaved, onCancel, groupTabLabel, menusTabLabel,
         membersTabLabel
-    } = useComponentDefaultProps('MicromUsersGroups', MicromUsersGroupsFormDefaultProps, props);
+    } = useProps('MicromUsersGroups', MicromUsersGroupsFormDefaultProps, props);
 
     const formAPI = useEntityForm({ entity: entity, initialFormMode, getDataOnInit: getDataOnInit!, onSaved, onCancel });
 
@@ -57,9 +57,9 @@ export function MicromUsersGroupsForm(props: MicromUsersGroupsFormProps) {
         <EntityForm formAPI={formAPI}>
             <Tabs pt="xs" defaultValue={TN.group} mih="60vh">
                 <Tabs.List>
-                    <Tabs.Tab value={TN.group} icon={TN.groupIcon} >{groupTabLabel}</Tabs.Tab>
-                    <Tabs.Tab value={TN.menus} icon={TN.menusIcon} >{menusTabLabel}</Tabs.Tab>
-                    <Tabs.Tab value={TN.members} icon={TN.membersIcon} >{membersTabLabel}</Tabs.Tab>
+                    <Tabs.Tab value={TN.group} leftSection={TN.groupIcon} >{groupTabLabel}</Tabs.Tab>
+                    <Tabs.Tab value={TN.menus} leftSection={TN.menusIcon} >{menusTabLabel}</Tabs.Tab>
+                    <Tabs.Tab value={TN.members} leftSection={TN.membersIcon} >{membersTabLabel}</Tabs.Tab>
                 </Tabs.List>
                 <Tabs.Panel value={TN.group} pt="xs" mih={gridHeight}>
                     <Stack>
@@ -117,4 +117,5 @@ export function MicromUsersGroupsForm(props: MicromUsersGroupsFormProps) {
         </EntityForm>
     )
 }
+
 

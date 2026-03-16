@@ -1,4 +1,4 @@
-import { Button, Card, Divider, Group, Stack, Tabs, useComponentDefaultProps, useMantineTheme } from "@mantine/core";
+import { Button, Card, Divider, Group, Stack, Tabs, useProps, useComputedColorScheme, useMantineTheme } from "@mantine/core";
 import { IconMailCheck, IconMailCog } from "@tabler/icons-react";
 import { ReactNode } from "react";
 import { CheckboxField, EntityForm, FormOptions, NumberField, PasswordField, TextAreaField, TextField, useEntityForm } from "../../UI";
@@ -31,24 +31,25 @@ export function EmailServiceConfigurationForm(props: EmailServiceConfigurationFo
     const {
         entity, initialFormMode, getDataOnInit, onSaved, onCancel, settingsTABLabel, settingsTABIcon, recoveryTABLabel, recoveryTABIcon,
         setDefaultMessageButtonLabel
-    } = useComponentDefaultProps('EmailServiceConfiguration', EmailServiceConfigurationFormDefaultProps, props);
+    } = useProps('EmailServiceConfiguration', EmailServiceConfigurationFormDefaultProps, props);
 
     const formAPI = useEntityForm({ entity: entity, initialFormMode, getDataOnInit: getDataOnInit!, onSaved, onCancel });
 
     const { formMode, status, form } = formAPI;
 
     const theme = useMantineTheme();
+    const isDark = useComputedColorScheme() === 'dark';
 
     const minFormHeight = '75vh';
 
     return (
         <EntityForm formAPI={formAPI}>
             <Stack>
-                <Card bg={theme.colorScheme === 'dark' ? theme.colors.dark[9] : undefined} withBorder={theme.colorScheme === 'dark' ? false : true} mih="65vh">
+                <Card bg={isDark ? theme.colors.dark[9] : undefined} withBorder={isDark ? false : true} mih="65vh">
                     <Tabs defaultValue={TN.settings} mih={minFormHeight}>
                         <Tabs.List mb="xs">
-                            <Tabs.Tab value={TN.settings} icon={settingsTABIcon} >{settingsTABLabel}</Tabs.Tab>
-                            <Tabs.Tab value={TN.recovery} icon={recoveryTABIcon} >{recoveryTABLabel}</Tabs.Tab>
+                            <Tabs.Tab value={TN.settings} leftSection={settingsTABIcon} >{settingsTABLabel}</Tabs.Tab>
+                            <Tabs.Tab value={TN.recovery} leftSection={recoveryTABIcon} >{recoveryTABLabel}</Tabs.Tab>
                         </Tabs.List>
                         <Tabs.Panel value={TN.settings}>
                             <Stack>
@@ -80,3 +81,7 @@ export function EmailServiceConfigurationForm(props: EmailServiceConfigurationFo
         </EntityForm>
     )
 }
+
+
+
+

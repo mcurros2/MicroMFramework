@@ -1,4 +1,4 @@
-import { Button, Group, Loader, SelectItem, Space, Stack, Text, useComponentDefaultProps } from "@mantine/core";
+﻿import { Button, Group, Loader, ComboboxItem, Space, Stack, Text, useProps } from "@mantine/core";
 import { ForwardedRef, forwardRef, useState } from "react";
 import { AlertError, useExecuteView, useViewState } from "../Core";
 import { DataGridToolbar } from "../DataGrid";
@@ -50,7 +50,7 @@ export const DataGridViewDefaultProps: Partial<DataViewProps> = {
 }
 
 export const DataGridView = forwardRef(function DataGridView(props: DataViewProps, ref: ForwardedRef<HTMLElement> | undefined) {
-    const effective_props = useComponentDefaultProps('DataGridView', DataGridViewDefaultProps, props);
+    const effective_props = useProps('DataGridView', DataGridViewDefaultProps, props);
     const {
         entity, autoFocus, toolbarIconVariant,
         actionsButtonVariant, enableAdd, enableEdit, enableDelete, enableView, enableExport, labels,
@@ -59,7 +59,7 @@ export const DataGridView = forwardRef(function DataGridView(props: DataViewProp
         showActions, parentKeys, visibleFilters, setInitialFiltersFromColumns, cardHrefRootURL, cardHrefTarget
     } = effective_props;
 
-    const [searchData, setSearchData] = useState<SelectItem[]>(search?.map(s => { return { value: s, label: s } }) as SelectItem[]);
+    const [searchData, setSearchData] = useState<ComboboxItem[]>(search?.map(s => { return { value: s, label: s } }) as ComboboxItem[]);
 
     const viewState = useViewState(search, limit);
 
@@ -74,7 +74,7 @@ export const DataGridView = forwardRef(function DataGridView(props: DataViewProp
 
     return (
         <section ref={ref}>
-            <Stack spacing="sm">
+            <Stack gap="sm">
                 <DataGridToolbar
                     {...labels!}
 
@@ -145,10 +145,10 @@ export const DataGridView = forwardRef(function DataGridView(props: DataViewProp
                     <AlertError mb="xs">Error: {dataViewAPI.executeViewState.error.status} {dataViewAPI.executeViewState.error.message} {dataViewAPI.executeViewState.error.statusMessage}</AlertError>
                 }
                 {!dataViewAPI.isLoading && !dataViewAPI.executeViewState.error && dataViewAPI.data.length > 0 && dataViewAPI.recordsCount === limit_number && limit_number !== 0 &&
-                    <Text fz="sm" align="center" fw={500} c="dimmed">{labels?.resultLimitLabel?.replace('%s', limit || '')}</Text>
+                    <Text fz="sm" ta="center" fw={500} c="dimmed">{labels?.resultLimitLabel?.replace('%s', limit || '')}</Text>
                 }
                 {!dataViewAPI.isLoading && !dataViewAPI.executeViewState.error && dataViewAPI.data.length === 0 && search &&
-                    <Text fz="sm" align="center" fw={500} c="dimmed">{labels?.noRecordsFoundLabel}</Text>
+                    <Text fz="sm" ta="center" fw={500} c="dimmed">{labels?.noRecordsFoundLabel}</Text>
                 }
                 {dataViewAPI.data.length > 0 &&
                     <Group>
@@ -185,3 +185,4 @@ export const DataGridView = forwardRef(function DataGridView(props: DataViewProp
         </section>
     )
 });
+

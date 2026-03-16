@@ -1,6 +1,5 @@
-import { useComponentDefaultProps } from "@mantine/core";
+﻿import { useProps } from "@mantine/core";
 import { useForm, UseFormReturnType } from "@mantine/form";
-import { LooseKeys } from "@mantine/form/lib/types";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DBStatus, DBStatusResult, OperationStatus, SQLType, toDBStatusMicroMError, toMicroMError, Value, ValuesObject } from "../../client";
 import { areValuesObjectsEqual, Entity, EntityColumn, EntityDefinition, isIn, setValues } from "../../Entity";
@@ -10,7 +9,7 @@ import { getMantineInitialValuesObject, getMantineValuesObject } from "./Mantine
 
 export interface UseEntityFormOptions extends FormOptions<Entity<EntityDefinition>> {
     validateInputOnBlur?: boolean,
-    validateInputOnChange?: boolean | LooseKeys<ValuesObject>[],
+    validateInputOnChange?: boolean | string[],
     forceDirty?: boolean,
     saveAndGetOverride?: (get_data_if_saved: boolean, override_values?: ValuesObject) => Promise<OperationStatus<DBStatusResult>>,
     noSaveOnSubmit?: boolean,
@@ -76,7 +75,7 @@ export function useEntityForm(props: UseEntityFormOptions): UseEntityFormReturnT
         cancelSaveOnUnmount,
         saveBeforeLocalNavigation,
         saveBeforeRemoteNavigation,
-    } = useComponentDefaultProps('', UseEntityFormDefaultProps, props);
+    } = useProps('', UseEntityFormDefaultProps, props);
 
     const [status, setStatus] = useState<OperationStatus<DBStatusResult | ValuesObject>>({}); // Initial queryStatus is empty on purpose to not disable fields before data is loaded
     const notifyValidationErrorState = useState<boolean>(false);

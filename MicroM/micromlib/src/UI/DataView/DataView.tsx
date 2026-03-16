@@ -1,4 +1,4 @@
-import { Button, Group, Loader, SelectItem, Space, Stack, Text, useComponentDefaultProps } from "@mantine/core";
+﻿import { Button, Group, Loader, ComboboxItem, Space, Stack, Text, useProps } from "@mantine/core";
 import { ForwardedRef, forwardRef, useState } from "react";
 import { AlertError, useExecuteView, useViewState } from "../Core";
 import { DataGridToolbar } from "../DataGrid";
@@ -58,7 +58,7 @@ export const DataViewDefaultProps: Partial<DataViewProps> = {
 }
 
 export const DataView = forwardRef(function DataView(props: DataViewProps, ref: ForwardedRef<HTMLElement> | undefined) {
-    props = useComponentDefaultProps('DataView', DataViewDefaultProps, props);
+    props = useProps('DataView', DataViewDefaultProps, props);
     const {
         entity, autoFocus, toolbarIconVariant,
         actionsButtonVariant, enableAdd, enableEdit, enableDelete, enableView, enableExport, labels,
@@ -69,7 +69,7 @@ export const DataView = forwardRef(function DataView(props: DataViewProps, ref: 
         CardRowAlign, RowsContainer
     } = props;
 
-    const [searchData, setSearchData] = useState<SelectItem[]>(search?.map(s => { return { value: s, label: s } }) as SelectItem[]);
+    const [searchData, setSearchData] = useState<ComboboxItem[]>(search?.map(s => { return { value: s, label: s } }) as ComboboxItem[]);
 
     const viewState = useViewState(search, limit);
 
@@ -88,7 +88,7 @@ export const DataView = forwardRef(function DataView(props: DataViewProps, ref: 
 
     return (
         <section ref={ref}>
-            <Stack spacing="sm">
+            <Stack gap="sm">
                 {showToolbar &&
                     <>
                         <DataGridToolbar
@@ -171,10 +171,10 @@ export const DataView = forwardRef(function DataView(props: DataViewProps, ref: 
                     <AlertError mb="xs">Error: {dataViewAPI.executeViewState.error.status} {dataViewAPI.executeViewState.error.message} {dataViewAPI.executeViewState.error.statusMessage}</AlertError>
                 }
                 {!dataViewAPI.isLoading && !dataViewAPI.executeViewState.error && dataViewAPI.data.length > 0 && dataViewAPI.recordsCount === limit_number && limit_number !== 0 &&
-                    <Text fz="sm" align="center" fw={500} c="dimmed">{labels?.resultLimitLabel?.replace('%s', limit || '')}</Text>
+                    <Text fz="sm" ta="center" fw={500} c="dimmed">{labels?.resultLimitLabel?.replace('%s', limit || '')}</Text>
                 }
                 {!dataViewAPI.isLoading && !dataViewAPI.executeViewState.error && dataViewAPI.data.length === 0 && search &&
-                    <Text fz="sm" align="center" fw={500} c="dimmed">{labels?.noRecordsFoundLabel}</Text>
+                    <Text fz="sm" ta="center" fw={500} c="dimmed">{labels?.noRecordsFoundLabel}</Text>
                 }
                 {dataViewAPI.data.length > 0 && RowsContainer &&
                     <RowsContainer {...(CardRowAlign ? { align: CardRowAlign } : null)}>
@@ -212,3 +212,4 @@ export const DataView = forwardRef(function DataView(props: DataViewProps, ref: 
         </section>
     )
 });
+

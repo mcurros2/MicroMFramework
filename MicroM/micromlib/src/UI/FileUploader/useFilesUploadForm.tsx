@@ -1,5 +1,5 @@
 import { Text } from "@mantine/core";
-import { ModalSettings } from "@mantine/modals/lib/context";
+import { ModalSettings } from "../Core/ModalSettings";
 import { useCallback, useRef } from "react";
 import { MicroMClient } from "../../client";
 import { EntityColumn } from "../../Entity";

@@ -1,6 +1,6 @@
-import "../../../libs/w2ui/w2ui.css";
+﻿import "../../../libs/w2ui/w2ui.css";
 import "./W2Grid.css";
-import { Paper, useComponentDefaultProps } from "@mantine/core";
+import { Paper, useProps } from "@mantine/core";
 import { SQLType } from "client";
 import { ForwardedRef, forwardRef, ReactNode, useImperativeHandle } from "react";
 import { useGrid } from "./useGrid";
@@ -91,7 +91,7 @@ export const DefaultGridColumnProps: Partial<GridColumn> = {
 }
 
 export const Grid = forwardRef(function Grid(props: GridOptions, ref: ForwardedRef<GridImperative>) {
-    props = useComponentDefaultProps('Grid', DefaultGridProps, props);
+    props = useProps('Grid', DefaultGridProps, props);
 
     const gridAPI = useGrid(props);
 
@@ -104,3 +104,4 @@ export const Grid = forwardRef(function Grid(props: GridOptions, ref: ForwardedR
         </Paper>
     );
 })
+

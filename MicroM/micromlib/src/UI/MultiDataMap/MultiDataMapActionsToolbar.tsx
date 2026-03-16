@@ -1,4 +1,4 @@
-import { ActionIcon, Box, Button, Group, Menu, useComponentDefaultProps, useMantineTheme } from "@mantine/core";
+﻿import { ActionIcon, Box, Button, Group, Menu, useProps, useMantineTheme } from "@mantine/core";
 import { IconEye, IconEyeOff, IconSettingsPin } from "@tabler/icons-react";
 import { useRef } from "react";
 import { EntityClientAction } from "../../Entity";
@@ -36,7 +36,7 @@ export function MultiDataMapActionsToolbar(props: MultiDataMapActionsToolbarProp
     const {
         showMapConfig, data1, data2, data3, data4, data5, configMenuTitle, size, toolbarIconVariant, parentFormMode,
         actionsButtonVariant
-    } = useComponentDefaultProps('MultiDataMapActionsToolbar', MultiDataMapActionsToolbarDefaultProps, props);
+    } = useProps('MultiDataMapActionsToolbar', MultiDataMapActionsToolbarDefaultProps, props);
 
     const theme = useMantineTheme();
     const { buttonsSize, actionIconSize, iconsSize } = getToolbarSizes(size!);
@@ -52,7 +52,7 @@ export function MultiDataMapActionsToolbar(props: MultiDataMapActionsToolbarProp
                             if (parentFormMode === 'view' && !action.showActionInViewMode) return null;
                             if (data1.dgProps.viewName && action.views && !action.views.includes(data1.dgProps.viewName)) return null;
                             return (
-                                <Button leftIcon={action.icon} key={action.name} ref={(el) => (actionElements.current[index] = el)} size={buttonsSize} variant={actionsButtonVariant} onClick={() => data1.dataGridAPI.handleExecuteAction(action, undefined, actionElements.current[index] ?? undefined)}>{action.label}</Button>
+                                <Button leftSection={action.icon} key={action.name} ref={(el) => (actionElements.current[index] = el)} size={buttonsSize} variant={actionsButtonVariant} onClick={() => data1.dataGridAPI.handleExecuteAction(action, undefined, actionElements.current[index] ?? undefined)}>{action.label}</Button>
                             )
                         }
                     )
@@ -63,7 +63,7 @@ export function MultiDataMapActionsToolbar(props: MultiDataMapActionsToolbarProp
                             if (parentFormMode === 'view' && !action.showActionInViewMode) return null;
                             if (data2.dgProps.viewName && action.views && !action.views.includes(data2.dgProps.viewName)) return null;
                             return (
-                                <Button leftIcon={action.icon} key={action.name} ref={(el) => (actionElements.current[index] = el)} size={buttonsSize} variant={actionsButtonVariant} onClick={() => data2.dataGridAPI.handleExecuteAction(action, undefined, actionElements.current[index] ?? undefined)}>{action.label}</Button>
+                                <Button leftSection={action.icon} key={action.name} ref={(el) => (actionElements.current[index] = el)} size={buttonsSize} variant={actionsButtonVariant} onClick={() => data2.dataGridAPI.handleExecuteAction(action, undefined, actionElements.current[index] ?? undefined)}>{action.label}</Button>
                             )
                         }
                     )
@@ -74,7 +74,7 @@ export function MultiDataMapActionsToolbar(props: MultiDataMapActionsToolbarProp
                             if (parentFormMode === 'view' && !action.showActionInViewMode) return null;
                             if (data3.dgProps.viewName && action.views && !action.views.includes(data3.dgProps.viewName)) return null;
                             return (
-                                <Button leftIcon={action.icon} key={action.name} ref={(el) => (actionElements.current[index] = el)} size={buttonsSize} variant={actionsButtonVariant} onClick={() => data3.dataGridAPI.handleExecuteAction(action, undefined, actionElements.current[index] ?? undefined)}>{action.label}</Button>
+                                <Button leftSection={action.icon} key={action.name} ref={(el) => (actionElements.current[index] = el)} size={buttonsSize} variant={actionsButtonVariant} onClick={() => data3.dataGridAPI.handleExecuteAction(action, undefined, actionElements.current[index] ?? undefined)}>{action.label}</Button>
                             )
                         }
                     )
@@ -85,7 +85,7 @@ export function MultiDataMapActionsToolbar(props: MultiDataMapActionsToolbarProp
                             if (parentFormMode === 'view' && !action.showActionInViewMode) return null;
                             if (data4.dgProps.viewName && action.views && !action.views.includes(data4.dgProps.viewName)) return null;
                             return (
-                                <Button leftIcon={action.icon} key={action.name} ref={(el) => (actionElements.current[index] = el)} size={buttonsSize} variant={actionsButtonVariant} onClick={() => data4.dataGridAPI.handleExecuteAction(action, undefined, actionElements.current[index] ?? undefined)}>{action.label}</Button>
+                                <Button leftSection={action.icon} key={action.name} ref={(el) => (actionElements.current[index] = el)} size={buttonsSize} variant={actionsButtonVariant} onClick={() => data4.dataGridAPI.handleExecuteAction(action, undefined, actionElements.current[index] ?? undefined)}>{action.label}</Button>
                             )
                         }
                     )
@@ -96,7 +96,7 @@ export function MultiDataMapActionsToolbar(props: MultiDataMapActionsToolbarProp
                             if (parentFormMode === 'view' && !action.showActionInViewMode) return null;
                             if (data5.dgProps.viewName && action.views && !action.views.includes(data5.dgProps.viewName)) return null;
                             return (
-                                <Button leftIcon={action.icon} key={action.name} ref={(el) => (actionElements.current[index] = el)} size={buttonsSize} variant={actionsButtonVariant} onClick={() => data5.dataGridAPI.handleExecuteAction(action, undefined, actionElements.current[index] ?? undefined)}>{action.label}</Button>
+                                <Button leftSection={action.icon} key={action.name} ref={(el) => (actionElements.current[index] = el)} size={buttonsSize} variant={actionsButtonVariant} onClick={() => data5.dataGridAPI.handleExecuteAction(action, undefined, actionElements.current[index] ?? undefined)}>{action.label}</Button>
                             )
                         }
                     )
@@ -117,7 +117,7 @@ export function MultiDataMapActionsToolbar(props: MultiDataMapActionsToolbarProp
                         <Menu.Dropdown>
                             {data1?.dgProps.entity &&
                                 <Menu.Item
-                                    icon={data1.showOnMap ? <IconEye size="1rem" /> : <IconEyeOff size="1rem" />}
+                                    leftSection={data1.showOnMap ? <IconEye size="1rem" /> : <IconEyeOff size="1rem" />}
                                     onClick={() => data1.setShowOnMap((prev) => prev = !prev)}
                                 >
                                     {data1.dgProps.tabLabel}
@@ -125,7 +125,7 @@ export function MultiDataMapActionsToolbar(props: MultiDataMapActionsToolbarProp
                             }
                             {data2?.dgProps.entity &&
                                 <Menu.Item
-                                    icon={data2.showOnMap ? <IconEye size="1rem" /> : <IconEyeOff size="1rem" />}
+                                    leftSection={data2.showOnMap ? <IconEye size="1rem" /> : <IconEyeOff size="1rem" />}
                                     onClick={() => data2.setShowOnMap((prev) => prev = !prev)}
                                 >
                                     {data2.dgProps.tabLabel}
@@ -133,7 +133,7 @@ export function MultiDataMapActionsToolbar(props: MultiDataMapActionsToolbarProp
                             }
                             {data3?.dgProps.entity &&
                                 <Menu.Item
-                                    icon={data3.showOnMap ? <IconEye size="1rem" /> : <IconEyeOff size="1rem" />}
+                                    leftSection={data3.showOnMap ? <IconEye size="1rem" /> : <IconEyeOff size="1rem" />}
                                     onClick={() => data3.setShowOnMap((prev) => prev = !prev)}
                                 >
                                     {data3.dgProps.tabLabel}
@@ -141,7 +141,7 @@ export function MultiDataMapActionsToolbar(props: MultiDataMapActionsToolbarProp
                             }
                             {data4?.dgProps.entity &&
                                 <Menu.Item
-                                    icon={data4.showOnMap ? <IconEye size="1rem" /> : <IconEyeOff size="1rem" />}
+                                    leftSection={data4.showOnMap ? <IconEye size="1rem" /> : <IconEyeOff size="1rem" />}
                                     onClick={() => data4.setShowOnMap((prev) => prev = !prev)}
                                 >
                                     {data4.dgProps.tabLabel}
@@ -149,7 +149,7 @@ export function MultiDataMapActionsToolbar(props: MultiDataMapActionsToolbarProp
                             }
                             {data5?.dgProps.entity &&
                                 <Menu.Item
-                                    icon={data5.showOnMap ? <IconEye size="1rem" /> : <IconEyeOff size="1rem" />}
+                                    leftSection={data5.showOnMap ? <IconEye size="1rem" /> : <IconEyeOff size="1rem" />}
                                     onClick={() => data5.setShowOnMap((prev) => prev = !prev)}
                                 >
                                     {data5.dgProps.tabLabel}

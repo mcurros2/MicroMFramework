@@ -1,4 +1,4 @@
-import { Group, PasswordInput, PasswordInputProps, useComponentDefaultProps } from "@mantine/core";
+﻿import { Group, PasswordInput, PasswordInputProps, useProps } from "@mantine/core";
 import { ReactNode } from "react";
 import { EntityColumn, EntityColumnFlags } from "../../Entity";
 import { ValidatorConfigurationParms } from "../../Validation";
@@ -27,7 +27,7 @@ export function PasswordField(props: PasswordFieldProps) {
     const {
         column, loading, entityForm, maw, required, maxLength, disabled, disableOnLoading, label, validationContainer, validate, requiredMessage,
         description, readOnly, withAsterisk, ...others
-    } = useComponentDefaultProps('PasswordField', defaultProps, props);
+    } = useProps('PasswordField', defaultProps, props);
 
     useFieldConfiguration({ entityForm, column, validationContainer, validate, required, requiredMessage, readOnly });
 

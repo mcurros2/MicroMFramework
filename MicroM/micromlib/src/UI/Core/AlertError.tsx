@@ -1,4 +1,4 @@
-import { Alert, AlertProps, useComponentDefaultProps } from "@mantine/core";
+﻿import { Alert, AlertProps, useProps } from "@mantine/core";
 import { IconAlertCircle } from "@tabler/icons-react";
 
 export interface AlertErrorProps extends Omit<AlertProps, 'icon'> {
@@ -11,7 +11,7 @@ export const AlertErrorDefaultProps: Partial<AlertErrorProps> = {
 }
 
 export function AlertError(props: AlertErrorProps) {
-    const { title, color, iconTooltip, ...rest } = useComponentDefaultProps('AlertError', AlertErrorDefaultProps, props);
+    const { title, color, iconTooltip, ...rest } = useProps('AlertError', AlertErrorDefaultProps, props);
 
     return (
         <Alert icon={<IconAlertCircle size="2rem" title={iconTooltip} />} title={title} color={color} {...rest}>

@@ -1,4 +1,4 @@
-import { SelectItem } from "@mantine/core";
+﻿import { ComboboxItem } from "@mantine/core";
 import { ReactNode, useEffect } from "react";
 import { Value, ValuesObject } from "../../client";
 import { Entity, EntityColumn, EntityDefinition } from "../../Entity";
@@ -8,7 +8,7 @@ import { useLookupEntity, useLookupForm } from "../Lookup";
 
 export interface UseLookupSelectOptions {
     parentKeys?: ValuesObject,
-    selectDataState: useStateReturnType<SelectItem[]>,
+    selectDataState: useStateReturnType<ComboboxItem[]>,
     triggerRefreshState: useStateReturnType<boolean>,
     column: EntityColumn<Value>,
     entityForm: UseEntityFormReturnType,
@@ -69,7 +69,7 @@ export const useLookupSelect = (props: UseLookupSelectOptions) => {
             const tableData = status.data[0].records.map((record) => {
                 const formatedDescription = localeFormat.formatValue(record[descIndex], status.data![0].typeInfo[descIndex]);
                 const formatedKey = localeFormat.formatValue(record[keyIndex], status.data![0].typeInfo[descIndex]);
-                return { value: record[keyIndex]?.toString(), label: (includeKeyInDescription === true) ? `${formatedKey} - ${formatedDescription}` : formatedDescription } as SelectItem;
+                return { value: record[keyIndex]?.toString(), label: (includeKeyInDescription === true) ? `${formatedKey} - ${formatedDescription}` : formatedDescription } as ComboboxItem;
             });
 
             setSelectData(tableData);

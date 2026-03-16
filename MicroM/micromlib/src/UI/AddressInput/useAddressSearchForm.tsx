@@ -1,5 +1,5 @@
 import { Text } from "@mantine/core";
-import { ModalSettings } from "@mantine/modals/lib/context";
+import { ModalSettings } from "../Core/ModalSettings";
 import { useRef } from "react";
 import { latLng, useModal } from "../Core";
 import { AddressFoundResult } from "../GoogleMaps";

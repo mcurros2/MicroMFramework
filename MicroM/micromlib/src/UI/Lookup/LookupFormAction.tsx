@@ -1,4 +1,4 @@
-import { Button, Group, Stack, Text, useComponentDefaultProps } from "@mantine/core";
+﻿import { Button, Group, Stack, Text, useProps } from "@mantine/core";
 import { IconAlertCircle, IconBoxMultiple } from "@tabler/icons-react";
 import { DBStatusResult } from "../../client";
 import { Entity, EntityDefinition } from "../../Entity";
@@ -43,7 +43,7 @@ export function LookupFormAction(props: LookupFormActionProps) {
         lookupEntity, viewName, onOK, addingRecords, title, onCancel, onActionFinished, runOnOpen,
         confirmContent, showActions, enableAdd, enableEdit, enableDelete, enableView, enableExport,
         modalFormSize
-    } = useComponentDefaultProps('LookupFormAction', LookupFormActionDefaultProps, props);
+    } = useProps('LookupFormAction', LookupFormActionDefaultProps, props);
 
     const modal = useModal();
 
@@ -126,7 +126,7 @@ export function LookupFormAction(props: LookupFormActionProps) {
                                     <Text size="sm" mb="xs">
                                         {labels?.YouMustSelectOneOrMoreRecordsToExecuteAction}
                                     </Text>
-                                    <Group mt="xs" position="right">
+                                    <Group mt="xs" justify="right">
                                         <Button onClick={async () => await modal.close()}>{labels?.closeLabel}</Button>
                                     </Group>
                                 </>
@@ -141,3 +141,4 @@ export function LookupFormAction(props: LookupFormActionProps) {
         />
     );
 }
+

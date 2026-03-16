@@ -1,4 +1,4 @@
-import { ActionIcon, Button, DefaultMantineColor, FocusTrap, Group, Notification, Space, useComponentDefaultProps, useMantineTheme, Variants } from "@mantine/core";
+﻿import { ActionIcon, Button, ButtonProps, DefaultMantineColor, FocusTrap, Group, Notification, Space, useProps, useMantineTheme } from "@mantine/core";
 import { IconCircleCheck, IconCircleX, IconHelp, IconHelpOff, IconX } from "@tabler/icons-react";
 import { PropsWithChildren, ReactNode, useEffect } from "react";
 import { AlertError, FakeProgressBar, usePreventEnterSubmission } from "../Core";
@@ -21,8 +21,8 @@ export interface EntityFormProps extends PropsWithChildren {
     buttons?: ReactNode,
     saveAndGetOnSubmit?: boolean,
     isDirtyColor?: DefaultMantineColor,
-    cancelButtonVariant?: Variants<'filled' | 'outline' | 'light' | 'white' | 'default' | 'subtle' | 'gradient'>,
-    okButtonVariant?: Variants<'filled' | 'outline' | 'light' | 'white' | 'default' | 'subtle' | 'gradient'>,
+    cancelButtonVariant?: ButtonProps['variant'],
+    okButtonVariant?: ButtonProps['variant'],
     saveBeforeLocalNavigation?: boolean,
     saveBeforeRemoteNavigation?: boolean,
 }
@@ -48,7 +48,7 @@ export function EntityForm(props: EntityFormProps) {
     const {
         formAPI, children, showOK, showCancel, showErrors, showFormValidationNotification, showLoadingProgress, OKText, CancelText, invalidFieldsLabel,
         showHelpButton, preventEnterSubmission, CloseText, buttons, isDirtyColor, cancelButtonVariant, okButtonVariant
-    } = useComponentDefaultProps('EntityForm', EntityFormDefaultProps, props);
+    } = useProps('EntityForm', EntityFormDefaultProps, props);
 
     const { entity } = formAPI;
 
@@ -94,9 +94,9 @@ export function EntityForm(props: EntityFormProps) {
                     <Group mt="md">
                         {buttons}
                         {(showOK || showCancel) &&
-                            <Group position="right" style={{ flex: 'auto' }}>
-                                {showCancel && <Button variant={cancelButtonVariant} leftIcon={<IconCircleX size="1.125rem" />} onClick={handleCancel} >{formMode === 'view' ? CloseText : CancelText}</Button>}
-                                {showOK && formMode != "view" && <Button variant={okButtonVariant} type="submit" color={form.isDirty() ? isDirtyColor : theme.primaryColor} loading={status?.loading} leftIcon={<IconCircleCheck size="1.125rem" />}>{OKText}</Button>}
+                            <Group justify="right" style={{ flex: 'auto' }}>
+                                {showCancel && <Button variant={cancelButtonVariant} leftSection={<IconCircleX size="1.125rem" />} onClick={handleCancel} >{formMode === 'view' ? CloseText : CancelText}</Button>}
+                                {showOK && formMode != "view" && <Button variant={okButtonVariant} type="submit" color={form.isDirty() ? isDirtyColor : theme.primaryColor} loading={status?.loading} leftSection={<IconCircleCheck size="1.125rem" />}>{OKText}</Button>}
                             </Group>
                         }
                     </Group>
@@ -106,3 +106,4 @@ export function EntityForm(props: EntityFormProps) {
     )
 
 }
+

@@ -1,4 +1,4 @@
-import { Card, CardProps, Center, DefaultMantineColor, Group, MantineColor, RingProgress, Text, useComponentDefaultProps, useMantineTheme } from "@mantine/core";
+import { Card, CardProps, Center, DefaultMantineColor, Group, MantineColor, RingProgress, Text, useProps, useComputedColorScheme, useMantineTheme } from "@mantine/core";
 import { IconProps } from "@tabler/icons-react";
 import { ReactNode } from "react";
 import { EntityColumn } from "../../Entity";
@@ -35,15 +35,16 @@ export function RingProgressField(props: RingProgressFieldProps) {
     const {
         centerIcon, column, title, description, color, maxValue, ringSize, thickness, iconSize, displayPercent,
         centerLabel, showPercentAsCenterLabel, iconColor, ...others
-    } = useComponentDefaultProps('RingProgressField', RingProgressFieldDefaultProps, props);
+    } = useProps('RingProgressField', RingProgressFieldDefaultProps, props);
 
     const theme = useMantineTheme();
+    const isDark = useComputedColorScheme() === 'dark';
 
     const Icon = centerIcon!;
 
     const progress = isNaN(((column.value ?? 0) / maxValue!) * 100) ? 0 : ((column.value ?? 0) / maxValue!) * 100;
 
-    const percentIconLabel = showPercentAsCenterLabel ? <Text weight="bolder" align="center" color={iconColor} size="xs">{progress.toFixed(0)}%</Text> : undefined;
+    const percentIconLabel = showPercentAsCenterLabel ? <Text fw="bolder" ta="center" c={iconColor} size="xs">{progress.toFixed(0)}%</Text> : undefined;
 
     const iconLabel = centerIcon ? <Center><Icon size={iconSize} stroke={1.5} color={iconColor} /></Center> : undefined
 
@@ -60,10 +61,10 @@ export function RingProgressField(props: RingProgressFieldProps) {
                     label={iconLabel || percentIconLabel || centerLabel}
                 />
                 <div style={{ flex: 1 }}>
-                    <Text weight={500} color={theme.colorScheme === 'dark' ? theme.white : theme.colors.gray[9]} size="sm">
+                    <Text fw={500} c={isDark ? theme.white : theme.colors.gray[9]} size="sm">
                         {title ?? column.prompt}{percent}
                     </Text>
-                    <Text size="sm" color={theme.colorScheme === 'dark' ? theme.colors.dark[2] : theme.colors.gray[6]}>
+                    <Text size="sm" c={isDark ? theme.colors.dark[2] : theme.colors.gray[6]}>
                         {description ?? column.description}
                     </Text>
                 </div>
@@ -71,3 +72,7 @@ export function RingProgressField(props: RingProgressFieldProps) {
         </Card>
     )
 }
+
+
+
+

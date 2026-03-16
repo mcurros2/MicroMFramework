@@ -1,4 +1,4 @@
-import { Modal, useComponentDefaultProps } from "@mantine/core";
+﻿import { Modal, useProps } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { useEffect } from "react";
 import { MicroMClient, MicroMClientClaimTypes, MicroMToken, OperationStatus } from "../../client";
@@ -18,7 +18,7 @@ export const LoginModalDefaultProps: Partial<LoginModalProps> = {
 }
 
 export function LoginModal(props: LoginModalProps) {
-    const { client, title, onClose, onLoggedIn, checkOnInit } = useComponentDefaultProps('LoginModal', LoginModalDefaultProps, props);
+    const { client, title, onClose, onLoggedIn, checkOnInit } = useProps('LoginModal', LoginModalDefaultProps, props);
     const [opened, { open, close }] = useDisclosure(false);
 
     const statusCompletedHandler = (status: OperationStatus<MicroMToken>) => {

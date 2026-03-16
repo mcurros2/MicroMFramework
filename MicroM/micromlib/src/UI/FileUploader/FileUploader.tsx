@@ -1,4 +1,4 @@
-import { ActionIcon, Box, Button, Card, Group, Image, ImageProps, Progress, Stack, Text, useComponentDefaultProps, useMantineTheme } from "@mantine/core";
+import { ActionIcon, Box, Button, Card, Group, Image, ImageProps, Progress, Stack, Text, useProps, useComputedColorScheme, useMantineTheme } from "@mantine/core";
 import { Dropzone, DropzoneProps } from "@mantine/dropzone";
 import { IconCircleX, IconDownload, IconEye, IconFileTypePdf, IconPhoto, IconProps, IconTrash, IconUpload, IconX } from "@tabler/icons-react";
 import { ReactNode } from "react";
@@ -40,10 +40,10 @@ export const FileUploaderDefaultProps: Partial<FileUploaderProps> = {
     pdfCannotBeViewedText: 'PDF cannot be displayed, download the file to view it.',
     accept: ['image/*'],
     imageProps: {
-        width: "7rem",
-        height: "3.94rem",
+        w: "7rem",
+        h: "3.94rem",
         fit: "contain",
-        withPlaceholder: true,
+        // withPlaceholder: true, //TODO: desde migracion Mantine v8 no existe
         mah: "3.94rem"
     },
     showCancelButton: true,
@@ -56,7 +56,7 @@ export function FileUploader(props: FileUploaderProps) {
         IdleIcon, UploadText, uploadAPI, EachFileShouldNotExceedText, AttachUpToText, FilesText,
         imageProps, onDelete, closeText, cancelledText, operationCancelledText, pdfCannotBeViewedText,
         showCancelButton, cancelLabel, parentFormAPI, ...dropzoneProps
-    } = useComponentDefaultProps('FileUploader', FileUploaderDefaultProps, props);
+    } = useProps('FileUploader', FileUploaderDefaultProps, props);
 
     const {
         uploadFiles, uploadProgress, errorNotification, cancelledNotification, clearNotifications, uploadingNotification, deleteFile,
@@ -64,6 +64,7 @@ export function FileUploader(props: FileUploaderProps) {
     } = uploadAPI;
 
     const theme = useMantineTheme();
+    const isDark = useComputedColorScheme() === 'dark';
     const modals = useModal();
 
     dropzoneProps.disabled = dropzoneProps.disabled || (parentFormAPI?.formMode === 'view');
@@ -103,10 +104,10 @@ export function FileUploader(props: FileUploaderProps) {
         const fileType = getFileType(report.file_name);
 
         return (
-            <Card key={report.status_id} bg={theme.colorScheme === 'dark' ? theme.colors.dark[8] : theme.colors.gray[3]} w="15rem">
+            <Card key={report.status_id} bg={isDark ? theme.colors.dark[8] : theme.colors.gray[3]} w="15rem">
                 {report.done && !report.errorMessage &&
                     <Card.Section p="xs" mb="1rem">
-                        <Group position="right">
+                        <Group justify="right">
                             {(fileType === 'image' || fileType === 'pdf') &&
                                 <ActionIcon color={theme.primaryColor} variant="light" onClick={async () =>
                                     fileType === 'image'
@@ -125,7 +126,7 @@ export function FileUploader(props: FileUploaderProps) {
                 {!report.done &&
                     <>
                         <Text size="sm" color="dimmed">{report.file_name} - {report.progress}%</Text>
-                        <Progress value={report.progress} striped animate />
+                        <Progress value={report.progress} striped animated />
                     </>
                 }
                 {report.cancelled &&
@@ -156,19 +157,19 @@ export function FileUploader(props: FileUploaderProps) {
         <Stack>
             <Group grow>
                 <Dropzone {...dropzoneProps} loading={uploadingNotification || loadingNotification} onDrop={handleUpload}>
-                    <Group position="center" spacing="xl" style={{ pointerEvents: 'none' }}>
+                    <Group justify="center" gap="xl" style={{ pointerEvents: 'none' }}>
                         <Dropzone.Accept>
                             <IconUpload
                                 size="3.2rem"
                                 stroke={1.5}
-                                color={theme.colors[theme.primaryColor][theme.colorScheme === 'dark' ? 4 : 6]}
+                                color={theme.colors[theme.primaryColor][isDark ? 4 : 6]}
                             />
                         </Dropzone.Accept>
                         <Dropzone.Reject>
                             <IconX
                                 size="3.2rem"
                                 stroke={1.5}
-                                color={theme.colors.red[theme.colorScheme === 'dark' ? 4 : 6]}
+                                color={theme.colors.red[isDark ? 4 : 6]}
                             />
                         </Dropzone.Reject>
                         <Dropzone.Idle>
@@ -187,19 +188,19 @@ export function FileUploader(props: FileUploaderProps) {
             </Group>
             {showCancelButton && uploadingNotification &&
                 <Group key="cancel">
-                    <Button color="red" size="sm" leftIcon={<IconCircleX size="1.5rem" />} onClick={cancelUpload}>{cancelLabel}</Button>
+                    <Button color="red" size="sm" leftSection={<IconCircleX size="1.5rem" />} onClick={cancelUpload}>{cancelLabel}</Button>
                 </Group>
             }
             {
                 (errorNotification || cancelledNotification) &&
                 <Group key="notifications" grow>
                     {errorNotification && !cancelledNotification &&
-                        <NotifyError key="error" withCloseButton title="" onClose={clearNotifications} bg={theme.colorScheme === 'dark' ? theme.colors.dark[5] : theme.colors[theme.primaryColor][3]}>
+                        <NotifyError key="error" withCloseButton title="" onClose={clearNotifications} bg={isDark ? theme.colors.dark[5] : theme.colors[theme.primaryColor][3]}>
                             {errorNotification}
                         </NotifyError>
                     }
                     {cancelledNotification &&
-                        <NotifyInfo key="info" withCloseButton title="" onClose={clearNotifications} bg={theme.colorScheme === 'dark' ? theme.colors.dark[5] : theme.colors[theme.primaryColor][3]}>
+                        <NotifyInfo key="info" withCloseButton title="" onClose={clearNotifications} bg={isDark ? theme.colors.dark[5] : theme.colors[theme.primaryColor][3]}>
                             {operationCancelledText}
                         </NotifyInfo>
                     }
@@ -207,10 +208,15 @@ export function FileUploader(props: FileUploaderProps) {
             }
             {
                 progressElements.length > 0 &&
-                <Group key="progresselements" spacing="xs">
+                <Group key="progresselements" gap="xs">
                     {progressElements}
                 </Group>
             }
         </Stack >
     )
 }
+
+
+
+
+

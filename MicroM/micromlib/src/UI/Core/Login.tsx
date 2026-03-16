@@ -1,4 +1,4 @@
-import { Anchor, Button, Checkbox, Group, PasswordInput, Text, TextInput, useComponentDefaultProps } from "@mantine/core";
+﻿import { Anchor, Button, Checkbox, Group, PasswordInput, Text, TextInput, useProps } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { IconMailCheck } from "@tabler/icons-react";
 import { useCallback, useEffect, useState } from "react";
@@ -37,7 +37,7 @@ export function Login(props: LoginOptions) {
     const {
         client, onStatusCompleted, userLabel, userPlaceholder, passwordLabel, passwordPlaceholder,
         rememberLabel, forgotLabel, signInButtonLabel, loginErrorMessage, confirmRecoveryEmailTitle,
-    } = useComponentDefaultProps('Login', LoginDefaultProps, props);
+    } = useProps('Login', LoginDefaultProps, props);
 
     const modal = useModal();
 
@@ -95,7 +95,7 @@ export function Login(props: LoginOptions) {
                 {status?.loading && <FakeProgressBar />}
                 <TextInput label={userLabel} placeholder={userPlaceholder} required data-autofocus disabled={status?.loading} {...form.getInputProps('user')} />
                 <PasswordInput label={passwordLabel} placeholder={passwordPlaceholder} required mt="md" disabled={status?.loading}  {...form.getInputProps('password')} />
-                <Group position="apart" mt="lg">
+                <Group justify="apart" mt="lg">
                     <Checkbox label={rememberLabel} {...form.getInputProps('rememberme', { type: 'checkbox' })} />
                     <Anchor component="button" size="sm" onClick={handleForgotPasswordClick}>
                         {forgotLabel}
@@ -111,3 +111,4 @@ export function Login(props: LoginOptions) {
         </>
     );
 }
+

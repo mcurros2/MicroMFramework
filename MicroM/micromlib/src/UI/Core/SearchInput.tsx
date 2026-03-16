@@ -1,4 +1,4 @@
-import { ActionIcon, TextInput, TextInputProps, useComponentDefaultProps, useMantineTheme } from '@mantine/core';
+﻿import { ActionIcon, TextInput, TextInputProps, useDirection, useProps, useMantineTheme } from '@mantine/core';
 import { IconArrowLeft, IconArrowRight, IconSearch } from '@tabler/icons-react';
 import { ActionIconVariant } from '../Core';
 
@@ -21,18 +21,20 @@ export const SearchInputDefaultProps: Partial<SearchInputProps> = {
 }
 
 export function SearchInput(props: SearchInputProps) {
-    const { onSearchClick, size, iconsSize, value, onChange, placeholder, autoFocus, iconVariant, ...rest } = useComponentDefaultProps('SearchInput', SearchInputDefaultProps, props);
+    const { onSearchClick, size, iconsSize, value, onChange, placeholder, autoFocus, iconVariant, ...rest } = useProps('SearchInput', SearchInputDefaultProps, props);
 
     const theme = useMantineTheme();
+    const { dir } = useDirection();
+    const isRTL = dir === 'rtl';
 
     return (
         <TextInput
-            icon={<IconSearch size="1.1rem" stroke={1.5} />}
+            leftSection={<IconSearch size="1.1rem" stroke={1.5} />}
             radius="xl"
             size={size}
             rightSection={
                 <ActionIcon size={size} radius="xl" color={theme.primaryColor} variant={iconVariant} onClick={(e) => onSearchClick(e)}>
-                    {theme.dir === 'ltr' ? (
+                    {!isRTL ? (
                         <IconArrowRight size={iconsSize} stroke={1.5} />
                     ) : (
                         <IconArrowLeft size={iconsSize} stroke={1.5} />
@@ -48,3 +50,4 @@ export function SearchInput(props: SearchInputProps) {
         />
     );
 }
+

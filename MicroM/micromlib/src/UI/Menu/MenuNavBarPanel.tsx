@@ -1,4 +1,4 @@
-import { useComponentDefaultProps } from "@mantine/core";
+﻿import { useProps } from "@mantine/core";
 import { IconProps, IconSearch } from "@tabler/icons-react";
 import { Dispatch, ReactNode, SetStateAction } from "react";
 import { MenuItem } from "./MenuItem";
@@ -27,7 +27,7 @@ export const MenuPanelDefaultProps: Partial<MenuPanelProps> = {
 export function MenuNavBarPanel(props: MenuPanelProps) {
     const {
         setContent, menuItems, activeIDState, subitemActiveIDState, showSearch, searchLabel, searchIcon, setOpened, autoCloseOnItemClickWhenSmallScreen
-    } = useComponentDefaultProps('MenuNavBarPanel', MenuPanelDefaultProps, props);
+    } = useProps('MenuNavBarPanel', MenuPanelDefaultProps, props);
 
     return (
         <MenuNavBar

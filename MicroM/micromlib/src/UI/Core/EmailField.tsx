@@ -1,4 +1,4 @@
-import { useComponentDefaultProps } from "@mantine/core";
+﻿import { useProps } from "@mantine/core";
 import { IconAt } from "@tabler/icons-react";
 import { TextField, TextFieldProps } from "./TextField";
 
@@ -11,12 +11,12 @@ export const EmailFieldDefaultProps: Partial<EmailFieldProps> = {
 }
 
 export function EmailField(props: EmailFieldProps) {
-    const { invalidMessage } = useComponentDefaultProps('EmailField', EmailFieldDefaultProps, props);
+    const { invalidMessage } = useProps('EmailField', EmailFieldDefaultProps, props);
     return (
         <TextField
             {...props}
             validate={{ email: { message: invalidMessage } }}
-            icon={<IconAt size="1rem" />}
+            leftSection={<IconAt size="1rem" />}
         />
     )
 

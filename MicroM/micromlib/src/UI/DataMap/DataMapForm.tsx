@@ -1,4 +1,4 @@
-import { Accordion, Card, Text, ThemeIcon, useComponentDefaultProps, useMantineTheme } from "@mantine/core";
+import { Accordion, Card, Text, ThemeIcon, useProps, useComputedColorScheme, useMantineTheme } from "@mantine/core";
 import { IconHelp } from "@tabler/icons-react";
 import { ReactNode, useMemo } from "react";
 import { FormMode } from "../Core";
@@ -21,9 +21,10 @@ export const DataMapFormDefaultProps: Partial<DataMapFormProps> = {
 export function DataMapForm(props: DataMapFormProps) {
     const {
         showTitle, formMode, title, icon, helpText, customTitle, dataGridProps, ...others
-    } = useComponentDefaultProps('DataMapForm', props, DataMapFormDefaultProps);
+    } = useProps('DataMapForm', props, DataMapFormDefaultProps);
 
     const theme = useMantineTheme();
+    const isDark = useComputedColorScheme() === 'dark';
 
     const dgProps = useMemo<DataGridProps>(() => {
         const enableAdd = formMode === 'view' ? false : dataGridProps.enableAdd;
@@ -43,14 +44,14 @@ export function DataMapForm(props: DataMapFormProps) {
     const IconNode = (icon) ? <ThemeIcon>{icon}</ThemeIcon> : (EntityIcon) ? <ThemeIcon><EntityIcon size="1rem" /></ThemeIcon> : undefined;
 
     return (
-        <Card shadow="sm" withBorder={theme.colorScheme === 'dark' ? false : true}>
+        <Card shadow="sm" withBorder={isDark ? false : true}>
             {showTitle && customTitle &&
-                <Card.Section p="xs" bg={theme.colorScheme === 'dark' ? theme.colors.dark[5] : theme.colors[theme.primaryColor][3]} mb="1rem">
+                <Card.Section p="xs" bg={isDark ? theme.colors.dark[5] : theme.colors[theme.primaryColor][3]} mb="1rem">
                     {customTitle}
                 </Card.Section>
             }
             {showTitle && !customTitle &&
-                <Card.Section p="xs" bg={theme.colorScheme === 'dark' ? theme.colors.dark[5] : theme.colors[theme.primaryColor][3]} mb="1rem">
+                <Card.Section p="xs" bg={isDark ? theme.colors.dark[5] : theme.colors[theme.primaryColor][3]} mb="1rem">
                     <Accordion
                         variant="filled"
                         chevron={<IconHelp size="1rem" />}
@@ -76,3 +77,7 @@ export function DataMapForm(props: DataMapFormProps) {
         </Card>
     );
 }
+
+
+
+

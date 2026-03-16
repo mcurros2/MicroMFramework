@@ -1,4 +1,4 @@
-import { CheckIcon, ColorSwatch, DefaultMantineColor, Group, Popover, rem, useMantineTheme } from '@mantine/core';
+﻿import { CheckIcon, ColorSwatch, DefaultMantineColor, Group, Popover, rem, useMantineTheme } from '@mantine/core';
 import { IconColorPicker } from '@tabler/icons-react';
 import { useState } from 'react';
 
@@ -64,7 +64,7 @@ export function ColorConfiguration({ onChange, value }: ColorConfigurationProps)
                 </ColorSwatch>
             </Popover.Target>
             <Popover.Dropdown>
-                <Group spacing="xs">{swatches}</Group>
+                <Group gap="xs">{swatches}</Group>
             </Popover.Dropdown>
         </Popover>
     );

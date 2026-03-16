@@ -1,4 +1,4 @@
-import { Group, px, TextInput, TextInputProps, useComponentDefaultProps } from "@mantine/core";
+﻿import { Group, px, TextInput, TextInputProps, useProps } from "@mantine/core";
 import { forwardRef, ReactNode, useCallback } from "react";
 import { Value } from "../../client";
 import { EntityColumn, EntityColumnFlags } from "../../Entity";
@@ -24,9 +24,9 @@ export const TextField = forwardRef<HTMLInputElement, TextFieldProps>(function T
 
     const {
         column, entityForm, validate, validationContainer, maw, required, requiredMessage, maxLength, readOnly, label,
-        placeholder, description, withAsterisk, autoFocus, onBlur, onChange, onFocus, transform, autoTrim, iconWidth,
+        placeholder, description, withAsterisk, autoFocus, onBlur, onChange, onFocus, transform, autoTrim, leftSectionWidth,
         ...others
-    } = useComponentDefaultProps('TextField', defaultProps, props);
+    } = useProps('TextField', defaultProps, props);
 
     useFieldConfiguration({ entityForm, column, validationContainer, validate, required, requiredMessage, readOnly });
 
@@ -75,9 +75,10 @@ export const TextField = forwardRef<HTMLInputElement, TextFieldProps>(function T
             onBlur={handleOnBlur}
             onChange={handleOnChange}
             onFocus={handleOnFocus}
-            iconWidth={iconWidth && typeof iconWidth === 'string' ? px(iconWidth) : iconWidth }
+            leftSectionWidth={leftSectionWidth && typeof leftSectionWidth === 'string' ? px(leftSectionWidth) : leftSectionWidth }
             ref={ref}
         />
     )
 
 });
+

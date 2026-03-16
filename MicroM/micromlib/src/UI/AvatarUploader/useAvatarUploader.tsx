@@ -1,4 +1,4 @@
-import { useComponentDefaultProps } from "@mantine/core";
+﻿import { useProps } from "@mantine/core";
 import { useCallback, useEffect, useState } from "react";
 import { MicroMClient } from "../../client";
 import { EntityColumn } from "../../Entity";
@@ -35,7 +35,7 @@ export interface AvatarUploaderAPI {
 export function useAvatarUploader(props: useAvatarUploaderProps): AvatarUploaderAPI {
     const {
         client, fileProcessColumn, labels, initialImageURL, parentFormAPI, fileGUIDColumn
-    } = useComponentDefaultProps('AvatarUploader', AvatarUploaderDefaultProps, props);
+    } = useProps('AvatarUploader', AvatarUploaderDefaultProps, props);
 
     const imageFileUploadOpen = useFilesUploadForm();
 

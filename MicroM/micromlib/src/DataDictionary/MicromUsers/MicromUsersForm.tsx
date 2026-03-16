@@ -1,4 +1,4 @@
-import { Group, Stack, useComponentDefaultProps } from "@mantine/core";
+﻿import { Group, Stack, useProps } from "@mantine/core";
 import { CheckboxField, EntityForm, FormOptions, LookupSelect, NotifyBitField, NotifyBitFieldDefaultProps, PasswordField, RingProgressField, TextField, useEntityForm } from "../../UI";
 import { MicromUsers } from "./MicromUsers";
 
@@ -35,7 +35,7 @@ export function MicromUsersForm(props: MicromUsersFormProps) {
         entity, initialFormMode, getDataOnInit, onSaved, onCancel, disabledFalseLabel, disabledTrueLabel,
         lockedRemainingLabel, userDisabledLabel, userEnabledLabel, logonAttemptsStatusDescription, logonAttemptsStatusTitle, lockedTitleLabel,
         minutesLabel, willUnlockInNextLogonLabel
-    } = useComponentDefaultProps('MicromUsersForm', MicromUsersFormDefaultProps, props);
+    } = useProps('MicromUsersForm', MicromUsersFormDefaultProps, props);
 
     const entityForm = useEntityForm(
         {

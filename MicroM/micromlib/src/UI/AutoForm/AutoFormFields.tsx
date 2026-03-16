@@ -1,4 +1,4 @@
-import { ReactNode } from "react";
+﻿import { ReactNode } from "react";
 import { Entity, EntityColumnFlags, EntityDefinition, SYSTEM_COLUMNS_NAMES } from "../../Entity";
 import { CheckboxField, DateInputField, NumberField } from "../Core";
 import { TextAreaField } from "../Core/TextAreaField";
@@ -95,7 +95,7 @@ export function AutoFormFields(props: AutoFormFieldsProps<Entity<EntityDefinitio
                         description={column.description}
                         placeholder={column.placeholder}
                         maw={"20rem"}
-                        precision={column.scale}
+                        decimalScale={column.scale}
                     />
                     break;
                 case 'bit':

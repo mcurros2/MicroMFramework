@@ -1,4 +1,4 @@
-import { Group, Stack, Text, useComponentDefaultProps } from "@mantine/core";
+﻿import { Group, Stack, Text, useProps } from "@mantine/core";
 import { NotifyBitField, NotifyBitFieldDefaultProps, NotifyInfo, RingProgressField, UseEntityFormReturnType } from "../../UI";
 import { IMicromUserStatusPanelColums } from "./MicromUsersStatusPanelColumns";
 
@@ -39,7 +39,7 @@ export function MicromMUsersStatusPanel(props: MicromUsersStatusPanel) {
         columns, userDisabledLabel, userEnabledLabel, disabledTrueLabel, disabledFalseLabel, entityForm, maxBadLogonAttemps,
         logonAttemptsStatusTitle, logonAttemptsStatusDescription, lockedTitleLabel, minutesLabel, willUnlockInNextLogonLabel,
         lockedRemainingLabel, loginInfoTitle
-    } = useComponentDefaultProps('MicromMUsersStatusPanel', MicromUsersStatusPanelDefaultProps, props);
+    } = useProps('MicromMUsersStatusPanel', MicromUsersStatusPanelDefaultProps, props);
 
 
     return (

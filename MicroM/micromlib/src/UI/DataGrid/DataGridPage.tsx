@@ -1,4 +1,4 @@
-import { Accordion, Card, Stack, Text, ThemeIcon, Title, useComponentDefaultProps, useMantineTheme } from "@mantine/core";
+import { Accordion, Card, Stack, Text, ThemeIcon, Title, useProps, useComputedColorScheme, useMantineTheme } from "@mantine/core";
 import { IconHelp } from "@tabler/icons-react";
 import { ReactNode, useRef } from "react";
 import { MicroMClient } from "../../client";
@@ -25,9 +25,10 @@ export function DataGridPage(props: DataGridPageProps) {
     const {
         title, icon, formMode, helpText, showTitle, client, enableAdd, enableDelete, enableEdit,
         entityConstructor, ...others
-    } = useComponentDefaultProps('DataGridPage', props, DataGridPageDefaultProps);
+    } = useProps('DataGridPage', props, DataGridPageDefaultProps);
 
     const theme = useMantineTheme();
+    const isDark = useComputedColorScheme() === 'dark';
     //const gridRef = useRef(null);
 
     const entity = useRef<Entity<EntityDefinition>>(entityConstructor(client));
@@ -54,7 +55,7 @@ export function DataGridPage(props: DataGridPageProps) {
                     </Accordion.Item>
                 </Accordion>
             }
-            <Card shadow="sm" withBorder={theme.colorScheme === 'dark' ? false : true}>
+            <Card shadow="sm" withBorder={isDark ? false : true}>
                 <DataGrid
                     entity={entity.current}
                     enableAdd={formMode === 'view' ? false : enableAdd}
@@ -68,3 +69,7 @@ export function DataGridPage(props: DataGridPageProps) {
         </Stack>
     )
 }
+
+
+
+

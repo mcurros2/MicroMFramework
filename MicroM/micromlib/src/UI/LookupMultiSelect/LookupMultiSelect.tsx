@@ -1,5 +1,5 @@
-import { Group, GroupProps, Loader, MultiSelect, MultiSelectProps, SelectItem, useComponentDefaultProps, useMantineTheme } from "@mantine/core"
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { Group, GroupProps, Loader, MultiSelect, MultiSelectProps, ComboboxItem, useProps, useComputedColorScheme, useMantineTheme } from "@mantine/core"
+import { ReactNode, useCallback, useEffect, useMemo, useState } from "react"
 import { DataResult, DBStatusResult, OperationStatus, Value, ValuesObject } from "../../client"
 import { Entity, EntityColumn, EntityColumnFlags, EntityDefinition } from "../../Entity"
 import { UseEntityFormReturnType, useFieldConfiguration } from "../Form"
@@ -16,6 +16,8 @@ export interface LookupMultiSelectProps extends Omit<MultiSelectProps, 'data'> {
     requiredLabel?: string,
     includeKeyInDescription?: boolean,
     createLabel?: string,
+    creatable?: boolean,
+    icon?: ReactNode,
     containerProps?: GroupProps
     grow?: boolean
 }
@@ -28,8 +30,7 @@ export const LookupMultiSelectDefaultProps: Partial<LookupMultiSelectProps> = {
     maxDropdownHeight: 260,
     clearable: true,
     createLabel: "+ Create",
-    withinPortal: true,
-    zIndex: 100000,
+    comboboxProps: { withinPortal: true, zIndex: 100000 },
 }
 
 export function LookupMultiSelect(props: LookupMultiSelectProps) {
@@ -39,7 +40,7 @@ export function LookupMultiSelect(props: LookupMultiSelectProps) {
         requiredLabel, includeKeyInDescription, label, description, required,
         icon, readOnly, searchable, maxDropdownHeight, clearable, containerProps,
         creatable, createLabel, withAsterisk, grow, ...rest
-    } = useComponentDefaultProps('LookupMultiSelect', LookupMultiSelectDefaultProps, props);
+    } = useProps('LookupMultiSelect', LookupMultiSelectDefaultProps, props);
 
     const containerPropsMemo = useMemo(() => {
         if (grow) {
@@ -49,9 +50,10 @@ export function LookupMultiSelect(props: LookupMultiSelectProps) {
     }, [containerProps, grow])
 
     const theme = useMantineTheme();
+    const isDark = useComputedColorScheme() === 'dark';
 
     const triggerRefreshState = useState<boolean>(true);
-    const selectDataState = useState<SelectItem[]>([]);
+    const selectDataState = useState<ComboboxItem[]>([]);
     const [selectData, setSelectData] = selectDataState;
 
     const lookupSelectAPI = useLookupSelect({ parentKeys, selectDataState, triggerRefreshState, column, entityForm, entity, lookupDefName, maxItems: 0, includeKeyInDescription });
@@ -94,21 +96,24 @@ export function LookupMultiSelect(props: LookupMultiSelectProps) {
             <MultiSelect
                 {...rest}
                 withAsterisk={withAsterisk ?? (!readOnly && !(entityForm.formMode === 'view') && (required ?? !column.hasFlag(EntityColumnFlags.nullable)))}
-                styles={{ dropdown: { backgroundColor: theme.colorScheme === 'dark' ? theme.colors.dark[4] : theme.colors.gray[3] }, root: { flexGrow: 1 } }}
+                styles={{ dropdown: { backgroundColor: isDark ? theme.colors.dark[4] : theme.colors.gray[3] }, root: { flexGrow: 1 } }}
                 searchable={searchable}
                 maxDropdownHeight={maxDropdownHeight}
                 clearable={clearable}
                 label={label ?? column.prompt}
                 description={showDescription ? (description ?? column.description) : ''}
-                icon={lookupSelectAPI.status.loading ? <Loader size="xs" /> : icon}
+                leftSection={lookupSelectAPI.status.loading ? <Loader size="xs" /> : icon}
                 data={selectData}
                 readOnly={readOnly || entityForm.formMode === 'view' || lookupSelectAPI.status.loading || formStatus?.loading ? true : false}
                 error={lookupSelectAPI.status.error ? lookupSelectAPI.status.error.message : null}
-                creatable={creatable}
-                onCreate={creatable ? onCreate : undefined}
-                getCreateLabel={(newValue) => `${createLabel} ${newValue}`}
                 {...lookupSelectAPI.inputProps}
             />
         </Group>
     )
 }
+
+
+
+
+
+

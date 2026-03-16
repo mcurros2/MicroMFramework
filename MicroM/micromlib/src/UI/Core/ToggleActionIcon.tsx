@@ -1,5 +1,5 @@
-import { ActionIcon, MantineColor, MantineNumberSize, Sx, useComponentDefaultProps, useMantineTheme } from "@mantine/core";
-import { ForwardedRef, forwardRef, ReactNode, useState } from "react";
+﻿import { ActionIcon, MantineColor, MantineSize, useProps } from "@mantine/core";
+import { CSSProperties, ForwardedRef, forwardRef, ReactNode, useState } from "react";
 import { ActionIconVariant } from "../Core";
 
 
@@ -14,7 +14,7 @@ export interface ToggleActionIconOptions {
     offIcon: ReactNode,
     initialStatus?: 'on' | 'off',
     onClick?: () => void,
-    radius?: MantineNumberSize,
+    radius?: MantineSize,
     title?: string
 }
 
@@ -28,18 +28,11 @@ const defaultProps: Partial<ToggleActionIconOptions> = {
 export const ToggleActionIcon = forwardRef(function ToggleActionIcon(props: ToggleActionIconOptions, ref: ForwardedRef<HTMLButtonElement>) {
     const {
         hidden, size, onColor, offColor, onVariant, offVariant, onIcon, offIcon, initialStatus, onClick, radius, title
-    } = useComponentDefaultProps('ToggleActionIcon', defaultProps, props);
-
-    const theme = useMantineTheme();
+    } = useProps('ToggleActionIcon', defaultProps, props);
 
     const [onOff, setOnOff] = useState<boolean>(initialStatus === "on");
 
-    const visibility: Sx = hidden ? {
-        visibility: "hidden",
-        ":focus": { outlineColor: theme.fn.themeColor(onOff ? onColor : offColor) }
-    } : {
-        ":focus": { outlineColor: theme.fn.themeColor(onOff ? onColor : offColor) }
-    }
+    const visibility: CSSProperties | undefined = hidden ? { visibility: "hidden" } : undefined;
 
     const onClickHandler = () => {
         setOnOff(prev => !prev);
@@ -50,7 +43,7 @@ export const ToggleActionIcon = forwardRef(function ToggleActionIcon(props: Togg
         <ActionIcon
             title={title}
             ref={ref}
-            sx={visibility}
+            style={visibility}
             onClick={() => onClickHandler()}
             size={size}
             radius={radius}
@@ -60,3 +53,4 @@ export const ToggleActionIcon = forwardRef(function ToggleActionIcon(props: Togg
         </ActionIcon>
     )
 })
+

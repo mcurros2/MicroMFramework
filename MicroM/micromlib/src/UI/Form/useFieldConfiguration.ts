@@ -1,4 +1,4 @@
-import { useComponentDefaultProps } from "@mantine/core";
+﻿import { useProps } from "@mantine/core";
 import { ReactNode, useEffect } from "react";
 import { SQLType, Value } from "../../client";
 import { EntityColumn, EntityColumnFlags } from "../../Entity";
@@ -20,7 +20,7 @@ export const UseFieldConfigurationDefaultProps: Partial<UseFieldConfigurationPro
 }
 
 export const useFieldConfiguration = (props: UseFieldConfigurationProps) => {
-    const { validationContainer, validate, entityForm, column, required, requiredMessage, readOnly } = useComponentDefaultProps('UseFieldConfigurationProps', UseFieldConfigurationDefaultProps, props);
+    const { validationContainer, validate, entityForm, column, required, requiredMessage, readOnly } = useProps('UseFieldConfigurationProps', UseFieldConfigurationDefaultProps, props);
 
     useEffect(() => {
         const config: ValidatorConfiguration = validate ?? {};
@@ -33,7 +33,12 @@ export const useFieldConfiguration = (props: UseFieldConfigurationProps) => {
         const validators: ValidationRule[] = Object.entries(config).map(([key, config]) => {
             const validatorFunction = CommonValidators[key as keyof CommonValidatorsType];
             if (validatorFunction) {
-                return (config.data) ? validatorFunction(config.data, config.message) : validatorFunction(config.message);
+                const message = config.message ?? '';
+                const validator = (config.data) ? validatorFunction(config.data, message) : validatorFunction(message);
+                return (value, values) => {
+                    const result = validator(value, values);
+                    return result === false ? null : result ?? null;
+                };
             }
             return () => null;
         });

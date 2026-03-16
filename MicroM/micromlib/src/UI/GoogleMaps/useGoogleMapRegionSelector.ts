@@ -1,4 +1,4 @@
-import { useComponentDefaultProps } from "@mantine/core";
+﻿import { useProps } from "@mantine/core";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useEvent } from "../Core";
 import { panIfRestricted } from "./functions";
@@ -14,7 +14,7 @@ export function useGoogleMapRegionSelector(props: GoogleMapRegionSelectorProps) 
         onRegionClicked, onRegionMouseMove, onAPIError, selectedRegions, setSelectedRegions, googleMapsAPI,
         countries, showOnlyCurrentLayerFeatures, clickedRegions, setClickedRegions, mapRestrictions, mapCenter,
         maxRegions, onMaxRegionsReached, highlightOnMouseOver
-    } = useComponentDefaultProps("GoogleMapRegionSelector", GoogleMapRegionSelectorDefaultProps, props);
+    } = useProps("GoogleMapRegionSelector", GoogleMapRegionSelectorDefaultProps, props);
 
     const { getPlaceDetails, placesReady } = googleMapsAPI;
 
@@ -505,4 +505,5 @@ export function useGoogleMapRegionSelector(props: GoogleMapRegionSelectorProps) 
     }
 
 }
+
 

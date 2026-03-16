@@ -1,4 +1,4 @@
-import { ActionIcon, ActionIconProps, MantineColor, useComponentDefaultProps } from "@mantine/core";
+﻿import { ActionIcon, ActionIconProps, MantineColor, useProps } from "@mantine/core";
 import { useClipboard } from "@mantine/hooks";
 import { IconCheck, IconCopy } from "@tabler/icons-react";
 import { useRef } from "react";
@@ -20,7 +20,7 @@ const defaultProps: Partial<CopyToClipboardProps> = {
 export function CopyToClipboard(props: CopyToClipboardProps) {
     const {
         valueToCopy, timeout, copiedColor, iconSize
-    } = useComponentDefaultProps('CopyToClipboard', defaultProps, props);
+    } = useProps('CopyToClipboard', defaultProps, props);
 
     const { copied, copy } = useClipboard({ timeout: timeout });
     const originalColor = useRef(props.color);

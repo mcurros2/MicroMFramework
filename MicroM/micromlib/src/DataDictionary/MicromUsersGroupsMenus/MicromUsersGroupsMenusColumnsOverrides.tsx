@@ -17,9 +17,9 @@ export function MicromUsersGroupsMenusColumnsOverrides(theme: MantineTheme) {
     return {
         // Access
         4: {
-            render: (value: unknown) => (value === "true") ? <Group style={{ gap: '0rem' }} noWrap>
+            render: (value: unknown) => (value === "true") ? <Group style={{ gap: '0rem' }} wrap="nowrap">
                 <CircleFilledIcon mr="xs" backColor={theme.colors.green[8]} width="1.3rem" icon={<IconCheck size="0.9rem" />}></CircleFilledIcon>{l.granted}
-            </Group> : <Group style={{ gap: '0rem' }} noWrap>
+            </Group> : <Group style={{ gap: '0rem' }} wrap="nowrap">
                 <CircleFilledIcon mr="xs" backColor={theme.colors.red[8]} width="1.3rem" icon={<IconX size="0.9rem" />}></CircleFilledIcon>{l.denied}
             </Group>
         },

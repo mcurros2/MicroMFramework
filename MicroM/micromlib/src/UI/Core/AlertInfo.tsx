@@ -1,4 +1,4 @@
-import { AlertProps, useComponentDefaultProps, useMantineTheme } from "@mantine/core";
+﻿import { AlertProps, useProps, useMantineTheme } from "@mantine/core";
 import { Alert } from "@mantine/core";
 import { IconInfoCircle } from "@tabler/icons-react";
 
@@ -6,7 +6,7 @@ export const AlertInfoDefaultProps: Partial<AlertProps> = {
     title: "Info"
 }
 export function AlertInfo(props: AlertProps) {
-    const { title } = useComponentDefaultProps('AlertInfo', AlertInfoDefaultProps, props);
+    const { title } = useProps('AlertInfo', AlertInfoDefaultProps, props);
 
     const theme = useMantineTheme();
 

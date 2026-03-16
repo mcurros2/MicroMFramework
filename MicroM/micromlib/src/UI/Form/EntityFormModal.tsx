@@ -1,4 +1,4 @@
-import { useComponentDefaultProps } from "@mantine/core";
+﻿import { useProps } from "@mantine/core";
 import { useEffect, useRef } from "react";
 import { DBStatusResult, MicroMClient, OperationStatus } from "../../client";
 import { Entity, EntityDefinition } from "../../Entity";
@@ -32,7 +32,7 @@ export function EntityFormModal(props: EntityFormModalProps) {
     const {
         client, entityConstructor, openState, setOpenState, initialFormMode, getDataOnInit,
         onModalClosed, onModalSaved, modalFormSize, withFullscreenButton, closeOnClickOutside, closeOnEscape
-    } = useComponentDefaultProps('EntityFormModal', EntityFormModalDefaultProps, props);
+    } = useProps('EntityFormModal', EntityFormModalDefaultProps, props);
 
     const openForm = useOpenForm();
 

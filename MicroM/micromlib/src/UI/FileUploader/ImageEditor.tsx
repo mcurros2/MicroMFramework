@@ -1,6 +1,6 @@
 import "react-advanced-cropper/dist/style.css";
 import "./ImageEditor.scss";
-import { ColorScheme, useMantineColorScheme } from "@mantine/core";
+import { MantineColorScheme, useMantineColorScheme } from "@mantine/core";
 import { IconBrightnessUp, IconCircleCheckFilled, IconColorFilter, IconContrast, IconCrop, IconDropletHalf2Filled, IconRestore } from "@tabler/icons-react";
 import React, { ButtonHTMLAttributes, CSSProperties, FC, forwardRef, useLayoutEffect } from "react";
 import { PureComponent, useRef, useState } from "react";
@@ -151,7 +151,7 @@ export const ImageEditor = ({ src, onOk }:ImageEditorProps) => {
     return <SliderInternal colorScheme={colorScheme} {...props} />;
   }
 
-  class SliderInternal extends PureComponent<SliderProps & { colorScheme:ColorScheme }> {
+  class SliderInternal extends PureComponent<SliderProps & { colorScheme: MantineColorScheme }> {
     line = React.createRef<HTMLDivElement>();
   
     state = {

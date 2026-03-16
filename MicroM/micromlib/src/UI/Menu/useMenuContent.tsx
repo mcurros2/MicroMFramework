@@ -1,5 +1,5 @@
-import { MantineTheme, Skeleton, useComponentDefaultProps } from "@mantine/core";
-import { SpotlightAction } from "@mantine/spotlight";
+﻿import { MantineTheme, Skeleton, useProps } from "@mantine/core";
+import type { SpotlightActionData } from "@mantine/spotlight";
 import { Dispatch, ReactNode, SetStateAction, useCallback, useEffect, useMemo, useState } from "react";
 import { MicroMClient, MicroMClientClaimTypes } from "../../client";
 import { isPromise } from "../../Entity";
@@ -77,14 +77,14 @@ export function useMenuContent(props: UseMenuContentProps) {
     const {
         client, setContent, isLoggedIn, setIsLoggedIn, menuContent, defaultLoadingComponent, setOpened, loggedInInfo, menuId,
         enableMenuSecurity
-    } = useComponentDefaultProps('useMenuContent', UseMenuContentDefaultProps, props);
+    } = useProps('useMenuContent', UseMenuContentDefaultProps, props);
 
     const activeIDState = useState<string>('');
     const [, setActiveID] = activeIDState;
     const subitemActiveIDState = useState<string>('');
     const [, setSubitemActiveID] = subitemActiveIDState;
     const [items, setItems] = useState<MenuItem[]>([]);
-    const [actions, setActions] = useState<SpotlightAction[]>([]);
+    const [actions, setActions] = useState<SpotlightActionData[]>([]);
 
     const filterEnabledItems = useCallback((
         items: MenuItem[],
@@ -117,27 +117,25 @@ export function useMenuContent(props: UseMenuContentProps) {
     // MMC: defines a function called getSpotlightActions that returns an array of mantine SpotLightAction from items
     const internal_actions = useMemo(() => internal_items.flatMap((item) => {
         const baseActionProps = { setContent, setOpened, clearContent: true, defaultLoadingComponent, onActiveChange: setActiveID, onSubitemActiveChange: setSubitemActiveID };
-        let actionList: SpotlightAction[] = [];
+        let actionList: SpotlightActionData[] = [];
 
         if (item.section === 'items' && !item.subitems) {
             actionList.push({
                 id: item.ID,
-                target: `#${item.ID}`,
                 title: item.label,
                 description: item.description,
-                icon: item.icon,
-                onTrigger: () => triggerItemAction({ ...baseActionProps, item }),
+                leftSection: item.icon,
+                onClick: () => triggerItemAction({ ...baseActionProps, item }),
             });
         }
 
         if (item.subitems) {
             actionList = actionList.concat(item.subitems.map(subitem => ({
                 id: subitem.ID,
-                target: `#${subitem.ID}`,
                 title: subitem.label,
                 description: subitem.description,
-                icon: subitem.icon,
-                onTrigger: () => triggerItemAction({ ...baseActionProps, item: subitem }),
+                leftSection: subitem.icon,
+                onClick: () => triggerItemAction({ ...baseActionProps, item: subitem }),
             })));
         }
 

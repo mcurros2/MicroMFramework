@@ -1,4 +1,4 @@
-import { MantineColor, Notification, NotificationProps, useComponentDefaultProps } from "@mantine/core";
+﻿import { MantineColor, Notification, NotificationProps, useProps } from "@mantine/core";
 import { IconCheck, IconX } from "@tabler/icons-react";
 import { ReactNode } from "react";
 import { EntityColumn } from "../../Entity";
@@ -21,7 +21,7 @@ export const NotifyBitFieldDefaultProps: Partial<NotifyBitFieldProps> = {
 }
 
 export function NotifyBitField(props: NotifyBitFieldProps) {
-    const { trueIcon, falseIcon, trueMessage, falseMessage, column, trueColor, falseColor, ...others } = useComponentDefaultProps('NotifyBitField', NotifyBitFieldDefaultProps, props);
+    const { trueIcon, falseIcon, trueMessage, falseMessage, column, trueColor, falseColor, ...others } = useProps('NotifyBitField', NotifyBitFieldDefaultProps, props);
 
     return (
         <Notification

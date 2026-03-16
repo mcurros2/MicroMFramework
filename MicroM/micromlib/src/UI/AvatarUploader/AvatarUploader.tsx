@@ -1,4 +1,4 @@
-import { ActionIcon, Avatar, AvatarProps, Group, Stack, useMantineTheme } from "@mantine/core";
+﻿import { ActionIcon, Avatar, AvatarProps, Group, Stack, useMantineTheme } from "@mantine/core";
 import { IconTrash, IconUpload } from "@tabler/icons-react";
 import { AvatarUploaderAPI } from "./useAvatarUploader";
 
@@ -23,7 +23,7 @@ export function AvatarUploader(props: AvatarUploaderProps) {
                 {PlaceHolderIcon}
             </Avatar>
             {!readOnlyMode && parentFormAPI?.formMode !== 'view' &&
-                <Group position="right">
+                <Group justify="right">
                     <ActionIcon color={theme.primaryColor} variant="light" onClick={async () => await handleOpenFileUpload()}><IconUpload size="1rem" /></ActionIcon>
                     <ActionIcon color={theme.primaryColor} variant="light" onClick={async () => await handleDeleteFile(fileID ?? '', fileGUID ?? '')}><IconTrash size="1rem" /></ActionIcon>
                 </Group>

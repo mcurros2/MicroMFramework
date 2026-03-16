@@ -1,4 +1,4 @@
-import { Button, PasswordInput, TextInput, useComponentDefaultProps } from "@mantine/core";
+﻿import { Button, PasswordInput, TextInput, useProps } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useCallback, useEffect, useState } from "react";
 import { DBStatusResult, MicroMClient, OperationStatus, StatusCompletedHandler, toMicroMError } from "../../client";
@@ -42,7 +42,7 @@ export function RecoverPassword(props: RecoverPasswordOptions) {
         client, onStatusCompleted, userLabel, userPlaceholder, passwordLabel, passwordPlaceholder,
         changePasswordLabel, changeErrorMessage, changedSuccessfullyMessage, changedSuccessfullyURL,
         signInButtonLabel, passwordMaxLength, passwordMinLength
-    } = useComponentDefaultProps('Login', RecoverPasswordDefaultProps, props);
+    } = useProps('Login', RecoverPasswordDefaultProps, props);
 
     const form = useForm<RecoverPasswordValues>(
         {

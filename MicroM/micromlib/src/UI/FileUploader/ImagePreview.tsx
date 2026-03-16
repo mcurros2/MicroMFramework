@@ -1,4 +1,4 @@
-import { Button, Group, Image, Stack } from "@mantine/core"
+﻿import { Button, Group, Image, Stack } from "@mantine/core"
 
 export interface FilePreviewProps {
     documentURL: string,
@@ -11,9 +11,10 @@ export function ImagePreview({ documentURL, onClose, closeText }: FilePreviewPro
     return (
         <Stack>
             <Image height="70vh" fit="contain" src={documentURL} />
-            <Group position="right">
+            <Group justify="right">
                 <Button onClick={onClose}>{closeText}</Button>
             </Group>
         </Stack>
     )
 }
+

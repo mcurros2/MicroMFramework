@@ -1,4 +1,4 @@
-import { Button, TextInput, useComponentDefaultProps } from "@mantine/core";
+﻿import { Button, TextInput, useProps } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useCallback, useState } from "react";
 import { DBStatusResult, MicroMClient, OperationStatus, StatusCompletedHandler, toMicroMError } from "../../client";
@@ -30,7 +30,7 @@ export function RecoverPasswordEmail(props: RecoverPasswordEmailOptions) {
     const {
         client, onStatusCompleted, userLabel, userPlaceholder, emailSentSuccessfullyMessage, 
         sendRecoveryEmailLabel, emailSendErrorMessage, goBackToHomePageLabel
-    } = useComponentDefaultProps('Login', RecoverPasswordEmailDefaultProps, props);
+    } = useProps('Login', RecoverPasswordEmailDefaultProps, props);
 
     const form = useForm<RecoverPasswordEmailValues>(
         {

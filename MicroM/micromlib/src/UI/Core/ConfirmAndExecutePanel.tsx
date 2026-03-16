@@ -1,4 +1,4 @@
-import { Button, ButtonProps, Group, Stack, useComponentDefaultProps } from "@mantine/core";
+﻿import { Button, ButtonProps, Group, Stack, useProps } from "@mantine/core";
 import { IconCircleCheck, IconCircleX } from "@tabler/icons-react";
 import { ReactNode, useEffect } from "react";
 import { DataOperationType } from "../../client";
@@ -30,7 +30,7 @@ export function ConfirmAndExecutePanel(props: ConfirmPanelProps) {
     const {
         content, onOK, onCancel, operation, okButtonText, cancelButtonText, loadingContent, okButtonProps, cancelButtonProps,
         runOnOpen
-    } = useComponentDefaultProps('ConfirmAndExecutePanel', ConfirmAndExecutePanelDefaultProps, props);
+    } = useProps('ConfirmAndExecutePanel', ConfirmAndExecutePanelDefaultProps, props);
 
     const { operationCallback, status } = useOperationStatusCallback<unknown>({
         callback: async () => await onOK(),
@@ -54,14 +54,15 @@ export function ConfirmAndExecutePanel(props: ConfirmPanelProps) {
             {status.error &&
                 <AlertError mt="sm"><>{status.error.status} {status.error.message} {status.error.statusMessage}</></AlertError>
             }
-            <Group mt="xs" position="right">
+            <Group mt="xs" justify="right">
                 {cancelButtonText &&
-                    <Button {...cancelButtonProps} variant="light" leftIcon={<IconCircleX size="1.5rem" />} onClick={async () => await Promise.resolve(onCancel())} >{cancelButtonText}</Button>
+                    <Button {...cancelButtonProps} variant="light" leftSection={<IconCircleX size="1.5rem" />} onClick={async () => await Promise.resolve(onCancel())} >{cancelButtonText}</Button>
                 }
                 {okButtonText &&
-                    <Button {...okButtonProps} onClick={async () => await operationCallback()} disabled={!!status.error} loading={status?.loading} leftIcon={<IconCircleCheck size="1.5rem" />}>{okButtonText}</Button>
+                    <Button {...okButtonProps} onClick={async () => await operationCallback()} disabled={!!status.error} loading={status?.loading} leftSection={<IconCircleCheck size="1.5rem" />}>{okButtonText}</Button>
                 }
             </Group>
         </Stack>
     );
 }
+

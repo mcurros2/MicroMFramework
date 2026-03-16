@@ -1,4 +1,4 @@
-import { useComponentDefaultProps } from "@mantine/core";
+﻿import { useProps } from "@mantine/core";
 import { ReactNode, useEffect, useRef } from "react";
 import { useGoogleMap } from "./useGoogleMap";
 
@@ -25,7 +25,7 @@ export const MarkerPropsDefault: Partial<MarkerProps> = {
 
 
 export function GoogleMarker(props: MarkerProps) {
-    const { markerOptions, onDragEnd, onMarkerClick } = useComponentDefaultProps('GoogleMarker', MarkerPropsDefault, props);
+    const { markerOptions, onDragEnd, onMarkerClick } = useProps('GoogleMarker', MarkerPropsDefault, props);
 
     const { map, infoWindowContentRef, infoWindowRef, setInfoWindowContent } = useGoogleMap();
     const markerRef = useRef<google.maps.Marker | null>(null);
@@ -88,3 +88,4 @@ export function GoogleMarker(props: MarkerProps) {
 
     return undefined;
 }
+

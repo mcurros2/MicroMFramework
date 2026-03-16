@@ -1,6 +1,6 @@
-import { Navbar, NavLink, ScrollArea, useComponentDefaultProps, useMantineTheme } from "@mantine/core";
+﻿import { AppShell, NavLink, ScrollArea, useProps, useMantineTheme } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
-import { useSpotlight } from "@mantine/spotlight";
+import { openSpotlight } from "@mantine/spotlight";
 import { IconProps, IconSearch } from "@tabler/icons-react";
 import { Dispatch, ReactNode, SetStateAction, useMemo } from "react";
 import { MenuItem } from "./MenuItem";
@@ -30,7 +30,7 @@ export const MenuDefaultProps: Partial<MenuProps> = {
 export function MenuNavBar(props: MenuProps) {
     const {
         items, setContent, clearContent, activeIDState, subitemActiveIDState, showSearch, searchLabel, searchIcon, setOpened, autoCloseOnItemClickWhenSmallScreen
-    } = useComponentDefaultProps('MenuNavBar', MenuDefaultProps, props);
+    } = useProps('MenuNavBar', MenuDefaultProps, props);
 
     const theme = useMantineTheme();
     const matches = useMediaQuery(`(max-width: ${theme.breakpoints.sm})`);
@@ -44,31 +44,32 @@ export function MenuNavBar(props: MenuProps) {
 
     const SearchIcon = searchIcon!;
 
-    const search = useSpotlight();
-
     const autoHideNavBarOnClick = autoCloseOnItemClickWhenSmallScreen && matches;
 
     return (
         <>
-            <Navbar.Section>
+            <AppShell.Section>
                 {showSearch &&
                     <NavLink
                         key="menu-Search"
                         label={searchLabel}
-                        icon={<SearchIcon size="1.2rem" />}
+                        leftSection={<SearchIcon size="1.2rem" />}
                         onClick={() => {
-                            search.openSpotlight();
+                            openSpotlight();
                         }}
                         mb="xs"
                     />}
                 <MenuNavLinks AllItems={items} sectionItems={header_section} autoHideNavBarOnClick={autoHideNavBarOnClick} setOpened={setOpened} setContent={setContent} clearContent={clearContent} activeID={activeID} onActiveChange={setActiveID} subitemActiveID={subitemActiveID} onSubitemActiveChange={setSubitemActiveID} />
-            </Navbar.Section>
-            <Navbar.Section grow component={ScrollArea} mx="-xs" px="xs">
+            </AppShell.Section>
+
+            <AppShell.Section grow component={ScrollArea} mx="-xs" px="xs">
                 <MenuNavLinks AllItems={items} sectionItems={items_section} autoHideNavBarOnClick={autoHideNavBarOnClick} setOpened={setOpened} setContent={setContent} clearContent={clearContent} activeID={activeID} onActiveChange={setActiveID} subitemActiveID={subitemActiveID} onSubitemActiveChange={setSubitemActiveID} />
-            </Navbar.Section>
-            <Navbar.Section>
+            </AppShell.Section>
+
+            <AppShell.Section>
                 <MenuNavLinks AllItems={items} sectionItems={footer_section} autoHideNavBarOnClick={autoHideNavBarOnClick} setOpened={setOpened} setContent={setContent} clearContent={clearContent} activeID={activeID} onActiveChange={setActiveID} subitemActiveID={subitemActiveID} onSubitemActiveChange={setSubitemActiveID} />
-            </Navbar.Section>
+            </AppShell.Section>
         </>
     );
 }
+

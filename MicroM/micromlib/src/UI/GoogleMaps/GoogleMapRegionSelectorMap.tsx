@@ -1,4 +1,5 @@
 import { Skeleton } from "@mantine/core";
+import { ReactNode } from "react";
 import { useGoogleMapsAPI } from "../../GoogleMapsAPI";
 import { GoogleMap, GoogleMapProps } from "./GoogleMap";
 import { GoogleMapRegionSelector } from "./GoogleMapRegionSelector";
@@ -7,6 +8,7 @@ import { GoogleMapRegionSelectorProps } from "./GoogleMapRegionSelectorTypes";
 
 export interface GoogleMapRegionSelectorMapProps extends GoogleMapProps {
     regionSelectorProps: Omit<GoogleMapRegionSelectorProps, 'googleMapsAPI'>;
+    children?: ReactNode;
 }
 
 export function GoogleMapRegionSelectorMap(props: GoogleMapRegionSelectorMapProps) {

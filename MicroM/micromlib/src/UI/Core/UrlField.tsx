@@ -1,4 +1,4 @@
-import { useComponentDefaultProps } from "@mantine/core";
+﻿import { useProps } from "@mantine/core";
 import { IconWorld } from "@tabler/icons-react";
 import { TextField, TextFieldProps } from "./TextField";
 
@@ -12,13 +12,13 @@ export const UrlFieldDefaultProps: Partial<UrlFieldProps> = {
     requiredMessage: "A value is required"
 }
 export function UrlField(props: UrlFieldProps) {
-    const { invalidMessage } = useComponentDefaultProps('UrlField', UrlFieldDefaultProps, props);
+    const { invalidMessage } = useProps('UrlField', UrlFieldDefaultProps, props);
 
     return (
         <TextField
             {...props}
             validate={{ url: { message: invalidMessage } }}
-            icon={<IconWorld size="1rem" />}
+            leftSection={<IconWorld size="1rem" />}
         />
     )
 

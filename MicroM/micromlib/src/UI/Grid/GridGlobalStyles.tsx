@@ -1,9 +1,13 @@
-import { Global, useMantineTheme } from '@mantine/core';
+import { useMantineTheme } from '@mantine/core';
+import { Global } from '@mantine/emotion';
 
 export function GridGlobalStyles() {
-    const theme = useMantineTheme();
+    useMantineTheme();
 
-    const colors = theme.fn.variant({ variant: 'light', color: theme.primaryColor });
+    const colors = {
+        color: 'var(--mantine-primary-color-light-color)',
+        background: 'var(--mantine-primary-color-light)'
+    };
 
     return (
         <Global

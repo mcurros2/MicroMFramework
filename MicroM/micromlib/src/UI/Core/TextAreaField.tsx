@@ -1,4 +1,4 @@
-import { Group, Textarea, TextareaProps, useComponentDefaultProps } from "@mantine/core";
+﻿import { Group, Textarea, TextareaProps, useProps } from "@mantine/core";
 import { forwardRef, ReactNode, useCallback } from "react";
 import { Value } from "../../client";
 import { EntityColumn, EntityColumnFlags } from "../../Entity";
@@ -27,7 +27,7 @@ export const TextAreaField = forwardRef<HTMLTextAreaElement, TextAreaFieldProps>
     const {
         column, entityForm, required, label, validate, requiredMessage, validationContainer, maxLength,
         placeholder, description, readOnly, withAsterisk, autofocus, transform, autoTrim, onBlur, onChange, onFocus, ...others
-    } = useComponentDefaultProps('TextAreaField', defaultProps, props);
+    } = useProps('TextAreaField', defaultProps, props);
 
     useFieldConfiguration({ entityForm, column, validationContainer, validate, required, requiredMessage });
 

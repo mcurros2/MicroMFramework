@@ -1,4 +1,4 @@
-import { Box, Button, Group, useComponentDefaultProps } from "@mantine/core";
+﻿import { Box, Button, Group, useProps } from "@mantine/core";
 import { useRef } from "react";
 import { EntityClientAction } from "../../Entity";
 import { ButtonVariant, FormMode } from "../Core";
@@ -46,7 +46,7 @@ export function DataGridActionsToolbar(props: DataGridActionsToolbarProps) {
         enableAdd, enableEdit, enableDelete, enableView,
         showActions, clientActions, actionsButtonVariant, handleExecuteAction,
         onAddClick, onEditClick, onDeleteClick, onViewClick, parentFormMode
-    } = useComponentDefaultProps('DataGridActionsToolbar', DataGridActionsToolbarDefaultProps, props);
+    } = useProps('DataGridActionsToolbar', DataGridActionsToolbarDefaultProps, props);
 
     const addElement = useRef<HTMLButtonElement>(null);
     const editElement = useRef<HTMLButtonElement>(null);
@@ -72,7 +72,7 @@ export function DataGridActionsToolbar(props: DataGridActionsToolbarProps) {
                             if (parentFormMode === 'view' && !action.showActionInViewMode) return null;
                             if (viewName && action.views && !action.views.includes(viewName)) return null;
                             return (
-                                <Button leftIcon={action.icon} key={action.name} ref={(el) => (actionElements.current[index] = el)} size={buttonsSize} variant={actionsButtonVariant} onClick={() => handleExecuteAction(action, undefined, actionElements.current[index] ?? undefined)}>{action.label}</Button>
+                                <Button leftSection={action.icon} key={action.name} ref={(el) => (actionElements.current[index] = el)} size={buttonsSize} variant={actionsButtonVariant} onClick={() => handleExecuteAction(action, undefined, actionElements.current[index] ?? undefined)}>{action.label}</Button>
                             )
                         }
                     )

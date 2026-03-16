@@ -1,11 +1,11 @@
-import { Notification, NotificationProps, useComponentDefaultProps, useMantineTheme } from "@mantine/core";
+﻿import { Notification, NotificationProps, useProps, useMantineTheme } from "@mantine/core";
 
 export const NotifyInfoDefaultProps: Partial<NotificationProps> = {
     title: "Info"
 }
 
 export function NotifyInfo(props: NotificationProps) {
-    const { title } = useComponentDefaultProps('NotifyInfo', NotifyInfoDefaultProps, props);
+    const { title } = useProps('NotifyInfo', NotifyInfoDefaultProps, props);
     const theme = useMantineTheme();
     return (
         <Notification

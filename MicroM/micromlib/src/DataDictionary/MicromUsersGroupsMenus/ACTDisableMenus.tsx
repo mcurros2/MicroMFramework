@@ -1,4 +1,4 @@
-import { Group, Text } from "@mantine/core";
+﻿import { Group, Text } from "@mantine/core";
 import { IconX } from "@tabler/icons-react";
 import { EntityClientAction } from "../../Entity";
 import { CircleFilledIcon, ConfirmAndExecutePanel } from "../../UI";
@@ -16,7 +16,7 @@ const l = MicromUsersGroupsMenusDisableMenusLabels;
 export const ACTDisableMenus: EntityClientAction = {
     name: 'ACTDisableMenus',
     label: l.buttonLabel,
-    title: <Group spacing="xs"><CircleFilledIcon icon={<IconX size="0.75rem" />} backColor="red" /><Text fw={700}>{l.title}</Text></Group>,
+    title: <Group gap="xs"><CircleFilledIcon icon={<IconX size="0.75rem" />} backColor="red" /><Text fw={700}>{l.title}</Text></Group>,
     refreshOnClose: true,
     dontRequireSelection: true,
     onClick: async ({ entity, modal, selectedKeys, element, onClose }) => {
@@ -27,7 +27,7 @@ export const ACTDisableMenus: EntityClientAction = {
         if (modal) {
             await modal.open({
                 modalProps: {
-                    title: <Group spacing="xs"><CircleFilledIcon icon={<IconX size="0.75rem" />} backColor="red" /><Text fw={700}>{l.denyAccessToSelectedMenuItems}</Text></Group>,
+                    title: <Group gap="xs"><CircleFilledIcon icon={<IconX size="0.75rem" />} backColor="red" /><Text fw={700}>{l.denyAccessToSelectedMenuItems}</Text></Group>,
                 },
                 focusOnClosed: element,
                 content: <ConfirmAndExecutePanel
@@ -62,4 +62,5 @@ export const ACTDisableMenus: EntityClientAction = {
     }
 
 }
+
 

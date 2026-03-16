@@ -1,4 +1,4 @@
-import { Accordion, AccordionProps, getSize, Group, MantineSize, rem, Stack, Text, useComponentDefaultProps, useMantineTheme } from "@mantine/core";
+import { Accordion, AccordionProps, getSize, Group, MantineSize, rem, Stack, Text, useProps, useComputedColorScheme, useMantineTheme } from "@mantine/core";
 import { IconCalendar } from "@tabler/icons-react";
 import { ReactNode, useState } from "react";
 import { EntityColumn, EntityColumnFlags } from "../../Entity";
@@ -41,17 +41,18 @@ export function WeekPickerField(props: WeekPickerFieldProps) {
         weekStartDateColumn, weekEndDateColumn, entityForm, validate, validationContainer, requiredMessage,
         accordionVariant, accordionExpanded, placeholder, size, required, readonly, disabled, label, description,
         ...others
-    } = useComponentDefaultProps('WeekPickerField', WeekPickerFieldDefaultProps, props);
+    } = useProps('WeekPickerField', WeekPickerFieldDefaultProps, props);
 
     const theme = useMantineTheme();
+    const isDark = useComputedColorScheme() === 'dark';
     const localeFormat = useLocaleFormat({ timeZoneOffset: entityForm.entity.API.client.TIMEZONE_OFFSET });
 
     useFieldConfiguration({ entityForm, column: weekStartDateColumn, validationContainer, validate, required: false, requiredMessage, readOnly: false });
 
     const controlSize = getSize({ size: size ?? "sm", sizes: theme.fontSizes });
     const descriptionSize = getSize({ size: size ?? "sm", sizes: theme.fontSizes });
-    const labelColor = theme.colorScheme === 'dark' ? theme.colors.dark[0] : theme.colors.gray[9];
-    const descriptionColor = theme.colorScheme === 'dark' ? theme.colors.dark[2] : theme.colors.gray[6];
+    const labelColor = isDark ? theme.colors.dark[0] : theme.colors.gray[9];
+    const descriptionColor = isDark ? theme.colors.dark[2] : theme.colors.gray[6];
 
 
     const [weekEndValue, setWeekEndValue] = useState<Date | null>(weekEndDateColumn?.value || weekEndDateColumn?.defaultValue || null);
@@ -60,13 +61,13 @@ export function WeekPickerField(props: WeekPickerFieldProps) {
     const weekEndDisplayValue = weekEndValue ? localeFormat.formatValue(weekEndValue, 'date') : '';
 
     const is_required = (required ?? (!readonly && !(entityForm.formMode === 'view') && !weekStartDateColumn.hasFlag(EntityColumnFlags.nullable)));
-    const error_color = theme.fn.variant({ variant: 'filled', color: 'red' }).background;
+    const error_color = theme.colors.red[6];
 
     return (
         <Stack style={{ gap: "0.1rem" }}>
             <Group style={{ gap: "0.2rem" }}>
-                <Text size={controlSize} weight="500" color={labelColor}>{label ?? weekStartDateColumn.prompt}</Text>
-                {is_required && <Text size={controlSize} weight="500" color={theme.colors.red[5]}>*</Text>}
+                <Text size={controlSize} fw="500" c={labelColor}>{label ?? weekStartDateColumn.prompt}</Text>
+                {is_required && <Text size={controlSize} fw="500" c={theme.colors.red[5]}>*</Text>}
             </Group>
             {(description ?? weekStartDateColumn.description) &&
                 <Text style={{ fontSize: `calc(${descriptionSize} - ${rem(2)})`, lineHeight: 1.2 }} color={descriptionColor}>{description ?? weekStartDateColumn.description}</Text>
@@ -74,8 +75,8 @@ export function WeekPickerField(props: WeekPickerFieldProps) {
             <Accordion
                 style={{
                     marginTop: `calc(${theme.spacing.xs} / 2)`,
-                    border: `${rem(1)} solid ${(is_required && !weekStartDateColumn.value) ? error_color : theme.colorScheme === 'dark' ? theme.colors.dark[4] : theme.colors.gray[4]}`,
-                    backgroundColor: theme.colorScheme === 'dark' ? theme.colors.dark[6] : theme.white,
+                    border: `${rem(1)} solid ${(is_required && !weekStartDateColumn.value) ? error_color : isDark ? theme.colors.dark[4] : theme.colors.gray[4]}`,
+                    backgroundColor: isDark ? theme.colors.dark[6] : theme.white,
                     transition: 'border-color 100ms ease',
                     borderRadius: theme.radius.sm,
                 }}
@@ -123,3 +124,7 @@ export function WeekPickerField(props: WeekPickerFieldProps) {
         </Stack>
     );
 }
+
+
+
+

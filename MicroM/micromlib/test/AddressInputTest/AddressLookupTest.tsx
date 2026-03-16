@@ -2,6 +2,7 @@ import { Stack } from "@mantine/core";
 import { useCallback, useRef, useState } from "react";
 import { EntityForm, MicroMClient, TextField, ValuesObject, latLng, useEntityForm } from "../../src";
 import { AddressLookup } from "../../src/UI/AddressInput/AddressLookup";
+import { AddressMapMarkerPosition } from "../../src/UI/AddressInput/AddressMapMarker";
 import { AddressInputTestEntity } from "./AddressTestEntity";
 import { useGoogleAddressMappingRules } from "../../src/UI/GoogleMaps/useGoogleAddressMappingRules";
 import { ARMappingRules, UYMappingRules } from "../../src/UI/GoogleMaps/mappingRulesDefinition";
@@ -14,7 +15,7 @@ export function AddressLookupTest() {
 
     const entityForm = useEntityForm({ entity: entity.current, initialFormMode: "add", getDataOnInit: false });
 
-    const [currentPosition, setCurrentPosition] = useState<latLng>();
+    const [currentPosition, setCurrentPosition] = useState<AddressMapMarkerPosition>();
 
     const { mappingRules, addMappingRule } = useGoogleAddressMappingRules();
 
@@ -45,7 +46,7 @@ export function AddressLookupTest() {
         if (result?.position) {
             values.vc_latitude = result.position.lat.toString();
             values.vc_longitude = result.position.lng.toString();
-            setCurrentPosition(result.position);
+            setCurrentPosition({ position: result.position });
         }
 
         entityForm.form.setValues(values);

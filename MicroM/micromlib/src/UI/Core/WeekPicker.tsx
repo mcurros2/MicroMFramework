@@ -1,4 +1,4 @@
-import { Group } from '@mantine/core';
+﻿import { Group } from '@mantine/core';
 import { Calendar, CalendarProps } from '@mantine/dates';
 import dayjs from 'dayjs';
 import { useState } from 'react';
@@ -44,30 +44,32 @@ export function WeekPicker(props: WeekPickerProps) {
     const [hovered, setHovered] = useState<Date | null>(null);
 
     return (
-        <Group position="center">
+        <Group justify="center">
             <Calendar
-                placeholder={undefined} onPointerEnterCapture={undefined} onPointerLeaveCapture={undefined}
+                //TODO: desde migracion a Mantine v8 placeholder ya no existe
+                //placeholder={undefined} onPointerEnterCapture={undefined} onPointerLeaveCapture={undefined}
                 {...others}
                 withCellSpacing={false}
                 getDayProps={(date) => {
-                    const isHovered = isInWeekRange(date, hovered);
-                    const isSelected = isInWeekRange(date, weekStartDatevalue);
+                    const currentDate = new Date(date);
+                    const isHovered = isInWeekRange(currentDate, hovered);
+                    const isSelected = isInWeekRange(currentDate, weekStartDatevalue);
                     const isInRange = isHovered || isSelected;
 
                     return {
-                        onMouseEnter: () => setHovered(date),
+                        onMouseEnter: () => setHovered(currentDate),
                         onMouseLeave: () => setHovered(null),
                         inRange: isInRange,
-                        firstInRange: isInRange && date.getDay() === 1,
-                        lastInRange: isInRange && date.getDay() === 0,
+                        firstInRange: isInRange && currentDate.getDay() === 1,
+                        lastInRange: isInRange && currentDate.getDay() === 0,
                         selected: isSelected,
                         onClick: () => {
                             if (allowDeselect && isSelected) {
                                 setWeekStartValue(null);
                                 if (setWeekEndValue) setWeekEndValue(null);
                             } else {
-                                setWeekStartValue(startOfWeek(date));
-                                if (setWeekEndValue) setWeekEndValue(endOfWeek(date));
+                                setWeekStartValue(startOfWeek(currentDate));
+                                if (setWeekEndValue) setWeekEndValue(endOfWeek(currentDate));
                             }
                         },
                     };

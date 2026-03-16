@@ -1,4 +1,4 @@
-import { Badge, Group, NavLink, rem, Skeleton, useComponentDefaultProps, useMantineTheme } from "@mantine/core";
+import { Badge, Group, NavLink, rem, Skeleton, useProps, useComputedColorScheme, useMantineTheme } from "@mantine/core";
 import { Dispatch, ReactNode, SetStateAction, useCallback, useEffect } from "react";
 import { isPromise } from "../../Entity";
 import { useMicroMRouter } from "../Router/useMicroMRouter";
@@ -30,9 +30,10 @@ export function MenuNavLinks(props: MenuItemsProps) {
     const {
         AllItems, sectionItems, setContent, clearContent, activeID, subitemActiveID, defaultLoadingComponent, onActiveChange, onSubitemActiveChange,
         showSubitemIcons, showItemDescription, setOpened, autoHideNavBarOnClick
-    } = useComponentDefaultProps('MenuItems', MenuItemsPropsDefaultProps, props);
+    } = useProps('MenuItems', MenuItemsPropsDefaultProps, props);
 
     const theme = useMantineTheme();
+    const isDark = useComputedColorScheme() === 'dark';
 
     const { navigate, path } = useMicroMRouter();
 
@@ -105,9 +106,9 @@ export function MenuNavLinks(props: MenuItemsProps) {
                 <NavLink
                     key={item.ID}
                     label={
-                        (item.notifications && (item.subitems || item.rightSection)) ? <Group><Group sx={{ flex: 1 }}>{item.labelComponent ?? item.label}</Group><Badge sx={{ justifySelf: "flex-end" }} variant="filled" size="xs">{item.notifications}</Badge></Group> : (item.labelComponent ?? item.label)
+                        (item.notifications && (item.subitems || item.rightSection)) ? <Group><Group style={{ flex: 1 }}>{item.labelComponent ?? item.label}</Group><Badge style={{ justifySelf: "flex-end" }} variant="filled" size="xs">{item.notifications}</Badge></Group> : (item.labelComponent ?? item.label)
                     }
-                    icon={item.icon}
+                    leftSection={item.icon}
                     rightSection={(item.notifications && !item.subitems && !item.rightSection) ? <Badge variant="filled" size="xs">{item.notifications}</Badge> : item.rightSection}
                     description={showItemDescription && item.description}
                     onClick={() => handleItemClick(item)}
@@ -117,13 +118,13 @@ export function MenuNavLinks(props: MenuItemsProps) {
                     {
                         item.subitems && item.subitems.map((subitem) => {
                             return <NavLink
-                                sx={{
-                                    borderLeft: `${rem(1)} solid ${theme.colorScheme === 'dark' ? theme.colors.dark[4] : theme.colors.gray[3]}`
+                                style={{
+                                    borderLeft: `${rem(1)} solid ${isDark ? theme.colors.dark[4] : theme.colors.gray[3]}`
                                 }}
                                 pl="1.8rem"
                                 key={item.ID + subitem.ID}
                                 label={subitem.label}
-                                icon={showSubitemIcons && subitem.icon}
+                                leftSection={showSubitemIcons && subitem.icon}
                                 rightSection={subitem.notifications && <Badge variant="filled" size="xs">{subitem.notifications}</Badge>}
                                 description={showItemDescription && subitem.description}
                                 onClick={() => handleItemClick(item, subitem)}
@@ -139,3 +140,8 @@ export function MenuNavLinks(props: MenuItemsProps) {
     );
 
 }
+
+
+
+
+

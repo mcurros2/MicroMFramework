@@ -1,4 +1,4 @@
-import { useComponentDefaultProps } from "@mantine/core";
+﻿import { useProps } from "@mantine/core";
 import { useCallback, useState } from "react";
 import { SQLType, Value } from "../../client";
 import { EntityColumn } from "../../Entity";
@@ -14,7 +14,7 @@ export const UseLocaleFormatDefaultProps: Partial<UseLocaleFormatProps> = {
 }
 
 export function useLocaleFormat(props: UseLocaleFormatProps) {
-    const { initialLocale, timeZoneOffset } = useComponentDefaultProps('useLocaleFormat', UseLocaleFormatDefaultProps, props);
+    const { initialLocale, timeZoneOffset } = useProps('useLocaleFormat', UseLocaleFormatDefaultProps, props);
 
     const [locale, setLocale] = useState(initialLocale);
 

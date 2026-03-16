@@ -1,4 +1,4 @@
-import { Button, Card, CardProps, Checkbox, Group, useComponentDefaultProps, useMantineTheme } from "@mantine/core";
+import { Button, Card, CardProps, Checkbox, Group, useProps, useComputedColorScheme, useMantineTheme } from "@mantine/core";
 import { ComponentType, useRef } from "react";
 import { ValuesObject } from "../../client";
 import { EntityCardProps } from "../EntityCard";
@@ -19,16 +19,17 @@ export function DataViewCardContainer(props: DataViewCardContainerProps) {
         recordIndex, selected, handleDeleteClick, handleDeselectRecord, handleEditClick, handleSelectRecord, handleViewClick,
         enableDelete, enableEdit, enableView, entity, record, toggleSelectable, EntityCard, CardProps, refreshView, handleCardClick,
         cardHrefRootURL, cardHrefTarget, handleExecuteAction
-    } = useComponentDefaultProps('DataViewCardContainer', DataViewCardContainerDefaultProps, props);
+    } = useProps('DataViewCardContainer', DataViewCardContainerDefaultProps, props);
 
     const theme = useMantineTheme();
+    const isDark = useComputedColorScheme() === 'dark';
 
     const editElement = useRef<HTMLButtonElement>(null);
     const deleteElement = useRef<HTMLButtonElement>(null);
     const viewElement = useRef<HTMLButtonElement>(null);
 
     return (
-        <Card key={`${entity.def.name}-${recordIndex}`} bg={theme.colorScheme === 'dark' ? theme.colors.dark[9] : undefined} {...CardProps}>
+        <Card key={`${entity.def.name}-${recordIndex}`} bg={isDark ? theme.colors.dark[9] : undefined} {...CardProps}>
             {toggleSelectable && handleDeselectRecord && handleSelectRecord &&
                 <Checkbox key={`chk-${entity.def.name}-${recordIndex}`} size="xs" variant="light" mb="xs" checked={selected} onClick={() => { selected ? handleDeselectRecord(recordIndex) : handleSelectRecord(recordIndex) }} />
             }
@@ -58,7 +59,7 @@ export function DataViewCardContainer(props: DataViewCardContainerProps) {
             }
             {(enableDelete || enableEdit || enableView) &&
                 <Card.Section mt="xs" p="xs" withBorder>
-                    <Group position="right">
+                    <Group justify="right">
                         {enableView && !enableEdit && handleViewClick &&
                             <Button size="xs" ref={viewElement} onClick={async () => await handleViewClick(record.keys, viewElement.current as HTMLElement)}>{DataViewDefaultProps.labels?.viewLabel}</Button>
                         }
@@ -74,3 +75,8 @@ export function DataViewCardContainer(props: DataViewCardContainerProps) {
         </Card>
     )
 }
+
+
+
+
+

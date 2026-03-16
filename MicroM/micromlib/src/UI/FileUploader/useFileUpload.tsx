@@ -1,4 +1,4 @@
-import { Text, useComponentDefaultProps } from "@mantine/core";
+﻿import { Text, useProps } from "@mantine/core";
 import { useEffect, useRef, useState } from "react";
 import { DBStatusResult, MicroMClient } from "../../client";
 import { FileStore } from "../../DataDictionary";
@@ -88,7 +88,7 @@ export function useFileUpload(props: UseFileUploadProps): UseFileUploadReturnTyp
         youCanUploadAMaximumOfText, filesText, exceedMaximumIndividualSizeText, unspecifiedErrorWhenUploadingFileText,
         totalUploadExceedsMaximumSizeText, fileProcessColumn, onCancel, editor, onValidateFile,
         thumbnailMaxSize, thumbnailQuality
-    } = useComponentDefaultProps('useFileUpload', UseFileUploadDefaultProps, props);
+    } = useProps('useFileUpload', UseFileUploadDefaultProps, props);
 
     const [uploadProgress, setUploadProgress] = useState<Record<string, UploadProgressReport>>({});
     const [fileProcessID, setFileProcessID] = useState<string>(fileProcessColumn.value);
@@ -424,3 +424,4 @@ export function useFileUpload(props: UseFileUploadProps): UseFileUploadReturnTyp
         loadingNotification
     }
 }
+

@@ -1,4 +1,4 @@
-import { Accordion, Button, Card, Group, List, Stack, Table, Text, Title, useComponentDefaultProps, useMantineTheme } from "@mantine/core";
+﻿import { Accordion, Button, Card, Group, List, Stack, Table, Text, Title, useProps, useMantineTheme } from "@mantine/core";
 import { IconCheck, IconCircleCheck, IconCircleNumber1, IconCircleNumber2, IconCircleX, IconX } from "@tabler/icons-react";
 import { useCallback, useMemo, useState } from "react";
 import { Value } from "../../client";
@@ -69,7 +69,7 @@ export function ImportEntityDataForm(props: ImportEntityDataFormProps) {
         dateFormatLabel, numberFormatLabel, downloadSampleLabel, importButtonLabel, CancelText, importHelpAndInstructionsLabel,
         recordsImportedSusccessfullyLabel, recordsNotImportedDueToErrorsLabel, CloseText, importTheCSVFileLabel,
         importedFileLabel, errorColumnTitle, rowColumnTitle
-    } = useComponentDefaultProps('ImportEntityDataForm', ImportEntityDataFormDefaultProps, props);
+    } = useProps('ImportEntityDataForm', ImportEntityDataFormDefaultProps, props);
 
     const theme = useMantineTheme();
 
@@ -108,7 +108,7 @@ export function ImportEntityDataForm(props: ImportEntityDataFormProps) {
     }, [importEntity, required]);
 
     const RequiredColumns = useMemo(() => {
-        return importEntity ? <Table striped withBorder withColumnBorders width="100%">
+        return importEntity ? <Table striped withTableBorder withColumnBorders width="100%">
             <thead>
                 <tr>
                     <th>{columnHeaderLabel}</th>
@@ -155,7 +155,7 @@ export function ImportEntityDataForm(props: ImportEntityDataFormProps) {
                                                 <Stack>
                                                     <Text>{csvInstructionsLabel}</Text>
                                                     {RequiredColumns}
-                                                    <Stack spacing="0">
+                                                    <Stack gap="0">
                                                         <Text size="xs" color="dimmed">{dateFormatLabel}</Text>
                                                         <Text size="xs" color="dimmed">{numberFormatLabel}</Text>
                                                     </Stack>
@@ -187,13 +187,13 @@ export function ImportEntityDataForm(props: ImportEntityDataFormProps) {
                         <Stack>
                             <Title order={6}>{importedFileLabel} {lastProcessedFile}</Title>
                             {importData.importStatus.data.SuccessCount > 0 &&
-                                <Group spacing={0}><CircleFilledIcon icon={<IconCheck size="0.75rem" />} backColor={theme.colors.green[8]} />{importData.importStatus.data.SuccessCount} {recordsImportedSusccessfullyLabel}</Group>
+                                <Group gap={0}><CircleFilledIcon icon={<IconCheck size="0.75rem" />} backColor={theme.colors.green[8]} />{importData.importStatus.data.SuccessCount} {recordsImportedSusccessfullyLabel}</Group>
                             }
                             {importData.importStatus.data.ErrorCount > 0 &&
-                                <Group spacing={0}><CircleFilledIcon icon={<IconX size="0.75rem" />} backColor={theme.colors.red[8]} />{importData.importStatus.data.ErrorCount} {recordsNotImportedDueToErrorsLabel}</Group>
+                                <Group gap={0}><CircleFilledIcon icon={<IconX size="0.75rem" />} backColor={theme.colors.red[8]} />{importData.importStatus.data.ErrorCount} {recordsNotImportedDueToErrorsLabel}</Group>
                             }
                             {importData.importStatus.data.ErrorCount > 0 &&
-                                <Table withBorder striped width="100%">
+                                <Table withTableBorder striped width="100%">
                                     <thead>
                                         <tr>
                                             <th>{rowColumnTitle}</th>
@@ -215,12 +215,12 @@ export function ImportEntityDataForm(props: ImportEntityDataFormProps) {
                         </Stack>
                     </Card>
                 }
-                <Group mt="xs" position="right">
+                <Group mt="xs" justify="right">
                     {!importData.importStatus.loading && !importData.importStatus.data &&
                         <>
                             <Button
                                 variant="light"
-                                leftIcon={<IconCircleX size="1.5rem" />}
+                                leftSection={<IconCircleX size="1.5rem" />}
                                 onClick={async () => { if (onCancel) await onCancel() }}
                             >
                                 {CloseText || EntityFormDefaultProps.CloseText}
@@ -235,7 +235,7 @@ export function ImportEntityDataForm(props: ImportEntityDataFormProps) {
                                     }
                                 }
                                 loading={importData.importStatus.loading}
-                                leftIcon={<IconCircleCheck size="1.5rem" />}
+                                leftSection={<IconCircleCheck size="1.5rem" />}
                                 disabled={importData.importStatus.data !== undefined}
                             >
                                 {importButtonLabel}
@@ -245,7 +245,7 @@ export function ImportEntityDataForm(props: ImportEntityDataFormProps) {
                     {importData.importStatus.loading &&
                         <Button
                             variant="light"
-                            leftIcon={<IconCircleX size="1.5rem" />}
+                            leftSection={<IconCircleX size="1.5rem" />}
                             onClick={() => importData.cancellation.abort()}
                         >
                             {CancelText || EntityFormDefaultProps.CancelText}
@@ -254,7 +254,7 @@ export function ImportEntityDataForm(props: ImportEntityDataFormProps) {
                     {importData.importStatus.data &&
                         <Button
                             variant="light"
-                            leftIcon={<IconCircleX size="1.5rem" />}
+                            leftSection={<IconCircleX size="1.5rem" />}
                             onClick={async () => { if (onCancel) await onCancel() }}
                         >
                             {CloseText || EntityFormDefaultProps.CloseText}
@@ -266,3 +266,4 @@ export function ImportEntityDataForm(props: ImportEntityDataFormProps) {
         </EntityForm>
     )
 }
+

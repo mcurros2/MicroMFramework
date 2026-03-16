@@ -1,4 +1,4 @@
-import { Group, NumberInput, NumberInputProps, useComponentDefaultProps } from "@mantine/core";
+﻿import { Group, NumberInput, NumberInputProps, useProps } from "@mantine/core";
 import { forwardRef, ReactNode } from "react";
 import { Value } from "../../client";
 import { EntityColumn, EntityColumnFlags } from "../../Entity";
@@ -28,7 +28,7 @@ export const NumberField = forwardRef<HTMLInputElement, NumberFieldProps>(functi
     const {
         column, entityForm, validate, validationContainer, required, requiredMessage, readOnly, label,
         placeholder, description, withAsterisk, autoFocus, ...others
-    } = useComponentDefaultProps('NumberField', defaultProps, props);
+    } = useProps('NumberField', defaultProps, props);
 
     useFieldConfiguration({ entityForm, column, validationContainer, validate, required, requiredMessage, readOnly });
 
@@ -46,7 +46,7 @@ export const NumberField = forwardRef<HTMLInputElement, NumberFieldProps>(functi
             description={showDescription ? (description ?? column.description) : ''}
             readOnly={entityForm.formMode === 'view' ? true : readOnly}
             data-autofocus={autoFocus}
-            precision={column.scale}
+            decimalScale={column.scale}
             {...entityForm.form.getInputProps(column.name)}
 
             // FIX for maintine NumberInput not supporting null
@@ -57,3 +57,4 @@ export const NumberField = forwardRef<HTMLInputElement, NumberFieldProps>(functi
     )
 
 });
+

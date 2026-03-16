@@ -1,8 +1,7 @@
-import { AutocompleteItem, useMantineTheme } from "@mantine/core";
 import { useDebouncedState } from "@mantine/hooks";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useGoogleMapsAPI } from "../../GoogleMapsAPI/useGoogleMapsAPI";
-import { GoogleAddressAutocompleteProps } from "./GoogleAddressAutocomplete";
+import { AddressAutocompleteItem, GoogleAddressAutocompleteProps } from "./GoogleAddressAutocomplete";
 import { MappedAddressResult } from "./Mapping.types";
 import { useGoogleAddressMapping } from "./useGoogleAddressMapping";
 
@@ -13,7 +12,7 @@ export function useGoogleAddressAutocomplete({ onAddressFound, restrictions, onC
     const lastPlaceIdRef = useRef<string>('');
 
     const [isLoading, setIsLoading] = useState(false);
-    const [suggestions, setSuggestions] = useState<(AutocompleteItem & { structuredFormatting: google.maps.places.StructuredFormatting })[]>([]);
+    const [suggestions, setSuggestions] = useState<AddressAutocompleteItem[]>([]);
     const [query, setQuery] = useDebouncedState('', 700, { leading: true });
     const [inputValue, setInputValue] = useState<string>();
     const [apiError, setApiError] = useState<google.maps.places.PlacesServiceStatus | undefined>();
@@ -22,11 +21,9 @@ export function useGoogleAddressAutocomplete({ onAddressFound, restrictions, onC
 
     const { mapGoogleAddressComponents } = useGoogleAddressMapping();
 
-    const theme = useMantineTheme();
-
     const icon = useMemo(() =>
-        <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill={theme.colors[iconColor || theme.primaryColor][theme.fn.primaryShade(theme.colorScheme)]}  className="icon icon-tabler icons-tabler-filled icon-tabler-map-pin"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M18.364 4.636a9 9 0 0 1 .203 12.519l-.203 .21l-4.243 4.242a3 3 0 0 1 -4.097 .135l-.144 -.135l-4.244 -4.243a9 9 0 0 1 12.728 -12.728zm-6.364 3.364a3 3 0 1 0 0 6a3 3 0 0 0 0 -6z" /></svg>
-        , [iconColor, theme.colorScheme, theme.colors, theme.fn, theme.primaryColor]);
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill={`var(--mantine-color-${iconColor || 'blue'}-filled)`} className="icon icon-tabler icons-tabler-filled icon-tabler-map-pin"><path stroke="none" d="M0 0h24v24H0z" fill="none" /><path d="M18.364 4.636a9 9 0 0 1 .203 12.519l-.203 .21l-4.243 4.242a3 3 0 0 1 -4.097 .135l-.144 -.135l-4.244 -4.243a9 9 0 0 1 12.728 -12.728zm-6.364 3.364a3 3 0 1 0 0 6a3 3 0 0 0 0 -6z" /></svg>
+        , [iconColor]);
 
     //workaround for firing an event from the effect
     const onChangeRef = useRef(onChange);
@@ -40,7 +37,7 @@ export function useGoogleAddressAutocomplete({ onAddressFound, restrictions, onC
         return found.address_components ? mapGoogleAddressComponents(found.address_components, mappingRules!) : {};
     }, [mapGoogleAddressComponents, mappingRules]);
 
-    const handleItemSelected = useCallback((item: AutocompleteItem & { place_id: string }) => {
+    const handleItemSelected = useCallback((item: AddressAutocompleteItem) => {
         if (lastPlaceIdRef.current === item.place_id) return;
         lastPlaceIdRef.current = "";
 
@@ -72,10 +69,10 @@ export function useGoogleAddressAutocomplete({ onAddressFound, restrictions, onC
 
     }, [getAutocompleteDetails, mapPlaceToAddress, onAPIError, onAddressFound, refreshSessionToken]);
 
-    const handleOnItemSubmit = useCallback((item: AutocompleteItem & { place_id: string }) => {
-        handleItemSelected(item);
-
-    }, [handleItemSelected]);
+    const handleOnOptionSubmit = useCallback((selectedValue: string) => {
+        const selectedItem = suggestions.find(item => item.value === selectedValue);
+        if (selectedItem) handleItemSelected(selectedItem);
+    }, [handleItemSelected, suggestions]);
 
     // MMC: Query if there is an initla value
     useEffect(() => {
@@ -113,6 +110,7 @@ export function useGoogleAddressAutocomplete({ onAddressFound, restrictions, onC
                             place_id: p.place_id,
                             structuredFormatting: p.structured_formatting,
                             value: p.description,
+                            label: p.description,
                             icon: icon
                         })));
                     }
@@ -134,7 +132,7 @@ export function useGoogleAddressAutocomplete({ onAddressFound, restrictions, onC
         attributionsRef,
         isLoading,
         handleOnUserInputChange,
-        handleOnItemSubmit,
+        handleOnOptionSubmit,
         suggestions,
         value: inputValue,
         apiError,

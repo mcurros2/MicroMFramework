@@ -1,4 +1,4 @@
-import { Accordion, Card, Text, ThemeIcon, useComponentDefaultProps, useMantineTheme } from "@mantine/core";
+import { Accordion, Card, Text, ThemeIcon, useProps, useComputedColorScheme, useMantineTheme } from "@mantine/core";
 import { IconHelp } from "@tabler/icons-react";
 import { ReactNode, useMemo } from "react";
 import { FormMode } from "../Core";
@@ -20,9 +20,10 @@ export const MultiDataMapFormDefaultProps: Partial<MultiDataMapFormProps> = {
 export function MultiDataMapForm(props: MultiDataMapFormProps) {
     const {
         showTitle, formMode, title, icon, helpText, customTitle, dataMapView1, dataMapView2, dataMapView3, dataMapView4, dataMapView5, ...others
-    } = useComponentDefaultProps('MultiDataMapForm', props, MultiDataMapFormDefaultProps);
+    } = useProps('MultiDataMapForm', props, MultiDataMapFormDefaultProps);
 
     const theme = useMantineTheme();
+    const isDark = useComputedColorScheme() === 'dark';
 
 
     const { entity } = dataMapView1;
@@ -67,14 +68,14 @@ export function MultiDataMapForm(props: MultiDataMapFormProps) {
     const { newDataMapView1, newDataMapView2, newDataMapView3, newDataMapView4, newDataMapView5 } = dataMapViews;
 
     return (
-        <Card shadow="sm" withBorder={theme.colorScheme === 'dark' ? false : true}>
+        <Card shadow="sm" withBorder={isDark ? false : true}>
             {showTitle && customTitle &&
-                <Card.Section p="xs" bg={theme.colorScheme === 'dark' ? theme.colors.dark[5] : theme.colors[theme.primaryColor][3]} mb="1rem">
+                <Card.Section p="xs" bg={isDark ? theme.colors.dark[5] : theme.colors[theme.primaryColor][3]} mb="1rem">
                     {customTitle}
                 </Card.Section>
             }
             {showTitle && !customTitle &&
-                <Card.Section p="xs" bg={theme.colorScheme === 'dark' ? theme.colors.dark[5] : theme.colors[theme.primaryColor][3]} mb="1rem">
+                <Card.Section p="xs" bg={isDark ? theme.colors.dark[5] : theme.colors[theme.primaryColor][3]} mb="1rem">
                     <Accordion
                         variant="filled"
                         chevron={<IconHelp size="1rem" />}
@@ -105,3 +106,7 @@ export function MultiDataMapForm(props: MultiDataMapFormProps) {
         </Card>
     );
 }
+
+
+
+

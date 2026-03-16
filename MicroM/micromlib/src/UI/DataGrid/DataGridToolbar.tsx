@@ -1,5 +1,4 @@
-import { Accordion, ActionIcon, Badge, BadgeVariant, Group, MantineNumberSize, MantineSize, Menu, rem, SelectItem, Stack, Text, useComponentDefaultProps, useMantineTheme } from "@mantine/core";
-import { AccordionVariant } from "@mantine/core/lib/Accordion/Accordion.types";
+﻿import { Accordion, AccordionProps, ActionIcon, Badge, BadgeVariant, Group, MantineSize, Menu, rem, ComboboxItem, Stack, Text, useProps, useMantineTheme } from "@mantine/core";
 import { IconCloudUpload, IconDownload, IconEyeCog, IconFilter, IconFilterOff, IconPencil, IconReload, IconSquareCheck, IconSquareCheckFilled, IconX } from "@tabler/icons-react";
 import { Dispatch, ReactNode, SetStateAction, useRef } from "react";
 import { MicroMClient, ValuesObject } from "../../client";
@@ -27,8 +26,8 @@ export interface DataGridToolbarOptions {
     selectRowsTooltip?: string,
     searchText: string[] | undefined,
     setSearchText: Dispatch<SetStateAction<string[] | undefined>>,
-    searchData: SelectItem[],
-    setSearchData: Dispatch<SetStateAction<SelectItem[]>>,
+    searchData: ComboboxItem[],
+    setSearchData: Dispatch<SetStateAction<ComboboxItem[]>>,
 
     FiltersEntity?: EntityConstructor,
     filterTooltip?: string,
@@ -41,7 +40,7 @@ export interface DataGridToolbarOptions {
     setFiltersDescription: Dispatch<SetStateAction<ValuesObject | undefined>>,
 
     clearFiltersTooltip?: string,
-    filtersFormSize: MantineNumberSize
+    filtersFormSize: MantineSize
 
     enableImport?: boolean,
     importTooltip?: string,
@@ -68,7 +67,7 @@ export interface DataGridToolbarOptions {
     editFitersLabel?: string,
     clearFiltersLabel?: string,
 
-    filtersAccordionVariant?: AccordionVariant,
+    filtersAccordionVariant?: AccordionProps["variant"],
 
     showColumnsConfig?: boolean,
     configMenuOpened?: boolean,
@@ -124,7 +123,7 @@ export function DataGridToolbar(props: DataGridToolbarOptions) {
         editFitersLabel, clearFiltersLabel, filtersAccordionVariant, filtersBadgeVariant,
         showSearchInput, showSelectRowsButton, showColumnsConfig, configMenuOpened, setConfigMenuOpened,
         configMenuDropdown
-    } = useComponentDefaultProps('DataGridToolbar', DataGridToolbarDefaultProps, props);
+    } = useProps('DataGridToolbar', DataGridToolbarDefaultProps, props);
 
     const theme = useMantineTheme();
 
@@ -175,7 +174,7 @@ export function DataGridToolbar(props: DataGridToolbarOptions) {
                         iconsSize={iconsSize}
                         autoFocus={autoFocus}
                         iconVariant={toolbarIconVariant}
-                        sx={{ flexGrow: 1 }}
+                        style={{ flexGrow: 1 }}
                         ref={filterInputRef}
                     />
                 }
@@ -250,9 +249,9 @@ export function DataGridToolbar(props: DataGridToolbarOptions) {
                     <Accordion defaultValue="filters" mt="sm" variant={filtersAccordionVariant}>
                         <Accordion.Item value="filters">
                             <Accordion.Control>
-                                <Group position="apart">
-                                    <Text size="xs" weight={500}>{appliedFiltersCount > 0 ? `(${appliedFiltersCount}) ` : ''}{filtersTitle}</Text>
-                                    <Group position="right">
+                                <Group justify="apart">
+                                    <Text size="xs" fw={500}>{appliedFiltersCount > 0 ? `(${appliedFiltersCount}) ` : ''}{filtersTitle}</Text>
+                                    <Group justify="right">
                                         <ActionIcon
                                             component="a"
                                             size={actionIconSize} radius="xl" variant="default" title={clearFiltersLabel}
@@ -271,8 +270,8 @@ export function DataGridToolbar(props: DataGridToolbarOptions) {
                                 </Group>
                             </Accordion.Control>
                             <Accordion.Panel>
-                                <Stack spacing="xs">
-                                    <Group spacing="xs" style={{ gap: '0.5rem' }}>
+                                <Stack gap="xs">
+                                    <Group gap="xs" style={{ gap: '0.5rem' }}>
                                         {Object.keys(filtersAPI.filtersDescription).map((filter, index) =>
                                         (
                                             filtersAPI.filtersDescription?.[filter]?.toString() ?
@@ -298,3 +297,5 @@ export function DataGridToolbar(props: DataGridToolbarOptions) {
         </>
     );
 }
+
+

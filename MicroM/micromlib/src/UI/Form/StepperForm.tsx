@@ -1,4 +1,4 @@
-import { Button, Group, Stepper, StepperProps, useComponentDefaultProps } from "@mantine/core";
+﻿import { Button, Group, Stepper, StepperProps, useProps } from "@mantine/core";
 import { IconCircleCheck } from "@tabler/icons-react";
 import { ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 import { DBStatusResult } from "../../client";
@@ -53,7 +53,7 @@ export function StepperForm(props: StepperFormProps) {
     const {
         formAPI, onNextStep, onPrevStep, initialStep, nextStepLabel, prevStepLabel, allowStepClickForward,
         steps, OKText, completedContent, hideNextAndBackWhenCompleted, stepperProps, onCompleted, ...rest
-    } = useComponentDefaultProps('StepperForm', StepperFormDefaultProps, props);
+    } = useProps('StepperForm', StepperFormDefaultProps, props);
 
     const { status, formMode } = formAPI;
 
@@ -161,7 +161,7 @@ export function StepperForm(props: StepperFormProps) {
 
     const buttons = useMemo(() => (
         !(hideNextAndBackWhenCompleted && activeStep === steps.length) &&
-        <Group position={activeStep > 0 ? 'apart' : 'right'} style={{ flex: 'auto' }}>
+        <Group justify={activeStep > 0 ? 'apart' : 'right'} style={{ flex: 'auto' }}>
             <Button
                 key="stepper-back"
                 loading={stepValidating}
@@ -176,7 +176,7 @@ export function StepperForm(props: StepperFormProps) {
                 type="submit"
                 key="stepper-submit"
                 loading={status?.loading}
-                leftIcon={<IconCircleCheck size="1.125rem" />}
+                leftSection={<IconCircleCheck size="1.125rem" />}
                 display={formMode !== "view" && activeStep === steps.length - 1 ? 'inline-block' : 'none'}
             >
                 {activeStepItem.nextStepLabel || nextStepLabel}
@@ -237,3 +237,4 @@ export function StepperForm(props: StepperFormProps) {
         </EntityForm>
     )
 }
+
