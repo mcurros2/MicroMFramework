@@ -52,5 +52,7 @@ public class ApplicationOption
     // Used only for IDPServer role, authorized OIDC clients
     public Dictionary<string, OIDCClientConfigurationOption>? OIDCClientConfiguration { get; set; } = null;
 
+    public Dictionary<string, ADConfigurationOption>? ADConfiguration { get; set; } = null;
+
     public List<string> FrontendURLS { get; set; } = [];
 }

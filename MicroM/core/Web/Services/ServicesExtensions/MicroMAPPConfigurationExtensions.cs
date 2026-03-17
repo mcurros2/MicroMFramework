@@ -51,6 +51,17 @@ public static class MicroMAPPConfigurationExtensions
         return dbc;
     }
 
+    public static ADConfigurationOption? GetADConfiguration(this ApplicationOption app, string email)
+    {
+        var address = email.ToMailAddress();
+        if (address == null) return null;
+
+        ADConfigurationOption? adConfig = null;
+        app.ADConfiguration?.TryGetValue(address.Host, out adConfig);
+
+        return adConfig;
+    }
+
     public static IServiceCollection AddMicroMApplicationServices(this IServiceCollection services, IMicroMAppConfiguration appConfig, IConfiguration configuration)
     {
 

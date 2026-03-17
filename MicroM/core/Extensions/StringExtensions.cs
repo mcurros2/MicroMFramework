@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Net.Mail;
+using System.Text;
 
 namespace MicroM.Extensions;
 
@@ -90,6 +91,19 @@ public static class StringExtensions
     public static string ToBase64(this string? value)
     {
         return string.IsNullOrEmpty(value) ? "" : Convert.ToBase64String(Encoding.UTF8.GetBytes(value));
+    }
+
+    public static MailAddress? ToMailAddress(this string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return null;
+        try
+        {
+            return new MailAddress(value);
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     extension(string)

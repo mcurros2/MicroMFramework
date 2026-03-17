@@ -29,6 +29,7 @@ public static class ConfigurationDatabaseSchema
         result.TryAddType<MicromApplicationCertificates>();
         result.TryAddType<ApplicationOidcClients>();
         result.TryAddType<ApplicationOidcClientsAuthorizedUrls>();
+        result.TryAddType<ApplicationAdConfiguration>();
 
         return result;
     }
@@ -53,7 +54,7 @@ public static class ConfigurationDatabaseSchema
 
             new ApplicationOidcClients(ec),
             new ApplicationOidcClientsAuthorizedUrls(ec),
-
+            new ApplicationAdConfiguration(ec),
             ]);
 
         return result;
@@ -80,6 +81,7 @@ public static class ConfigurationDatabaseSchema
             await CreateSchemaAndDictionary<MicromApplicationApiKeys>(ec, ct, create_custom_procs: true, create_or_alter: create_or_alter);
             await CreateSchemaAndDictionary<ApplicationOidcClients>(ec, ct, create_custom_procs: true, create_or_alter: create_or_alter);
             await CreateSchemaAndDictionary<ApplicationOidcClientsAuthorizedUrls>(ec, ct, create_custom_procs: true, create_or_alter: create_or_alter);
+            await CreateSchemaAndDictionary<ApplicationAdConfiguration>(ec, ct, create_custom_procs: true, create_or_alter: create_or_alter);
         }
         finally
         {

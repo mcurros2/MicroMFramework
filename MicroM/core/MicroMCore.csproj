@@ -67,6 +67,7 @@
     <None Remove="DataDictionary\Entities\ApplicationOIDCConfiguration\SQL\ApplicationOidcActiveSessions\aos_getSessionBySID.sql" />
     <None Remove="DataDictionary\Entities\ApplicationOIDCConfiguration\SQL\ApplicationOidcActiveSessions\aos_getUsernameFromSIDorSUB.sql" />
     <None Remove="DataDictionary\Entities\ApplicationOIDCConfiguration\SQL\ApplicationOidcClients\aoi_drop.sql" />
+    <None Remove="DataDictionary\Entities\Applications\app_GetADConfiguration.sql" />
     <None Remove="DataDictionary\Entities\Applications\app_GetOIDCClients.sql" />
     <None Remove="DataDictionary\Entities\EmailService\SQL\EmailServiceConfiguration\eqc_get.sql" />
     <None Remove="DataDictionary\Entities\EmailService\SQL\EmailServiceConfiguration\eqc_iupdate.sql" />
@@ -105,6 +106,7 @@
     <EmbeddedResource Include="DataDictionary\Entities\ApplicationOIDCConfiguration\SQL\ApplicationOidcClients\aoi_get.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\ApplicationOIDCConfiguration\SQL\ApplicationOidcClients\aoi_update.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\ApplicationOIDCConfiguration\SQL\ApplicationOidcConfiguration\aoc_iupdate.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\Applications\app_GetADConfiguration.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\Applications\app_GetOIDCClients.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\EmailService\SQL\EmailServiceConfiguration\eqc_get.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\EmailService\SQL\EmailServiceConfiguration\eqc_iupdate.sql" />
@@ -193,6 +195,7 @@
     <PackageReference Include="Microsoft.Extensions.Options" Version="10.0.3" />
     <PackageReference Include="SkiaSharp" Version="3.119.2" />
     <PackageReference Include="Sylvan.Data.Excel" Version="0.5.2" />
+    <PackageReference Include="System.DirectoryServices.Protocols" Version="10.0.3" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.16.0" />
   </ItemGroup>
 

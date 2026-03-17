@@ -6,6 +6,7 @@ namespace MicroM.Web.Authentication
     {
         public bool AccountDisabled = false;
         public bool AccountLocked = false;
+        public bool AccountNotProvisioned = false;
         public PasswordVerificationResult PasswordVerificationResult = PasswordVerificationResult.Failed;
         public LoginData? LoginData = null;
         public Dictionary<string, object> ServerClaims = new(StringComparer.OrdinalIgnoreCase);

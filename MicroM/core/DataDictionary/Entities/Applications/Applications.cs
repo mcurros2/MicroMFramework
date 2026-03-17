@@ -73,6 +73,7 @@ public class ApplicationsDef : EntityDefinition
 
     public readonly ProcedureDefinition app_GetConfiguration = new(readonly_locks: true);
     public readonly ProcedureDefinition app_GetOIDCClients = new(readonly_locks: true);
+    public readonly ProcedureDefinition app_GetADConfiguration = new(readonly_locks: true);
 
     public readonly APPOIDCDiagnostics APPOIDCDiagnostics = new();
 }
@@ -332,6 +333,40 @@ public class Applications : Entity<ApplicationsDef>
                 }
             }
 
+            // AD configuration
+            List<ADConfigurationOption> ad_configs = [];
+            ad_configs = await app.Data.ExecuteProc(app.Def.app_GetADConfiguration, ct, set_parms_from_columns: false, mapper: async (fv, headers, typeInfo, ct) =>
+            {
+                ADConfigurationOption ad_result = new()
+                {
+                    ADConfigurationID = await fv.GetFieldValueAsync<string>(nameof(ad_result.ADConfigurationID), ct),
+                    ApplicationID = await fv.GetFieldValueAsync<string>(nameof(ad_result.ApplicationID), ct),
+                    ADDomain = await fv.GetFieldValueAsync<string>(nameof(ad_result.ADDomain), ct),
+                    ADUserPrincipalDomain = await fv.GetFieldValueAsync<string>(nameof(ad_result.ADUserPrincipalDomain), ct),
+                    ADContainer = await fv.GetFieldValueAsync<string>(nameof(ad_result.ADContainer), ct),
+                    ADServerIP = await fv.GetFieldValueAsync<string>(nameof(ad_result.ADServerIP), ct),
+                    ADUser = await fv.GetFieldValueAsync<string>(nameof(ad_result.ADUser), ct),
+                    ADPassword = await fv.GetFieldValueAsync<string>(nameof(ad_result.ADPassword), ct),
+                    CreateUserOnLogin = await fv.GetFieldValueAsync<bool>(nameof(ad_result.CreateUserOnLogin), ct),
+                    DefaultUserGroupID = await fv.GetFieldValueAsync<string?>(nameof(ad_result.DefaultUserGroupID), ct),
+                };
+                if (encryptor != null)
+                {
+                    ad_result.ADUser = encryptor.Decrypt(ad_result.ADUser);
+                    ad_result.ADPassword = encryptor.Decrypt(ad_result.ADPassword);
+                }
+                return ad_result;
+            });
+
+            // Assign AD configs to the right application
+            foreach (var app_item in result)
+            {
+                var ad_config = ad_configs.Where(c => c.ApplicationID == app_item.ApplicationID).ToList();
+                if (ad_config.Count > 0)
+                {
+                    app_item.ADConfiguration = ad_config.ToDictionary(c => c.ADUserPrincipalDomain, c => c);
+                }
+            }
         }
         finally
         {

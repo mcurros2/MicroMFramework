@@ -164,6 +164,10 @@ namespace MicroM.Extensions
             }
         }
 
+        public static bool IsNullOrFailed(this DBStatusResult? status)
+        {
+            return status == null || status.Failed;
+        }
 
     }
 }
