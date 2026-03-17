@@ -49,6 +49,7 @@ public class ApplicationsDef : EntityDefinition
     // Fakes for actions and status
     public readonly Column<bool> b_createdatabase = new(sql_type: SqlDbType.Bit, fake: true, column_flags: ColumnFlags.None, value: false);
     public readonly Column<bool> b_dropdatabase = new(sql_type: SqlDbType.Bit, fake: true, column_flags: ColumnFlags.None, value: false);
+    public readonly Column<bool> b_updatedatabase = new(sql_type: SqlDbType.Bit, fake: true, column_flags: ColumnFlags.None, value: false);
 
     public readonly Column<bool> b_adminuserhasrights = new(sql_type: SqlDbType.Bit, fake: true, column_flags: ColumnFlags.None, value: false);
     public readonly Column<bool> b_appdbexists = new(sql_type: SqlDbType.Bit, fake: true, column_flags: ColumnFlags.None, value: false);
@@ -85,36 +86,46 @@ public class Applications : Entity<ApplicationsDef>
 
     private async Task<DBStatusResult> PerformCreateOrDropDatabase(CancellationToken ct, MicroMOptions? options = null, Dictionary<string, object>? server_claims = null, IWebAPIServices? api = null)
     {
+        bool dropDatabaseEnabled = options?.EnableDropDatabases ?? false;
 
-        if (this.Def.b_createdatabase.Value && this.Def.b_appdbexists.Value)
+        if (Def.b_createdatabase.Value && Def.b_appdbexists.Value)
         {
             return new() { Failed = true, Results = [new() { Status = DBStatusCodes.Error, Message = "Can't create the APP Database. Reason: The database already exists." }] };
         }
-        if (this.Def.b_dropdatabase.Value && this.Def.b_appdbexists.Value == false)
+
+        if (dropDatabaseEnabled && Def.b_dropdatabase.Value && Def.b_appdbexists.Value == false)
         {
             return new() { Failed = true, Results = [new() { Status = DBStatusCodes.Error, Message = "Can't drop the APP Database. Reason: The database doesn't exist." }] };
         }
 
-        if (this.Def.b_dropdatabase.Value)
+        if (dropDatabaseEnabled == false && Def.b_dropdatabase.Value)
+        {
+            return new() { Failed = true, Results = [new() { Status = DBStatusCodes.Error, Message = "Can't drop the APP Database. Reason: Dropping existing databases has been disabled." }] };
+        }
+
+        if (dropDatabaseEnabled && Def.b_dropdatabase.Value)
         {
             await DropAppDatabase(this, ct, options, server_claims, api);
         }
-        if (this.Def.b_createdatabase.Value)
+
+        if (Def.b_createdatabase.Value)
         {
             var result = await CreateAppDatabase(this, false, ct, options, server_claims, api);
             if (result.Failed) return result;
         }
-        if (this.Def.b_createdatabase.Value == false && this.Def.b_dropdatabase.Value == false && this.Def.b_appdbexists.Value)
+
+        if (Def.b_createdatabase.Value == false && Def.b_dropdatabase.Value == false && Def.b_appdbexists.Value && Def.b_updatedatabase.Value == true)
         {
             var result = await UpdateAppDatabase(this, ct, server_claims);
             if (result.Failed) return result;
         }
+
         return new() { Results = [new() { Status = DBStatusCodes.OK }] };
     }
 
     public override async Task<DBStatusResult> InsertData(CancellationToken ct, bool throw_dbstat_exception = false, MicroMOptions? options = null, Dictionary<string, object>? server_claims = null, IWebAPIServices? api = null, string? app_id = null)
     {
-        var ec = this.Client;
+        var ec = Client;
         try
         {
             await ec.Connect(ct);
@@ -150,8 +161,8 @@ public class Applications : Entity<ApplicationsDef>
                 result = await PerformCreateOrDropDatabase(ct, options, server_claims, api);
                 if (!result.Failed)
                 {
-                    await api.app_config.RefreshConfiguration(this.Def.c_application_id.Value.Trim(), ct);
-                    await api.securityService.RefreshGroupsSecurityRecords(this.Def.c_application_id.Value.Trim(), ct);
+                    await api.app_config.RefreshConfiguration(Def.c_application_id.Value.Trim(), ct);
+                    await api.securityService.RefreshGroupsSecurityRecords(Def.c_application_id.Value.Trim(), ct);
                 }
             }
             return result;
@@ -164,7 +175,7 @@ public class Applications : Entity<ApplicationsDef>
 
     public override async Task<DBStatusResult> UpdateData(CancellationToken ct, bool throw_dbstat_exception = false, MicroMOptions? options = null, Dictionary<string, object>? server_claims = null, IWebAPIServices? api = null, string? app_id = null)
     {
-        var ec = this.Client;
+        var ec = Client;
         try
         {
             await ec.Connect(ct);
@@ -204,8 +215,8 @@ public class Applications : Entity<ApplicationsDef>
                 result = await PerformCreateOrDropDatabase(ct, options, server_claims, api);
                 if (!result.Failed)
                 {
-                    await api.app_config.RefreshConfiguration(this.Def.c_application_id.Value.Trim(), ct);
-                    await api.securityService.RefreshGroupsSecurityRecords(this.Def.c_application_id.Value.Trim(), ct);
+                    await api.app_config.RefreshConfiguration(Def.c_application_id.Value.Trim(), ct);
+                    await api.securityService.RefreshGroupsSecurityRecords(Def.c_application_id.Value.Trim(), ct);
                 }
             }
             return result;
@@ -218,12 +229,12 @@ public class Applications : Entity<ApplicationsDef>
 
     public override async Task<bool> GetData(CancellationToken ct, MicroMOptions? options = null, Dictionary<string, object>? server_claims = null, IWebAPIServices? api = null, string? app_id = null)
     {
-        bool should_close = !(this.Client.ConnectionState == System.Data.ConnectionState.Open);
+        bool should_close = !(Client.ConnectionState == System.Data.ConnectionState.Open);
         bool result = false;
 
         try
         {
-            await this.Client.Connect(ct);
+            await Client.Connect(ct);
 
             result = await base.GetData(ct, options, server_claims, api);
             if (result)
@@ -234,7 +245,7 @@ public class Applications : Entity<ApplicationsDef>
         }
         finally
         {
-            if (should_close) await this.Client.Disconnect();
+            if (should_close) await Client.Disconnect();
         }
 
         return result;

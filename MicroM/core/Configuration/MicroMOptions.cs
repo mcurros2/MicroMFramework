@@ -26,6 +26,8 @@
 
         public bool DisableRevocationCheckWhenAllowingInvalidLoopbackCerts { get; set; } = true;
 
+        public bool EnableDropDatabases { get; set; } = false;
+
     }
 
 }

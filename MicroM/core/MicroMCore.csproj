@@ -90,6 +90,7 @@
     <None Remove="DataDictionary\Entities\MicromUsers\SQL\MicromUsers\usr_RecoverPassword.sql" />
     <None Remove="DataDictionary\Entities\MicromUsers\SQL\MicromUsers\usr_tfGetUserEmails.sql" />
     <None Remove="DataDictionary\Entities\sys\sys_GetDropDuplicateIndexes.sql" />
+    <None Remove="DataDictionary\Entities\sys\sys_tfMicroMColumns.sql" />
   </ItemGroup>
    
   <ItemGroup>
@@ -183,6 +184,7 @@
     <EmbeddedResource Include="DataDictionary\Entities\sys\sys_GetDropDuplicateIndexes.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\sys\sys_GetTimeZoneOffset.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\sys\sys_tfLike.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\sys\sys_tfMicroMColumns.sql" />
   </ItemGroup>
 
   <ItemGroup>

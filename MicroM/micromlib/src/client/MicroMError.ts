@@ -28,3 +28,7 @@ export const toDBStatusMicroMError = (dbstat: DBStatus[], form_mode: FormMode = 
         statusMessage: result
     } as MicroMError
 }
+
+export function isMicroMError(e: any): e is MicroMError {
+    return e
+}
