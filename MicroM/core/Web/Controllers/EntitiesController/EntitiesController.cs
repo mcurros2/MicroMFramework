@@ -416,10 +416,20 @@ public class EntitiesController() : ControllerBase, IEntitiesController
 
         Task producerTask = ents.HandleExecuteProcChannel(app, entityName, procName, parms, ec, resultChannel, ct, records_channel_capacity: DataDefaults.DefaultChannelExportToExcelBuffer);
 
-        // we prefer Sylvan for now as it consumes less memory than OpenXML
-        var fileResult = await ExportSylvanFromChannelAsync($"{entityName}_export", resultChannel, producerTask, ct);
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+
+        try
+        {
+            // we prefer Sylvan for now as it consumes less memory than OpenXML
+            var fileResult = await ExportSylvanFromChannelAsync($"{entityName}_export", resultChannel, producerTask, ct);
+            return fileResult;
+        }
+        catch
+        {
+            cts.Cancel();
+            throw;
+        }
 
 
-        return fileResult;
     }
 }

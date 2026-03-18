@@ -590,38 +590,61 @@ public class DatabaseClient : IDisposable, IAsyncDisposable, IEntityClient
     #endregion
 
     #region "Read records helper"
-    private static async Task<object?[]> ReadRecord(SqlDataReader reader, int field_count, string[] type_info, CancellationToken ct)
+    private static object?[] ReadRecordFast(SqlDataReader reader, int field_count, string[] typeInfo)
     {
         object?[] record = new object[field_count];
-        for (int x = 0; x < field_count; x++)
+
+        reader.GetValues(record);
+
+        for (int i = 0; i < field_count; i++)
         {
-            ct.ThrowIfCancellationRequested();
-            if (await reader.IsDBNullAsync(x, ct))
+            var val = record[i];
+
+            if (val == DBNull.Value)
             {
-                record[x] = null;
+                record[i] = null;
+                continue;
+            }
+
+            if (typeInfo[i] == "date" && val is DateTime dt)
+            {
+                record[i] = DateOnly.FromDateTime(dt);
+            }
+        }
+
+        return record;
+    }
+
+    private static async Task<object?[]> ReadRecordComplex(SqlDataReader reader, int field_count, string[] typeInfo, bool[] isMax, CancellationToken ct)
+    {
+        object?[] record = new object[field_count];
+
+        for (int i = 0; i < field_count; i++)
+        {
+            if (await reader.IsDBNullAsync(i, ct))
+            {
+                record[i] = null;
+                continue;
+            }
+
+            if (isMax[i])
+            {
+                record[i] = await reader.GetFieldValueAsync<object>(i, ct);
             }
             else
             {
-                // MMC: need to convert system.datetime to dateonly as sqldatareader returns systems.datetime for date columns
-                if (type_info[x] == "date")
-                {
-                    var value = await reader.GetFieldValueAsync<object?>(x, ct);
-                    if (value is DateTime dateTime)
-                    {
-                        record[x] = DateOnly.FromDateTime(dateTime);
-                    }
-                    else
-                    {
-                        record[x] = null;
-                    }
-                }
-                else
-                {
-                    record[x] = await reader.GetFieldValueAsync<object?>(x, ct);
-                }
+                var val = reader.GetValue(i);
+                record[i] = typeInfo[i] == "date" && val is DateTime dt ? DateOnly.FromDateTime(dt) : val;
             }
         }
+
         return record;
+    }
+
+    private static async Task<object?[]> ReadRecord(SqlDataReader reader, int field_count, string[] type_info, bool[] isMax, CancellationToken ct)
+    {
+        // For non max fields we can use GetValues which is optimized, but for max fields we need to use GetFieldValueAsync to avoid OutOfMemory exceptions with large data
+        return isMax.Any(x => x) ? await ReadRecordComplex(reader, field_count, type_info, isMax, ct) : ReadRecordFast(reader, field_count, type_info);
     }
 
     #endregion
@@ -638,9 +661,9 @@ public class DatabaseClient : IDisposable, IAsyncDisposable, IEntityClient
 
             var field_count = reader.FieldCount;
 
+            var (headers, typeInfo, isMax) = DataMappingProvider.GetHeaders(reader);
             if (field_count > 0)
             {
-                var (headers, typeInfo) = DataMappingProvider.GetHeaders(reader);
                 ret = new(headers, typeInfo);
                 yield return ret;
             }
@@ -649,11 +672,12 @@ public class DatabaseClient : IDisposable, IAsyncDisposable, IEntityClient
                 ret = new DataResult(field_count);
                 //yield return ret;
             }
+
             while (await reader.ReadAsync(ct))
             {
                 ct.ThrowIfCancellationRequested();
 
-                object?[] record = await ReadRecord(reader, field_count, ret.typeInfo, ct);
+                object?[] record = await ReadRecord(reader, field_count, ret.typeInfo, isMax, ct);
                 ret.records.Add(record);
             }
         }
@@ -747,9 +771,10 @@ public class DatabaseClient : IDisposable, IAsyncDisposable, IEntityClient
             ct.ThrowIfCancellationRequested();
             var field_count = reader.FieldCount;
 
+            var (headers, typeInfo, isMax) = DataMappingProvider.GetHeaders(reader);
+
             if (field_count > 0)
             {
-                var (headers, typeInfo) = DataMappingProvider.GetHeaders(reader);
                 ret = new(field_count, channel_capacity, headers, typeInfo);
                 yield return ret;
             }
@@ -762,7 +787,7 @@ public class DatabaseClient : IDisposable, IAsyncDisposable, IEntityClient
             {
                 ct.ThrowIfCancellationRequested();
 
-                object?[] record = await ReadRecord(reader, field_count, ret.typeInfo, ct);
+                object?[] record = await ReadRecord(reader, field_count, typeInfo, isMax, ct);
 
                 //if (!ret.records.Writer.TryWrite(record))
                 //{

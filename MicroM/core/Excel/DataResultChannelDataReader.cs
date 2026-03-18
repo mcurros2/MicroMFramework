@@ -1,4 +1,5 @@
 ﻿using MicroM.Data;
+using MicroM.Extensions;
 using System.Collections;
 using System.Data.Common;
 
@@ -17,7 +18,7 @@ public class DataResultChannelDataReader : DbDataReader
 
     public override async Task<bool> ReadAsync(CancellationToken cancellationToken)
     {
-        if (await _resultSet.records.Reader.WaitToReadAsync(cancellationToken))
+        while (await _resultSet.records.Reader.WaitToReadAsync(cancellationToken))
         {
             if (_resultSet.records.Reader.TryRead(out var record))
             {
@@ -28,20 +29,21 @@ public class DataResultChannelDataReader : DbDataReader
         return false;
     }
 
-    public override int FieldCount => _resultSet.Header.Length;
-    public override string GetName(int ordinal) => _resultSet.Header[ordinal] ?? $"Column{ordinal}";
-
-    public override object GetValue(int ordinal) => _currentRow?[ordinal] ?? DBNull.Value;
-
-    public override Type GetFieldType(int ordinal) => typeof(object);
-
-    public override int GetOrdinal(string name) => Array.IndexOf(_resultSet.Header, name);
-    public override bool IsDBNull(int ordinal) => GetValue(ordinal) == DBNull.Value;
-
     public override bool HasRows => true;
     public override bool IsClosed => false;
     public override int RecordsAffected => -1;
     public override int Depth => 0;
+    public override int FieldCount => _resultSet.Header.Length;
+
+    public override string GetName(int ordinal) => _resultSet.Header[ordinal];
+
+    public override object GetValue(int ordinal) => _currentRow?[ordinal] ?? DBNull.Value;
+
+    public override Type GetFieldType(int ordinal) => _resultSet.GetHeaderType(ordinal);
+
+    public override int GetOrdinal(string name) => Array.IndexOf(_resultSet.Header, name);
+
+    public override bool IsDBNull(int ordinal) => GetValue(ordinal) == DBNull.Value;
 
     public override object this[string name] => throw new NotImplementedException();
 
@@ -49,12 +51,24 @@ public class DataResultChannelDataReader : DbDataReader
 
     public override bool NextResult() => false;
     public override void Close() { }
-    public override bool Read() => ReadAsync(CancellationToken.None).GetAwaiter().GetResult();
+    public override bool Read()
+    {
+        throw new NotSupportedException("Use ReadAsync instead.");
+    }
 
     public override bool GetBoolean(int ordinal) => (bool)GetValue(ordinal);
     public override byte GetByte(int ordinal) => (byte)GetValue(ordinal);
     public override char GetChar(int ordinal) => (char)GetValue(ordinal);
-    public override DateTime GetDateTime(int ordinal) => (DateTime)GetValue(ordinal);
+    public override DateTime GetDateTime(int ordinal)
+    {
+        var value = GetValue(ordinal);
+        if (value is DateOnly dateOnly)
+        {
+            return dateOnly.ToDateTime(TimeOnly.MinValue);
+        }
+
+        return (DateTime)value;
+    }
     public override decimal GetDecimal(int ordinal) => (decimal)GetValue(ordinal);
     public override double GetDouble(int ordinal) => (double)GetValue(ordinal);
     public override float GetFloat(int ordinal) => (float)GetValue(ordinal);
@@ -73,7 +87,20 @@ public class DataResultChannelDataReader : DbDataReader
         for (int i = 0; i < length; i++) values[i] = GetValue(i);
         return length;
     }
-    public override string GetDataTypeName(int ordinal) => "object";
+
+    public override T GetFieldValue<T>(int ordinal)
+    {
+        var value = GetValue(ordinal);
+
+        if (typeof(T) == typeof(DateTime) && value is DateOnly d)
+        {
+            return (T)(object)d.ToDateTime(TimeOnly.MinValue);
+        }
+
+        return (T)value!;
+    }
+
+    public override string GetDataTypeName(int ordinal) => _resultSet.typeInfo[ordinal];
 
     public override IEnumerator GetEnumerator() => throw new NotImplementedException();
 }

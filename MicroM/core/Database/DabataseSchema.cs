@@ -181,7 +181,6 @@ public static class DatabaseSchema
         bool should_close = !(ec.ConnectionState == System.Data.ConnectionState.Open);
 
         CustomOrderedDictionary<CustomScript>? custom_procs = null;
-        CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>>? created_tables = null;
         try
         {
             await ec.Connect(ct);
@@ -198,10 +197,11 @@ public static class DatabaseSchema
             if (custom_procs?.Count > 0) await CreateAllCustomSQLTypes(ec, custom_procs, ct);
 
             // Tables and constraints
-            created_tables = await CreateEntitiesInexistentTables(ec, entities, ct);
-            await CreateEntitiesConstraintsAndIndexes(ec, created_tables, ct);
+            await CreateEntitiesInexistentTables(ec, entities, ct);
 
-            // create custom tables is any
+            await CreateEntitiesConstraintsAndIndexes(ec, entities, ct);
+
+            // create custom tables if any
             if (custom_procs?.Count > 0)
             {
                 await CreateAllCustomTables(ec, custom_procs, ct);
@@ -221,7 +221,6 @@ public static class DatabaseSchema
         finally
         {
             if (custom_procs?.Count > 0) custom_procs.Clear();
-            if (created_tables?.Count > 0) created_tables.Clear();
             if (should_close) await ec.Disconnect();
         }
     }

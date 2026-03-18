@@ -261,7 +261,7 @@ public static class ExcelWriter
             {
                 CompressionLevel = CompressionLevel.Optimal
             };
-            using var writer = ExcelDataWriter.Create(writeStream, ExcelWorkbookType.ExcelXml, sylvanOptions);
+            using var writer = await ExcelDataWriter.CreateAsync(writeStream, ExcelWorkbookType.ExcelXml, sylvanOptions, ct);
 
             uint sheetId = 1;
 

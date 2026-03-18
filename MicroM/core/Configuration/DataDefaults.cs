@@ -18,7 +18,7 @@
         /// Max items for the channel that holds records for a result.
         /// If max items is reached the writer will wait until items are read from the channel.
         /// </summary>
-        public static int DefaultChannelRecordsBuffer { get; set; } = 5000;
+        public static int DefaultChannelRecordsBuffer { get; set; } = 64 * 1024;
         /// <summary>
         /// Gets or sets the default buffer size, in rows, used when exporting data to Excel channels.
         /// </summary>
@@ -26,7 +26,7 @@
         /// operation. Larger buffer sizes may improve performance for large data sets but increase memory consumption.
         /// Set this value based on the expected size of the data being exported and available system
         /// resources.</remarks>
-        public static int DefaultChannelExportToExcelBuffer { get; set; } = 10240;
+        public static int DefaultChannelExportToExcelBuffer { get; set; } = 64 * 1024;
 
         /// <summary>
         /// Gets or sets the default initial capacity, in bytes, for the file stream used when exporting data to an

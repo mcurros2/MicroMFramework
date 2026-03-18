@@ -1,4 +1,5 @@
-﻿using System.Data.Common;
+﻿using MicroM.Extensions;
+using System.Data.Common;
 using System.Runtime.CompilerServices;
 using static MicroM.Data.IEntityClient;
 
@@ -6,6 +7,7 @@ namespace MicroM.Data;
 
 public static class DataMappingProvider
 {
+
     private static string GetResultingHeaderName(string original_name, int index, bool spaceToUnderscore)
     {
         if (string.IsNullOrEmpty(original_name))
@@ -18,16 +20,25 @@ public static class DataMappingProvider
         }
     }
 
-    public static (string[] headers, string[] typeInfo) GetHeaders(DbDataReader reader, bool spaceToUnderscore = false)
+    public static (string[] headers, string[] typeInfo, bool[] isMax) GetHeaders(DbDataReader reader, bool spaceToUnderscore = false)
     {
+        if (reader.FieldCount == 0) return ([], [], []);
+
         string[] headers = new string[reader.FieldCount];
         string[] typeInfo = new string[reader.FieldCount];
+        bool[] isMax = new bool[reader.FieldCount];
+
+        var schema = reader.GetColumnSchema();
+
         for (int x = 0; x < reader.FieldCount; x++)
         {
-            string original_name = reader.GetName(x);
-            string type = reader.GetDataTypeName(x);
-            typeInfo[x] = type;
+            var col = schema[x];
 
+            string typeName = col.DataTypeName?.ToLower() ?? "";
+            typeInfo[x] = typeName;
+            isMax[x] = (col.ColumnSize == -1) || typeName.IsIn(SqlServerDataTypeNames.xml, SqlServerDataTypeNames.text, SqlServerDataTypeNames.ntext, SqlServerDataTypeNames.image);
+
+            string original_name = col.ColumnName;
             string resulting_name = GetResultingHeaderName(original_name, x, spaceToUnderscore);
 
             if (headers.Contains(resulting_name))
@@ -38,7 +49,7 @@ public static class DataMappingProvider
             headers[x] = resulting_name;
         }
 
-        return (headers, typeInfo);
+        return (headers, typeInfo, isMax);
     }
 
     public static HashSet<string> GetHeadersHashSet(DbDataReader reader, bool spaceToUnderscore = false)
@@ -64,7 +75,7 @@ public static class DataMappingProvider
     {
         if (await vr._reader.ReadAsync(ct))
         {
-            var (headers, typeInfo) = GetHeaders(vr._reader);
+            var (headers, typeInfo, _) = GetHeaders(vr._reader);
             do
             {
                 ct.ThrowIfCancellationRequested();

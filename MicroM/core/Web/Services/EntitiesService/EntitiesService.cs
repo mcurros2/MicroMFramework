@@ -297,7 +297,7 @@ public class EntitiesService : IEntitiesService
                         {
                             entity.SetKeyValues(parms.ParentKeys);
                         }
-                        await entity.ExecuteProcChannel(proc, result_channel, ct, options: _options, server_claims: parms.ServerClaims, api: _api, set_parms_from_columns: false, app_id: app_id);
+                        await entity.ExecuteProcChannel(proc, result_channel, ct, options: _options, server_claims: parms.ServerClaims, api: _api, set_parms_from_columns: false, app_id: app_id, records_channel_capacity: records_channel_capacity);
                     }
                     else
                     {

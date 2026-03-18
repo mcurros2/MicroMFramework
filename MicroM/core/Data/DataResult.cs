@@ -41,7 +41,6 @@ public class DataResult
         }
     }
 
-
 }
 
 public class DataResult<T>(int columns)
