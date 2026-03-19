@@ -383,7 +383,7 @@ public class DatabaseClient : IDisposable, IAsyncDisposable, IEntityClient
                 cmd.Parameters.AddRange(parms.AsSqlParameters());
             }
 
-            ct.Register(() =>
+            using var ctr = ct.Register(() =>
             {
                 try
                 {
@@ -456,7 +456,7 @@ public class DatabaseClient : IDisposable, IAsyncDisposable, IEntityClient
                 cmd.Parameters.AddRange(parms.AsSqlParameters());
             }
 
-            ct.Register(() =>
+            using var ctr = ct.Register(() =>
             {
                 try
                 {
@@ -528,7 +528,7 @@ public class DatabaseClient : IDisposable, IAsyncDisposable, IEntityClient
                 cmd.Parameters.AddRange(parms.AsSqlParameters());
             }
 
-            ct.Register(() =>
+            using var ctr = ct.Register(() =>
             {
                 try
                 {
@@ -710,7 +710,7 @@ public class DatabaseClient : IDisposable, IAsyncDisposable, IEntityClient
                 cmd.Parameters.AddRange(parms.AsSqlParameters());
             }
 
-            ct.Register(() =>
+            using var ctr = ct.Register(() =>
             {
                 try
                 {
@@ -763,7 +763,7 @@ public class DatabaseClient : IDisposable, IAsyncDisposable, IEntityClient
 
     #region "ExecuteQueryChannel"
 
-    private static async IAsyncEnumerable<DataResultChannel> GetResultAndWriteToChannel(SqlDataReader reader, int channel_capacity, [EnumeratorCancellation] CancellationToken ct)
+    private static async IAsyncEnumerable<DataResultChannel> GetResultAndWriteToChannel(SqlDataReader reader, int channel_capacity, int? max_allowed_rows, [EnumeratorCancellation] CancellationToken ct)
     {
         DataResultChannel ret;
         do
@@ -783,30 +783,53 @@ public class DatabaseClient : IDisposable, IAsyncDisposable, IEntityClient
                 ret = new(field_count, channel_capacity);
             }
 
-            while (await reader.ReadAsync(ct))
+            try
             {
-                ct.ThrowIfCancellationRequested();
+                int read_rows = 0;
+                while (await reader.ReadAsync(ct))
+                {
+                    ct.ThrowIfCancellationRequested();
 
-                object?[] record = await ReadRecord(reader, field_count, typeInfo, isMax, ct);
+                    object?[] record = await ReadRecord(reader, field_count, typeInfo, isMax, ct);
 
-                //if (!ret.records.Writer.TryWrite(record))
-                //{
-                //    var error = new InternalBufferOverflowException();
-                //    ret.records.Writer.TryComplete(error);
-                //    throw error;
-                //}
+                    //if (!ret.records.Writer.TryWrite(record))
+                    //{
+                    //    var error = new InternalBufferOverflowException();
+                    //    ret.records.Writer.TryComplete(error);
+                    //    throw error;
+                    //}
 
-                // Apply Backpressure
-                await ret.records.Writer.WriteAsync(record, ct);
+
+                    if (max_allowed_rows != null)
+                    {
+                        read_rows++;
+                        if (max_allowed_rows >= read_rows) throw new DataAbstractionException($"GetResultAndWriteToChannel: The query exceeds the maximum allowed rows for the results channel ({max_allowed_rows})");
+                    }
+
+                    // Apply Backpressure
+                    await ret.records.Writer.WriteAsync(record, ct);
+                }
             }
-
-            ret?.records.Writer.Complete();
+            catch (Exception ex)
+            {
+                var dataEx = ex;
+                if (ex is not DataAbstractionException)
+                {
+                    dataEx = new DataAbstractionException($"GetResultAndWriteToChannel: {ex.Message}", ex);
+                }
+                ret.records.Writer.TryComplete(dataEx);
+                throw dataEx;
+            }
+            finally
+            {
+                ret?.records.Writer.TryComplete();
+            }
 
         } while (await reader.NextResultAsync(ct));
 
     }
 
-    private async Task ExecuteQueryChannel(CommandType cmd_type, string sql_text, DataResultSetChannel result, int records_channel_capacity, CancellationToken ct, IEnumerable<ColumnBase>? parms = null)
+    private async Task ExecuteQueryChannel(CommandType cmd_type, string sql_text, DataResultSetChannel result, int records_channel_capacity, CancellationToken ct, IEnumerable<ColumnBase>? parms = null, bool complete_channel = true, int? max_allowed_rows = null)
     {
         CheckQueryConnectionStatusAndThrow(sql_connection);
         ArgumentNullException.ThrowIfNull(result);
@@ -830,7 +853,7 @@ public class DatabaseClient : IDisposable, IAsyncDisposable, IEntityClient
                 cmd.Parameters.AddRange(parms.AsSqlParameters());
             }
 
-            ct.Register(() =>
+            using var ctr = ct.Register(() =>
             {
                 try
                 {
@@ -849,7 +872,7 @@ public class DatabaseClient : IDisposable, IAsyncDisposable, IEntityClient
             _logger?.LogTrace("Executing to channel {SQLText}\nServer: {Server}, DB {DB}, User {User}, Integrated Security {IntegratedSecurity}, Web User {WebUsr}", cmd.TraceSQL(), Server, DB, User, IntegratedSecurity, WebUser);
             using SqlDataReader reader = await cmd.ExecuteReaderAsync(ct);
             ct.ThrowIfCancellationRequested();
-            await foreach (DataResultChannel ret in GetResultAndWriteToChannel(reader, records_channel_capacity, ct))
+            await foreach (DataResultChannel ret in GetResultAndWriteToChannel(reader, records_channel_capacity, max_allowed_rows, ct))
             {
                 await result.Results.Writer.WriteAsync(ret, ct);
             }
@@ -858,23 +881,23 @@ public class DatabaseClient : IDisposable, IAsyncDisposable, IEntityClient
         catch (Exception ex)
         {
             await Disconnect();
+            if (complete_channel) result.Results.Writer.TryComplete(ex);
+
             if (ct.IsCancellationRequested && ex is SqlException)
             {
                 var exCancelled = new TaskCanceledException(ex.Message, ex);
-                result.Results.Writer.TryComplete(exCancelled);
                 throw exCancelled;
             }
             else
             {
                 Debug.Print(cmd.TraceSQL());
                 var dataEx = new DataAbstractionException($"ExecuteQueryChannel: {ex.Message}\n{cmd.CommandText.Truncate(100)} [truncated]", ex);
-                result.Results.Writer.TryComplete(dataEx);
                 throw dataEx;
             }
         }
         finally
         {
-            result.Results.Writer.TryComplete();
+            if (complete_channel) result.Results.Writer.TryComplete();
             if (should_close || ct.IsCancellationRequested) await Disconnect();
         }
     }
@@ -923,11 +946,13 @@ public class DatabaseClient : IDisposable, IAsyncDisposable, IEntityClient
     /// <param name="result">The channel that receives the result records. The channel must be initialized before calling this method.</param>
     /// <param name="records_channel_capacity">The maximum number of records that the result channel can buffer. Must be greater than zero.</param>
     /// <param name="ct">A cancellation token that can be used to cancel the asynchronous operation.</param>
+    /// <param name="complete_channel">Indicates whether the result channel should be marked as complete after all results have been sent. If true, the channel will be completed; if false, the channel will remain open for additional writes. Default is true.</param>
+    /// <param name="max_allowed_rows">An optional parameter that specifies the maximum number of rows allowed to be returned by the SQL command. If the result set exceeds this limit, an exception will be thrown. This parameter is used to prevent excessive memory usage when processing large result sets. If null, there is no limit on the number of rows returned.</param>
     /// <returns>A task that represents the asynchronous execution of the SQL command. The task completes when all results have
     /// been sent to the channel or the operation is canceled.</returns>
-    public Task ExecuteSQLChannel(string sql_text, DataResultSetChannel result, int records_channel_capacity, CancellationToken ct)
+    public Task ExecuteSQLChannel(string sql_text, DataResultSetChannel result, int records_channel_capacity, CancellationToken ct, bool complete_channel = true, int? max_allowed_rows = null)
     {
-        return ExecuteQueryChannel(CommandType.Text, sql_text, result, records_channel_capacity, ct);
+        return ExecuteQueryChannel(CommandType.Text, sql_text, result, records_channel_capacity, ct, complete_channel: complete_channel, max_allowed_rows: max_allowed_rows);
     }
 
     /// <summary>
@@ -941,12 +966,13 @@ public class DatabaseClient : IDisposable, IAsyncDisposable, IEntityClient
     /// expected by the stored procedure.</param>
     /// <param name="result">The channel used to receive the results of the stored procedure execution. Cannot be null.</param>
     /// <param name="records_channel_capacity">The maximum number of records that the result channel can buffer before requiring processing. Must be a positive
-    /// integer.</param>
+    /// <param name="complete_channel">Indicates whether the result channel should be marked as complete after all results have been sent. If true, the channel will be completed; if false, the channel will remain open for additional writes. Default is true.</param>
+    /// <param name="max_allowed_rows">An optional parameter that specifies the maximum number of rows allowed to be returned by the SQL command. If the result set exceeds this limit, an exception will be thrown. This parameter is used to prevent excessive memory usage when processing large result sets. If null, there is no limit on the number of rows returned.</param>
     /// <param name="ct">A cancellation token that can be used to cancel the operation.</param>
     /// <returns>A task that represents the asynchronous operation of executing the stored procedure and streaming the results.</returns>
-    public Task ExecuteSPChannel(string sp_name, IEnumerable<ColumnBase>? parms, DataResultSetChannel result, int records_channel_capacity, CancellationToken ct)
+    public Task ExecuteSPChannel(string sp_name, IEnumerable<ColumnBase>? parms, DataResultSetChannel result, int records_channel_capacity, CancellationToken ct, bool complete_channel = true, int? max_allowed_rows = null)
     {
-        return ExecuteQueryChannel(CommandType.StoredProcedure, sp_name, result, records_channel_capacity, ct, parms);
+        return ExecuteQueryChannel(CommandType.StoredProcedure, sp_name, result, records_channel_capacity, ct, parms, complete_channel: complete_channel, max_allowed_rows: max_allowed_rows);
     }
 
 

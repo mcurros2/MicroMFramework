@@ -274,7 +274,7 @@ public class EntitiesService : IEntitiesService
 
     }
 
-    public async Task HandleExecuteProcChannel(ApplicationOption app, string entity_name, string proc_name, DataWebAPIRequest parms, IEntityClient ec, DataResultSetChannel result_channel, CancellationToken ct, int? records_channel_capacity = null)
+    public async Task HandleExecuteProcChannel(ApplicationOption app, string entity_name, string proc_name, DataWebAPIRequest parms, IEntityClient ec, DataResultSetChannel result_channel, CancellationToken ct, int? records_channel_capacity = null, bool complete_channel = true, int? max_allowed_rows = null)
     {
         try
         {
@@ -297,7 +297,7 @@ public class EntitiesService : IEntitiesService
                         {
                             entity.SetKeyValues(parms.ParentKeys);
                         }
-                        await entity.ExecuteProcChannel(proc, result_channel, ct, options: _options, server_claims: parms.ServerClaims, api: _api, set_parms_from_columns: false, app_id: app_id, records_channel_capacity: records_channel_capacity);
+                        await entity.ExecuteProcChannel(proc, result_channel, ct, options: _options, server_claims: parms.ServerClaims, api: _api, set_parms_from_columns: false, app_id: app_id, records_channel_capacity: records_channel_capacity, complete_channel: complete_channel, max_allowed_rows: max_allowed_rows);
                     }
                     else
                     {
@@ -311,7 +311,7 @@ public class EntitiesService : IEntitiesService
                                 entity.SetKeyValues(parms.ParentKeys);
                             }
 
-                            await entity.ExecuteProcChannel(proc, result_channel, ct, options: _options, server_claims: parms.ServerClaims, api: _api, set_parms_from_columns: false, app_id: app_id, records_channel_capacity: records_channel_capacity);
+                            await entity.ExecuteProcChannel(proc, result_channel, ct, options: _options, server_claims: parms.ServerClaims, api: _api, set_parms_from_columns: false, app_id: app_id, records_channel_capacity: records_channel_capacity, complete_channel: complete_channel, max_allowed_rows: max_allowed_rows);
                         }
                     }
                 }
@@ -325,12 +325,16 @@ public class EntitiesService : IEntitiesService
                 _api.log.LogError("ExecuteProcChannel ERROR: {entity_name} not found in entities type cache.", entity_name);
             }
         }
+        catch (Exception ex)
+        {
+            result_channel.Results.Writer.TryComplete(ex);
+            throw;
+        }
         finally
         {
+            result_channel.Results.Writer.TryComplete();
             await ec.Disconnect();
         }
-
-
     }
 
     public async Task<DBStatusResult?> HandleExecuteProcDBStatus(ApplicationOption app, string entity_name, string proc_name, DataWebAPIRequest parms, IEntityClient ec, CancellationToken ct)
@@ -455,7 +459,7 @@ public class EntitiesService : IEntitiesService
 
     }
 
-    public async Task HandleExecuteViewChannel(ApplicationOption app, string entity_name, string view_name, DataWebAPIRequest parms, IEntityClient ec, DataResultSetChannel result_channel, CancellationToken ct, int? records_channel_capacity = null)
+    public async Task HandleExecuteViewChannel(ApplicationOption app, string entity_name, string view_name, DataWebAPIRequest parms, IEntityClient ec, DataResultSetChannel result_channel, CancellationToken ct, int? records_channel_capacity = null, bool complete_channel = true, int? max_allowed_rows = null)
     {
         try
         {
@@ -485,7 +489,7 @@ public class EntitiesService : IEntitiesService
                         entity.SetKeyValues(parms.ParentKeys);
                     }
 
-                    await entity.ExecuteViewChannel(view, result_channel, ct, row_limit, options: _options, server_claims: parms.ServerClaims, api: _api, app_id: app_id, records_channel_capacity: records_channel_capacity);
+                    await entity.ExecuteViewChannel(view, result_channel, ct, row_limit, options: _options, server_claims: parms.ServerClaims, api: _api, app_id: app_id, records_channel_capacity: records_channel_capacity, complete_channel, max_allowed_rows);
                 }
                 else
                 {
@@ -497,8 +501,14 @@ public class EntitiesService : IEntitiesService
                 _api.log.LogError("ExecuteView ERROR: {entity_name} not found in entities type cache.", entity_name);
             }
         }
+        catch (Exception ex)
+        {
+            result_channel.Results.Writer.TryComplete(ex);
+            throw;
+        }
         finally
         {
+            result_channel.Results.Writer.TryComplete();
             await ec.Disconnect();
         }
     }

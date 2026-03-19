@@ -386,6 +386,8 @@ public class EntitiesController() : ControllerBase, IEntitiesController
         await producerTask;
     }
 
+    const int MAX_EXCEL_ROWS = 1048575; // MAX allowed rows per sheet (DataResult.records)
+
     [Authorize(policy: nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy))]
     [HttpPost("{app_id}/ent/{entityName}/viewtoexcel/{viewName}")]
     public async Task<IActionResult> ExportViewExcel([FromServices] IAuthenticationProvider auth, [FromServices] IMicroMAppConfiguration app_config, [FromServices] IEntitiesService ents, string app_id, string entityName, string viewName, [FromBody] DataWebAPIRequest parms, CancellationToken ct)
@@ -396,12 +398,28 @@ public class EntitiesController() : ControllerBase, IEntitiesController
         using var ec = await ents.CreateDbConnection(app, parms.ServerClaims, ct);
         var resultChannel = new DataResultSetChannel(capacity: 2);
 
-        Task producerTask = ents.HandleExecuteViewChannel(app, entityName, viewName, parms, ec, resultChannel, ct, records_channel_capacity: DataDefaults.DefaultChannelExportToExcelBuffer);
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
 
-        // we prefer Sylvan for now as it consumes less memory than OpenXML
-        var fileResult = await ExportSylvanFromChannelAsync($"{entityName}_export", resultChannel, producerTask, ct);
+        Task producerTask = ents.HandleExecuteViewChannel(app, entityName, viewName, parms, ec, resultChannel, ct, records_channel_capacity: DataDefaults.DefaultChannelExportToExcelBuffer, complete_channel: true, max_allowed_rows: MAX_EXCEL_ROWS);
 
-        return fileResult;
+        try
+        {
+            // we prefer Sylvan for now as it consumes less memory than OpenXML
+            var fileResult = await ExportSylvanFromChannelAsync($"{entityName}_export", resultChannel, producerTask, ct);
+
+            return fileResult;
+        }
+        catch (Exception ex)
+        {
+            resultChannel.Results.Writer.TryComplete(ex);
+            cts.Cancel();
+            if (ex is DataAbstractionException dbex)
+            {
+                return BadRequest(dbex.Message);
+            }
+            return BadRequest("Export failed due to an internal error");
+        }
+
     }
 
     [Authorize(policy: nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy))]
@@ -414,20 +432,29 @@ public class EntitiesController() : ControllerBase, IEntitiesController
         using var ec = await ents.CreateDbConnection(app, parms.ServerClaims, ct);
         var resultChannel = new DataResultSetChannel(capacity: 2);
 
-        Task producerTask = ents.HandleExecuteProcChannel(app, entityName, procName, parms, ec, resultChannel, ct, records_channel_capacity: DataDefaults.DefaultChannelExportToExcelBuffer);
 
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+
+        Task producerTask = ents.HandleExecuteProcChannel(app, entityName, procName, parms, ec, resultChannel, cts.Token, records_channel_capacity: DataDefaults.DefaultChannelExportToExcelBuffer, complete_channel: true, max_allowed_rows: MAX_EXCEL_ROWS);
 
         try
         {
             // we prefer Sylvan for now as it consumes less memory than OpenXML
-            var fileResult = await ExportSylvanFromChannelAsync($"{entityName}_export", resultChannel, producerTask, ct);
+            var fileResult = await ExportSylvanFromChannelAsync($"{entityName}_export", resultChannel, producerTask, cts.Token);
+
+            resultChannel.Results.Writer.TryComplete();
+
             return fileResult;
         }
-        catch
+        catch (Exception ex)
         {
+            resultChannel.Results.Writer.TryComplete(ex);
             cts.Cancel();
-            throw;
+            if (ex is DataAbstractionException dbex)
+            {
+                return BadRequest(dbex.Message);
+            }
+            return BadRequest("Export failed due to an internal error");
         }
 
 

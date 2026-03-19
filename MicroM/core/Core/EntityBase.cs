@@ -57,9 +57,9 @@ namespace MicroM.Core
             return await Data.ExecuteView(view, ct, row_limit);
         }
 
-        public virtual async Task ExecuteViewChannel(ViewDefinition view, DataResultSetChannel result_channel, CancellationToken ct, int? row_limit = null, MicroMOptions? options = null, Dictionary<string, object>? server_claims = null, IWebAPIServices? api = null, string? app_id = null, int? records_channel_capacity = null)
+        public virtual async Task ExecuteViewChannel(ViewDefinition view, DataResultSetChannel result_channel, CancellationToken ct, int? row_limit = null, MicroMOptions? options = null, Dictionary<string, object>? server_claims = null, IWebAPIServices? api = null, string? app_id = null, int? records_channel_capacity = null, bool complete_channel = true, int? max_allowed_rows = null)
         {
-            await Data.ExecuteViewChannel(view, result_channel, ct, row_limit, records_channel_capacity);
+            await Data.ExecuteViewChannel(view, result_channel, ct, row_limit, records_channel_capacity, complete_channel, max_allowed_rows);
         }
 
         public virtual async Task<bool> GetData(CancellationToken ct, MicroMOptions? options = null, Dictionary<string, object>? server_claims = null, IWebAPIServices? api = null, string? app_id = null)
@@ -97,9 +97,9 @@ namespace MicroM.Core
             return await Data.ExecuteProc(proc, ct, row_limit, set_parms_from_columns);
         }
 
-        public virtual async Task ExecuteProcChannel(ProcedureDefinition proc, DataResultSetChannel result_channel, CancellationToken ct, int row_limit = 0, bool set_parms_from_columns = true, MicroMOptions? options = null, Dictionary<string, object>? server_claims = null, IWebAPIServices? api = null, string? app_id = null, int? records_channel_capacity = null)
+        public virtual async Task ExecuteProcChannel(ProcedureDefinition proc, DataResultSetChannel result_channel, CancellationToken ct, int row_limit = 0, bool set_parms_from_columns = true, MicroMOptions? options = null, Dictionary<string, object>? server_claims = null, IWebAPIServices? api = null, string? app_id = null, int? records_channel_capacity = null, bool complete_channel = true, int? max_allowed_rows = null)
         {
-            await Data.ExecuteProcChannel(proc, result_channel, ct, row_limit, set_parms_from_columns, records_channel_capacity);
+            await Data.ExecuteProcChannel(proc, result_channel, ct, row_limit, set_parms_from_columns, records_channel_capacity, complete_channel, max_allowed_rows);
         }
 
         public virtual async Task<List<T>> ExecuteProc<T>(ProcedureDefinition proc, CancellationToken ct, int row_limit = 0, bool set_parms_from_columns = true, AutoMapperMode mode = AutoMapperMode.ByName, MapResult<T>? mapper = null, MicroMOptions? options = null, Dictionary<string, object>? server_claims = null, IWebAPIServices? api = null, string? app_id = null) where T : class, new()

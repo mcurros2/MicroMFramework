@@ -52,7 +52,7 @@ public interface IEntitiesService
 
     public Dictionary<string, object> GetApplicationKeys(string app_id);
 
-    public Task HandleExecuteViewChannel(ApplicationOption app, string entity_name, string view_name, DataWebAPIRequest parms, IEntityClient ec, DataResultSetChannel result_channel, CancellationToken ct, int? records_channel_capacity = null);
+    public Task HandleExecuteViewChannel(ApplicationOption app, string entity_name, string view_name, DataWebAPIRequest parms, IEntityClient ec, DataResultSetChannel result_channel, CancellationToken ct, int? records_channel_capacity = null, bool complete_channel = true, int? max_allowed_rows = null);
 
-    public Task HandleExecuteProcChannel(ApplicationOption app, string entity_name, string proc_name, DataWebAPIRequest parms, IEntityClient ec, DataResultSetChannel result_channel, CancellationToken ct, int? records_channel_capacity = null);
+    public Task HandleExecuteProcChannel(ApplicationOption app, string entity_name, string proc_name, DataWebAPIRequest parms, IEntityClient ec, DataResultSetChannel result_channel, CancellationToken ct, int? records_channel_capacity = null, bool complete_channel = true, int? max_allowed_rows = null);
 }

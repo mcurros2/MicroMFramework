@@ -60,8 +60,8 @@ namespace MicroM.Data
 
         Task<T?> ExecuteSQLSingleColumn<T>(string sql_text, CancellationToken ct, IEnumerable<ColumnBase>? parms = null);
 
-        Task ExecuteSQLChannel(string sql_text, DataResultSetChannel result, int records_channel_capacity, CancellationToken ct);
-        Task ExecuteSPChannel(string sp_name, IEnumerable<ColumnBase>? parms, DataResultSetChannel result, int records_channel_capacity, CancellationToken ct);
+        Task ExecuteSQLChannel(string sql_text, DataResultSetChannel result, int records_channel_capacity, CancellationToken ct, bool complete_channel = true, int? max_allowed_rows = null);
+        Task ExecuteSPChannel(string sp_name, IEnumerable<ColumnBase>? parms, DataResultSetChannel result, int records_channel_capacity, CancellationToken ct, bool complete_channel = true, int? max_allowed_rows = null);
 
         Task ExecuteSQLNonQuery(string sql_text, CancellationToken ct);
         Task ExecuteSQLNonQuery(List<string> sql_scripts, CancellationToken ct);

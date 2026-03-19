@@ -3,7 +3,7 @@ import { MicroMError } from "./MicroMError";
 import { MicroMToken } from "./MicroMToken";
 
 
-export type DataOperationType = "add" | "edit" | "delete" | "get" | "lookup" | "view" | "action" | "login" | "refresh" | "proc" | "import" | "other";
+export type DataOperationType = "add" | "edit" | "delete" | "get" | "lookup" | "view" | "action" | "login" | "refresh" | "proc" | "import" | "export" | "other";
 
 export interface OperationStatus<T> {
     loading?: boolean;

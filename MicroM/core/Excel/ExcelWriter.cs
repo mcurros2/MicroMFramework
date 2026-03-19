@@ -3,6 +3,7 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using MicroM.Configuration;
 using MicroM.Data;
+using MicroM.Extensions;
 using Microsoft.AspNetCore.Mvc;
 using Sylvan.Data.Excel;
 using System.IO.Compression;
@@ -261,23 +262,27 @@ public static class ExcelWriter
             {
                 CompressionLevel = CompressionLevel.Optimal
             };
-            using var writer = await ExcelDataWriter.CreateAsync(writeStream, ExcelWorkbookType.ExcelXml, sylvanOptions, ct);
+            await using var writer = await ExcelDataWriter.CreateAsync(writeStream, ExcelWorkbookType.ExcelXml, sylvanOptions, ct);
 
             uint sheetId = 1;
 
             await foreach (var resultSet in resultChannel.Results.Reader.ReadAllAsync(ct))
             {
-                var sheetName = sheetId == 1 ? baseSheetName : $"{baseSheetName}_{sheetId}";
+                var sheetName = sheetId == 1 ? baseSheetName : $"{sheetId}_{baseSheetName}".Truncate(31);
 
                 using var dataReader = new DataResultChannelDataReader(resultSet);
 
-                await writer.WriteAsync(dataReader, sheetName, ct);
+                var write_result = await writer.WriteAsync(dataReader, sheetName, ct);
+
+                if (write_result.IsComplete == false)
+                {
+                    throw new DataAbstractionException("ExportSylvanFromChannelAsync: Incomplete excel file, max rows or max columns exceeded", status_list: [new() { Status = DBStatusCodes.Error, Message = "Incomplete excel file, max rows or max columns exceeded" }]);
+                }
 
                 sheetId++;
             }
-        }
 
-        await producerTask;
+        }
 
         var readStream = new FileStream(
             tempPath,

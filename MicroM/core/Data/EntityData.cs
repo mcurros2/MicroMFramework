@@ -251,11 +251,13 @@ namespace MicroM.Data
         /// <param name="ct">A cancellation token that can be used to cancel the operation.</param>
         /// <param name="row_limit">An optional limit on the number of rows to return. If not specified, a system-defined default limit is used.</param>
         /// <param name="records_channel_capacity"></param>
+        /// <param name="complete_channel">Indicates whether to complete the result channel after execution. Set to <see langword="true"/> to signal that no more results will be sent.</param>
+        /// <param name="max_allowed_rows">An optional parameter that specifies the maximum number of rows allowed to be returned by the SQL command. If the result set exceeds this limit, an exception will be thrown. This parameter is used to prevent excessive memory usage when processing large result sets. If null, there is no limit on the number of rows returned.</param>
         /// <returns>A task that represents the asynchronous operation of executing the view and sending results to the channel.</returns>
-        public async Task ExecuteViewChannel(ViewDefinition view, DataResultSetChannel result_channel, CancellationToken ct, int? row_limit = null, int? records_channel_capacity = null)
+        public async Task ExecuteViewChannel(ViewDefinition view, DataResultSetChannel result_channel, CancellationToken ct, int? row_limit = null, int? records_channel_capacity = null, bool complete_channel = true, int? max_allowed_rows = null)
         {
             row_limit ??= DataDefaults.DefaultRowLimitForViews;
-            await ExecuteProcChannel(view.Proc, result_channel, ct, (int)row_limit, records_channel_capacity: records_channel_capacity);
+            await ExecuteProcChannel(view.Proc, result_channel, ct, (int)row_limit, records_channel_capacity: records_channel_capacity, complete_channel: complete_channel, max_allowed_rows: max_allowed_rows);
         }
 
         /// <summary>
@@ -353,11 +355,13 @@ namespace MicroM.Data
         /// <param name="set_parms_from_columns">Indicates whether to set parameter values from the columns of the result set before execution. Set to <see
         /// langword="true"/> to enable automatic parameter assignment.</param>
         /// <param name="records_channel_capacity"></param>
+        /// <param name="complete_channel">Indicates whether to complete the result channel after execution. Set to <see langword="true"/> to signal that no more results will be sent.</param>
+        /// <param name="max_allowed_rows">An optional parameter that specifies the maximum number of rows allowed to be returned by the SQL command. If the result set exceeds this limit, an exception will be thrown. This parameter is used to prevent excessive memory usage when processing large result sets. If null, there is no limit on the number of rows returned.</param>
         /// <returns>A task that represents the asynchronous operation of executing the stored procedure and streaming the
         /// results.</returns>
         /// <exception cref="ArgumentException">Thrown when a nonzero row limit is specified for a procedure that is not defined with readonly locks.</exception>
         /// <exception cref="InvalidOperationException">Thrown when attempting to execute a procedure with readonly locks inside an open transaction.</exception>
-        public async Task ExecuteProcChannel(ProcedureDefinition proc, DataResultSetChannel result_channel, CancellationToken ct, int row_limit = 0, bool set_parms_from_columns = true, int? records_channel_capacity = null)
+        public async Task ExecuteProcChannel(ProcedureDefinition proc, DataResultSetChannel result_channel, CancellationToken ct, int row_limit = 0, bool set_parms_from_columns = true, int? records_channel_capacity = null, bool complete_channel = true, int? max_allowed_rows = null)
         {
             if (row_limit != 0 && proc.ReadonlyLocks == false) throw new ArgumentException($"Procedure {proc.Name} is defined with {nameof(proc.ReadonlyLocks)} false and cannot specify a {nameof(row_limit)} at execution");
 
@@ -378,7 +382,7 @@ namespace MicroM.Data
 
                 if (set_parms_from_columns) proc.SetParmsValues(def.Columns);
 
-                await EntityClient.ExecuteSPChannel(proc.Name, proc.Parms.Values, result_channel, records_channel_capacity ?? DataDefaults.DefaultChannelRecordsBuffer, ct);
+                await EntityClient.ExecuteSPChannel(proc.Name, proc.Parms.Values, result_channel, records_channel_capacity ?? DataDefaults.DefaultChannelRecordsBuffer, ct, complete_channel, max_allowed_rows);
             }
             finally
             {
