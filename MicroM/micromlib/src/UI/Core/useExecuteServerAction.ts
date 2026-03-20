@@ -5,6 +5,7 @@ import { areValuesObjectsEqual, Entity, EntityDefinition } from "../../Entity";
 export type useExecuteServerActionReturnType<TReturn extends ValuesObject> = {
     status: OperationStatus<TReturn>
     execute: (values?: ValuesObject) => Promise<OperationStatus<TReturn> | undefined>
+    abort: () => void
 }
 
 export function useExecuteServerAction<T extends EntityDefinition, TReturn extends ValuesObject>(
@@ -64,5 +65,7 @@ export function useExecuteServerAction<T extends EntityDefinition, TReturn exten
         }
     }, [entity, actionName, status]);
 
-    return { status, execute };
+    const abort = useCallback(() => { cancellation.current.abort() }, []);
+
+    return { status, execute, abort };
 }

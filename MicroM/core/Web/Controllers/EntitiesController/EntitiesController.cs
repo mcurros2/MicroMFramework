@@ -442,8 +442,6 @@ public class EntitiesController() : ControllerBase, IEntitiesController
             // we prefer Sylvan for now as it consumes less memory than OpenXML
             var fileResult = await ExportSylvanFromChannelAsync($"{entityName}_export", resultChannel, producerTask, cts.Token);
 
-            resultChannel.Results.Writer.TryComplete();
-
             return fileResult;
         }
         catch (Exception ex)

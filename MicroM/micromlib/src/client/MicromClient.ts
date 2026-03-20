@@ -833,7 +833,9 @@ export class MicroMClient {
             });
 
             if (!res.ok) {
-                throw { status: res?.status, statusMessage: res?.statusText, message: res?.statusText, url: res?.url } as MicroMError;
+                let error_body: string | undefined = undefined;
+                try { error_body = await res.text(); } catch { }
+                throw { status: res?.status, statusMessage: res?.statusText, message: res?.statusText, url: res?.url, errorBody: error_body } as MicroMError;
             }
 
             const data = await res.blob();
@@ -877,7 +879,9 @@ export class MicroMClient {
             });
 
             if (!res.ok) {
-                throw { status: res?.status, statusMessage: res?.statusText, message: res?.statusText, url: res?.url } as MicroMError;
+                let error_body: string | undefined = undefined;
+                try { error_body = await res.text(); } catch { }
+                throw { status: res?.status, statusMessage: res?.statusText, message: res?.statusText, url: res?.url, errorBody: error_body } as MicroMError;
             }
 
             const data = await res.json();
@@ -915,7 +919,9 @@ export class MicroMClient {
         });
 
         if (!res.ok) {
-            throw { status: res?.status, statusMessage: res?.statusText, message: res?.statusText, url: res?.url } as MicroMError;
+            let error_body: string | undefined = undefined;
+            try { error_body = await res.text(); } catch { }
+            throw { status: res?.status, statusMessage: res?.statusText, message: res?.statusText, url: res?.url, errorBody: error_body } as MicroMError;
         }
 
         const data = await res.json();

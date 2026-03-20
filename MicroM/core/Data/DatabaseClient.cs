@@ -803,7 +803,7 @@ public class DatabaseClient : IDisposable, IAsyncDisposable, IEntityClient
                     if (max_allowed_rows != null)
                     {
                         read_rows++;
-                        if (max_allowed_rows >= read_rows) throw new DataAbstractionException($"GetResultAndWriteToChannel: The query exceeds the maximum allowed rows for the results channel ({max_allowed_rows})");
+                        if (read_rows >= max_allowed_rows) throw new DataAbstractionException($"GetResultAndWriteToChannel: The query exceeds the maximum allowed rows for the results channel ({max_allowed_rows})");
                     }
 
                     // Apply Backpressure

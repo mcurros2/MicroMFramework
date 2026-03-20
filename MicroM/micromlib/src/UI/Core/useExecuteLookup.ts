@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { OperationStatus, toMicroMError, ValuesObject } from "../../client";
 import { areValuesObjectsEqual, EntityColumnFlags } from "../../Entity";
 import * as cf from "../../Entity/ColumnsFunctions";
@@ -66,9 +66,12 @@ export function useExecuteLookup({ entity, lookupDefName, parentKeys }: UseLooku
         }
     }
 
+    const abort = useCallback(() => { cancellation.current.abort() }, []);
+
     return {
         execute: execute,
-        status: status
+        status: status,
+        abort: abort
     }
 
 }

@@ -52,8 +52,11 @@ export function useExecuteProc(entity: Entity<EntityDefinition>, proc: EntityPro
         }
     }, [entity, proc, status]);
 
+    const abort = useCallback(() => { cancellation.current.abort() }, []);
+
     return {
         execute: execute,
-        status: status
+        status: status,
+        abort: abort
     }
 }
