@@ -1,7 +1,6 @@
 ﻿using MicroM.Core;
 using MicroM.Data;
 using MicroM.Web.Services;
-using System.Data;
 
 namespace MicroM.DataDictionary.Entities;
 
@@ -11,9 +10,9 @@ public class ConfigurationParametersDef : EntityDefinition
 
     public readonly Column<string> c_configuration_id = Column<string>.PK();
     public readonly Column<string> c_parameter_id = Column<string>.PK();
-    public readonly Column<string> vc_value = new(sql_type: SqlDbType.VarChar);
+    public readonly Column<string> vc_value = Column<string>.Text();
 
-    public ViewDefinition cfp_brwStandard { get; private set; } = new(nameof(c_configuration_id), nameof(c_parameter_id));
+    public readonly ViewDefinition cfp_brwStandard = new(nameof(c_configuration_id), nameof(c_parameter_id));
 
 }
 

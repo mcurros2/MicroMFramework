@@ -46,22 +46,22 @@ namespace MicroM.Core
             {
                 if (view.CompoundKeyGroups.Values.Count > 1)
                 {
-                    throw new ArgumentException($"{name}: The view \"{view.Proc.destination_name}\" has more than one CompoundKeyGroup. You must specify a compound key group name to use.", nameof(compound_key_group));
+                    throw new ArgumentException($"{name}: The view \"{view.Procs.destination_name}\" has more than one CompoundKeyGroup. You must specify a compound key group name to use.", nameof(compound_key_group));
                 }
             }
             else
             {
                 if (!view.CompoundKeyGroups.ContainsKey(compound_key_group))
                 {
-                    throw new ArgumentException($"{name}: Compound key group \"{compound_key_group}\" not found in view \"{view.Proc.destination_name}\".", nameof(compound_key_group));
+                    throw new ArgumentException($"{name}: Compound key group \"{compound_key_group}\" not found in view \"{view.Procs.destination_name}\".", nameof(compound_key_group));
                 }
             }
 
             if (!string.IsNullOrEmpty(key_parameter))
             {
-                if (!view.Proc.Parms.ContainsKey(key_parameter.destination_name))
+                if (!view.Procs.Parms.ContainsKey(key_parameter.destination_name))
                 {
-                    throw new ArgumentException($"{name}: The key parameter specified \"{key_parameter.destination_name}\" not found in view \"{view.Proc.destination_name}\".", nameof(key_parameter));
+                    throw new ArgumentException($"{name}: The key parameter specified \"{key_parameter.destination_name}\" not found in view \"{view.Procs.destination_name}\".", nameof(key_parameter));
                 }
             }
             else
@@ -72,7 +72,7 @@ namespace MicroM.Core
                     if (mapping > -1) mappings++;
                     if (mappings > 1)
                     {
-                        throw new ArgumentException($"{name}: There is more than one key mapped for view \"{view.Proc.destination_name}\". You must specify a value.", nameof(key_parameter));
+                        throw new ArgumentException($"{name}: There is more than one key mapped for view \"{view.Procs.destination_name}\". You must specify a value.", nameof(key_parameter));
                     }
                 }
 

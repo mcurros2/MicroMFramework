@@ -1,6 +1,5 @@
 ﻿using MicroM.Core;
 using MicroM.Extensions;
-using System.Data;
 using System.Globalization;
 
 namespace MicroM.Data
@@ -172,14 +171,12 @@ namespace MicroM.Data
                 throw new InvalidOperationException($"The default columns for view {Proc.Name} had already been added.");
             }
 
-            Column<string[]> like;
-            Column<string> d;
+            Column<string> d = Column<string>.Char(name: SystemViewParmNames.d, size: 1);
+            Column<string[]> like = Column<string[]>.Text(name: SystemViewParmNames.like, size: 0, isArray: true);
 
-            like = new(SystemViewParmNames.like, sql_type: SqlDbType.VarChar, size: 0, isArray: true);
             Parms.Add(like.Name, new ViewParm(like));
             Proc.AddParm(like);
 
-            d = new(SystemViewParmNames.d, sql_type: SqlDbType.Char, size: 1);
             Parms.Add(d.Name, new ViewParm(d));
             Proc.AddParm(d);
         }

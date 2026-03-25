@@ -3,15 +3,16 @@ using MicroM.Configuration;
 using MicroM.Core;
 using MicroM.Data;
 using MicroM.DataDictionary.CategoriesDefinitions;
+using MicroM.DataDictionary.Procs;
 using MicroM.Extensions;
 using MicroM.Web.Authentication;
 using MicroM.Web.Services;
-using System.Data;
 
 namespace MicroM.DataDictionary.Entities;
 
 public class MicromUsersDef : EntityDefinition
 {
+
     public MicromUsersDef() : base("usr", nameof(MicromUsers)) { SQLCreationOptions = SQLCreationOptionsMetadata.WithIUpdateAndIDrop; }
 
     public readonly Column<string> c_user_id = Column<string>.PK(autonum: true);
@@ -39,9 +40,9 @@ public class MicromUsersDef : EntityDefinition
 
     public readonly ViewDefinition usr_brwStandard = new(nameof(c_user_id));
 
-    public ProcedureDefinition usr_getUserData { get; private set; } = null!;
+    public readonly usr_getUserData usr_getUserData = new();
 
-    public ProcedureDefinition usr_updateLoginAttempt { get; private set; } = null!;
+    public readonly usr_updateLoginAttempt usr_updateLoginAttempt = new();
 
     public readonly ProcedureDefinition usr_logoff = new(nameof(vc_username));
     public readonly ProcedureDefinition usr_setPassword = new(nameof(vc_username), nameof(vc_pwhash));
@@ -55,29 +56,6 @@ public class MicromUsersDef : EntityDefinition
     public readonly ProcedureDefinition usr_GetRecoveryEmails = new(nameof(vc_username));
     public readonly ProcedureDefinition usr_RecoverPassword = new(nameof(vc_username), nameof(vc_recovery_code), nameof(vc_pwhash));
 
-    protected override void DefineProcs()
-    {
-        // Variables used for SP parameter names
-        string success, account_lockout_mins, refresh_expiration_hours, max_bad_logon_attempts, new_refresh_token, device_id, user_agent, ipaddress;
-
-        usr_updateLoginAttempt = new ProcedureDefinition();
-        usr_updateLoginAttempt.AddParmFromCol<string>(c_user_id);
-        usr_updateLoginAttempt.AddParm<string?>(nameof(new_refresh_token), sql_type: SqlDbType.VarChar, size: 255);
-        usr_updateLoginAttempt.AddParm<bool>(nameof(success), sql_type: SqlDbType.Bit);
-        usr_updateLoginAttempt.AddParm<int>(nameof(account_lockout_mins), sql_type: SqlDbType.Int);
-        usr_updateLoginAttempt.AddParm<int>(nameof(refresh_expiration_hours), sql_type: SqlDbType.Int);
-        usr_updateLoginAttempt.AddParm<int>(nameof(max_bad_logon_attempts), sql_type: SqlDbType.Int);
-        usr_updateLoginAttempt.AddParm<string>(nameof(device_id), sql_type: SqlDbType.VarChar, size: 255);
-        usr_updateLoginAttempt.AddParm<string>(nameof(user_agent), sql_type: SqlDbType.VarChar, size: 4096);
-        usr_updateLoginAttempt.AddParm<string>(nameof(ipaddress), sql_type: SqlDbType.VarChar, size: 40);
-
-        usr_getUserData = new ProcedureDefinition(readonly_locks: true);
-        usr_getUserData.AddParmFromCol<string>(vc_username);
-        usr_getUserData.AddParmFromCol<string>(c_user_id);
-        usr_getUserData.AddParm<string>(nameof(device_id), sql_type: SqlDbType.VarChar, size: 255);
-
-
-    }
 
     public readonly EntityUniqueConstraint UNUsername = new(keys: nameof(vc_username));
 
@@ -116,9 +94,11 @@ public class MicromUsers : Entity<MicromUsersDef>
         MicromUsers user = new(ec);
 
         var proc = user.Def.usr_getUserData;
-        if (username != null) proc[nameof(MicromUsersDef.vc_username)].ValueObject = username;
-        if (user_id != null) proc[nameof(MicromUsersDef.c_user_id)].ValueObject = user_id;
-        if (device_id != null) proc[nameof(device_id)].ValueObject = device_id;
+
+        if (username != null) proc.vc_username.Value = username;
+        if (user_id != null) proc.c_user_id.Value = user_id;
+        if (device_id != null) proc.device_id.Value = device_id;
+
         var result = await user.Data.ExecuteProcSingleRow<LoginData>(proc, ct, set_parms_from_columns: false, mode: AutoMapperMode.ByNameLaxNotThrow);
 
         return result;
@@ -184,15 +164,17 @@ public class MicromUsers : Entity<MicromUsersDef>
 
 
         var proc = user.Def.usr_updateLoginAttempt;
-        proc[nameof(MicromUsersDef.c_user_id)].ValueObject = user_id;
-        proc[nameof(device_id)].ValueObject = device_id;
-        proc[nameof(new_refresh_token)].ValueObject = new_refresh_token!;
-        proc[nameof(success)].ValueObject = success;
-        proc[nameof(account_lockout_mins)].ValueObject = account_lockout_mins;
-        proc[nameof(refresh_expiration_hours)].ValueObject = refresh_expiration_hours;
-        proc[nameof(max_bad_logon_attempts)].ValueObject = max_bad_logon_attempts;
-        proc[nameof(ipaddress)].ValueObject = ipaddress;
-        proc[nameof(user_agent)].ValueObject = user_agent;
+
+        proc.c_user_id.Value = user_id;
+        proc.device_id.Value = device_id;
+        proc.new_refresh_token.Value = new_refresh_token;
+        proc.success.Value = success;
+        proc.account_lockout_mins.Value = account_lockout_mins;
+        proc.refresh_expiration_hours.Value = refresh_expiration_hours;
+        proc.max_bad_logon_attempts.Value = max_bad_logon_attempts;
+        proc.ipaddress.Value = ipaddress;
+        proc.user_agent.Value = user_agent;
+
         var dbstat = await user.Data.ExecuteProcDBStatus(proc, ct, set_parms_from_columns: false, throw_dbstat_exception: false);
 
         if (dbstat != null && dbstat.Results != null && dbstat.Results.Count > 0)
@@ -292,3 +274,4 @@ public class MicromUsers : Entity<MicromUsersDef>
     }
 
 }
+

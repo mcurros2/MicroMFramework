@@ -47,14 +47,14 @@ public class ApplicationsDef : EntityDefinition
     public readonly Column<string?> vc_assembly5 = Column<string?>.Text(size: 2048, nullable: true, fake: true);
 
     // Fakes for actions and status
-    public readonly Column<bool> b_createdatabase = new(sql_type: SqlDbType.Bit, fake: true, column_flags: ColumnFlags.None, value: false);
-    public readonly Column<bool> b_dropdatabase = new(sql_type: SqlDbType.Bit, fake: true, column_flags: ColumnFlags.None, value: false);
-    public readonly Column<bool> b_updatedatabase = new(sql_type: SqlDbType.Bit, fake: true, column_flags: ColumnFlags.None, value: false);
+    public readonly Column<bool> b_createdatabase = new(fake: true, column_flags: ColumnFlags.None, value: false);
+    public readonly Column<bool> b_dropdatabase = new(fake: true, column_flags: ColumnFlags.None, value: false);
+    public readonly Column<bool> b_updatedatabase = new(fake: true, column_flags: ColumnFlags.None, value: false);
 
-    public readonly Column<bool> b_adminuserhasrights = new(sql_type: SqlDbType.Bit, fake: true, column_flags: ColumnFlags.None, value: false);
-    public readonly Column<bool> b_appdbexists = new(sql_type: SqlDbType.Bit, fake: true, column_flags: ColumnFlags.None, value: false);
-    public readonly Column<bool> b_appuserexists = new(sql_type: SqlDbType.Bit, fake: true, column_flags: ColumnFlags.None, value: false);
-    public readonly Column<bool> b_serverup = new(sql_type: SqlDbType.Bit, fake: true, column_flags: ColumnFlags.None, value: false);
+    public readonly Column<bool> b_adminuserhasrights = new(fake: true, column_flags: ColumnFlags.None, value: false);
+    public readonly Column<bool> b_appdbexists = new(fake: true, column_flags: ColumnFlags.None, value: false);
+    public readonly Column<bool> b_appuserexists = new(fake: true, column_flags: ColumnFlags.None, value: false);
+    public readonly Column<bool> b_serverup = new(fake: true, column_flags: ColumnFlags.None, value: false);
 
     // Indentity provider embedded columns
     public readonly Column<string> c_identity_provider_role_id = Column<string>.EmbedCategory(nameof(IdentityProviderRole));

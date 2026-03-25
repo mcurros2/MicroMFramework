@@ -1,7 +1,6 @@
 ﻿using MicroM.Core;
 using MicroM.Data;
 using MicroM.Web.Services;
-using System.Data;
 
 namespace MicroM.DataDictionary.Entities;
 
@@ -11,7 +10,7 @@ public class ClassesDef : EntityDefinition
 
     public readonly Column<string> c_object_id = Column<string>.PK();
     public readonly Column<string> c_class_id = Column<string>.PK(autonum: true);
-    public readonly Column<string> vc_classname = new(sql_type: SqlDbType.VarChar, size: 255);
+    public readonly Column<string> vc_classname = Column<string>.Text();
 
     public readonly ViewDefinition cla_brwStandard = new(nameof(c_object_id), nameof(c_class_id));
 

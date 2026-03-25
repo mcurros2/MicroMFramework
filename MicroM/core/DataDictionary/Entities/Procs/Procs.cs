@@ -1,7 +1,6 @@
 ﻿using MicroM.Core;
 using MicroM.Data;
 using MicroM.Web.Services;
-using System.Data;
 
 namespace MicroM.DataDictionary.Entities;
 
@@ -11,9 +10,9 @@ public class ProcsDef : EntityDefinition
 
     public readonly Column<string> c_object_id = Column<string>.PK();
     public readonly Column<int> c_proc_id = Column<int>.PK(autonum: true);
-    public readonly Column<string> vc_procname = new(sql_type: SqlDbType.VarChar, size: 255);
+    public readonly Column<string> vc_procname = Column<string>.Text();
 
-    public ViewDefinition prc_brwStandard { get; private set; } = new(nameof(c_object_id), nameof(c_proc_id));
+    public readonly ViewDefinition prc_brwStandard = new(nameof(c_object_id), nameof(c_proc_id));
 
     public readonly EntityForeignKey<Objects, Procs> FKObjects = new();
 

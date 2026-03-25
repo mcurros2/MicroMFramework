@@ -67,7 +67,7 @@ namespace MicroM.Data
                 }
             }
 
-            Column <T> col = new(name, value: value, sql_type: sql_type, size: size, precision: precision,
+            Column<T> col = new(name, value: value, sql_type: sql_type, size: size, precision: precision,
                 scale: scale, column_flags: col_flags, override_with: override_with);
             return col;
         }
@@ -95,7 +95,7 @@ namespace MicroM.Data
         }
 
         public static Column<T> Text(T value = default!, int size = 255, bool fake = false, bool? nullable = null, bool isArray = false, bool encrypted = false
-            , ColumnFlags column_flags = ColumnFlags.Insert | ColumnFlags.Update, string? override_with = null)
+            , ColumnFlags column_flags = ColumnFlags.Insert | ColumnFlags.Update, string? override_with = null, string name = "")
         {
             if (typeof(T) != typeof(string) && typeof(T) != typeof(string[]) && Nullable.GetUnderlyingType(typeof(T)) != typeof(string[]))
             {
@@ -103,10 +103,10 @@ namespace MicroM.Data
             }
 
             if (fake) column_flags |= ColumnFlags.Fake;
-            return new Column<T>("", value: value, sql_type: SqlDbType.VarChar, size: size, column_flags: column_flags, nullable: nullable, isArray: isArray, encrypted: encrypted, override_with: override_with);
+            return new Column<T>(name, value: value, sql_type: SqlDbType.VarChar, size: size, column_flags: column_flags, nullable: nullable, isArray: isArray, encrypted: encrypted, override_with: override_with);
         }
 
-        public static Column<T> Char(T value = default!, int size = 255, bool fake = false, bool? nullable = null, bool isArray = false, string? override_with = null)
+        public static Column<T> Char(T value = default!, int size = 255, bool fake = false, bool? nullable = null, bool isArray = false, string? override_with = null, string name = "")
         {
             if (typeof(T) != typeof(string) && typeof(T) != typeof(string[]) && Nullable.GetUnderlyingType(typeof(T)) != typeof(string[]))
             {
@@ -115,7 +115,7 @@ namespace MicroM.Data
 
             ColumnFlags flags = ColumnFlags.Insert | ColumnFlags.Update;
             if (fake) flags |= ColumnFlags.Fake;
-            return new Column<T>("", value: value, sql_type: SqlDbType.Char, size: size, column_flags: flags, nullable: nullable, isArray: isArray, override_with: override_with);
+            return new Column<T>(name, value: value, sql_type: SqlDbType.Char, size: size, column_flags: flags, nullable: nullable, isArray: isArray, override_with: override_with);
         }
 
         // MMC: Decide about datetime offset, datetime2, etc.

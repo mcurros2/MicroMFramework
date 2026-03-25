@@ -781,7 +781,7 @@ public class A_DatabaseClientTests
 
         using var cts = new CancellationTokenSource();
 
-        var producer = client.ExecuteSQLChannel("select\t*\r\nfrom\tsys.all_columns b\r\n\t\tcross join (select top 120 x.parameter_id from sys.all_parameters x) c", resultChannel, records_channel_capacity: 5, cts.Token, complete_channel: true, max_allowed_rows: 1048575);
+        var producer = client.ExecuteSQLChannel("select\t*\r\nfrom\tsys.all_columns b\r\n\t\tcross join (select top 70 x.parameter_id from sys.all_parameters x) c", resultChannel, records_channel_capacity: 5, cts.Token, complete_channel: true, max_allowed_rows: 1048575);
 
         try
         {

@@ -17,7 +17,7 @@ public class MicromUsersLoginHistoryDef : EntityDefinition
     public readonly Column<bool> bt_success = new();
     public readonly Column<DateTime> dt_login_attempt = new();
 
-    public ViewDefinition ulh_brwStandard { get; private set; } = new(nameof(c_user_id));
+    public readonly ViewDefinition ulh_brwStandard = new(nameof(c_user_id));
 
 }
 

@@ -107,8 +107,8 @@
     <EmbeddedResource Include="DataDictionary\Entities\ApplicationOIDCConfiguration\SQL\ApplicationOidcClients\aoi_get.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\ApplicationOIDCConfiguration\SQL\ApplicationOidcClients\aoi_update.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\ApplicationOIDCConfiguration\SQL\ApplicationOidcConfiguration\aoc_iupdate.sql" />
-    <EmbeddedResource Include="DataDictionary\Entities\Applications\app_GetADConfiguration.sql" />
-    <EmbeddedResource Include="DataDictionary\Entities\Applications\app_GetOIDCClients.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\Applications\SQL\app_GetADConfiguration.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\Applications\SQL\app_GetOIDCClients.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\EmailService\SQL\EmailServiceConfiguration\eqc_get.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\EmailService\SQL\EmailServiceConfiguration\eqc_iupdate.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\EmailService\SQL\EmailServiceQueue\emq_EmailTagsTableType.sql" />
@@ -151,19 +151,19 @@
   </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="DataDictionary\Entities\ApplicationAssemblyTypes\apt_brwStandard.sql" />
-    <EmbeddedResource Include="DataDictionary\Entities\ApplicationsAssemblies\apa_iupdateAssembly.sql" />
-    <EmbeddedResource Include="DataDictionary\Entities\ApplicationsAssemblies\apa_GetAssemblies.sql" />
-    <EmbeddedResource Include="DataDictionary\Entities\Applications\app_get.sql" />
-    <EmbeddedResource Include="DataDictionary\Entities\Applications\app_drop.sql" />
-    <EmbeddedResource Include="DataDictionary\Entities\Applications\app_iupdate.sql" />
-    <EmbeddedResource Include="DataDictionary\Entities\Applications\app_brwStandard.sql" />
-    <EmbeddedResource Include="DataDictionary\Entities\Applications\app_GetConfiguration.sql" />
-    <EmbeddedResource Include="DataDictionary\Entities\EntitiesAssembliesTypes\eat_deleteAllTypes.sql" />
-    <EmbeddedResource Include="DataDictionary\Entities\EntitiesAssembliesTypes\eat_iupdate.sql" />
-    <EmbeddedResource Include="DataDictionary\Entities\EntitiesAssemblies\eas_dropUnusedAssemblies.sql" />
-    <EmbeddedResource Include="DataDictionary\Entities\EntitiesAssemblies\eas_idropUnusedAssemblies.sql" />
-    <EmbeddedResource Include="DataDictionary\Entities\EntitiesAssemblies\eas_idrop.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\ApplicationAssemblyTypes\SQL\apt_brwStandard.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\ApplicationsAssemblies\SQL\apa_iupdateAssembly.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\ApplicationsAssemblies\SQL\apa_GetAssemblies.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\Applications\SQL\app_get.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\Applications\SQL\app_drop.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\Applications\SQL\app_iupdate.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\Applications\SQL\app_brwStandard.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\Applications\SQL\app_GetConfiguration.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\EntitiesAssembliesTypes\SQL\eat_deleteAllTypes.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\EntitiesAssembliesTypes\SQL\eat_iupdate.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\EntitiesAssemblies\SQL\eas_dropUnusedAssemblies.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\EntitiesAssemblies\SQL\eas_idropUnusedAssemblies.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\EntitiesAssemblies\SQL\eas_idrop.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\MicromUsers\SQL\MicromUsers\usr_get.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\MicromUsers\SQL\MicromUsers\usr_GetClientClaims.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\MicromUsers\SQL\MicromUsers\usr_GetEnabledMenus.sql" />
@@ -180,11 +180,11 @@
     <EmbeddedResource Include="DataDictionary\Entities\MicromUsers\SQL\MicromUsers\usr_tfGetUserEmails.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\MicromUsers\SQL\MicromUsers\usr_updateLoginAttempt.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\MicromUsers\SQL\MicromUsers\usr_GetUserData.sql" />
-    <EmbeddedResource Include="DataDictionary\Entities\Numbering\num_iGetNewNumber.sql" />
-    <EmbeddedResource Include="DataDictionary\Entities\sys\sys_GetDropDuplicateIndexes.sql" />
-    <EmbeddedResource Include="DataDictionary\Entities\sys\sys_GetTimeZoneOffset.sql" />
-    <EmbeddedResource Include="DataDictionary\Entities\sys\sys_tfLike.sql" />
-    <EmbeddedResource Include="DataDictionary\Entities\sys\sys_tfMicroMColumns.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\Numbering\SQL\num_iGetNewNumber.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\sys\SQL\sys_GetDropDuplicateIndexes.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\sys\SQL\sys_GetTimeZoneOffset.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\sys\SQL\sys_tfLike.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\sys\SQL\sys_tfMicroMColumns.sql" />
   </ItemGroup>
 
   <ItemGroup>

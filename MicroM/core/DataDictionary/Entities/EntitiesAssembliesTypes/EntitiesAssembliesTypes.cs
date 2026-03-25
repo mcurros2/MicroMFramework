@@ -1,7 +1,6 @@
 ﻿using MicroM.Core;
 using MicroM.Data;
 using MicroM.Web.Services;
-using System.Data;
 
 namespace MicroM.DataDictionary.Entities;
 
@@ -11,13 +10,13 @@ public class EntitiesAssembliesTypesDef : EntityDefinition
 
     public readonly Column<string> c_assembly_id = Column<string>.PK();
     public readonly Column<string> c_assemblytype_id = Column<string>.PK(autonum: true);
-    public readonly Column<string> vc_assemblytypename = new(sql_type: SqlDbType.VarChar, size: 2048);
+    public readonly Column<string> vc_assemblytypename = Column<string>.Text(size: 2048);
 
-    public ViewDefinition eat_brwStandard { get; private set; } = new(nameof(c_assembly_id), nameof(c_assemblytype_id));
+    public readonly ViewDefinition eat_brwStandard = new(nameof(c_assembly_id), nameof(c_assemblytype_id));
 
-    public ProcedureDefinition eat_deleteAllTypes { get; private set; } = new(nameof(c_assembly_id));
+    public readonly ProcedureDefinition eat_deleteAllTypes = new(nameof(c_assembly_id));
 
-    public readonly EntityUniqueConstraint UNTypes = new(keys: new[] { nameof(c_assembly_id), nameof(vc_assemblytypename) });
+    public readonly EntityUniqueConstraint UNTypes = new(keys: [nameof(c_assembly_id), nameof(vc_assemblytypename)]);
 
     public readonly EntityForeignKey<EntitiesAssemblies, EntitiesAssembliesTypes> FKApplications = new();
 

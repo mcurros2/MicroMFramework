@@ -14,7 +14,7 @@ public class FileStoreStatusDef : EntityDefinition
     public readonly Column<string> c_status_id = Column<string>.PK();
     public readonly Column<string> c_statusvalue_id = Column<string>.FK();
 
-    public ViewDefinition fsts_brwStandard { get; private set; } = new(nameof(c_file_id), nameof(c_status_id));
+    public readonly ViewDefinition fsts_brwStandard = new(nameof(c_file_id), nameof(c_status_id));
 
     public readonly EntityForeignKey<FileStore, FileStoreStatus> FKFileStoreStatus = new();
     public readonly EntityForeignKey<StatusValues, FileStoreStatus> FKStatus = new();

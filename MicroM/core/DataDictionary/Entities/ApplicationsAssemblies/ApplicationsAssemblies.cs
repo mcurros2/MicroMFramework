@@ -12,11 +12,11 @@ public class ApplicationsAssembliesDef : EntityDefinition
     public readonly Column<string> c_assembly_id = Column<string>.PK();
     public readonly Column<int> i_order = new();
 
-    public ViewDefinition apa_brwStandard { get; private set; } = new(nameof(c_application_id), nameof(c_assembly_id));
+    public readonly ViewDefinition apa_brwStandard = new(nameof(c_application_id), nameof(c_assembly_id));
 
-    public ProcedureDefinition apa_GetAssemblies { get; private set; } = new();
+    public readonly ProcedureDefinition apa_GetAssemblies = new();
 
-    public readonly EntityUniqueConstraint UNAssembliesOrder = new(keys: new[] { nameof(c_application_id), nameof(i_order) });
+    public readonly EntityUniqueConstraint UNAssembliesOrder = new(keys: [nameof(c_application_id), nameof(i_order)]);
 
     public readonly EntityForeignKey<Applications, ApplicationsAssemblies> FKApplications = new();
     public readonly EntityForeignKey<EntitiesAssemblies, ApplicationsAssemblies> FKApplicationsAssemblies = new();

@@ -5,6 +5,7 @@ using MicroM.Core;
 using MicroM.Data;
 using MicroM.DataDictionary.CategoriesDefinitions;
 using MicroM.DataDictionary.Entities;
+using MicroM.DataDictionary.Procs;
 using MicroM.Extensions;
 using MicroM.Web.Authentication;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -28,6 +29,8 @@ public class C_EntityTests
     public async Task OrderedExecution()
     {
         var init = new EntityTestsUtil();
+
+        await CheckProcsDefinitionFromClass();
 
         await init.DeleteTestDBAsync().ConfigureAwait(false);
         await init.CreateTestDBAsync().ConfigureAwait(false);
@@ -53,6 +56,25 @@ public class C_EntityTests
 
     }
 
+    public Task CheckProcsDefinitionFromClass()
+    {
+        using var client = new DatabaseClient(DatabaseConfiguration.Server, DatabaseConfiguration.TestDatabase, DatabaseConfiguration.user, DatabaseConfiguration.password);
+
+        var users = new MicromUsers(client);
+        var def = users.Def;
+        var proc = (usr_updateLoginAttempt)def.usr_updateLoginAttempt;
+
+        if (proc == null) Assert.Fail("usr_updateLoginAttempt proc definition not found");
+        if (proc.Parms == null) Assert.Fail("usr_updateLoginAttempt proc parameters not found");
+
+        Assert.IsTrue(proc.Parms.ContainsKey("c_user_id"));
+        Assert.IsTrue(proc.Parms.ContainsKey("success"));
+
+        proc.c_user_id.Value = "test_user";
+        Assert.AreEqual("test_user", (string?)proc.Parms[nameof(proc.c_user_id)].ValueObject);
+
+        return Task.CompletedTask;
+    }
 
     public async Task DataDictionary_InitialConfigurationAsync()
     {

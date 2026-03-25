@@ -12,7 +12,7 @@ public class MicromUsersCatDef : EntityDefinition
     public readonly Column<string> c_category_id = Column<string>.PK();
     public readonly Column<string> c_categoryvalue_id = Column<string>.FK();
 
-    public ViewDefinition usrc_brwStandard { get; private set; } = new(nameof(c_user_id));
+    public readonly ViewDefinition usrc_brwStandard = new(nameof(c_user_id));
 
     public readonly EntityForeignKey<MicromUsers, MicromUsersCat> FKMicromUsers = new();
     public readonly EntityForeignKey<CategoriesValues, MicromUsersCat> FKCategories = new();

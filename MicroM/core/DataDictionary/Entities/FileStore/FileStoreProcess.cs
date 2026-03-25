@@ -12,7 +12,7 @@ public class FileStoreProcessDef : EntityDefinition
 
     public readonly Column<string> c_fileprocess_id = Column<string>.PK(autonum: true);
 
-    public ViewDefinition fsp_brwStandard { get; private set; } = new(nameof(c_fileprocess_id));
+    public readonly ViewDefinition fsp_brwStandard = new(nameof(c_fileprocess_id));
 
 }
 

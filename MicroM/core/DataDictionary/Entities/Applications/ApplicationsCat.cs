@@ -12,7 +12,7 @@ public class ApplicationsCatDef : EntityDefinition
     public readonly Column<string> c_category_id = Column<string>.PK();
     public readonly Column<string> c_categoryvalue_id = Column<string>.FK();
 
-    public ViewDefinition appc_brwStandard { get; private set; } = new(nameof(c_application_id));
+    public readonly ViewDefinition appc_brwStandard = new(nameof(c_application_id));
 
     public readonly EntityForeignKey<Applications, ApplicationsCat> FKApplicationsCat = new();
     public readonly EntityForeignKey<CategoriesValues, ApplicationsCat> FKCategories = new();

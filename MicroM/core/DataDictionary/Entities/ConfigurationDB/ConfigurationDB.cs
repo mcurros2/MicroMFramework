@@ -2,7 +2,6 @@
 using MicroM.Core;
 using MicroM.Data;
 using MicroM.Web.Services;
-using System.Data;
 using static MicroM.DataDictionary.Entities.ConfigurationDBHandlers;
 using static System.ArgumentNullException;
 
@@ -14,28 +13,28 @@ public class ConfigurationDBDef : EntityDefinition
 
     public readonly Column<string> c_confgidb_id = Column<string>.PK(value: "1");
 
-    public readonly Column<string> vc_configsqlserver = new(sql_type: SqlDbType.VarChar, size: 255);
-    public readonly Column<string> vc_configsqluser = new(sql_type: SqlDbType.VarChar, size: 255);
-    public readonly Column<string?> vc_configsqlpassword = new(sql_type: SqlDbType.VarChar, size: 2048, nullable: true);
-    public readonly Column<string> vc_configdatabase = new(sql_type: SqlDbType.VarChar, size: 255);
+    public readonly Column<string> vc_configsqlserver = Column<string>.Text();
+    public readonly Column<string> vc_configsqluser = Column<string>.Text();
+    public readonly Column<string?> vc_configsqlpassword = Column<string?>.Text(size: 2048, nullable: true);
+    public readonly Column<string> vc_configdatabase = Column<string>.Text();
 
-    public readonly Column<string> vc_certificatethumbprint = new(sql_type: SqlDbType.VarChar, size: 255);
-    public readonly Column<string> vc_certificatepassword = new(sql_type: SqlDbType.VarChar, size: 2048);
-    public readonly Column<string> vc_certificatename = new(sql_type: SqlDbType.VarChar, size: 2048);
+    public readonly Column<string> vc_certificatethumbprint = Column<string>.Text();
+    public readonly Column<string> vc_certificatepassword = Column<string>.Text(size: 2048);
+    public readonly Column<string> vc_certificatename = Column<string>.Text(size: 2048);
 
-    public readonly Column<bool> b_adminuserhasrights = new(sql_type: SqlDbType.Bit);
-    public readonly Column<bool> b_configdbexists = new(sql_type: SqlDbType.Bit);
-    public readonly Column<bool> b_configuserexists = new(sql_type: SqlDbType.Bit);
-    public readonly Column<bool> b_secretsconfigured = new(sql_type: SqlDbType.Bit);
-    public readonly Column<bool> b_defaultcertificate = new(sql_type: SqlDbType.Bit);
-    public readonly Column<bool> b_thumbprintconfigured = new(sql_type: SqlDbType.Bit);
-    public readonly Column<bool> b_thumbprintfound = new(sql_type: SqlDbType.Bit);
-    public readonly Column<bool> b_certificatefound = new(sql_type: SqlDbType.Bit);
-    public readonly Column<bool> b_secretsfilevalid = new(sql_type: SqlDbType.Bit);
+    public readonly Column<bool> b_adminuserhasrights = new();
+    public readonly Column<bool> b_configdbexists = new();
+    public readonly Column<bool> b_configuserexists = new();
+    public readonly Column<bool> b_secretsconfigured = new();
+    public readonly Column<bool> b_defaultcertificate = new();
+    public readonly Column<bool> b_thumbprintconfigured = new();
+    public readonly Column<bool> b_thumbprintfound = new();
+    public readonly Column<bool> b_certificatefound = new();
+    public readonly Column<bool> b_secretsfilevalid = new();
 
-    public readonly Column<bool> b_recreatedatabase = new(sql_type: SqlDbType.Bit);
+    public readonly Column<bool> b_recreatedatabase = new();
 
-    public ViewDefinition dfg_brwStandard { get; private set; } = new(nameof(c_confgidb_id));
+    public readonly ViewDefinition dfg_brwStandard = new(nameof(c_confgidb_id));
 
 }
 

@@ -33,7 +33,7 @@ public class ApplicationOidcActiveSessionsDef : EntityDefinition
     public readonly Column<string> vc_oidc_session_id = Column<string>.Text();
     public readonly Column<string?> vc_oidc_sub = Column<string?>.Text(nullable: true);
 
-    public readonly Column<string?> vc_oidc_refreshtoken = new(sql_type: SqlDbType.VarChar, size: 2048, nullable: true, encrypted: true);
+    public readonly Column<string?> vc_oidc_refreshtoken = Column<string?>.Text(size: 2048, nullable: true, encrypted: true);
     public readonly Column<DateTime?> dt_refresh_expiration = new(nullable: true);
 
     public readonly ProcedureDefinition aos_deleteAllSessions = new();

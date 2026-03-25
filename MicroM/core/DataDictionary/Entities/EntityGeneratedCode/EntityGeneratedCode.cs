@@ -19,23 +19,23 @@ public class EntityGeneratedCodeDef : EntityDefinition
     public readonly Column<string> c_assembly_id = Column<string>.PK();
     public readonly Column<string> c_assemblytype_id = Column<string>.PK();
 
-    public readonly Column<string> vc_table = new(sql_type: System.Data.SqlDbType.VarChar, size: 0);
-    public readonly Column<string> vc_indexes = new(sql_type: System.Data.SqlDbType.VarChar, size: 0);
-    public readonly Column<string> vc_sp_get = new(sql_type: System.Data.SqlDbType.VarChar, size: 0);
-    public readonly Column<string> vc_sp_update = new(sql_type: System.Data.SqlDbType.VarChar, size: 0);
-    public readonly Column<string> vc_sp_iupdate = new(sql_type: System.Data.SqlDbType.VarChar, size: 0);
-    public readonly Column<string> vc_sp_updatei = new(sql_type: System.Data.SqlDbType.VarChar, size: 0);
-    public readonly Column<string> vc_sp_drop = new(sql_type: System.Data.SqlDbType.VarChar, size: 0);
-    public readonly Column<string> vc_sp_idrop = new(sql_type: System.Data.SqlDbType.VarChar, size: 0);
-    public readonly Column<string> vc_sp_dropi = new(sql_type: System.Data.SqlDbType.VarChar, size: 0);
-    public readonly Column<string> vc_sp_lookup = new(sql_type: System.Data.SqlDbType.VarChar, size: 0);
-    public readonly Column<string> vc_sp_brwStandard = new(sql_type: System.Data.SqlDbType.VarChar, size: 0);
-    public readonly Column<string> vc_custom_procs = new(sql_type: System.Data.SqlDbType.VarChar, size: 0);
+    public readonly Column<string> vc_table = Column<string>.Text(size: 0);
+    public readonly Column<string> vc_indexes = Column<string>.Text(size: 0);
+    public readonly Column<string> vc_sp_get = Column<string>.Text(size: 0);
+    public readonly Column<string> vc_sp_update = Column<string>.Text(size: 0);
+    public readonly Column<string> vc_sp_iupdate = Column<string>.Text(size: 0);
+    public readonly Column<string> vc_sp_updatei = Column<string>.Text(size: 0);
+    public readonly Column<string> vc_sp_drop = Column<string>.Text(size: 0);
+    public readonly Column<string> vc_sp_idrop = Column<string>.Text(size: 0);
+    public readonly Column<string> vc_sp_dropi = Column<string>.Text(size: 0);
+    public readonly Column<string> vc_sp_lookup = Column<string>.Text(size: 0);
+    public readonly Column<string> vc_sp_brwStandard = Column<string>.Text(size: 0);
+    public readonly Column<string> vc_custom_procs = Column<string>.Text(size: 0);
 
-    public readonly Column<string> vc_react_definition = new(sql_type: System.Data.SqlDbType.VarChar, size: 0);
-    public readonly Column<string> vc_react_entity = new(sql_type: System.Data.SqlDbType.VarChar, size: 0);
-    public readonly Column<string> vc_react_categories = new(sql_type: System.Data.SqlDbType.VarChar, size: 0);
-    public readonly Column<string> vc_react_form = new(sql_type: System.Data.SqlDbType.VarChar, size: 0);
+    public readonly Column<string> vc_react_definition = Column<string>.Text(size: 0);
+    public readonly Column<string> vc_react_entity = Column<string>.Text(size: 0);
+    public readonly Column<string> vc_react_categories = Column<string>.Text(size: 0);
+    public readonly Column<string> vc_react_form = Column<string>.Text(size: 0);
 }
 
 public class EntityGeneratedCode : Entity<EntityGeneratedCodeDef>
