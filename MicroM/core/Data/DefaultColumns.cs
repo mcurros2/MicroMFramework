@@ -1,16 +1,14 @@
-﻿using MicroM.Web.Authentication;
-
-namespace MicroM.Data;
+﻿namespace MicroM.Data;
 
 internal class DefaultColumns
 {
-    public readonly Column<DateTime> dt_inserttime = new(column_flags: ColumnFlags.None);
-    public readonly Column<DateTime> dt_lu = new(column_flags: ColumnFlags.Insert | ColumnFlags.Update);
-    public readonly Column<string> vc_webinsuser = Column<string>.Text(column_flags: ColumnFlags.None);
-    public readonly Column<string> vc_webluuser = Column<string>.Text(column_flags: ColumnFlags.None);
-    public readonly Column<string> vc_insuser = Column<string>.Text(column_flags: ColumnFlags.None);
-    public readonly Column<string> vc_luuser = Column<string>.Text(column_flags: ColumnFlags.None);
-    public readonly Column<string> webusr = Column<string>.Text(column_flags: ColumnFlags.Insert | ColumnFlags.Update | ColumnFlags.Fake, override_with: nameof(MicroMServerClaimTypes.MicroMUsername), value: "");
+    public readonly Column<DateTime> dt_inserttime = DefaultColumnsFactory.dt_inserttime();
+    public readonly Column<DateTime> dt_lu = DefaultColumnsFactory.dt_lu();
+    public readonly Column<string> vc_webinsuser = DefaultColumnsFactory.vc_webinsuser();
+    public readonly Column<string> vc_webluuser = DefaultColumnsFactory.vc_webluuser();
+    public readonly Column<string> vc_insuser = DefaultColumnsFactory.vc_insuser();
+    public readonly Column<string> vc_luuser = DefaultColumnsFactory.vc_luuser();
+    public readonly Column<string> webusr = DefaultColumnsFactory.webusr();
 
     public readonly static string[] SystemNames = {
             nameof(dt_inserttime),

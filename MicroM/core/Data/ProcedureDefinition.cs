@@ -26,6 +26,25 @@ public class ProcedureDefinition
     public readonly bool isLookup;
     public readonly bool isImport;
 
+    public ProcedureDefinition(string? name = "", bool readonly_locks = false, bool is_lookup = false, bool is_import = false, string[]? from_columns_in_definition = null, ColumnBase[]? parms = null)
+    {
+        ReadonlyLocks = readonly_locks;
+        isLookup = is_lookup;
+        isImport = is_import;
+
+        if (isLookup) ReadonlyLocks = true;
+
+        if (from_columns_in_definition != null)
+        {
+            foreach (string colname in from_columns_in_definition)
+            {
+                _ColumnNames.Add(colname);
+            }
+        }
+
+    }
+
+
     public ProcedureDefinition(bool readonly_locks = false, bool is_lookup = false, bool is_import = false, params string[] parms)
     {
         ReadonlyLocks = readonly_locks;

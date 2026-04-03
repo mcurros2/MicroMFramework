@@ -131,7 +131,6 @@ namespace MicroM.Data
         //    return new Column<T>("", value: value, sql_type: SqlDbType.VarChar, size: size, column_flags: column_flags, nullable: nullable);
         //}
 
-
         //
         public Column<T> Clone()
         {

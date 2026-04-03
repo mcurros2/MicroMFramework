@@ -1,13 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { MicroMRouterState, NavigationState } from './MicroMRouterState';
-
-// MMC: normalize the path to always start with '/#/', the recieved path can start with '/#/', with '/' or without any of them
-const normalizePath = (path: string) => {
-    if (path.startsWith('#/')) {
-        return path.slice(1);
-    }
-    return path;
-}
+import { MicroMRouterState, navigateToRoute, NavigationState, normalizeRoutePath } from './MicroMRouterState';
 
 export function useNavigation(): MicroMRouterState {
     // Adjust initial path setup to check for '/#/' prefix
@@ -19,7 +11,7 @@ export function useNavigation(): MicroMRouterState {
 
     // Unified navigation handling
     const handleNavigation = useCallback((newPath: string) => {
-        const formattedPath = normalizePath(newPath);
+        const formattedPath = normalizeRoutePath(newPath);
         if (formattedPath !== path) { // Check to prevent unnecessary state updates
             setPath(formattedPath);
             setNavigationState({ navigated: true, route: formattedPath });
@@ -37,10 +29,5 @@ export function useNavigation(): MicroMRouterState {
         return () => window.removeEventListener('hashchange', handleHashChange);
     }, [handleNavigation]);
 
-    const navigate = useCallback((newPath: string) => {
-        // Values set up here will include the #. If newpath has no / it will be added (.hash works like that)
-        window.location.hash = normalizePath(newPath);
-    }, []);
-
-    return { path, navigate, navigationState };
+    return { path, navigate: navigateToRoute, navigationState };
 };

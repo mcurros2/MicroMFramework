@@ -321,7 +321,7 @@ public abstract class EntityDefinition
                     var col = (ColumnBase?)prop.GetMemberValue(obj);
                     if (!_Columns.Contains(prop.Name) && col != null)
                     {
-                        col.Name = prop.Name;
+                        if (col.Name.IsNullOrEmpty()) col.Name = prop.Name;
                         if (col.ColumnMetadata.HasFlag(ColumnFlags.Autonum)) _autonumcol = col;
                         _Columns.Add(prop.Name, col);
                         if (!string.IsNullOrEmpty(col.RelatedCategoryID)) AddCategoryID(col.RelatedCategoryID);

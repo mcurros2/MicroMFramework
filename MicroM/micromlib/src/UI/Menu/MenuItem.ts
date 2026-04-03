@@ -14,5 +14,8 @@ export interface MenuItem {
     loadingComponent?: ReactNode,
     content?: ReactNode | Promise<ReactNode>
     onClick?: () => void,
-    section: 'header' | 'items' | 'footer'
+    section: 'header' | 'items' | 'footer',
+    canShowAsShortcut?: boolean,
+    menuPath?: string,
+    menuPathDescription?: string
 }

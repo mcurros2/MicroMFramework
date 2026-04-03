@@ -3,3 +3,4 @@ export * from './MenuNavLinks';
 export * from './MenuNavBarPanel';
 export * from './MenuItem';
 export * from './useMenuContent';
+export * from './caseInsensitveAccentInsensitiveFilter';

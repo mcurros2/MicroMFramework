@@ -50,7 +50,12 @@ export function MenuNavLinks(props: MenuItemsProps) {
         }
 
         if (menuItem.onClick) {
-            menuItem.onClick();
+            if (isPromise(menuItem.onClick)) {
+                await menuItem.onClick;
+            }
+            else {
+                menuItem.onClick();
+            }
         }
 
     }, [clearContent, defaultLoadingComponent, setContent]);
