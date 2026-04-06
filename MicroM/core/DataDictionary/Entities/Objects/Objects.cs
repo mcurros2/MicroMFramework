@@ -16,7 +16,6 @@ namespace MicroM.DataDictionary.Entities;
  * fake entities can´t be reverse engineered and would need to be persisted if needed at the backend
  * fake entities can live within the client space.
  */
-
 public class ObjectsDef : EntityDefinition
 {
     public ObjectsDef() : base("obj", nameof(Objects)) { }
@@ -28,7 +27,6 @@ public class ObjectsDef : EntityDefinition
     public readonly ViewDefinition obj_brwStandard = new(nameof(c_object_id));
 
     public readonly EntityUniqueConstraint UNMnemonic = new(keys: nameof(c_mneo_id));
-
 }
 
 public class Objects : Entity<ObjectsDef>

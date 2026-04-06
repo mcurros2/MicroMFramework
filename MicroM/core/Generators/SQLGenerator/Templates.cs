@@ -1,8 +1,8 @@
-﻿namespace MicroM.Generators.SQLGenerator
+﻿namespace MicroM.Generators.SQLGenerator;
+
+internal class Templates
 {
-    internal class Templates
-    {
-        internal const string LIKE_TEMPLATE =
+    internal const string LIKE_TEMPLATE =
 @"
         not exists (
             select  1
@@ -13,7 +13,7 @@
             )
         )
 ";
-        internal const string VIEW_TEMPLATE =
+    internal const string VIEW_TEMPLATE =
 @"
 {CREATE} proc {MNEO}_brwStandard
         {PARMS_DECLARATION}
@@ -24,7 +24,7 @@ from    {TABLE_NAME}{CATEGORIES_JOIN}
 where   {WHERE_CLAUSE}
 ";
 
-        internal const string DROP_TEMPLATE =
+    internal const string DROP_TEMPLATE =
 @"
 {CREATE} proc {MNEO}_drop
         {PARMS_DECLARATION}
@@ -55,7 +55,7 @@ begin catch
 end catch
 ";
 
-        internal const string IDROP_TEMPLATE =
+    internal const string IDROP_TEMPLATE =
 @"
 {CREATE} proc {MNEO}_idrop
         {PARMS_DECLARATION}
@@ -82,7 +82,7 @@ begin catch
 end catch
 ";
 
-        internal const string DROP_CALLS_IDROP_TEMPLATE =
+    internal const string DROP_CALLS_IDROP_TEMPLATE =
 @"
 {CREATE} proc {MNEO}_drop
         {PARMS_DECLARATION}
@@ -121,7 +121,7 @@ begin catch
 end catch
 ";
 
-        internal const string LOOKUP_TEMPLATE =
+    internal const string LOOKUP_TEMPLATE =
 @"
 {CREATE} proc {MNEO}_lookup
         {PARMS_DECLARATION}
@@ -132,7 +132,7 @@ from    {TABLE_NAME}
 where   {WHERE_CLAUSE}
 ";
 
-        internal const string JSON_CATEGORY_GET_TEMPLATE =
+    internal const string JSON_CATEGORY_GET_TEMPLATE =
 @"
 select  {CATEGORY_PARM} = '[' + STRING_AGG('""'+replace(RTRIM(c_categoryvalue_id), '""','\""')+'""', ',') + ']'
 from    {CATEGORIES_TABLE}
@@ -140,7 +140,7 @@ where   {WHERE_CLAUSE}
 ";
 
 
-        internal const string GET_TEMPLATE =
+    internal const string GET_TEMPLATE =
 @"
 {CREATE} proc {MNEO}_get
         {PARMS_DECLARATION}
@@ -153,7 +153,7 @@ from    {TABLE_NAME}{CATEGORIES_JOIN}
 where   {WHERE_CLAUSE}
 ";
 
-        internal const string UPDATE_LU_CONTROL_TEMPLATE =
+    internal const string UPDATE_LU_CONTROL_TEMPLATE =
 @"
     if @cu<>@lu or @lu is null 
     begin
@@ -164,7 +164,7 @@ where   {WHERE_CLAUSE}
 
 ";
 
-        internal const string IUPDATE_LU_CONTROL_TEMPLATE =
+    internal const string IUPDATE_LU_CONTROL_TEMPLATE =
 @"
     if @cu<>@lu or @lu is null 
     begin
@@ -174,7 +174,7 @@ where   {WHERE_CLAUSE}
 
 ";
 
-        internal const string UPDATE_CLAUSE_TEMPLATE =
+    internal const string UPDATE_CLAUSE_TEMPLATE =
 @"
     update  {TABLE_NAME}
     set     {UPDATE_VALUES}
@@ -184,8 +184,8 @@ where   {WHERE_CLAUSE}
     where   {WHERE_CLAUSE}
 ";
 
-        internal const string JSON_CATEGORIES_PARSE_TEMPLATE =
-        @"
+    internal const string JSON_CATEGORIES_PARSE_TEMPLATE =
+    @"
     create table {CATEGORY_TEMP_TABLE} (jsoncategory_id char(20), category_desc varchar(max))
 
     IF {CATEGORY_PARM} IS NOT NULL
@@ -219,8 +219,8 @@ where   {WHERE_CLAUSE}
 ";
 
 
-        internal const string INSERT_JSON_CAT_TEMPLATE =
-        @"
+    internal const string INSERT_JSON_CAT_TEMPLATE =
+    @"
         if ({CATEGORY_PARM} is not null)
         begin
 
@@ -237,8 +237,8 @@ where   {WHERE_CLAUSE}
         end
 ";
 
-        internal const string UPDATE_JSON_CAT_TEMPLATE =
-        @"
+    internal const string UPDATE_JSON_CAT_TEMPLATE =
+    @"
     delete  {CATEGORIES_TABLE}
     WHERE   {WHERE_CLAUSE}
             and c_categoryvalue_id not in(SELECT jsoncategory_id FROM {CATEGORY_TEMP_TABLE})
@@ -261,7 +261,7 @@ where   {WHERE_CLAUSE}
 ";
 
 
-        internal const string UPDATE_TEMPLATE =
+    internal const string UPDATE_TEMPLATE =
 @"
 {CREATE} proc {MNEO}_update
         {PARMS_DECLARATION}
@@ -322,7 +322,7 @@ begin catch
 end catch
 ";
 
-        internal const string IUPDATE_TEMPLATE =
+    internal const string IUPDATE_TEMPLATE =
 @"
 {CREATE} proc {MNEO}_iupdate
         {PARMS_DECLARATION}
@@ -375,7 +375,7 @@ begin catch
 end catch
 ";
 
-        internal const string UPDATE_CALLS_IUPDATE_TEMPLATE =
+    internal const string UPDATE_CALLS_IUPDATE_TEMPLATE =
 @"
 {CREATE} proc {MNEO}_update
         {PARMS_DECLARATION}
@@ -418,7 +418,7 @@ begin catch
 end catch
 ";
 
-        internal const string INSERT_CATEGORY_TEMPLATE_NULL =
+    internal const string INSERT_CATEGORY_TEMPLATE_NULL =
 @"
         if ({CATEGORY_PARM} is not null)
         begin
@@ -438,7 +438,7 @@ end catch
         end
 ";
 
-        internal const string INSERT_CATEGORY_TEMPLATE =
+    internal const string INSERT_CATEGORY_TEMPLATE =
 @"
         insert  {CATEGORIES_TABLE}
         values  
@@ -453,7 +453,7 @@ end catch
             )
 ";
 
-        internal const string DELETE_CATEGORY_NULL_TEMPLATE =
+    internal const string DELETE_CATEGORY_NULL_TEMPLATE =
 @"
     if ({CATEGORY_PARM} is null)
     begin
@@ -465,7 +465,7 @@ end catch
 
 ";
 
-        internal const string UPDATE_CATEGORY_TEMPLATE =
+    internal const string UPDATE_CATEGORY_TEMPLATE =
 @"
     {CATEGORY_DELETE_NULL}
     if not exists (
@@ -504,13 +504,13 @@ end catch
     end
 ";
 
-        internal const string DELETE_CATEGORY_TEMPLATE =
+    internal const string DELETE_CATEGORY_TEMPLATE =
 @"
     delete  {CATEGORIES_TABLE}
     where   {WHERE_CLAUSE}
 ";
 
-        internal const string INSERT_STATUS_TEMPLATE =
+    internal const string INSERT_STATUS_TEMPLATE =
 @"
         insert  {STATUS_TABLE}
         select  {INSERT_VALUES}
@@ -529,13 +529,13 @@ end catch
                 a.bt_initial_value = 1
 ";
 
-        internal const string DELETE_STATUS_TEMPLATE =
+    internal const string DELETE_STATUS_TEMPLATE =
 @"
     delete  {STATUS_TABLE}
     where   {WHERE_CLAUSE}
 ";
 
-        internal const string UPDATE_STATUS_TEMPLATE =
+    internal const string UPDATE_STATUS_TEMPLATE =
 @"
     update  {STATUS_TABLE}
     set     {UPDATE_VALUES}
@@ -545,7 +545,5 @@ end catch
     where   {WHERE_CLAUSE}
             and c_statusvalue_id <> {STATUS_PARM}
 ";
-
-    }
 
 }
