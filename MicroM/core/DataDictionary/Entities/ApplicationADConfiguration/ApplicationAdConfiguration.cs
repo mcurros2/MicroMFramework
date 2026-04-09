@@ -1,4 +1,5 @@
-﻿using MicroM.Core;
+﻿using MicroM.Configuration;
+using MicroM.Core;
 using MicroM.Data;
 using MicroM.Web.Services;
 
@@ -6,7 +7,7 @@ namespace MicroM.DataDictionary.Entities;
 
 public class ApplicationAdConfigurationDef : EntityDefinition
 {
-    public ApplicationAdConfigurationDef() : base("aad", nameof(ApplicationAdConfiguration)) { }
+    public ApplicationAdConfigurationDef() : base("aad", nameof(ApplicationAdConfiguration), schemaName: DataDefaults.DataDictionarySchema) { }
 
     public readonly Column<string> c_ad_configuration_id = Column<string>.PK(autonum: true);
     public readonly Column<string> c_application_id = Column<string>.FK();

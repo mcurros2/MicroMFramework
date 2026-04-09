@@ -1,4 +1,5 @@
-﻿using MicroM.Core;
+﻿using MicroM.Configuration;
+using MicroM.Core;
 using MicroM.Data;
 using MicroM.Web.Services;
 
@@ -6,7 +7,7 @@ namespace MicroM.DataDictionary.Entities;
 
 public class EmailServiceConfigurationDef : EntityDefinition
 {
-    public EmailServiceConfigurationDef() : base("eqc", nameof(EmailServiceConfiguration)) { SQLCreationOptions = SQLCreationOptionsMetadata.WithIUpdateAndIDrop; }
+    public EmailServiceConfigurationDef() : base("eqc", nameof(EmailServiceConfiguration), schemaName: DataDefaults.DataDictionarySchema) { SQLCreationOptions = SQLCreationOptionsMetadata.WithIUpdateAndIDrop; }
 
     public readonly Column<string> c_email_configuration_id = Column<string>.PK();
     public readonly Column<string> vc_smtp_host = Column<string>.Text(size: 2048);

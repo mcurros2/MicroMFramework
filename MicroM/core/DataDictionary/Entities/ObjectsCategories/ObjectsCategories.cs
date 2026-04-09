@@ -1,4 +1,5 @@
-﻿using MicroM.Core;
+﻿using MicroM.Configuration;
+using MicroM.Core;
 using MicroM.Data;
 using MicroM.Web.Services;
 
@@ -6,7 +7,7 @@ namespace MicroM.DataDictionary.Entities;
 
 public class ObjectsCategoriesDef : EntityDefinition
 {
-    public ObjectsCategoriesDef() : base("oca", nameof(ObjectsCategories)) { }
+    public ObjectsCategoriesDef() : base("oca", nameof(ObjectsCategories), schemaName: DataDefaults.DataDictionarySchema) { }
 
     public readonly Column<string> c_object_id = Column<string>.PK();
     public readonly Column<string> c_category_id = Column<string>.PK();

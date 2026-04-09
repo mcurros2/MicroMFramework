@@ -1,4 +1,5 @@
-﻿using MicroM.Core;
+﻿using MicroM.Configuration;
+using MicroM.Core;
 using MicroM.Data;
 using MicroM.Web.Services;
 
@@ -6,7 +7,7 @@ namespace MicroM.DataDictionary.Entities;
 
 public class ApplicationsAssembliesDef : EntityDefinition
 {
-    public ApplicationsAssembliesDef() : base("apa", nameof(ApplicationsAssemblies)) { SQLCreationOptions = SQLCreationOptionsMetadata.WithIUpdateAndIDrop; }
+    public ApplicationsAssembliesDef() : base("apa", nameof(ApplicationsAssemblies), schemaName: DataDefaults.DataDictionarySchema) { SQLCreationOptions = SQLCreationOptionsMetadata.WithIUpdateAndIDrop; }
 
     public readonly Column<string> c_application_id = Column<string>.PK();
     public readonly Column<string> c_assembly_id = Column<string>.PK();

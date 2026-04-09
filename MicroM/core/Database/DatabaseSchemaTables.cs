@@ -17,8 +17,8 @@ namespace MicroM.Database
                 await ec.Connect(ct);
                 foreach (var options in entities.Values)
                 {
-                    bool table_exists = await TableExists(ec, options.EntityInstance.Def.TableName, "dbo", ct);
-                    if (!table_exists) inexisting_tables.Add(options.EntityInstance.Def.TableName);
+                    bool table_exists = await TableExists(ec, options.EntityInstance.Def.TableName, options.EntityInstance.Def.SchemaName ?? "dbo", ct);
+                    if (!table_exists) inexisting_tables.Add(options.EntityInstance.Def.FullTableName);
                 }
             }
             finally
@@ -43,7 +43,7 @@ namespace MicroM.Database
                 foreach (var options in entities.Values)
                 {
                     // if the table does not exist, create it
-                    if (inexisting_tables.Contains(options.EntityInstance.Def.TableName))
+                    if (inexisting_tables.Contains(options.EntityInstance.Def.FullTableName))
                     {
                         var scripts = options.EntityInstance.AsCreateTable(table_and_primary_key_only: true);
                         if (scripts?.Count > 0)

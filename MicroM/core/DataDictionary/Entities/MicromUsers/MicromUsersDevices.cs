@@ -1,4 +1,5 @@
-﻿using MicroM.Core;
+﻿using MicroM.Configuration;
+using MicroM.Core;
 using MicroM.Data;
 using MicroM.DataDictionary.Procs;
 using MicroM.Web.Services;
@@ -8,7 +9,7 @@ namespace MicroM.DataDictionary.Entities;
 
 public class MicromUsersDevicesDef : EntityDefinition
 {
-    public MicromUsersDevicesDef() : base("usd", nameof(MicromUsersDevices)) { SQLCreationOptions = SQLCreationOptionsMetadata.WithIUpdate; }
+    public MicromUsersDevicesDef() : base("usd", nameof(MicromUsersDevices), schemaName: DataDefaults.DataDictionarySchema) { SQLCreationOptions = SQLCreationOptionsMetadata.WithIUpdate; }
 
     public readonly Column<string> c_user_id = Column<string>.PK();
     public readonly Column<string> c_device_id = Column<string>.PK(size: 255);

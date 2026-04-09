@@ -1,4 +1,5 @@
 ﻿
+using MicroM.Configuration;
 using MicroM.Core;
 using MicroM.Data;
 using MicroM.Web.Services;
@@ -8,7 +9,7 @@ namespace MicroM.DataDictionary.Entities;
 
 public class ImportProcessErrorsDef : EntityDefinition
 {
-    public ImportProcessErrorsDef() : base("ipe", nameof(ImportProcessErrors)) { }
+    public ImportProcessErrorsDef() : base("ipe", nameof(ImportProcessErrors), schemaName: DataDefaults.DataDictionarySchema) { }
 
     public readonly Column<string> c_import_process_id = Column<string>.PK();
     public readonly Column<string> c_import_process_error_id = Column<string>.PK(autonum: true);

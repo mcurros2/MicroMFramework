@@ -1,4 +1,5 @@
-﻿using MicroM.Core;
+﻿using MicroM.Configuration;
+using MicroM.Core;
 using MicroM.Data;
 using MicroM.Web.Services;
 
@@ -6,7 +7,7 @@ namespace MicroM.DataDictionary.Entities;
 
 public class ApplicationOidcConfigurationDef : EntityDefinition
 {
-    public ApplicationOidcConfigurationDef() : base("aoc", nameof(ApplicationOidcConfiguration)) { SQLCreationOptions = SQLCreationOptionsMetadata.WithIUpdate; }
+    public ApplicationOidcConfigurationDef() : base("aoc", nameof(ApplicationOidcConfiguration), schemaName: DataDefaults.DataDictionarySchema) { SQLCreationOptions = SQLCreationOptionsMetadata.WithIUpdate; }
 
     public readonly Column<string> c_application_id = Column<string>.PK();
 

@@ -1,4 +1,5 @@
 ﻿
+using MicroM.Configuration;
 using MicroM.Core;
 using MicroM.Data;
 using MicroM.Web.Services;
@@ -8,7 +9,7 @@ namespace MicroM.DataDictionary.Entities;
 
 public class FileStoreProcessDef : EntityDefinition
 {
-    public FileStoreProcessDef() : base("fsp", nameof(FileStoreProcess)) { SQLCreationOptions = SQLCreationOptionsMetadata.WithIUpdateAndIDrop; }
+    public FileStoreProcessDef() : base("fsp", nameof(FileStoreProcess), schemaName: DataDefaults.DataDictionarySchema) { SQLCreationOptions = SQLCreationOptionsMetadata.WithIUpdateAndIDrop; }
 
     public readonly Column<string> c_fileprocess_id = Column<string>.PK(autonum: true);
 

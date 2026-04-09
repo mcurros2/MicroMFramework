@@ -1,4 +1,5 @@
-﻿using MicroM.Core;
+﻿using MicroM.Configuration;
+using MicroM.Core;
 using MicroM.Data;
 using MicroM.Web.Services;
 
@@ -6,7 +7,7 @@ namespace MicroM.DataDictionary.Entities;
 
 public class ApplicationsUrlsDef : EntityDefinition
 {
-    public ApplicationsUrlsDef() : base("apu", nameof(ApplicationsUrls)) { SQLCreationOptions = SQLCreationOptionsMetadata.WithIUpdate; }
+    public ApplicationsUrlsDef() : base("apu", nameof(ApplicationsUrls), schemaName: DataDefaults.DataDictionarySchema) { SQLCreationOptions = SQLCreationOptionsMetadata.WithIUpdate; }
 
     public readonly Column<string> c_application_id = Column<string>.PK();
     public readonly Column<string> c_application_url_id = Column<string>.PK(autonum: true);

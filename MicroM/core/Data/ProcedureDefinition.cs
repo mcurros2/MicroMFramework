@@ -18,6 +18,13 @@ public class ProcedureDefinition
             else throw new ArgumentException($"The property {nameof(Name)} can only be modified if the value is null.");
         }
     }
+
+    private string? _Schema;
+    public string? Schema { get; internal set; } = null;
+
+    public string QualifiedName => string.IsNullOrEmpty(_Schema) ? Name : $"[{_Schema}].{Name}";
+
+
     public readonly Dictionary<string, ColumnBase> Parms = new(StringComparer.OrdinalIgnoreCase);
     public bool ReadonlyLocks;
 
@@ -44,7 +51,6 @@ public class ProcedureDefinition
 
     }
 
-
     public ProcedureDefinition(bool readonly_locks = false, bool is_lookup = false, bool is_import = false, params string[] parms)
     {
         ReadonlyLocks = readonly_locks;
@@ -60,22 +66,11 @@ public class ProcedureDefinition
         }
     }
 
-    public ProcedureDefinition(string? name = "", bool readonly_locks = false, bool is_lookup = false, bool is_import = false, params ColumnBase[] parms)
-    {
-        Name = name!;
-        ReadonlyLocks = readonly_locks;
-
-        isLookup = is_lookup;
-        if (isLookup) ReadonlyLocks = true;
-
-        AddParmsFromCols(parms);
-    }
-
     public ProcedureDefinition()
     {
     }
 
-    public ProcedureDefinition(params ColumnBase[] parms) : this(default, default, default, default, parms)
+    public ProcedureDefinition(params ColumnBase[] parms) : this(default, default, default, default, default, parms)
     {
     }
 
@@ -181,7 +176,6 @@ public class ProcedureDefinition
             return Parms[name];
         }
     }
-
 
 }
 

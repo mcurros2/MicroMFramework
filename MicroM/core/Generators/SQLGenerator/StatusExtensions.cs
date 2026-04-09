@@ -1,6 +1,5 @@
 ﻿using MicroM.Core;
 using MicroM.Data;
-using MicroM.DataDictionary.Configuration;
 using MicroM.DataDictionary.Entities;
 using MicroM.Extensions;
 using MicroM.Generators.Extensions;
@@ -35,7 +34,7 @@ namespace MicroM.Generators.SQLGenerator
 
             var parms = new TemplateValues()
             {
-                STATUS_TABLE = $"[{entity.Def.TableName}{TableSuffix.STATUS_TABLE_SUFFIX}]",
+                STATUS_TABLE = entity.AsEntityStatusTable(),
                 INSERT_VALUES = $"{entity_PK}{separator}{status_alias}.{nameof(StatusValuesDef.c_status_id)}{separator}{status_alias}.{nameof(StatusValuesDef.c_statusvalue_id)}",
                 MNEO = $"'{entity.Def.Mneo.SQLEscape()}'"
             };
@@ -53,7 +52,7 @@ namespace MicroM.Generators.SQLGenerator
 
             var parms = new TemplateValues()
             {
-                STATUS_TABLE = $"{entity.Def.TableName}{TableSuffix.STATUS_TABLE_SUFFIX}",
+                STATUS_TABLE = entity.AsEntityStatusTable(),
                 WHERE_CLAUSE = PKs.AsColumnValuePairs(union_string: $"\n{TAB}{TAB}{TAB}and ")
             };
             sb.Append(Templates.DELETE_STATUS_TEMPLATE.ReplaceTemplate(parms));
@@ -78,7 +77,7 @@ namespace MicroM.Generators.SQLGenerator
                     var parms = new TemplateValues()
                     {
                         STATUS_PARM = stat_col.AsProcParm(false),
-                        STATUS_TABLE = $"[{entity.Def.TableName}{TableSuffix.STATUS_TABLE_SUFFIX}]",
+                        STATUS_TABLE = entity.AsEntityStatusTable(),
                         UPDATE_VALUES = $"{status.Def.c_statusvalue_id.Name} = {stat_col.AsProcParm(false)}",
                         WHERE_CLAUSE = $"{PKs.AsColumnValuePairs(union_string: union_string)}{union_string}{status.Def.c_status_id.Name} = '{stat_col.RelatedStatusID!.SQLEscape()}'"
                     };

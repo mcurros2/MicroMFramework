@@ -1,4 +1,5 @@
-﻿using MicroM.Core;
+﻿using MicroM.Configuration;
+using MicroM.Core;
 using MicroM.Data;
 using MicroM.DataDictionary.StatusDefinitions;
 using MicroM.Extensions;
@@ -9,7 +10,7 @@ namespace MicroM.DataDictionary.Entities;
 
 public class ImportProcessDef : EntityDefinition
 {
-    public ImportProcessDef() : base("ipr", nameof(ImportProcess)) { }
+    public ImportProcessDef() : base("ipr", nameof(ImportProcess), schemaName: DataDefaults.DataDictionarySchema) { }
 
     public readonly Column<string> c_import_process_id = Column<string>.PK(autonum: true);
     public readonly Column<string> c_fileprocess_id = Column<string>.FK();

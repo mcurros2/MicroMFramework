@@ -9,7 +9,7 @@ namespace MicroM.DataDictionary.Entities;
 
 public class MicromUsersGroupsDef : EntityDefinition
 {
-    public MicromUsersGroupsDef() : base("mug", nameof(MicromUsersGroups)) { SQLCreationOptions = SQLCreationOptionsMetadata.WithIUpdate; }
+    public MicromUsersGroupsDef() : base("mug", nameof(MicromUsersGroups), schemaName: DataDefaults.DataDictionarySchema) { SQLCreationOptions = SQLCreationOptionsMetadata.WithIUpdate; }
 
     public readonly Column<string> c_user_group_id = Column<string>.PK(autonum: true);
     public readonly Column<string> vc_user_group_name = Column<string>.Text();

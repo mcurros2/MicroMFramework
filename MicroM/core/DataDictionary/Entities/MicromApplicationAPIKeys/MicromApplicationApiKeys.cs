@@ -7,7 +7,7 @@ namespace MicroM.DataDictionary.Entities;
 
 public class MicromApplicationApiKeysDef : EntityDefinition
 {
-    public MicromApplicationApiKeysDef() : base("mak", nameof(MicromApplicationApiKeys)) { SQLCreationOptions = SQLCreationOptionsMetadata.WithIUpdate; }
+    public MicromApplicationApiKeysDef() : base("mak", nameof(MicromApplicationApiKeys), schemaName: DataDefaults.DataDictionarySchema) { SQLCreationOptions = SQLCreationOptionsMetadata.WithIUpdate; }
 
     public readonly Column<string> c_application_id = Column<string>.PK();
     public readonly Column<string> c_api_key_id = Column<string>.PK(autonum: true);

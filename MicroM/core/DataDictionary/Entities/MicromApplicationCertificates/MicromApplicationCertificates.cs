@@ -7,7 +7,7 @@ namespace MicroM.DataDictionary.Entities;
 
 public class MicromApplicationCertificatesDef : EntityDefinition
 {
-    public MicromApplicationCertificatesDef() : base("mac", nameof(MicromApplicationCertificates)) { SQLCreationOptions = SQLCreationOptionsMetadata.WithIUpdate; }
+    public MicromApplicationCertificatesDef() : base("mac", nameof(MicromApplicationCertificates), schemaName: DataDefaults.DataDictionarySchema) { SQLCreationOptions = SQLCreationOptionsMetadata.WithIUpdate; }
 
     public readonly Column<string> c_application_id = Column<string>.PK();
     public readonly Column<string> c_certificate_id = Column<string>.PK(autonum: true);

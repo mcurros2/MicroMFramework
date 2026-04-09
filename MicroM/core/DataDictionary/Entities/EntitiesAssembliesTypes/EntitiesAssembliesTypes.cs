@@ -1,4 +1,5 @@
-﻿using MicroM.Core;
+﻿using MicroM.Configuration;
+using MicroM.Core;
 using MicroM.Data;
 using MicroM.Web.Services;
 
@@ -6,7 +7,7 @@ namespace MicroM.DataDictionary.Entities;
 
 public class EntitiesAssembliesTypesDef : EntityDefinition
 {
-    public EntitiesAssembliesTypesDef() : base("eat", nameof(EntitiesAssembliesTypes)) { SQLCreationOptions = SQLCreationOptionsMetadata.WithIUpdateAndIDrop; }
+    public EntitiesAssembliesTypesDef() : base("eat", nameof(EntitiesAssembliesTypes), schemaName: DataDefaults.DataDictionarySchema) { SQLCreationOptions = SQLCreationOptionsMetadata.WithIUpdateAndIDrop; }
 
     public readonly Column<string> c_assembly_id = Column<string>.PK();
     public readonly Column<string> c_assemblytype_id = Column<string>.PK(autonum: true);

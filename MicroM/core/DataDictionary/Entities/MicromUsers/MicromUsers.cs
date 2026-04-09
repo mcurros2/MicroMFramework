@@ -13,7 +13,7 @@ namespace MicroM.DataDictionary.Entities;
 public class MicromUsersDef : EntityDefinition
 {
 
-    public MicromUsersDef() : base("usr", nameof(MicromUsers)) { SQLCreationOptions = SQLCreationOptionsMetadata.WithIUpdateAndIDrop; }
+    public MicromUsersDef() : base("usr", nameof(MicromUsers), schemaName: DataDefaults.DataDictionarySchema) { SQLCreationOptions = SQLCreationOptionsMetadata.WithIUpdateAndIDrop; }
 
     public readonly Column<string> c_user_id = Column<string>.PK(autonum: true);
     public readonly Column<string> vc_username = Column<string>.Text();

@@ -14,7 +14,7 @@ namespace MicroM.Generators.SQLGenerator
             var parms = new TemplateValues(create_or_alter)
             {
                 MNEO = entity.Def.Mneo,
-                TABLE_NAME = $"[{entity.Def.TableName}] a",
+                TABLE_NAME = $"{entity.Def.FullTableName} a",
                 PARMS_DECLARATION = entity.Def.Columns.GetWithFlags(ColumnFlags.Get).AsProcParmsDeclaration(separator: $"\n{TAB}{TAB}, "),
                 WHERE_CLAUSE = entity.Def.Columns.GetWithFlags(ColumnFlags.PK, ColumnFlags.Fake).AsColumnValuePairs(alias: "a", union_string: $"\n{TAB}{TAB}and "),
                 DESC_COLUMN = entity.Def.Columns.GetDescriptionColumn(alias: "a")

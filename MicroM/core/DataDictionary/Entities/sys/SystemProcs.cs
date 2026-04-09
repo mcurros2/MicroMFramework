@@ -1,4 +1,5 @@
-﻿using MicroM.Core;
+﻿using MicroM.Configuration;
+using MicroM.Core;
 using MicroM.Data;
 using MicroM.Web.Services;
 
@@ -6,7 +7,7 @@ namespace MicroM.DataDictionary.Entities;
 
 public class SystemProcsDef : EntityDefinition
 {
-    public SystemProcsDef() : base("sys", nameof(Status), false) { this.Fake = true; }
+    public SystemProcsDef() : base("sys", nameof(Status), add_default_columns: false, schemaName: DataDefaults.DataDictionarySchema) { this.Fake = true; }
 
     public readonly Column<string> c_system_id = Column<string>.PK(fake: true);
 

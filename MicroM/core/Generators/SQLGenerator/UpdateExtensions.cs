@@ -52,7 +52,7 @@ namespace MicroM.Generators.SQLGenerator
             string autonum_return = entity.GetAutonumReturn(false);
 
             string where_clause = entity.Def.Columns.GetWithFlags(ColumnFlags.PK).AsColumnValuePairs(union_string: $"\n{TAB}{TAB}{TAB}and ");
-            string table_name = $"[{entity.Def.TableName}]";
+            string table_name = entity.Def.FullTableName;
             string categories_update = entity.AsCategoriesUpdateTemplateValues();
             string status_update = entity.AsStatusUpdateTemplateValues();
 
@@ -106,7 +106,7 @@ namespace MicroM.Generators.SQLGenerator
             string autonum_return = entity.GetAutonumReturn(true);
 
             string where_clause = entity.Def.Columns.GetWithFlags(ColumnFlags.PK).AsColumnValuePairs(union_string: $"\n{TAB}{TAB}{TAB}and ");
-            string table_name = $"[{entity.Def.TableName}]";
+            string table_name = entity.Def.FullTableName;
             string categories_update = entity.AsCategoriesUpdateTemplateValues();
             string status_update = entity.AsStatusUpdateTemplateValues();
 

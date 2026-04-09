@@ -13,7 +13,7 @@ namespace MicroM.DataDictionary.Entities;
 
 public class EntityGeneratedCodeDef : EntityDefinition
 {
-    public EntityGeneratedCodeDef() : base("egc", nameof(EntityGeneratedCode)) { Fake = true; }
+    public EntityGeneratedCodeDef() : base("egc", nameof(EntityGeneratedCode), schemaName: DataDefaults.DataDictionarySchema) { Fake = true; }
 
     public readonly Column<string> c_application_id = Column<string>.PK();
     public readonly Column<string> c_assembly_id = Column<string>.PK();

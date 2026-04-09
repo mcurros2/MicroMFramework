@@ -35,7 +35,7 @@ namespace LibraryTest
         protected override void DefineProcs()
         {
 
-            tqit_lookup = new(parms: new ColumnBase[] { c_queue_id, c_queueitem_id }, readonly_locks: true);
+            tqit_lookup = new(readonly_locks: true, parms: new ColumnBase[] { c_queue_id, c_queueitem_id });
 
             tqit_testProc = new(c_queue_id, c_queueitem_id);
             Column<string> test_output = tqit_testProc.AddParm<string>(nameof(test_output), SqlDbType.VarChar, size: 255, output: true);

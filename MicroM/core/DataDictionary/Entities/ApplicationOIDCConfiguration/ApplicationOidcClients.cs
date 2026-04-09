@@ -7,7 +7,7 @@ namespace MicroM.DataDictionary.Entities;
 
 public class ApplicationOidcClientsDef : EntityDefinition
 {
-    public ApplicationOidcClientsDef() : base("aoi", nameof(ApplicationOidcClients)) { }
+    public ApplicationOidcClientsDef() : base("aoi", nameof(ApplicationOidcClients), schemaName: DataDefaults.DataDictionarySchema) { }
 
     public readonly Column<string> c_application_id = Column<string>.PK();
     public readonly Column<string> c_client_app_id = Column<string>.PK(autonum: true);

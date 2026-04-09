@@ -170,7 +170,7 @@ public static class DataDictionaryExtensions
         Objects obj = new(ec);
         obj.Def.c_object_id.Value = ent.Def.Mneo;
         obj.Def.c_mneo_id.Value = ent.Def.Mneo;
-        obj.Def.vc_tablename.Value = ent.Def.TableName;
+        obj.Def.vc_tablename.Value = ent.Def.FullTableName;
         await obj.InsertData(ct);
 
         // MMC: create autonum in numbering table

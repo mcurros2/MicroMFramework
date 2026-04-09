@@ -1,4 +1,5 @@
-﻿using MicroM.Core;
+﻿using MicroM.Configuration;
+using MicroM.Core;
 using MicroM.Data;
 using MicroM.Web.Services;
 
@@ -20,7 +21,7 @@ namespace MicroM.DataDictionary.Entities;
 
 public class NumberingDef : EntityDefinition
 {
-    public NumberingDef() : base("num", nameof(Numbering)) { }
+    public NumberingDef() : base("num", nameof(Numbering), schemaName: DataDefaults.DataDictionarySchema) { }
 
     public readonly Column<string> c_object_id = Column<string>.PK();
     public readonly Column<long> bi_lastnumber = new();

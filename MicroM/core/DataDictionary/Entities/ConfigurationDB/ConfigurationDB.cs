@@ -9,7 +9,7 @@ namespace MicroM.DataDictionary.Entities;
 
 public class ConfigurationDBDef : EntityDefinition
 {
-    public ConfigurationDBDef() : base("dfg", nameof(ConfigurationDB)) { Fake = true; }
+    public ConfigurationDBDef() : base("dfg", nameof(ConfigurationDB), schemaName: DataDefaults.DataDictionarySchema) { Fake = true; }
 
     public readonly Column<string> c_confgidb_id = Column<string>.PK(value: "1");
 

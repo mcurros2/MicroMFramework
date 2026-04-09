@@ -15,7 +15,7 @@ namespace MicroM.Generators.SQLGenerator
             var parms = new TemplateValues(create_or_alter)
             {
                 MNEO = entity.Def.Mneo,
-                TABLE_NAME = $"[{entity.Def.TableName}]",
+                TABLE_NAME = entity.Def.FullTableName,
                 PARMS_DECLARATION = entity.Def.Columns.GetWithFlags(ColumnFlags.Delete).AsProcParmsDeclaration(separator: $"\n{TAB}{TAB}, "),
                 PARMS = entity.Def.Columns.GetWithFlags(ColumnFlags.Delete).AsProcParms(separator: $"\n{TAB}{TAB}{TAB}, "),
                 WHERE_CLAUSE = entity.Def.Columns.GetWithFlags(ColumnFlags.PK, ColumnFlags.Fake).AsColumnValuePairs(union_string: $"\n{TAB}{TAB}{TAB}and "),
@@ -36,7 +36,7 @@ namespace MicroM.Generators.SQLGenerator
             var parms = new TemplateValues(create_or_alter)
             {
                 MNEO = entity.Def.Mneo,
-                TABLE_NAME = $"[{entity.Def.TableName}]",
+                TABLE_NAME = entity.Def.FullTableName,
                 PARMS_DECLARATION = entity.Def.Columns.GetWithFlags(ColumnFlags.Delete).AsProcParmsDeclaration(separator: $"\n{TAB}{TAB}, "),
                 PARMS = entity.Def.Columns.GetWithFlags(ColumnFlags.Delete).AsProcParms(separator: $"\n{TAB}{TAB}{TAB}, "),
                 WHERE_CLAUSE = entity.Def.Columns.GetWithFlags(ColumnFlags.PK, ColumnFlags.Fake).AsColumnValuePairs(union_string: $"\n{TAB}{TAB}{TAB}and "),

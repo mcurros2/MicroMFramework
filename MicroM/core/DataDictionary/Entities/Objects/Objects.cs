@@ -1,4 +1,5 @@
-﻿using MicroM.Core;
+﻿using MicroM.Configuration;
+using MicroM.Core;
 using MicroM.Data;
 using MicroM.Web.Services;
 
@@ -18,7 +19,7 @@ namespace MicroM.DataDictionary.Entities;
  */
 public class ObjectsDef : EntityDefinition
 {
-    public ObjectsDef() : base("obj", nameof(Objects)) { }
+    public ObjectsDef() : base("obj", nameof(Objects), schemaName: DataDefaults.DataDictionarySchema) { }
 
     public readonly Column<string> c_object_id = Column<string>.PK();
     public readonly Column<string> c_mneo_id = Column<string>.FK();

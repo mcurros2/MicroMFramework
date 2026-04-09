@@ -1,4 +1,5 @@
 ﻿
+using MicroM.Configuration;
 using MicroM.Core;
 using MicroM.Data;
 using MicroM.Web.Services;
@@ -7,7 +8,7 @@ namespace MicroM.DataDictionary.Entities;
 
 public class MicromUsersGroupsMembersDef : EntityDefinition
 {
-    public MicromUsersGroupsMembersDef() : base("mgm", nameof(MicromUsersGroupsMembers)) { }
+    public MicromUsersGroupsMembersDef() : base("mgm", nameof(MicromUsersGroupsMembers), schemaName: DataDefaults.DataDictionarySchema) { }
 
     public readonly Column<string> c_user_group_id = Column<string>.PK();
     public readonly Column<string> c_user_id = Column<string>.PK();

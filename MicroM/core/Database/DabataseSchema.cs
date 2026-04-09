@@ -30,7 +30,7 @@ public static class DatabaseSchema
             if (ent.Def.Fake == false)
             {
                 bool create = true;
-                bool table_exists = await TableExists(ec, ent.Def.TableName, "dbo", ct);
+                bool table_exists = await TableExists(ec, ent.Def.TableName, ent.Def.SchemaName ?? "dbo", ct);
 
                 if (create_if_not_exists)
                 {

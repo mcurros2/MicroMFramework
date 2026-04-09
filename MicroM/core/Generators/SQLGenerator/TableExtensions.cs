@@ -1,5 +1,6 @@
 ﻿using MicroM.Core;
 using MicroM.Data;
+using MicroM.DataDictionary.Configuration;
 using MicroM.Extensions;
 using MicroM.Generators.Extensions;
 using System.Globalization;
@@ -13,6 +14,18 @@ namespace MicroM.Generators.SQLGenerator
     public static class TableExtensions
     {
 
+        public static string AsEntityCategoryTable<T>(this T entity) where T : EntityBase
+        {
+            var def = entity.Def;
+            return $"{(!def.QualifiedSchemaName.IsNullOrEmpty() ? $"{def.QualifiedSchemaName}." : "")}[{def.TableName}{TableSuffix.CATEGORY_TABLE_SUFFIX}]";
+        }
+
+        public static string AsEntityStatusTable<T>(this T entity) where T : EntityBase
+        {
+            var def = entity.Def;
+            return $"{(!def.QualifiedSchemaName.IsNullOrEmpty() ? $"{def.QualifiedSchemaName}." : "")}[{def.TableName}{TableSuffix.STATUS_TABLE_SUFFIX}]";
+        }
+
         /// <summary>
         /// Checks for existence of the table that represents an <see cref="Entity{TDefinition}"/>
         /// </summary>
@@ -23,7 +36,7 @@ namespace MicroM.Generators.SQLGenerator
         /// <returns></returns>
         public async static Task<bool> IsTableCreated<T>(this T entity, DatabaseClient dbc, CancellationToken ct) where T : EntityBase
         {
-            var result = await dbc.ExecuteSQL($"select object_id('{entity.Def.TableName}')", ct);
+            var result = await dbc.ExecuteSQL($"select object_id('{entity.Def.FullTableName}')", ct);
             if (result.HasData() && result[0].records[0][0]!.GetType() != typeof(DBNull)) return true;
             return false;
         }
@@ -42,7 +55,7 @@ namespace MicroM.Generators.SQLGenerator
             StringBuilder sb_unique_constraints = new();
 
 
-            ret.AppendFormat(CultureInfo.InvariantCulture, "create table [{0}]\n(\n", entity.Def.TableName);
+            ret.AppendFormat(CultureInfo.InvariantCulture, "create table {0}\n(\n", entity.Def.FullTableName);
 
             string? primary_key_columns = null;
             HashSet<string> unique_constraints_keys = [];
@@ -110,19 +123,19 @@ namespace MicroM.Generators.SQLGenerator
 
                         string sb_local_keys_str = sb_local_keys.ToString();
 
-                        ret.AppendFormat(CultureInfo.InvariantCulture, "CONSTRAINT {3} FOREIGN KEY ({0}) REFERENCES {1} ({2}),\n", sb_local_keys_str, parent_entity.Def.TableName, sb_references_keys.ToString(), foreign_key.Name);
+                        ret.AppendFormat(CultureInfo.InvariantCulture, "CONSTRAINT {3} FOREIGN KEY ({0}) REFERENCES {1} ({2}),\n", sb_local_keys_str, parent_entity.Def.FullTableName, sb_references_keys.ToString(), foreign_key.Name);
 
                         // detect duplicate foreign key indexes
                         if (!foreign_key.DoNotCreateIndex)
                         {
                             if (sb_local_keys_str == primary_key_columns || unique_constraints_keys.Contains(sb_local_keys_str) || fk_indexes_keys.Contains(sb_local_keys_str))
                             {
-                                sb_indexes.AppendFormat(CultureInfo.InvariantCulture, "-- duplicate index: create index IDX{0} on [{1}] ({2})\n", foreign_key.Name, entity.Def.TableName, sb_local_keys_str);
+                                sb_indexes.AppendFormat(CultureInfo.InvariantCulture, "-- duplicate index: create index IDX{0} on {1} ({2})\n", foreign_key.Name, entity.Def.FullTableName, sb_local_keys_str);
                             }
                             else
                             {
                                 fk_indexes_keys.Add(sb_local_keys_str);
-                                sb_indexes.AppendFormat(CultureInfo.InvariantCulture, "create index IDX{0} on [{1}] ({2})\n", foreign_key.Name, entity.Def.TableName, sb_local_keys_str);
+                                sb_indexes.AppendFormat(CultureInfo.InvariantCulture, "create index IDX{0} on {1} ({2})\n", foreign_key.Name, entity.Def.FullTableName, sb_local_keys_str);
                             }
                         }
 
@@ -146,19 +159,19 @@ namespace MicroM.Generators.SQLGenerator
                                 }
 
                                 string keys = sb_keys.ToString();
-                                ret.AppendFormat(CultureInfo.InvariantCulture, "CONSTRAINT {3} FOREIGN KEY ({0}) REFERENCES {1} ({2}),\n", keys, parent_entity.Def.TableName, keys, foreign_key.Name);
+                                ret.AppendFormat(CultureInfo.InvariantCulture, "CONSTRAINT {3} FOREIGN KEY ({0}) REFERENCES {1} ({2}),\n", keys, parent_entity.Def.FullTableName, keys, foreign_key.Name);
 
                                 // detect duplicate foreign key indexes
                                 if (!foreign_key.DoNotCreateIndex)
                                 {
                                     if (keys == primary_key_columns || unique_constraints_keys.Contains(keys) || fk_indexes_keys.Contains(keys))
                                     {
-                                        sb_indexes.AppendFormat(CultureInfo.InvariantCulture, "-- duplicate index: create index IDX{0} on [{1}] ({2})\n", foreign_key.Name, entity.Def.TableName, keys);
+                                        sb_indexes.AppendFormat(CultureInfo.InvariantCulture, "-- duplicate index: create index IDX{0} on {1} ({2})\n", foreign_key.Name, entity.Def.FullTableName, keys);
                                     }
                                     else
                                     {
                                         fk_indexes_keys.Add(keys);
-                                        sb_indexes.AppendFormat(CultureInfo.InvariantCulture, "create index IDX{0} on [{1}] ({2})\n", foreign_key.Name, entity.Def.TableName, keys);
+                                        sb_indexes.AppendFormat(CultureInfo.InvariantCulture, "create index IDX{0} on {1} ({2})\n", foreign_key.Name, entity.Def.FullTableName, keys);
                                     }
                                 }
 
@@ -184,19 +197,19 @@ namespace MicroM.Generators.SQLGenerator
                                         }
 
                                         string keys = sb_keys.ToString();
-                                        ret.AppendFormat(CultureInfo.InvariantCulture, "CONSTRAINT {3} ({0}) REFERENCES {1} ({2}),\n", keys, parent_entity.Def.TableName, keys, foreign_key.Name);
+                                        ret.AppendFormat(CultureInfo.InvariantCulture, "CONSTRAINT {3} ({0}) REFERENCES {1} ({2}),\n", keys, parent_entity.Def.FullTableName, keys, foreign_key.Name);
 
                                         // detect duplicate foreign key indexes
                                         if (!foreign_key.DoNotCreateIndex)
                                         {
                                             if (keys == primary_key_columns || unique_constraints_keys.Contains(keys) || fk_indexes_keys.Contains(keys))
                                             {
-                                                sb_indexes.AppendFormat(CultureInfo.InvariantCulture, "-- duplicate index: create index IDX{0} on [{1}] ({2})\n", foreign_key.Name, entity.Def.TableName, keys);
+                                                sb_indexes.AppendFormat(CultureInfo.InvariantCulture, "-- duplicate index: create index IDX{0} on {1} ({2})\n", foreign_key.Name, entity.Def.FullTableName, keys);
                                             }
                                             else
                                             {
                                                 fk_indexes_keys.Add(keys);
-                                                sb_indexes.AppendFormat(CultureInfo.InvariantCulture, "create index IDX{0} on [{1}] ({2})\n", foreign_key.Name, entity.Def.TableName, keys);
+                                                sb_indexes.AppendFormat(CultureInfo.InvariantCulture, "create index IDX{0} on {1} ({2})\n", foreign_key.Name, entity.Def.FullTableName, keys);
                                             }
                                         }
 
@@ -235,12 +248,12 @@ namespace MicroM.Generators.SQLGenerator
                     var keys = string.Join<string>(",", index.Keys);
                     if (keys == primary_key_columns || unique_constraints_keys.Contains(keys) || fk_indexes_keys.Contains(keys) || indexes_keys.Contains(keys))
                     {
-                        sb_indexes.AppendFormat(CultureInfo.InvariantCulture, "-- Duplicate index: create index {0} on [{1}] ({2})\n", index.Name, entity.Def.TableName, keys);
+                        sb_indexes.AppendFormat(CultureInfo.InvariantCulture, "-- Duplicate index: create index {0} on {1} ({2})\n", index.Name, entity.Def.FullTableName, keys);
                     }
                     else
                     {
                         indexes_keys.Add(keys);
-                        sb_indexes.AppendFormat(CultureInfo.InvariantCulture, "create index {0} on [{1}] ({2})\n", index.Name, entity.Def.TableName, keys);
+                        sb_indexes.AppendFormat(CultureInfo.InvariantCulture, "create index {0} on {1} ({2})\n", index.Name, entity.Def.FullTableName, keys);
                     }
                 }
             }
@@ -265,7 +278,7 @@ namespace MicroM.Generators.SQLGenerator
             {
                 foreach (var index in entity.Def.Indexes.Values)
                 {
-                    sb_indexes.AppendFormat(CultureInfo.InvariantCulture, "drop index if exists [{0}].[{1}]\n", entity.Def.TableName, index.Name);
+                    sb_indexes.AppendFormat(CultureInfo.InvariantCulture, "drop index if exists {0}.[{1}]\n", entity.Def.FullTableName, index.Name);
                 }
             }
 
@@ -282,7 +295,7 @@ namespace MicroM.Generators.SQLGenerator
             {
                 foreach (var index in entity.Def.Indexes.Values)
                 {
-                    sb_indexes.AppendFormat(CultureInfo.InvariantCulture, "if not exists(select 1 from sys.indexes a where a.object_id=object_id('{1}') and a.name='{0}') create index {0} on [{1}] (", index.Name, entity.Def.TableName);
+                    sb_indexes.AppendFormat(CultureInfo.InvariantCulture, "if not exists(select 1 from sys.indexes a where a.object_id=object_id('{1}') and a.name='{0}') create index {0} on {1} (", index.Name, entity.Def.FullTableName);
                     sb_indexes.Append(string.Join<string>(", ", index.Keys));
                     sb_indexes.Append(")\n");
                 }
@@ -301,7 +314,7 @@ namespace MicroM.Generators.SQLGenerator
             {
                 foreach (var unique in entity.Def.UniqueConstraints.Values)
                 {
-                    sb_uniqueConstraints.AppendFormat(CultureInfo.InvariantCulture, "if object_id('{0}') is not null ALTER TABLE [{0}] DROP CONSTRAINT IF EXISTS {1}\n", entity.Def.TableName, unique.Name);
+                    sb_uniqueConstraints.AppendFormat(CultureInfo.InvariantCulture, "if object_id('{0}') is not null ALTER TABLE {0} DROP CONSTRAINT IF EXISTS {1}\n", entity.Def.FullTableName, unique.Name);
                 }
             }
 
@@ -318,7 +331,7 @@ namespace MicroM.Generators.SQLGenerator
             {
                 foreach (var unique in entity.Def.UniqueConstraints.Values)
                 {
-                    sb_uniqueConstraints.AppendFormat(CultureInfo.InvariantCulture, "if object_id('{0}') is not null and object_id('{1}') is null ALTER TABLE [{0}] ADD CONSTRAINT {1} UNIQUE (", entity.Def.TableName, unique.Name);
+                    sb_uniqueConstraints.AppendFormat(CultureInfo.InvariantCulture, "if object_id('{0}') is not null and object_id('{1}') is null ALTER TABLE {0} ADD CONSTRAINT {1} UNIQUE (", entity.Def.FullTableName, unique.Name);
                     sb_uniqueConstraints.Append(string.Join<string>(", ", unique.Keys));
                     sb_uniqueConstraints.Append(")\n");
                 }
@@ -331,7 +344,7 @@ namespace MicroM.Generators.SQLGenerator
         {
             if (entity.Def.Fake) return null;
 
-            return $"if object_id('{entity.Def.TableName}') is not null ALTER TABLE [{entity.Def.TableName}] DROP CONSTRAINT IF EXISTS PK{entity.Def.Mneo}\n";
+            return $"if object_id('{entity.Def.FullTableName}') is not null ALTER TABLE {entity.Def.FullTableName} DROP CONSTRAINT IF EXISTS PK{entity.Def.Mneo}\n";
         }
 
         public static string? AsAlterPrimaryKey<T>(this T entity) where T : EntityBase
@@ -343,7 +356,7 @@ namespace MicroM.Generators.SQLGenerator
             if (pks != null)
             {
                 string col_names = string.Join(", ", pks.Values.Select(x => x.Name));
-                result = $"if object_id('{entity.Def.TableName}') is not null and object_id('PK{entity.Def.Mneo}') is null ALTER TABLE [{entity.Def.TableName}] ADD CONSTRAINT PK{entity.Def.Mneo} PRIMARY KEY ({col_names})\n";
+                result = $"if object_id('{entity.Def.FullTableName}') is not null and object_id('PK{entity.Def.Mneo}') is null ALTER TABLE {entity.Def.FullTableName} ADD CONSTRAINT PK{entity.Def.Mneo} PRIMARY KEY ({col_names})\n";
             }
 
             return result;
@@ -359,7 +372,7 @@ namespace MicroM.Generators.SQLGenerator
             {
                 if (!foreign_key.Fake)
                 {
-                    sb_foreign_keys.AppendFormat(CultureInfo.InvariantCulture, "if object_id('{0}') is not null ALTER TABLE [{0}] DROP CONSTRAINT IF EXISTS {1}\n", entity.Def.TableName, foreign_key.Name);
+                    sb_foreign_keys.AppendFormat(CultureInfo.InvariantCulture, "if object_id('{0}') is not null ALTER TABLE {0} DROP CONSTRAINT IF EXISTS {1}\n", entity.Def.FullTableName, foreign_key.Name);
                 }
 
             }
@@ -379,7 +392,7 @@ namespace MicroM.Generators.SQLGenerator
                 {
                     EntityBase? parent_entity = (EntityBase?)Activator.CreateInstance(foreign_key.ParentEntityType) ?? throw new ArgumentException($"Cannot create index for foreign key {foreign_key.Name}. You may need to map columns.");
 
-                    sb_indexes.AppendFormat(CultureInfo.InvariantCulture, "create index IDX{0} on [{1}] (", foreign_key.Name, entity.Def.TableName);
+                    sb_indexes.AppendFormat(CultureInfo.InvariantCulture, "create index IDX{0} on {1} (", foreign_key.Name, entity.Def.FullTableName);
 
                     if (foreign_key.KeyMappings.Count > 0)
                     {
@@ -467,9 +480,9 @@ namespace MicroM.Generators.SQLGenerator
                 {
                     EntityBase? parent_entity = (EntityBase?)Activator.CreateInstance(foreign_key.ParentEntityType) ?? throw new ArgumentException($"Cannot create foreign key {foreign_key.Name}. You may need to map columns.");
 
-                    if (with_drop) sb_foreign_keys.AppendFormat(CultureInfo.InvariantCulture, "if object_id('{0}') is not null ALTER TABLE [{0}] DROP CONSTRAINT {1}\n", entity.Def.TableName, foreign_key.Name);
+                    if (with_drop) sb_foreign_keys.AppendFormat(CultureInfo.InvariantCulture, "if object_id('{0}') is not null ALTER TABLE {0} DROP CONSTRAINT {1}\n", entity.Def.FullTableName, foreign_key.Name);
 
-                    sb_foreign_keys.AppendFormat(CultureInfo.InvariantCulture, "if object_id('{0}') is not null and object_id('{1}') is null ALTER TABLE [{0}] ADD CONSTRAINT {1} FOREIGN KEY ", entity.Def.TableName, foreign_key.Name);
+                    sb_foreign_keys.AppendFormat(CultureInfo.InvariantCulture, "if object_id('{0}') is not null and object_id('{1}') is null ALTER TABLE {0} ADD CONSTRAINT {1} FOREIGN KEY ", entity.Def.FullTableName, foreign_key.Name);
 
                     if (foreign_key.KeyMappings.Count > 0)
                     {
@@ -489,7 +502,7 @@ namespace MicroM.Generators.SQLGenerator
                             }
 
                         }
-                        sb_foreign_keys.AppendFormat(CultureInfo.InvariantCulture, "({0}) REFERENCES {1} ({2})\n", sb_local.ToString(), parent_entity.Def.TableName, sb_references.ToString());
+                        sb_foreign_keys.AppendFormat(CultureInfo.InvariantCulture, "({0}) REFERENCES {1} ({2})\n", sb_local.ToString(), parent_entity.Def.FullTableName, sb_references.ToString());
                     }
                     else
                     {
@@ -508,7 +521,7 @@ namespace MicroM.Generators.SQLGenerator
                                     sb_keys.AppendFormat(CultureInfo.InvariantCulture, ",{0}", pk_cols.Current.Name);
                                 }
                                 string keys = sb_keys.ToString();
-                                sb_foreign_keys.AppendFormat(CultureInfo.InvariantCulture, "({0}) REFERENCES {1} ({2})\n", keys, parent_entity.Def.TableName, keys);
+                                sb_foreign_keys.AppendFormat(CultureInfo.InvariantCulture, "({0}) REFERENCES {1} ({2})\n", keys, parent_entity.Def.FullTableName, keys);
                             }
                             fk_created = true;
                         }
@@ -530,7 +543,7 @@ namespace MicroM.Generators.SQLGenerator
                                             sb_keys.AppendFormat(CultureInfo.InvariantCulture, ",{0}", pk_cols.Current);
                                         }
                                         string keys = sb_keys.ToString();
-                                        sb_foreign_keys.AppendFormat(CultureInfo.InvariantCulture, "({0}) REFERENCES {1} ({2})\n", keys, parent_entity.Def.TableName, keys);
+                                        sb_foreign_keys.AppendFormat(CultureInfo.InvariantCulture, "({0}) REFERENCES {1} ({2})\n", keys, parent_entity.Def.FullTableName, keys);
                                     }
                                     fk_created = true;
                                     break;

@@ -13,7 +13,7 @@ namespace MicroM.DataDictionary.Entities;
 
 public class ApplicationsDef : EntityDefinition
 {
-    public ApplicationsDef() : base("app", nameof(Applications)) { SQLCreationOptions = SQLCreationOptionsMetadata.WithIUpdate; }
+    public ApplicationsDef() : base("app", nameof(Applications), schemaName: DataDefaults.DataDictionarySchema) { SQLCreationOptions = SQLCreationOptionsMetadata.WithIUpdate; }
 
     public readonly Column<string> c_application_id = Column<string>.PK();
     public readonly Column<string> vc_appname = Column<string>.Text();

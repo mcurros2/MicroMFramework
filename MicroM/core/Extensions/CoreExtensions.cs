@@ -89,7 +89,7 @@ public static class CoreExtensions
             parms[x] = def.Columns[colname] ?? throw new ArgumentException($"Cannot find the column with the name {colname}");
         }
 
-        return new ProcedureDefinition("", readonly_locks, default, default, parms);
+        return new ProcedureDefinition(readonly_locks: readonly_locks, parms: parms);
     }
 
     public static string ToTableName<T>()

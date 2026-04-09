@@ -5,481 +5,486 @@ using MicroM.Web.Services;
 using System.Data;
 using static MicroM.Data.IEntityClient;
 
-namespace MicroM.Data
+namespace MicroM.Data;
+
+public class EntityData(IEntityClient ec, EntityDefinition def, IMicroMEncryption? encryptor = null) : IEntityData
 {
-    public class EntityData(IEntityClient ec, EntityDefinition def, IMicroMEncryption? encryptor = null) : IEntityData
+    public IEntityClient EntityClient { get; init; } = ec;
+
+    private readonly EntityDefinition def = def;
+
+    public IMicroMEncryption? Encryptor => encryptor;
+
+    protected List<DBStatus> ReadStatus(List<DataResult> results, bool set_autonum = false)
     {
-        public IEntityClient EntityClient { get; init; } = ec;
-
-        private readonly EntityDefinition def = def;
-
-        public IMicroMEncryption? Encryptor => encryptor;
-
-        protected List<DBStatus> ReadStatus(List<DataResult> results, bool set_autonum = false)
+        bool failed = false;
+        List<DBStatus> ret = [];
+        foreach (object?[] record in results[0].records)
         {
-            bool failed = false;
-            List<DBStatus> ret = [];
-            foreach (object?[] record in results[0].records)
-            {
 
-                var stat = new DBStatus((DBStatusCodes)record[0]!, (string)record[1]!);
-                if (stat.Status == DBStatusCodes.Error) failed = true;
-                ret.Add(stat);
-            }
-            if (!failed)
-            {
-                if (set_autonum) SetAutonum(ret);
-            }
-            return ret;
+            var stat = new DBStatus((DBStatusCodes)record[0]!, (string)record[1]!);
+            if (stat.Status == DBStatusCodes.Error) failed = true;
+            ret.Add(stat);
         }
-
-        protected void SetAutonum(List<DBStatus> status)
+        if (!failed)
         {
-            foreach (var status_item in status)
+            if (set_autonum) SetAutonum(ret);
+        }
+        return ret;
+    }
+
+    protected void SetAutonum(List<DBStatus> status)
+    {
+        foreach (var status_item in status)
+        {
+            if (status_item.Status == DBStatusCodes.Autonum)
             {
-                if (status_item.Status == DBStatusCodes.Autonum)
+                var cols = def.Columns.GetWithFlags(ColumnFlags.Autonum);
+                foreach (var col in cols)
                 {
-                    var cols = def.Columns.GetWithFlags(ColumnFlags.Autonum);
-                    foreach (var col in cols)
+                    col.ValueObject = status_item.Message;
+                    return;
+                }
+            }
+        }
+    }
+
+    private async Task<DBStatusResult> ExecuteStatusData(string proc_name, IEnumerable<ColumnBase> parms, CancellationToken ct, bool throw_dbstat_exception = false)
+    {
+        bool failed = false;
+        bool autonum = false;
+
+        var dbstats = await EntityClient.ExecuteSP<DBStatus>(proc_name, ct, parms: parms,
+            mapper: async (IValueReader fv, string[] headers, string[] typeInfo, CancellationToken ct) =>
+            {
+                var status = new DBStatus((DBStatusCodes)await fv.GetFieldValueAsync<int>(0, ct), await fv.GetFieldValueAsync<string>(1, ct));
+                if (status.Status.IsIn(DBStatusCodes.Error, DBStatusCodes.RecordHasChanged)) failed = true;
+                if (status.Status == DBStatusCodes.Autonum)
+                {
+                    if (def.AutonumColumn != null)
                     {
-                        col.ValueObject = status_item.Message;
-                        return;
+                        def.AutonumColumn.ValueObject = status.Message;
+                        autonum = true;
+                    }
+                    else
+                    {
+                        if (throw_dbstat_exception) throw new InvalidOperationException($"Autonum returned from {proc_name} but no autonum column defined in EntityDefinition.");
+                        else status = new DBStatus(DBStatusCodes.Error, $"Autonum returned from {proc_name} but no autonum column defined in EntityDefinition.");
                     }
                 }
-            }
-        }
+                return status;
+            });
 
-        private async Task<DBStatusResult> ExecuteStatusData(string proc_name, IEnumerable<ColumnBase> parms, CancellationToken ct, bool throw_dbstat_exception = false)
+        if (throw_dbstat_exception && failed) throw new DataAbstractionException($"Error while updating '{def.FullTableName}' with Mneo '{def.Mneo}'", dbstats);
+        return new() { Failed = failed, AutonumReturned = autonum, Results = dbstats }; ;
+
+    }
+
+    private string QualifiedProcName(string procName) => string.IsNullOrEmpty(def.SchemaName) ? procName : $"[{def.SchemaName}].{procName}";
+
+    /// <summary>
+    /// Updates a record for an entity. This method will execute the XXXX_update stored procedure for the entity.
+    /// If the client is not connected to the database server, it will open a new connection.
+    /// </summary>
+    /// <param name="ct"></param>
+    /// <param name="throw_dbstat_exception"></param>
+    /// <returns></returns>
+    /// <exception cref="DataAbstractionException"></exception>
+    public async Task<DBStatusResult> UpdateData(CancellationToken ct, bool throw_dbstat_exception = false)
+    {
+        var parms = def.Columns.GetParmsWithFlags(ColumnFlags.Update);
+        if (Encryptor != null) parms.EncryptColumnData(Encryptor);
+        return await ExecuteStatusData(QualifiedProcName($"{def.Mneo}_update"), parms, ct, throw_dbstat_exception);
+    }
+
+    /// <summary>
+    /// Creates a record for an entity. This method will execute the XXXX_update stored procedure for the entity, with a null last update timestamp.
+    /// If the client is not connected to the database server, it will open a new connection.
+    /// </summary>
+    /// <param name="ct"></param>
+    /// <param name="throw_dbstat_exception"></param>
+    /// <returns></returns>
+    /// <exception cref="DataAbstractionException"></exception>
+    public async Task<DBStatusResult> InsertData(CancellationToken ct, bool throw_dbstat_exception = false)
+    {
+        var parms = def.Columns.GetParmsWithFlags(ColumnFlags.Insert);
+        if (Encryptor != null) parms.EncryptColumnData(Encryptor);
+        return await ExecuteStatusData(QualifiedProcName($"{def.Mneo}_update"), parms, ct, throw_dbstat_exception);
+    }
+
+    /// <summary>
+    /// Deletes a record for an entity. This method will execute the XXXX_drop stored procedure for the entity.
+    /// If the client is not connected to the database server, it will open a new connection.
+    /// </summary>
+    /// <param name="ct"></param>
+    /// <param name="throw_dbstat_exception"></param>
+    /// <returns></returns>
+    /// <exception cref="DataAbstractionException"></exception>
+    public async Task<DBStatusResult> DeleteData(CancellationToken ct, bool throw_dbstat_exception = false)
+    {
+        var parms = def.Columns.GetParmsWithFlags(ColumnFlags.Delete);
+        return await ExecuteStatusData(QualifiedProcName($"{def.Mneo}_drop"), parms, ct, throw_dbstat_exception);
+    }
+
+    /// <summary>
+    /// Reads a record for an entity and places the values in each column definition. This method will execute XXXX_get stored procedure for the entity.
+    /// If the client is not connected to the database server, it will open a new connection.
+    /// </summary>
+    /// <param name="ct"></param>
+    /// <returns></returns>
+    /// <exception cref="InvalidOperationException">is thrown if the number of columns returned by the XXXX_get stored procedure is not equal to the number of columns defined in <see cref="EntityDefinition"/></exception>
+    public async Task<bool> GetData(CancellationToken ct)
+    {
+        var parms = def.Columns.GetParmsWithFlags(ColumnFlags.Get);
+        var result = await EntityClient.ExecuteSP(QualifiedProcName($"{def.Mneo}_get"), parms, ct);
+
+        bool ret = MapGetColumns(result);
+
+        return ret;
+    }
+
+    public bool MapGetColumns(List<DataResult>? result)
+    {
+        bool ret = false;
+
+        if (result.HasData())
         {
-            bool failed = false;
-            bool autonum = false;
-
-            var dbstats = await EntityClient.ExecuteSP<DBStatus>(proc_name, ct, parms: parms,
-                mapper: async (IValueReader fv, string[] headers, string[] typeInfo, CancellationToken ct) =>
-                {
-                    var status = new DBStatus((DBStatusCodes)await fv.GetFieldValueAsync<int>(0, ct), await fv.GetFieldValueAsync<string>(1, ct));
-                    if (status.Status.IsIn(DBStatusCodes.Error, DBStatusCodes.RecordHasChanged)) failed = true;
-                    if (status.Status == DBStatusCodes.Autonum)
-                    {
-                        if (def.AutonumColumn != null)
-                        {
-                            def.AutonumColumn.ValueObject = status.Message;
-                            autonum = true;
-                        }
-                        else
-                        {
-                            if (throw_dbstat_exception) throw new InvalidOperationException($"Autonum returned from {proc_name} but no autonum column defined in EntityDefinition.");
-                            else status = new DBStatus(DBStatusCodes.Error, $"Autonum returned from {proc_name} but no autonum column defined in EntityDefinition.");
-                        }
-                    }
-                    return status;
-                });
-
-            if (throw_dbstat_exception && failed) throw new DataAbstractionException($"Error while updating '{def.TableName}' with Mneo '{def.Mneo}'", dbstats);
-            return new() { Failed = failed, AutonumReturned = autonum, Results = dbstats }; ;
-
-        }
-
-
-        /// <summary>
-        /// Updates a record for an entity. This method will execute the XXXX_update stored procedure for the entity.
-        /// If the client is not connected to the database server, it will open a new connection.
-        /// </summary>
-        /// <param name="ct"></param>
-        /// <param name="throw_dbstat_exception"></param>
-        /// <returns></returns>
-        /// <exception cref="DataAbstractionException"></exception>
-        public async Task<DBStatusResult> UpdateData(CancellationToken ct, bool throw_dbstat_exception = false)
-        {
-            var parms = def.Columns.GetParmsWithFlags(ColumnFlags.Update);
-            if (Encryptor != null) parms.EncryptColumnData(Encryptor);
-            return await ExecuteStatusData($"{def.Mneo}_update", parms, ct, throw_dbstat_exception);
-        }
-
-        /// <summary>
-        /// Creates a record for an entity. This method will execute the XXXX_update stored procedure for the entity, with a null last update timestamp.
-        /// If the client is not connected to the database server, it will open a new connection.
-        /// </summary>
-        /// <param name="ct"></param>
-        /// <param name="throw_dbstat_exception"></param>
-        /// <returns></returns>
-        /// <exception cref="DataAbstractionException"></exception>
-        public async Task<DBStatusResult> InsertData(CancellationToken ct, bool throw_dbstat_exception = false)
-        {
-            var parms = def.Columns.GetParmsWithFlags(ColumnFlags.Insert);
-            if (Encryptor != null) parms.EncryptColumnData(Encryptor);
-            return await ExecuteStatusData($"{def.Mneo}_update", parms, ct, throw_dbstat_exception);
-        }
-
-        /// <summary>
-        /// Deletes a record for an entity. This method will execute the XXXX_drop stored procedure for the entity.
-        /// If the client is not connected to the database server, it will open a new connection.
-        /// </summary>
-        /// <param name="ct"></param>
-        /// <param name="throw_dbstat_exception"></param>
-        /// <returns></returns>
-        /// <exception cref="DataAbstractionException"></exception>
-        public async Task<DBStatusResult> DeleteData(CancellationToken ct, bool throw_dbstat_exception = false)
-        {
-            var parms = def.Columns.GetParmsWithFlags(ColumnFlags.Delete);
-            return await ExecuteStatusData($"{def.Mneo}_drop", parms, ct, throw_dbstat_exception);
-        }
-
-        /// <summary>
-        /// Reads a record for an entity and places the values in each column definition. This method will execute XXXX_get stored procedure for the entity.
-        /// If the client is not connected to the database server, it will open a new connection.
-        /// </summary>
-        /// <param name="ct"></param>
-        /// <returns></returns>
-        /// <exception cref="InvalidOperationException">is thrown if the number of columns returned by the XXXX_get stored procedure is not equal to the number of columns defined in <see cref="EntityDefinition"/></exception>
-        public async Task<bool> GetData(CancellationToken ct)
-        {
-            var parms = def.Columns.GetParmsWithFlags(ColumnFlags.Get);
-            var result = await EntityClient.ExecuteSP($"{def.Mneo}_get", parms, ct);
-
-            bool ret = MapGetColumns(result);
-
-            return ret;
-        }
-
-        public bool MapGetColumns(List<DataResult>? result)
-        {
-            bool ret = false;
-
-            if (result.HasData())
+            var cols = def.Columns.GetWithFlags(ColumnFlags.All, ColumnFlags.None, [nameof(DefaultColumns.webusr)]);
+            if (result![0].Header.Length != cols.Count)
             {
-                var cols = def.Columns.GetWithFlags(ColumnFlags.All, ColumnFlags.None, [nameof(DefaultColumns.webusr)]);
-                if (result![0].Header.Length != cols.Count)
-                {
-                    throw new InvalidOperationException($"{def.Mneo}_get: the number of columns returned is not equal to the number of columns defined in EntityDefinition.");
-                }
-
-                int r = 0;
-                foreach (var col in cols.Values)
-                {
-                    col.ValueObject = result[0].records[0][r++];
-                }
-                if (Encryptor != null) cols.Values.DecryptColumnData(Encryptor);
-                ret = true;
+                string proc_name = QualifiedProcName($"{def.Mneo}_get");
+                throw new InvalidOperationException($"{proc_name}: the number of columns returned is not equal to the number of columns defined in EntityDefinition.");
             }
 
-            return ret;
-        }
-
-        /// <summary>
-        /// Reads a record for an entity and maps the result to a T with default mapping <seealso cref="AutoMapperMode.ByNameLaxNotThrow"/>. This method will execute XXXX_get stored procedure for the entity.
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="ct"></param>
-        /// <param name="mode"></param>
-        /// <param name="mapper"></param>
-        /// <returns></returns>
-        public async Task<T?> GetData<T>(CancellationToken ct, AutoMapperMode mode = AutoMapperMode.ByNameLaxNotThrow, MapResult<T>? mapper = null) where T : class, new()
-        {
-            var parms = def.Columns.GetParmsWithFlags(ColumnFlags.Get);
-
-            var result = await EntityClient.ExecuteSP<T>($"{def.Mneo}_get", parms: parms, mode: mode, mapper: mapper, ct: ct);
-
-            return result.FirstOrDefault();
-        }
-
-
-        /// <summary>
-        /// Gets the description for an entity. This method will execute XXXX_lookup stored procedure for the entity.
-        /// If the client is not connected to the database server, it will open a new connection.
-        /// </summary>
-        /// <param name="ct"></param>
-        /// <param name="lookup_name"></param>
-        /// <returns>The string representing the description for a record of the entity</returns>
-        public async Task<string?> LookupData(CancellationToken ct, string? lookup_name = null)
-        {
-            string? lkp_proc = lookup_name;
-            IEnumerable<ColumnBase> parms;
-
-            // MMC: if there is no special lookup procedure defined, use the default lookup procedure
-            if (string.IsNullOrEmpty(lkp_proc))
+            int r = 0;
+            foreach (var col in cols.Values)
             {
-                lkp_proc = $"{def.Mneo}{nameof(DefaultProcedureNames._lookup)}";
-                // MMC: check to see if the lookup procedure has been defined
-                def.Procs.TryGetValue(lkp_proc, out ProcedureDefinition? proc);
-                if (proc == null)
-                {
-                    // MMC: if not defined, use the columns defined with get flag as parms for the lookup, the columns will have the values set already
-                    parms = def.Columns.GetParmsWithFlags(ColumnFlags.Get);
-                }
-                else
-                {
-                    proc.SetParmsValues(def.Columns);
-                    parms = proc.Parms.Values;
-                }
+                col.ValueObject = result[0].records[0][r++];
+            }
+            if (Encryptor != null) cols.Values.DecryptColumnData(Encryptor);
+            ret = true;
+        }
+
+        return ret;
+    }
+
+    /// <summary>
+    /// Reads a record for an entity and maps the result to a T with default mapping <seealso cref="AutoMapperMode.ByNameLaxNotThrow"/>. This method will execute XXXX_get stored procedure for the entity.
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <param name="ct"></param>
+    /// <param name="mode"></param>
+    /// <param name="mapper"></param>
+    /// <returns></returns>
+    public async Task<T?> GetData<T>(CancellationToken ct, AutoMapperMode mode = AutoMapperMode.ByNameLaxNotThrow, MapResult<T>? mapper = null) where T : class, new()
+    {
+        var parms = def.Columns.GetParmsWithFlags(ColumnFlags.Get);
+
+        var result = await EntityClient.ExecuteSP<T>(QualifiedProcName($"{def.Mneo}_get"), parms: parms, mode: mode, mapper: mapper, ct: ct);
+
+        return result.FirstOrDefault();
+    }
+
+
+    /// <summary>
+    /// Gets the description for an entity. This method will execute XXXX_lookup stored procedure for the entity.
+    /// If the client is not connected to the database server, it will open a new connection.
+    /// </summary>
+    /// <param name="ct"></param>
+    /// <param name="lookup_name"></param>
+    /// <returns>The string representing the description for a record of the entity</returns>
+    public async Task<string?> LookupData(CancellationToken ct, string? lookup_name = null)
+    {
+        string? lkp_proc = lookup_name;
+        IEnumerable<ColumnBase> parms;
+        string qualified_procname;
+
+        // MMC: if there is no special lookup procedure defined, use the default lookup procedure
+        if (string.IsNullOrEmpty(lkp_proc))
+        {
+            lkp_proc = $"{def.Mneo}{nameof(DefaultProcedureNames._lookup)}";
+            // MMC: check to see if the lookup procedure has been defined
+            def.Procs.TryGetValue(lkp_proc, out ProcedureDefinition? proc);
+            if (proc == null)
+            {
+                qualified_procname = QualifiedProcName(lkp_proc);
+                // MMC: if not defined, use the columns defined with get flag as parms for the lookup, the columns will have the values set already
+                parms = def.Columns.GetParmsWithFlags(ColumnFlags.Get);
             }
             else
             {
-                def.Procs.TryGetValue(lkp_proc, out ProcedureDefinition? proc);
-                if (proc == null) throw new ArgumentException($"The lookup procedure {lkp_proc} has not been defined for entity {def.Mneo}");
-                if (!proc.isLookup) throw new ArgumentException($"The lookup procedure {lkp_proc} is not a lookup procedure");
-
+                qualified_procname = proc.QualifiedName;
                 proc.SetParmsValues(def.Columns);
                 parms = proc.Parms.Values;
             }
-
-            return await EntityClient.ExecuteSPSingleColumn<string>(lkp_proc, ct, parms);
         }
-
-        /// <summary>
-        /// Executes the specified <paramref name="view"/> for an entity. This method will execute stored procedure view for the entity.
-        /// If the client is not connected to the database server, it will open a new connection.
-        /// </summary>
-        /// <param name="ct"></param>
-        /// <param name="view"></param>
-        /// <param name="row_limit"></param>
-        /// <returns></returns>
-        public async Task<List<DataResult>> ExecuteView(ViewDefinition view, CancellationToken ct, int? row_limit = null)
+        else
         {
-            row_limit ??= DataDefaults.DefaultRowLimitForViews;
-            return await ExecuteProc(view.Proc, ct, (int)row_limit);
+            def.Procs.TryGetValue(lkp_proc, out ProcedureDefinition? proc);
+            if (proc == null) throw new ArgumentException($"The lookup procedure {lkp_proc} has not been defined for entity {def.Mneo}");
+            if (!proc.isLookup) throw new ArgumentException($"The lookup procedure {lkp_proc} is not a lookup procedure");
+
+            qualified_procname = proc.QualifiedName;
+            proc.SetParmsValues(def.Columns);
+            parms = proc.Parms.Values;
         }
 
-        /// <summary>
-        /// Executes the specified view definition asynchronously and sends the resulting data to the provided result
-        /// channel.
-        /// </summary>
-        /// <remarks>If the row limit is not provided, the method uses a default value defined by the
-        /// system. This method enables streaming of results to the specified channel as they are produced.</remarks>
-        /// <param name="view">The view definition that specifies the procedure to execute and the data to retrieve.</param>
-        /// <param name="result_channel">The channel to which the results of the view execution will be sent.</param>
-        /// <param name="ct">A cancellation token that can be used to cancel the operation.</param>
-        /// <param name="row_limit">An optional limit on the number of rows to return. If not specified, a system-defined default limit is used.</param>
-        /// <param name="records_channel_capacity"></param>
-        /// <param name="complete_channel">Indicates whether to complete the result channel after execution. Set to <see langword="true"/> to signal that no more results will be sent.</param>
-        /// <param name="max_allowed_rows">An optional parameter that specifies the maximum number of rows allowed to be returned by the SQL command. If the result set exceeds this limit, an exception will be thrown. This parameter is used to prevent excessive memory usage when processing large result sets. If null, there is no limit on the number of rows returned.</param>
-        /// <returns>A task that represents the asynchronous operation of executing the view and sending results to the channel.</returns>
-        public async Task ExecuteViewChannel(ViewDefinition view, DataResultSetChannel result_channel, CancellationToken ct, int? row_limit = null, int? records_channel_capacity = null, bool complete_channel = true, int? max_allowed_rows = null)
-        {
-            row_limit ??= DataDefaults.DefaultRowLimitForViews;
-            await ExecuteProcChannel(view.Proc, result_channel, ct, (int)row_limit, records_channel_capacity: records_channel_capacity, complete_channel: complete_channel, max_allowed_rows: max_allowed_rows);
-        }
-
-        /// <summary>
-        /// Executes the specified <paramref name="proc"/> for an entity. This method will execute stored procedure specified for the entity.
-        /// If the client is not connected to the database server, it will open a new connection.
-        /// </summary>
-        public async Task<DBStatusResult> ExecuteProcDBStatus(ProcedureDefinition proc, CancellationToken ct, bool set_parms_from_columns = true, bool throw_dbstat_exception = false)
-        {
-            //proc.Parms.TryGetValue(SystemColumnNames.webusr, out ColumnBase? webusr);
-            //if (webusr != null) webusr.ValueObject = EntityClient.WebUser;
-
-            bool should_close = (EntityClient.ConnectionState != ConnectionState.Open);
-            await EntityClient.Connect(ct);
-
-            DBStatusResult? result;
-            try
-            {
-                if (proc.ReadonlyLocks)
-                {
-                    if (EntityClient.isTransactionOpen) throw new InvalidOperationException($"The stored procedure {proc.Name} has {nameof(proc.ReadonlyLocks)} true and is not supported inside transactions.");
-                    await EntityClient.ExecuteSQLNonQuery($"set transaction isolation level read uncommitted;", ct);
-                }
-                if (set_parms_from_columns) proc.SetParmsValues(def.Columns);
-
-                result = await ExecuteStatusData(proc.Name, proc.Parms.Values, ct, throw_dbstat_exception);
-            }
-            finally
-            {
-                if (proc.ReadonlyLocks)
-                {
-                    await EntityClient.ExecuteSQLNonQuery($"set transaction isolation level read committed;", ct);
-                }
-            }
-
-            if (should_close) await EntityClient.Disconnect();
-
-            return result;
-        }
-
-        /// <summary>
-        /// Executes the specified <paramref name="proc"/> for an entity. This method will execute stored procedure specified for the entity.
-        /// If the client is not connected to the database server, it will open a new connection.
-        /// </summary>
-        public async Task<List<DataResult>> ExecuteProc(ProcedureDefinition proc, CancellationToken ct, int row_limit = 0, bool set_parms_from_columns = true)
-        {
-            if (row_limit != 0 && proc.ReadonlyLocks == false) throw new ArgumentException($"Procedure {proc.Name} is defined with {nameof(proc.ReadonlyLocks)} false and cannot specify a {nameof(row_limit)} at execution");
-
-            proc.Parms.TryGetValue(SystemColumnNames.webusr, out ColumnBase? webusr);
-            webusr?.ValueObject = EntityClient.WebUser;
-
-            List<DataResult> result;
-
-            bool should_close = (EntityClient.ConnectionState != ConnectionState.Open);
-
-            await EntityClient.Connect(ct);
-
-            try
-            {
-                if (proc.ReadonlyLocks)
-                {
-                    if (EntityClient.isTransactionOpen) throw new InvalidOperationException($"The stored procedure {proc.Name} has {nameof(proc.ReadonlyLocks)} true and is not supported inside transactions.");
-                    await EntityClient.ExecuteSQLNonQuery($"set transaction isolation level read uncommitted; set rowcount {row_limit};", ct);
-                }
-
-                if (set_parms_from_columns) proc.SetParmsValues(def.Columns);
-
-                result = await EntityClient.ExecuteSP(proc.Name, proc.Parms.Values, ct);
-            }
-            finally
-            {
-                if (proc.ReadonlyLocks)
-                {
-                    await EntityClient.ExecuteSQLNonQuery($"set transaction isolation level read committed; set rowcount 0;", ct);
-                }
-            }
-
-            if (should_close) await EntityClient.Disconnect();
-
-            return result;
-        }
-
-        /// <summary>
-        /// Executes a stored procedure asynchronously with the specified parameters and streams the results through the
-        /// provided data channel.
-        /// </summary>
-        /// <remarks>If the procedure is defined with readonly locks, the method temporarily sets the
-        /// transaction isolation level to read uncommitted and applies the specified row limit for the duration of the
-        /// execution. The connection is automatically opened and closed as needed.</remarks>
-        /// <param name="proc">The definition of the stored procedure to execute, including its parameters and execution settings. Cannot
-        /// specify a nonzero row limit if the procedure is not defined with readonly locks.</param>
-        /// <param name="result_channel">The channel used to receive the results of the stored procedure execution.</param>
-        /// <param name="ct">A cancellation token that can be used to cancel the operation.</param>
-        /// <param name="row_limit">The maximum number of rows to return from the stored procedure. Must be zero if the procedure is not defined
-        /// with readonly locks.</param>
-        /// <param name="set_parms_from_columns">Indicates whether to set parameter values from the columns of the result set before execution. Set to <see
-        /// langword="true"/> to enable automatic parameter assignment.</param>
-        /// <param name="records_channel_capacity"></param>
-        /// <param name="complete_channel">Indicates whether to complete the result channel after execution. Set to <see langword="true"/> to signal that no more results will be sent.</param>
-        /// <param name="max_allowed_rows">An optional parameter that specifies the maximum number of rows allowed to be returned by the SQL command. If the result set exceeds this limit, an exception will be thrown. This parameter is used to prevent excessive memory usage when processing large result sets. If null, there is no limit on the number of rows returned.</param>
-        /// <returns>A task that represents the asynchronous operation of executing the stored procedure and streaming the
-        /// results.</returns>
-        /// <exception cref="ArgumentException">Thrown when a nonzero row limit is specified for a procedure that is not defined with readonly locks.</exception>
-        /// <exception cref="InvalidOperationException">Thrown when attempting to execute a procedure with readonly locks inside an open transaction.</exception>
-        public async Task ExecuteProcChannel(ProcedureDefinition proc, DataResultSetChannel result_channel, CancellationToken ct, int row_limit = 0, bool set_parms_from_columns = true, int? records_channel_capacity = null, bool complete_channel = true, int? max_allowed_rows = null)
-        {
-            if (row_limit != 0 && proc.ReadonlyLocks == false) throw new ArgumentException($"Procedure {proc.Name} is defined with {nameof(proc.ReadonlyLocks)} false and cannot specify a {nameof(row_limit)} at execution");
-
-            proc.Parms.TryGetValue(SystemColumnNames.webusr, out ColumnBase? webusr);
-            webusr?.ValueObject = EntityClient.WebUser;
-
-            bool should_close = (EntityClient.ConnectionState != ConnectionState.Open);
-
-            await EntityClient.Connect(ct);
-
-            try
-            {
-                if (proc.ReadonlyLocks)
-                {
-                    if (EntityClient.isTransactionOpen) throw new InvalidOperationException($"The stored procedure {proc.Name} has {nameof(proc.ReadonlyLocks)} true and is not supported inside transactions.");
-                    await EntityClient.ExecuteSQLNonQuery($"set transaction isolation level read uncommitted; set rowcount {row_limit};", ct);
-                }
-
-                if (set_parms_from_columns) proc.SetParmsValues(def.Columns);
-
-                await EntityClient.ExecuteSPChannel(proc.Name, proc.Parms.Values, result_channel, records_channel_capacity ?? DataDefaults.DefaultChannelRecordsBuffer, ct, complete_channel, max_allowed_rows);
-            }
-            finally
-            {
-                if (proc.ReadonlyLocks)
-                {
-                    await EntityClient.ExecuteSQLNonQuery($"set transaction isolation level read committed; set rowcount 0;", ct);
-                }
-            }
-
-            if (should_close) await EntityClient.Disconnect();
-        }
-
-
-
-        public async Task<T?> ExecuteProcSingleRow<T>(ProcedureDefinition proc, CancellationToken ct, bool set_parms_from_columns = true, AutoMapperMode mode = AutoMapperMode.ByName, MapResult<T>? mapper = null) where T : class, new()
-        {
-            T? result = null;
-
-            var result_list = await ExecuteProc<T>(proc, ct, row_limit: 0, set_parms_from_columns, mode, mapper);
-            if (result_list?.Count > 0) result = result_list[0];
-
-            return result;
-        }
-
-        public async Task<List<T>> ExecuteProc<T>(ProcedureDefinition proc, CancellationToken ct, int row_limit = 0, bool set_parms_from_columns = true, AutoMapperMode mode = AutoMapperMode.ByName, MapResult<T>? mapper = null) where T : class, new()
-        {
-            if (row_limit != 0 && proc.ReadonlyLocks == false) throw new ArgumentException($"Procedure {proc.Name} is defined with {nameof(proc.ReadonlyLocks)} false and cannot specify a {nameof(row_limit)} at execution");
-
-            proc.Parms.TryGetValue(SystemColumnNames.webusr, out ColumnBase? webusr);
-            if (webusr != null) webusr.ValueObject = EntityClient.WebUser;
-
-            List<T> result = [];
-
-            bool should_close = (EntityClient.ConnectionState != ConnectionState.Open);
-            await EntityClient.Connect(ct);
-
-            try
-            {
-                if (proc.ReadonlyLocks)
-                {
-                    if (EntityClient.isTransactionOpen) throw new InvalidOperationException($"The stored procedure {proc.Name} has {nameof(proc.ReadonlyLocks)} true and is not supported inside transactions.");
-                    await EntityClient.ExecuteSQLNonQuery($"set transaction isolation level read uncommitted; set rowcount {row_limit};", ct);
-                }
-
-                if (set_parms_from_columns) proc.SetParmsValues(def.Columns);
-
-                result = await EntityClient.ExecuteSP<T>(proc.Name, ct, mode, proc.Parms.Values, mapper);
-            }
-            finally
-            {
-                if (proc.ReadonlyLocks)
-                {
-                    await EntityClient.ExecuteSQLNonQuery($"set transaction isolation level read committed; set rowcount 0;", ct);
-                }
-            }
-
-            if (should_close) await EntityClient.Disconnect();
-
-            return result;
-        }
-
-        public async Task<T?> ExecuteProcSingleColumn<T>(ProcedureDefinition proc, CancellationToken ct, int row_limit = 0, bool set_parms_from_columns = true)
-        {
-            if (row_limit != 0 && proc.ReadonlyLocks == false) throw new ArgumentException($"Procedure {proc.Name} is defined with {nameof(proc.ReadonlyLocks)} false and cannot specify a {nameof(row_limit)} at execution");
-
-            proc.Parms.TryGetValue(SystemColumnNames.webusr, out ColumnBase? webusr);
-            if (webusr != null) webusr.ValueObject = EntityClient.WebUser;
-
-            T? result;
-
-            bool should_close = (EntityClient.ConnectionState != ConnectionState.Open);
-            await EntityClient.Connect(ct);
-
-            try
-            {
-                if (proc.ReadonlyLocks)
-                {
-                    if (EntityClient.isTransactionOpen) throw new InvalidOperationException($"The stored procedure {proc.Name} has {nameof(proc.ReadonlyLocks)} true and is not supported inside transactions.");
-                    await EntityClient.ExecuteSQLNonQuery($"set transaction isolation level read uncommitted; set rowcount {row_limit};", ct);
-                }
-
-                if (set_parms_from_columns) proc.SetParmsValues(def.Columns);
-
-                result = await EntityClient.ExecuteSPSingleColumn<T>(proc.Name, ct, proc.Parms.Values);
-            }
-            finally
-            {
-                if (proc.ReadonlyLocks)
-                {
-                    await EntityClient.ExecuteSQLNonQuery($"set transaction isolation level read committed; set rowcount 0;", ct);
-                }
-            }
-
-            if (should_close) await EntityClient.Disconnect();
-
-            return result;
-        }
-
+        return await EntityClient.ExecuteSPSingleColumn<string>(qualified_procname, ct, parms);
     }
+
+    /// <summary>
+    /// Executes the specified <paramref name="view"/> for an entity. This method will execute stored procedure view for the entity.
+    /// If the client is not connected to the database server, it will open a new connection.
+    /// </summary>
+    /// <param name="ct"></param>
+    /// <param name="view"></param>
+    /// <param name="row_limit"></param>
+    /// <returns></returns>
+    public async Task<List<DataResult>> ExecuteView(ViewDefinition view, CancellationToken ct, int? row_limit = null)
+    {
+        row_limit ??= DataDefaults.DefaultRowLimitForViews;
+        return await ExecuteProc(view.Proc, ct, (int)row_limit);
+    }
+
+    /// <summary>
+    /// Executes the specified view definition asynchronously and sends the resulting data to the provided result
+    /// channel.
+    /// </summary>
+    /// <remarks>If the row limit is not provided, the method uses a default value defined by the
+    /// system. This method enables streaming of results to the specified channel as they are produced.</remarks>
+    /// <param name="view">The view definition that specifies the procedure to execute and the data to retrieve.</param>
+    /// <param name="result_channel">The channel to which the results of the view execution will be sent.</param>
+    /// <param name="ct">A cancellation token that can be used to cancel the operation.</param>
+    /// <param name="row_limit">An optional limit on the number of rows to return. If not specified, a system-defined default limit is used.</param>
+    /// <param name="records_channel_capacity"></param>
+    /// <param name="complete_channel">Indicates whether to complete the result channel after execution. Set to <see langword="true"/> to signal that no more results will be sent.</param>
+    /// <param name="max_allowed_rows">An optional parameter that specifies the maximum number of rows allowed to be returned by the SQL command. If the result set exceeds this limit, an exception will be thrown. This parameter is used to prevent excessive memory usage when processing large result sets. If null, there is no limit on the number of rows returned.</param>
+    /// <returns>A task that represents the asynchronous operation of executing the view and sending results to the channel.</returns>
+    public async Task ExecuteViewChannel(ViewDefinition view, DataResultSetChannel result_channel, CancellationToken ct, int? row_limit = null, int? records_channel_capacity = null, bool complete_channel = true, int? max_allowed_rows = null)
+    {
+        row_limit ??= DataDefaults.DefaultRowLimitForViews;
+        await ExecuteProcChannel(view.Proc, result_channel, ct, (int)row_limit, records_channel_capacity: records_channel_capacity, complete_channel: complete_channel, max_allowed_rows: max_allowed_rows);
+    }
+
+    /// <summary>
+    /// Executes the specified <paramref name="proc"/> for an entity. This method will execute stored procedure specified for the entity.
+    /// If the client is not connected to the database server, it will open a new connection.
+    /// </summary>
+    public async Task<DBStatusResult> ExecuteProcDBStatus(ProcedureDefinition proc, CancellationToken ct, bool set_parms_from_columns = true, bool throw_dbstat_exception = false)
+    {
+        //proc.Parms.TryGetValue(SystemColumnNames.webusr, out ColumnBase? webusr);
+        //if (webusr != null) webusr.ValueObject = EntityClient.WebUser;
+
+        bool should_close = (EntityClient.ConnectionState != ConnectionState.Open);
+        await EntityClient.Connect(ct);
+
+        DBStatusResult? result;
+        try
+        {
+            if (proc.ReadonlyLocks)
+            {
+                if (EntityClient.isTransactionOpen) throw new InvalidOperationException($"The stored procedure {proc.QualifiedName} has {nameof(proc.ReadonlyLocks)} true and is not supported inside transactions.");
+                await EntityClient.ExecuteSQLNonQuery($"set transaction isolation level read uncommitted;", ct);
+            }
+            if (set_parms_from_columns) proc.SetParmsValues(def.Columns);
+
+            result = await ExecuteStatusData(proc.QualifiedName, proc.Parms.Values, ct, throw_dbstat_exception);
+        }
+        finally
+        {
+            if (proc.ReadonlyLocks)
+            {
+                await EntityClient.ExecuteSQLNonQuery($"set transaction isolation level read committed;", ct);
+            }
+        }
+
+        if (should_close) await EntityClient.Disconnect();
+
+        return result;
+    }
+
+    /// <summary>
+    /// Executes the specified <paramref name="proc"/> for an entity. This method will execute stored procedure specified for the entity.
+    /// If the client is not connected to the database server, it will open a new connection.
+    /// </summary>
+    public async Task<List<DataResult>> ExecuteProc(ProcedureDefinition proc, CancellationToken ct, int row_limit = 0, bool set_parms_from_columns = true)
+    {
+        if (row_limit != 0 && proc.ReadonlyLocks == false) throw new ArgumentException($"Procedure {proc.QualifiedName} is defined with {nameof(proc.ReadonlyLocks)} false and cannot specify a {nameof(row_limit)} at execution");
+
+        proc.Parms.TryGetValue(SystemColumnNames.webusr, out ColumnBase? webusr);
+        webusr?.ValueObject = EntityClient.WebUser;
+
+        List<DataResult> result;
+
+        bool should_close = (EntityClient.ConnectionState != ConnectionState.Open);
+
+        await EntityClient.Connect(ct);
+
+        try
+        {
+            if (proc.ReadonlyLocks)
+            {
+                if (EntityClient.isTransactionOpen) throw new InvalidOperationException($"The stored procedure {proc.QualifiedName} has {nameof(proc.ReadonlyLocks)} true and is not supported inside transactions.");
+                await EntityClient.ExecuteSQLNonQuery($"set transaction isolation level read uncommitted; set rowcount {row_limit};", ct);
+            }
+
+            if (set_parms_from_columns) proc.SetParmsValues(def.Columns);
+
+            result = await EntityClient.ExecuteSP(proc.QualifiedName, proc.Parms.Values, ct);
+        }
+        finally
+        {
+            if (proc.ReadonlyLocks)
+            {
+                await EntityClient.ExecuteSQLNonQuery($"set transaction isolation level read committed; set rowcount 0;", ct);
+            }
+        }
+
+        if (should_close) await EntityClient.Disconnect();
+
+        return result;
+    }
+
+    /// <summary>
+    /// Executes a stored procedure asynchronously with the specified parameters and streams the results through the
+    /// provided data channel.
+    /// </summary>
+    /// <remarks>If the procedure is defined with readonly locks, the method temporarily sets the
+    /// transaction isolation level to read uncommitted and applies the specified row limit for the duration of the
+    /// execution. The connection is automatically opened and closed as needed.</remarks>
+    /// <param name="proc">The definition of the stored procedure to execute, including its parameters and execution settings. Cannot
+    /// specify a nonzero row limit if the procedure is not defined with readonly locks.</param>
+    /// <param name="result_channel">The channel used to receive the results of the stored procedure execution.</param>
+    /// <param name="ct">A cancellation token that can be used to cancel the operation.</param>
+    /// <param name="row_limit">The maximum number of rows to return from the stored procedure. Must be zero if the procedure is not defined
+    /// with readonly locks.</param>
+    /// <param name="set_parms_from_columns">Indicates whether to set parameter values from the columns of the result set before execution. Set to <see
+    /// langword="true"/> to enable automatic parameter assignment.</param>
+    /// <param name="records_channel_capacity"></param>
+    /// <param name="complete_channel">Indicates whether to complete the result channel after execution. Set to <see langword="true"/> to signal that no more results will be sent.</param>
+    /// <param name="max_allowed_rows">An optional parameter that specifies the maximum number of rows allowed to be returned by the SQL command. If the result set exceeds this limit, an exception will be thrown. This parameter is used to prevent excessive memory usage when processing large result sets. If null, there is no limit on the number of rows returned.</param>
+    /// <returns>A task that represents the asynchronous operation of executing the stored procedure and streaming the
+    /// results.</returns>
+    /// <exception cref="ArgumentException">Thrown when a nonzero row limit is specified for a procedure that is not defined with readonly locks.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when attempting to execute a procedure with readonly locks inside an open transaction.</exception>
+    public async Task ExecuteProcChannel(ProcedureDefinition proc, DataResultSetChannel result_channel, CancellationToken ct, int row_limit = 0, bool set_parms_from_columns = true, int? records_channel_capacity = null, bool complete_channel = true, int? max_allowed_rows = null)
+    {
+        if (row_limit != 0 && proc.ReadonlyLocks == false) throw new ArgumentException($"Procedure {proc.QualifiedName} is defined with {nameof(proc.ReadonlyLocks)} false and cannot specify a {nameof(row_limit)} at execution");
+
+        proc.Parms.TryGetValue(SystemColumnNames.webusr, out ColumnBase? webusr);
+        webusr?.ValueObject = EntityClient.WebUser;
+
+        bool should_close = (EntityClient.ConnectionState != ConnectionState.Open);
+
+        await EntityClient.Connect(ct);
+
+        try
+        {
+            if (proc.ReadonlyLocks)
+            {
+                if (EntityClient.isTransactionOpen) throw new InvalidOperationException($"The stored procedure {proc.QualifiedName} has {nameof(proc.ReadonlyLocks)} true and is not supported inside transactions.");
+                await EntityClient.ExecuteSQLNonQuery($"set transaction isolation level read uncommitted; set rowcount {row_limit};", ct);
+            }
+
+            if (set_parms_from_columns) proc.SetParmsValues(def.Columns);
+
+            await EntityClient.ExecuteSPChannel(proc.QualifiedName, proc.Parms.Values, result_channel, records_channel_capacity ?? DataDefaults.DefaultChannelRecordsBuffer, ct, complete_channel, max_allowed_rows);
+        }
+        finally
+        {
+            if (proc.ReadonlyLocks)
+            {
+                await EntityClient.ExecuteSQLNonQuery($"set transaction isolation level read committed; set rowcount 0;", ct);
+            }
+        }
+
+        if (should_close) await EntityClient.Disconnect();
+    }
+
+
+
+    public async Task<T?> ExecuteProcSingleRow<T>(ProcedureDefinition proc, CancellationToken ct, bool set_parms_from_columns = true, AutoMapperMode mode = AutoMapperMode.ByName, MapResult<T>? mapper = null) where T : class, new()
+    {
+        T? result = null;
+
+        var result_list = await ExecuteProc<T>(proc, ct, row_limit: 0, set_parms_from_columns, mode, mapper);
+        if (result_list?.Count > 0) result = result_list[0];
+
+        return result;
+    }
+
+    public async Task<List<T>> ExecuteProc<T>(ProcedureDefinition proc, CancellationToken ct, int row_limit = 0, bool set_parms_from_columns = true, AutoMapperMode mode = AutoMapperMode.ByName, MapResult<T>? mapper = null) where T : class, new()
+    {
+        if (row_limit != 0 && proc.ReadonlyLocks == false) throw new ArgumentException($"Procedure {proc.QualifiedName} is defined with {nameof(proc.ReadonlyLocks)} false and cannot specify a {nameof(row_limit)} at execution");
+
+        proc.Parms.TryGetValue(SystemColumnNames.webusr, out ColumnBase? webusr);
+        if (webusr != null) webusr.ValueObject = EntityClient.WebUser;
+
+        List<T> result = [];
+
+        bool should_close = (EntityClient.ConnectionState != ConnectionState.Open);
+        await EntityClient.Connect(ct);
+
+        try
+        {
+            if (proc.ReadonlyLocks)
+            {
+                if (EntityClient.isTransactionOpen) throw new InvalidOperationException($"The stored procedure {proc.QualifiedName} has {nameof(proc.ReadonlyLocks)} true and is not supported inside transactions.");
+                await EntityClient.ExecuteSQLNonQuery($"set transaction isolation level read uncommitted; set rowcount {row_limit};", ct);
+            }
+
+            if (set_parms_from_columns) proc.SetParmsValues(def.Columns);
+
+            result = await EntityClient.ExecuteSP<T>(proc.QualifiedName, ct, mode, proc.Parms.Values, mapper);
+        }
+        finally
+        {
+            if (proc.ReadonlyLocks)
+            {
+                await EntityClient.ExecuteSQLNonQuery($"set transaction isolation level read committed; set rowcount 0;", ct);
+            }
+        }
+
+        if (should_close) await EntityClient.Disconnect();
+
+        return result;
+    }
+
+    public async Task<T?> ExecuteProcSingleColumn<T>(ProcedureDefinition proc, CancellationToken ct, int row_limit = 0, bool set_parms_from_columns = true)
+    {
+        if (row_limit != 0 && proc.ReadonlyLocks == false) throw new ArgumentException($"Procedure {proc.QualifiedName} is defined with {nameof(proc.ReadonlyLocks)} false and cannot specify a {nameof(row_limit)} at execution");
+
+        proc.Parms.TryGetValue(SystemColumnNames.webusr, out ColumnBase? webusr);
+        if (webusr != null) webusr.ValueObject = EntityClient.WebUser;
+
+        T? result;
+
+        bool should_close = (EntityClient.ConnectionState != ConnectionState.Open);
+        await EntityClient.Connect(ct);
+
+        try
+        {
+            if (proc.ReadonlyLocks)
+            {
+                if (EntityClient.isTransactionOpen) throw new InvalidOperationException($"The stored procedure {proc.QualifiedName} has {nameof(proc.ReadonlyLocks)} true and is not supported inside transactions.");
+                await EntityClient.ExecuteSQLNonQuery($"set transaction isolation level read uncommitted; set rowcount {row_limit};", ct);
+            }
+
+            if (set_parms_from_columns) proc.SetParmsValues(def.Columns);
+
+            result = await EntityClient.ExecuteSPSingleColumn<T>(proc.QualifiedName, ct, proc.Parms.Values);
+        }
+        finally
+        {
+            if (proc.ReadonlyLocks)
+            {
+                await EntityClient.ExecuteSQLNonQuery($"set transaction isolation level read committed; set rowcount 0;", ct);
+            }
+        }
+
+        if (should_close) await EntityClient.Disconnect();
+
+        return result;
+    }
+
 }

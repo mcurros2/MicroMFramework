@@ -1,4 +1,5 @@
-﻿using MicroM.Core;
+﻿using MicroM.Configuration;
+using MicroM.Core;
 using MicroM.Data;
 using MicroM.Web.Services;
 
@@ -6,7 +7,7 @@ namespace MicroM.DataDictionary.Entities;
 
 public class MicromUsersCatDef : EntityDefinition
 {
-    public MicromUsersCatDef() : base("usrc", nameof(MicromUsersCat)) { }
+    public MicromUsersCatDef() : base("usrc", nameof(MicromUsersCat), schemaName: DataDefaults.DataDictionarySchema) { }
 
     public readonly Column<string> c_user_id = Column<string>.PK();
     public readonly Column<string> c_category_id = Column<string>.PK();

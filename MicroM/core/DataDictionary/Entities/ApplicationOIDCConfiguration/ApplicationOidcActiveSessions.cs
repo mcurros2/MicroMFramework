@@ -1,4 +1,5 @@
-﻿using MicroM.Core;
+﻿using MicroM.Configuration;
+using MicroM.Core;
 using MicroM.Data;
 using MicroM.Web.Services;
 using Microsoft.IdentityModel.Tokens;
@@ -22,7 +23,7 @@ public record OidcSessionItem
 
 public class ApplicationOidcActiveSessionsDef : EntityDefinition
 {
-    public ApplicationOidcActiveSessionsDef() : base("aos", nameof(ApplicationOidcActiveSessions)) { }
+    public ApplicationOidcActiveSessionsDef() : base("aos", nameof(ApplicationOidcActiveSessions), schemaName: DataDefaults.DataDictionarySchema) { }
 
     public readonly Column<string> c_application_id = Column<string>.PK();
     public readonly Column<string> c_user_id = Column<string>.PK(); // UserID is different at the IdP and the client app, treat as local

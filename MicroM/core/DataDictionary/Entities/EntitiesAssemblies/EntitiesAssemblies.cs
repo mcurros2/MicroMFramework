@@ -1,4 +1,5 @@
-﻿using MicroM.Core;
+﻿using MicroM.Configuration;
+using MicroM.Core;
 using MicroM.Data;
 using MicroM.Web.Services;
 
@@ -6,7 +7,7 @@ namespace MicroM.DataDictionary.Entities;
 
 public class EntitiesAssembliesDef : EntityDefinition
 {
-    public EntitiesAssembliesDef() : base("eas", nameof(EntitiesAssemblies)) { SQLCreationOptions = SQLCreationOptionsMetadata.WithIUpdateAndIDrop; }
+    public EntitiesAssembliesDef() : base("eas", nameof(EntitiesAssemblies), schemaName: DataDefaults.DataDictionarySchema) { SQLCreationOptions = SQLCreationOptionsMetadata.WithIUpdateAndIDrop; }
 
     public readonly Column<string> c_assembly_id = Column<string>.PK(autonum: true);
     public readonly Column<string> vc_assemblypath = Column<string>.Text(size: 2048);

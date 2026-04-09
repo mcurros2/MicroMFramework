@@ -1,11 +1,13 @@
-﻿using MicroM.Core;
+﻿using MicroM.Configuration;
+using MicroM.Core;
 using MicroM.Data;
 using MicroM.Web.Services;
 
 namespace MicroM.DataDictionary.Entities;
+
 public class MicromRoutesDef : EntityDefinition
 {
-    public MicromRoutesDef() : base("mro", nameof(MicromRoutes)) { }
+    public MicromRoutesDef() : base("mro", nameof(MicromRoutes), schemaName: DataDefaults.DataDictionarySchema) { }
 
     public readonly Column<string> c_route_id = Column<string>.PK(autonum: true);
     public readonly Column<string> vc_route_path = Column<string>.Text(size: 2048);

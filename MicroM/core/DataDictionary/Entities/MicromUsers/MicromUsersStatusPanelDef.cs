@@ -6,7 +6,7 @@ namespace MicroM.DataDictionary.Entities;
 /// <summary>
 /// This definition is used to extend any entity definition that will create a user
 /// </summary>
-public class MicromUsersStatusPanelDef(string mneo, string name, bool add_default_columns = true) : EntityDefinition(mneo, name, add_default_columns)
+public class MicromUsersStatusPanelDef(string mneo, string name, string? schema_name = null, bool add_default_columns = true) : EntityDefinition(mneo: mneo, name: name, schemaName: schema_name, add_default_columns: add_default_columns)
 {
 
     // MMC: for user creation

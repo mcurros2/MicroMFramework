@@ -21,6 +21,8 @@ public abstract class EntityDefinition
 
     private string _ParentClassName = null!;
 
+    public string? SchemaName { get; protected init; } = null;
+
     /// <summary>
     /// Returns the name of the class
     /// </summary>
@@ -39,6 +41,10 @@ public abstract class EntityDefinition
             _TableName = value?.ToSQLName() ?? throw new ArgumentNullException(nameof(TableName));
         }
     }
+
+    public string QualifiedSchemaName => $"{(SchemaName.IsNullOrEmpty() ? "" : $"[{SchemaName}]")}";
+
+    public string FullTableName => $"{(SchemaName.IsNullOrEmpty() ? "" : $"{QualifiedSchemaName}.")}[{TableName}]";
 
     /// <summary>
     /// Indicates that this entity is fake. Fake entities don´t have tables in SQL Server. They can have stored procedures and there own mnemonic code.
@@ -215,8 +221,9 @@ public abstract class EntityDefinition
     /// It is expected that you implement a parameter-less constructor that calls this one with the definition mnemonic code: base("mnemonic").
     /// This constructor will call DefineProcs(), DefineViews(), DefineForeignKeys() in this order.
     /// </summary>
-    protected EntityDefinition(string mneo, string name, bool add_default_columns = true, bool webusr_delete_flag = false)
+    protected EntityDefinition(string mneo, string name, string? schemaName = null, bool add_default_columns = true, bool webusr_delete_flag = false)
     {
+        SchemaName = schemaName;
         Mneo = mneo ?? throw new ArgumentNullException(nameof(mneo));
         TableName = name ?? throw new ArgumentNullException(nameof(name));
 
@@ -302,6 +309,7 @@ public abstract class EntityDefinition
                     throw new InvalidOperationException($"Definition for class {_ParentClassName} - {fk.Name}: invalid foreign key definition. The child entity {child_table} is not allowed. Only {_ParentClassName} is allowed as a child table.");
                 }
             }
+
             _ValidatedDefinitions.TryAdd(definition_class_name, 0);
         }
     }
@@ -349,6 +357,7 @@ public abstract class EntityDefinition
                     if (!_Procs.ContainsKey(prop.Name) && proc != null)
                     {
                         proc.Name = prop.Name;
+                        proc.Schema = SchemaName;
                         proc.InitializeProc(Columns);
                         _Procs.Add(prop.Name, proc);
                     }
@@ -361,6 +370,7 @@ public abstract class EntityDefinition
                         var combinedColumns = GetColumnsAndFilters(view);
 
                         view.Proc.Name = prop.Name;
+                        view.Proc.Schema = SchemaName;
                         view.CreateParmsFromNames(combinedColumns);
                         _Views.Add(prop.Name, view);
                     }

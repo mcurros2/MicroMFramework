@@ -1,4 +1,5 @@
-﻿using MicroM.Core;
+﻿using MicroM.Configuration;
+using MicroM.Core;
 using MicroM.Data;
 using MicroM.Web.Services;
 
@@ -6,7 +7,7 @@ namespace MicroM.DataDictionary.Entities;
 
 public class ApplicationOidcClientsAuthorizedUrlsDef : EntityDefinition
 {
-    public ApplicationOidcClientsAuthorizedUrlsDef() : base("aou", nameof(ApplicationOidcClientsAuthorizedUrls)) { }
+    public ApplicationOidcClientsAuthorizedUrlsDef() : base("aou", nameof(ApplicationOidcClientsAuthorizedUrls), schemaName: DataDefaults.DataDictionarySchema) { }
 
     public readonly Column<string> c_application_id = Column<string>.PK();
     public readonly Column<string> c_client_app_id = Column<string>.PK();

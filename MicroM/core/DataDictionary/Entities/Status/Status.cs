@@ -1,4 +1,5 @@
-﻿using MicroM.Core;
+﻿using MicroM.Configuration;
+using MicroM.Core;
 using MicroM.Data;
 using MicroM.Web.Services;
 
@@ -6,7 +7,7 @@ namespace MicroM.DataDictionary.Entities;
 
 public class StatusDef : EntityDefinition
 {
-    public StatusDef() : base("sta", nameof(Status)) { }
+    public StatusDef() : base("sta", nameof(Status), schemaName: DataDefaults.DataDictionarySchema) { }
 
     public readonly Column<string> c_status_id = Column<string>.PK();
     public readonly Column<string> vc_description = Column<string>.Text();

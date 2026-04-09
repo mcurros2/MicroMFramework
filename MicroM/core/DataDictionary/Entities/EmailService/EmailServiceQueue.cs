@@ -1,4 +1,5 @@
-﻿using MicroM.Core;
+﻿using MicroM.Configuration;
+using MicroM.Core;
 using MicroM.Data;
 using MicroM.DataDictionary.StatusDefinitions;
 using MicroM.Web.Services;
@@ -27,7 +28,7 @@ public record SubmitToQueueResult
 
 public class EmailServiceQueueDef : EntityDefinition
 {
-    public EmailServiceQueueDef() : base("emq", nameof(EmailServiceQueue)) { }
+    public EmailServiceQueueDef() : base("emq", nameof(EmailServiceQueue), schemaName: DataDefaults.DataDictionarySchema) { }
 
     public readonly Column<string> c_email_queue_id = Column<string>.PK(autonum: true);
     public readonly Column<string> c_email_configuration_id = Column<string>.FK();

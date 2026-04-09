@@ -363,7 +363,7 @@ public class DatabaseClient : IDisposable, IAsyncDisposable, IEntityClient
         if (query_text.IsNullOrEmpty()) return;
         CheckQueryConnectionStatusAndThrow(sql_connection);
 
-        if (cmd_type == CommandType.StoredProcedure && DataDefaults.AppendDBOtoProcs && !query_text.StartsWith("dbo.", StringComparison.OrdinalIgnoreCase))
+        if (cmd_type == CommandType.StoredProcedure && DataDefaults.AppendDBOtoProcs && !query_text.Contains('.', StringComparison.OrdinalIgnoreCase))
             query_text = $"dbo.{query_text}";
 
         bool should_close = (sql_connection.State != ConnectionState.Open);
@@ -436,7 +436,7 @@ public class DatabaseClient : IDisposable, IAsyncDisposable, IEntityClient
     {
         CheckQueryConnectionStatusAndThrow(sql_connection);
 
-        if (cmd_type == CommandType.StoredProcedure && DataDefaults.AppendDBOtoProcs && !sql_text.StartsWith("dbo.", StringComparison.OrdinalIgnoreCase))
+        if (cmd_type == CommandType.StoredProcedure && DataDefaults.AppendDBOtoProcs && !sql_text.Contains('.', StringComparison.OrdinalIgnoreCase))
             sql_text = $"dbo.{sql_text}";
 
         bool should_close = (sql_connection.State != ConnectionState.Open);
@@ -508,7 +508,7 @@ public class DatabaseClient : IDisposable, IAsyncDisposable, IEntityClient
     {
         CheckQueryConnectionStatusAndThrow(sql_connection);
 
-        if (cmd_type == CommandType.StoredProcedure && DataDefaults.AppendDBOtoProcs && !sql_text.StartsWith("dbo.", StringComparison.OrdinalIgnoreCase))
+        if (cmd_type == CommandType.StoredProcedure && DataDefaults.AppendDBOtoProcs && !sql_text.Contains('.', StringComparison.OrdinalIgnoreCase))
             sql_text = $"dbo.{sql_text}";
 
         bool should_close = (sql_connection.State != ConnectionState.Open);
@@ -689,7 +689,7 @@ public class DatabaseClient : IDisposable, IAsyncDisposable, IEntityClient
     {
         CheckQueryConnectionStatusAndThrow(sql_connection);
 
-        if (cmd_type == CommandType.StoredProcedure && DataDefaults.AppendDBOtoProcs && !sql_text.StartsWith("dbo.", StringComparison.OrdinalIgnoreCase))
+        if (cmd_type == CommandType.StoredProcedure && DataDefaults.AppendDBOtoProcs && !sql_text.Contains('.', StringComparison.OrdinalIgnoreCase))
             sql_text = $"dbo.{sql_text}";
 
         bool should_close = (sql_connection.State != ConnectionState.Open);
@@ -834,7 +834,7 @@ public class DatabaseClient : IDisposable, IAsyncDisposable, IEntityClient
         CheckQueryConnectionStatusAndThrow(sql_connection);
         ArgumentNullException.ThrowIfNull(result);
 
-        if (cmd_type == CommandType.StoredProcedure && DataDefaults.AppendDBOtoProcs && !sql_text.StartsWith("dbo.", StringComparison.OrdinalIgnoreCase))
+        if (cmd_type == CommandType.StoredProcedure && DataDefaults.AppendDBOtoProcs && !sql_text.Contains('.', StringComparison.OrdinalIgnoreCase))
             sql_text = $"dbo.{sql_text}";
 
         bool should_close = (sql_connection.State != ConnectionState.Open);

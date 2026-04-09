@@ -57,7 +57,7 @@ namespace MicroM.Generators.SQLGenerator
             EntityForeignKeyBase? fk = child_entity.Def.GetForeignKey(parent_entity);
             if (fk != null)
             {
-                sb.AppendFormat(CultureInfo.InvariantCulture, $"{separator}{join_type} [{child_entity.Def.TableName}] {child_alias}\n");
+                sb.AppendFormat(CultureInfo.InvariantCulture, $"{separator}{join_type} {child_entity.Def.FullTableName} {child_alias}\n");
                 sb.AppendFormat(CultureInfo.InvariantCulture, $"{separator}on({fk.KeyMappings.AsSQLKeyMappings(child_entity, parent_alias, child_alias)})");
             }
             return sb.ToString();
