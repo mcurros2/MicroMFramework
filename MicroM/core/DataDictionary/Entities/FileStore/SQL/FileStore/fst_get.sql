@@ -1,4 +1,4 @@
-﻿create or alter proc fst_get
+﻿create or alter proc [dbo].fst_get
         @file_id Char(20)
         as
 
@@ -15,7 +15,7 @@ select  [c_file_id] = rtrim(a.c_file_id)
         , a.vc_webluuser
         , a.vc_insuser
         , a.vc_luuser
-from    [file_store] a
-        join file_store_status b
+from    [dbo].[file_store] a
+        join [dbo].file_store_status b
 		on(b.c_file_id = a.c_file_id and b.c_status_id='FileUpload')
 where   a.c_file_id = @file_id

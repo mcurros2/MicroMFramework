@@ -61,14 +61,14 @@
   
   
   <ItemGroup>
-    <None Remove="DataDictionary\Entities\ApplicationOIDCConfiguration\SQL\ApplicationOidcActiveSessions\aos_deleteAllSessions.sql" />
-    <None Remove="DataDictionary\Entities\ApplicationOIDCConfiguration\SQL\ApplicationOidcActiveSessions\aos_deleteSessionsBySUB.sql" />
-    <None Remove="DataDictionary\Entities\ApplicationOIDCConfiguration\SQL\ApplicationOidcActiveSessions\aos_GetSessionByRefreshToken.sql" />
-    <None Remove="DataDictionary\Entities\ApplicationOIDCConfiguration\SQL\ApplicationOidcActiveSessions\aos_getSessionBySID.sql" />
-    <None Remove="DataDictionary\Entities\ApplicationOIDCConfiguration\SQL\ApplicationOidcActiveSessions\aos_getUsernameFromSIDorSUB.sql" />
-    <None Remove="DataDictionary\Entities\ApplicationOIDCConfiguration\SQL\ApplicationOidcClients\aoi_drop.sql" />
-    <None Remove="DataDictionary\Entities\Applications\app_GetADConfiguration.sql" />
-    <None Remove="DataDictionary\Entities\Applications\app_GetOIDCClients.sql" />
+    <None Remove="DataDictionary\Entities\ApplicationOidcActiveSessions\SQL\ApplicationOidcActiveSessions\aos_deleteAllSessions.sql" />
+    <None Remove="DataDictionary\Entities\ApplicationOidcActiveSessions\SQL\ApplicationOidcActiveSessions\aos_deleteSessionsBySUB.sql" />
+    <None Remove="DataDictionary\Entities\ApplicationOidcActiveSessions\SQL\ApplicationOidcActiveSessions\aos_GetSessionByRefreshToken.sql" />
+    <None Remove="DataDictionary\Entities\ApplicationOidcActiveSessions\SQL\ApplicationOidcActiveSessions\aos_getSessionBySID.sql" />
+    <None Remove="DataDictionary\Entities\ApplicationOidcActiveSessions\SQL\ApplicationOidcActiveSessions\aos_getUsernameFromSIDorSUB.sql" />
+    <None Remove="Configuration\Entities\ApplicationOIDCConfiguration\SQL\ApplicationOidcClients\aoi_drop.sql" />
+    <None Remove="Configuration\Entities\Applications\app_GetADConfiguration.sql" />
+    <None Remove="Configuration\Entities\Applications\app_GetOIDCClients.sql" />
     <None Remove="DataDictionary\Entities\EmailService\SQL\EmailServiceConfiguration\eqc_get.sql" />
     <None Remove="DataDictionary\Entities\EmailService\SQL\EmailServiceConfiguration\eqc_iupdate.sql" />
     <None Remove="DataDictionary\Entities\EmailService\SQL\EmailServiceQueue\emq_EmailTagsTableType.sql" />
@@ -79,9 +79,9 @@
     <None Remove="DataDictionary\Entities\ImportProcess\SQL\ipr_get.sql" />
     <None Remove="DataDictionary\Entities\ImportProcess\SQL\ipr_update.sql" />
     <None Remove="DataDictionary\Entities\ImportProcess\SQL\ipr_UpdateStatus.sql" />
-    <None Remove="DataDictionary\Entities\MicromApplicationAPIKeys\SQL\MicromApplicationApiKeys\mak_get.sql" />
-    <None Remove="DataDictionary\Entities\MicromApplicationAPIKeys\SQL\MicromApplicationApiKeys\mak_getByAPIKey.sql" />
-    <None Remove="DataDictionary\Entities\MicromApplicationAPIKeys\SQL\MicromApplicationApiKeys\mak_iupdate.sql" />
+    <None Remove="Configuration\Entities\MicromApplicationAPIKeys\SQL\MicromApplicationApiKeys\mak_get.sql" />
+    <None Remove="Configuration\Entities\MicromApplicationAPIKeys\SQL\MicromApplicationApiKeys\mak_getByAPIKey.sql" />
+    <None Remove="Configuration\Entities\MicromApplicationAPIKeys\SQL\MicromApplicationApiKeys\mak_iupdate.sql" />
     <None Remove="DataDictionary\Entities\MicromMenus\SQL\MicromMenusItems\mmi_update.sql" />
     <None Remove="DataDictionary\Entities\MicromRoutes\SQL\mro_iupdate.sql" />
     <None Remove="DataDictionary\Entities\MicromUsers\SQL\MicromUsersGroups\mug_iupdate.sql" />
@@ -94,21 +94,21 @@
   </ItemGroup>
    
   <ItemGroup>
-    <EmbeddedResource Include="DataDictionary\Entities\ApplicationOIDCConfiguration\SQL\ApplicationOidcActiveSessions\aos_deleteAllSessions.sql" />
-    <EmbeddedResource Include="DataDictionary\Entities\ApplicationOIDCConfiguration\SQL\ApplicationOidcActiveSessions\aos_deleteSessionsBySUB.sql" />
-    <EmbeddedResource Include="DataDictionary\Entities\ApplicationOIDCConfiguration\SQL\ApplicationOidcActiveSessions\aos_getSessionByRefreshToken.sql" />
-    <EmbeddedResource Include="DataDictionary\Entities\ApplicationOIDCConfiguration\SQL\ApplicationOidcActiveSessions\aos_getSessionBySID.sql" />
-    <EmbeddedResource Include="DataDictionary\Entities\ApplicationOIDCConfiguration\SQL\ApplicationOidcActiveSessions\aos_getSessionsBySUB.sql" />
-    <EmbeddedResource Include="DataDictionary\Entities\ApplicationOIDCConfiguration\SQL\ApplicationOidcActiveSessions\aos_getUserSessionsBySID.sql" />
-    <EmbeddedResource Include="DataDictionary\Entities\ApplicationOIDCConfiguration\SQL\ApplicationOidcActiveSessions\aos_getSessionsByUser.sql" />
-    <EmbeddedResource Include="DataDictionary\Entities\ApplicationOIDCConfiguration\SQL\ApplicationOidcActiveSessions\aos_getUsernameFromSIDorSUB.sql" />
-    <EmbeddedResource Include="DataDictionary\Entities\ApplicationOIDCConfiguration\SQL\ApplicationOidcActiveSessions\aos_update.sql" />
-    <EmbeddedResource Include="DataDictionary\Entities\ApplicationOIDCConfiguration\SQL\ApplicationOidcClients\aoi_drop.sql" />
-    <EmbeddedResource Include="DataDictionary\Entities\ApplicationOIDCConfiguration\SQL\ApplicationOidcClients\aoi_get.sql" />
-    <EmbeddedResource Include="DataDictionary\Entities\ApplicationOIDCConfiguration\SQL\ApplicationOidcClients\aoi_update.sql" />
-    <EmbeddedResource Include="DataDictionary\Entities\ApplicationOIDCConfiguration\SQL\ApplicationOidcConfiguration\aoc_iupdate.sql" />
-    <EmbeddedResource Include="DataDictionary\Entities\Applications\SQL\app_GetADConfiguration.sql" />
-    <EmbeddedResource Include="DataDictionary\Entities\Applications\SQL\app_GetOIDCClients.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\ApplicationOidcActiveSessions\SQL\ApplicationOidcActiveSessions\aos_deleteAllSessions.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\ApplicationOidcActiveSessions\SQL\ApplicationOidcActiveSessions\aos_deleteSessionsBySUB.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\ApplicationOidcActiveSessions\SQL\ApplicationOidcActiveSessions\aos_getSessionByRefreshToken.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\ApplicationOidcActiveSessions\SQL\ApplicationOidcActiveSessions\aos_getSessionBySID.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\ApplicationOidcActiveSessions\SQL\ApplicationOidcActiveSessions\aos_getSessionsBySUB.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\ApplicationOidcActiveSessions\SQL\ApplicationOidcActiveSessions\aos_getUserSessionsBySID.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\ApplicationOidcActiveSessions\SQL\ApplicationOidcActiveSessions\aos_getSessionsByUser.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\ApplicationOidcActiveSessions\SQL\ApplicationOidcActiveSessions\aos_getUsernameFromSIDorSUB.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\ApplicationOidcActiveSessions\SQL\ApplicationOidcActiveSessions\aos_update.sql" />
+    <EmbeddedResource Include="Configuration\Entities\ApplicationOIDCConfiguration\SQL\ApplicationOidcClients\aoi_drop.sql" />
+    <EmbeddedResource Include="Configuration\Entities\ApplicationOIDCConfiguration\SQL\ApplicationOidcClients\aoi_get.sql" />
+    <EmbeddedResource Include="Configuration\Entities\ApplicationOIDCConfiguration\SQL\ApplicationOidcClients\aoi_update.sql" />
+    <EmbeddedResource Include="Configuration\Entities\ApplicationOIDCConfiguration\SQL\ApplicationOidcConfiguration\aoc_iupdate.sql" />
+    <EmbeddedResource Include="Configuration\Entities\Applications\SQL\app_GetADConfiguration.sql" />
+    <EmbeddedResource Include="Configuration\Entities\Applications\SQL\app_GetOIDCClients.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\EmailService\SQL\EmailServiceConfiguration\eqc_get.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\EmailService\SQL\EmailServiceConfiguration\eqc_iupdate.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\EmailService\SQL\EmailServiceQueue\emq_EmailTagsTableType.sql" />
@@ -130,9 +130,9 @@
     <EmbeddedResource Include="DataDictionary\Entities\ImportProcess\SQL\ipr_get.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\ImportProcess\SQL\ipr_update.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\ImportProcess\SQL\ipr_UpdateStatus.sql" />
-    <EmbeddedResource Include="DataDictionary\Entities\MicromApplicationAPIKeys\SQL\MicromApplicationApiKeys\mak_get.sql" />
-    <EmbeddedResource Include="DataDictionary\Entities\MicromApplicationAPIKeys\SQL\MicromApplicationApiKeys\mak_getByAPIKey.sql" />
-    <EmbeddedResource Include="DataDictionary\Entities\MicromApplicationAPIKeys\SQL\MicromApplicationApiKeys\mak_iupdate.sql" />
+    <EmbeddedResource Include="Configuration\Entities\MicromApplicationAPIKeys\SQL\MicromApplicationApiKeys\mak_get.sql" />
+    <EmbeddedResource Include="Configuration\Entities\MicromApplicationAPIKeys\SQL\MicromApplicationApiKeys\mak_getByAPIKey.sql" />
+    <EmbeddedResource Include="Configuration\Entities\MicromApplicationAPIKeys\SQL\MicromApplicationApiKeys\mak_iupdate.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\MicromMenus\SQL\MicromMenusItemsAllowedRoutes\mir_drop.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\MicromMenus\SQL\MicromMenusItemsAllowedRoutes\mir_get.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\MicromMenus\SQL\MicromMenusItemsAllowedRoutes\mir_update.sql" />
@@ -151,19 +151,19 @@
   </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="DataDictionary\Entities\ApplicationAssemblyTypes\SQL\apt_brwStandard.sql" />
-    <EmbeddedResource Include="DataDictionary\Entities\ApplicationsAssemblies\SQL\apa_iupdateAssembly.sql" />
-    <EmbeddedResource Include="DataDictionary\Entities\ApplicationsAssemblies\SQL\apa_GetAssemblies.sql" />
-    <EmbeddedResource Include="DataDictionary\Entities\Applications\SQL\app_get.sql" />
-    <EmbeddedResource Include="DataDictionary\Entities\Applications\SQL\app_drop.sql" />
-    <EmbeddedResource Include="DataDictionary\Entities\Applications\SQL\app_iupdate.sql" />
-    <EmbeddedResource Include="DataDictionary\Entities\Applications\SQL\app_brwStandard.sql" />
-    <EmbeddedResource Include="DataDictionary\Entities\Applications\SQL\app_GetConfiguration.sql" />
-    <EmbeddedResource Include="DataDictionary\Entities\EntitiesAssembliesTypes\SQL\eat_deleteAllTypes.sql" />
-    <EmbeddedResource Include="DataDictionary\Entities\EntitiesAssembliesTypes\SQL\eat_iupdate.sql" />
-    <EmbeddedResource Include="DataDictionary\Entities\EntitiesAssemblies\SQL\eas_dropUnusedAssemblies.sql" />
-    <EmbeddedResource Include="DataDictionary\Entities\EntitiesAssemblies\SQL\eas_idropUnusedAssemblies.sql" />
-    <EmbeddedResource Include="DataDictionary\Entities\EntitiesAssemblies\SQL\eas_idrop.sql" />
+    <EmbeddedResource Include="Configuration\Entities\ApplicationAssemblyTypes\SQL\apt_brwStandard.sql" />
+    <EmbeddedResource Include="Configuration\Entities\ApplicationsAssemblies\SQL\apa_iupdateAssembly.sql" />
+    <EmbeddedResource Include="Configuration\Entities\ApplicationsAssemblies\SQL\apa_GetAssemblies.sql" />
+    <EmbeddedResource Include="Configuration\Entities\Applications\SQL\app_get.sql" />
+    <EmbeddedResource Include="Configuration\Entities\Applications\SQL\app_drop.sql" />
+    <EmbeddedResource Include="Configuration\Entities\Applications\SQL\app_iupdate.sql" />
+    <EmbeddedResource Include="Configuration\Entities\Applications\SQL\app_brwStandard.sql" />
+    <EmbeddedResource Include="Configuration\Entities\Applications\SQL\app_GetConfiguration.sql" />
+    <EmbeddedResource Include="Configuration\Entities\EntitiesAssembliesTypes\SQL\eat_deleteAllTypes.sql" />
+    <EmbeddedResource Include="Configuration\Entities\EntitiesAssembliesTypes\SQL\eat_iupdate.sql" />
+    <EmbeddedResource Include="Configuration\Entities\EntitiesAssemblies\SQL\eas_dropUnusedAssemblies.sql" />
+    <EmbeddedResource Include="Configuration\Entities\EntitiesAssemblies\SQL\eas_idropUnusedAssemblies.sql" />
+    <EmbeddedResource Include="Configuration\Entities\EntitiesAssemblies\SQL\eas_idrop.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\MicromUsers\SQL\MicromUsers\usr_get.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\MicromUsers\SQL\MicromUsers\usr_GetClientClaims.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\MicromUsers\SQL\MicromUsers\usr_GetEnabledMenus.sql" />

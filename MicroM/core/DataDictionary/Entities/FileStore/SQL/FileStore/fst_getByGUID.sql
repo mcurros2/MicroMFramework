@@ -1,4 +1,4 @@
-﻿create or alter proc fst_getByGUID
+﻿create or alter proc [dbo].fst_getByGUID
         @fileguid VarChar(255)
         as
 
@@ -9,7 +9,7 @@ select  [c_file_id] = rtrim(a.c_file_id)
         , a.vc_fileguid
         , a.bi_filesize
         , c_fileuploadstatus_id=rtrim(b.c_statusvalue_id)
-from    [file_store] a
-        join file_store_status b
+from    [dbo].[file_store] a
+        join [dbo].file_store_status b
 		on(b.c_file_id = a.c_file_id and b.c_status_id='FileUpload')
 where   a.vc_fileguid = @fileguid

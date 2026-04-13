@@ -12,11 +12,12 @@ namespace MicroM.Database;
 public static class DatabaseSchema
 {
 
-    public static async Task<T> CreateSchema<T>(
+    public static async Task<T> CreateDBSchema<T>(
         IEntityClient ec,
         bool create_or_alter, bool create_if_not_exists, bool create_custom_procs, bool drop_and_recreate_indexes,
         bool create_procs,
-        CancellationToken ct
+        CancellationToken ct,
+        bool replace_dd_schema = false
         ) where T : EntityBase, new()
     {
 
@@ -68,7 +69,7 @@ public static class DatabaseSchema
             }
             else
             {
-                if (create_procs && create_custom_procs) await CreateCustomProcs<T>(ent, ec, ct);
+                if (create_procs && create_custom_procs) await CreateCustomProcs<T>(ent, ec, ct, replace_dd_schema);
             }
 
         }
@@ -189,6 +190,8 @@ public static class DatabaseSchema
             {
                 throw new InvalidOperationException("No entities to create.");
             }
+
+            await CreateAllInexistingSchemas(ec, entities, ct);
 
             Assembly asm = entities[0]!.EntityType.Assembly;
             custom_procs = await asm.GetAllClassifiedCustomProcs(ct);

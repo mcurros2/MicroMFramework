@@ -19,6 +19,7 @@ namespace MicroM.Generators.SQLGenerator
             var parms = new TemplateValues(create_or_alter)
             {
                 MNEO = entity.Def.Mneo,
+                SCHEMA_NAME = entity.Def.SchemaName ?? "dbo",
                 TABLE_NAME = $"{entity.Def.FullTableName} a",
                 PARMS_DECLARATION = entity.Def.Columns.GetWithFlags(ColumnFlags.Get, exclude_flags: ColumnFlags.None).AsProcParmsDeclaration(separator: $"\n{TAB}{TAB}, "),
                 CATEGORIES_JOIN = categories_join,

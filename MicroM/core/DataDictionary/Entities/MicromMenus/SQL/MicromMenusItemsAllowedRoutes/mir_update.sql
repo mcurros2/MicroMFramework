@@ -1,4 +1,4 @@
-﻿create or alter proc mir_update
+﻿create or alter proc [dbo].mir_update
         @menu_id Char(50)
         , @menu_item_id Char(50)
         , @route_id Char(20)
@@ -17,13 +17,13 @@ begin try
 
     select  @route_id = null
     select  @route_id=c_route_id
-    from    [microm_routes] with (rowlock, holdlock, updlock)
+    from    [dbo].[microm_routes] with (rowlock, holdlock, updlock)
 	where   vc_route_path = @route_path
 
     if(@route_id is null)
     begin
         set @result=-1
-        exec mro_iupdate @route_id, @route_path, null, @webusr, @result output, @msg output
+        exec [dbo].mro_iupdate @route_id, @route_path, null, @webusr, @result output, @msg output
 
         if @result not in (0, 15)
         begin
@@ -36,7 +36,7 @@ begin try
 	end
 
     select  @cu=dt_lu
-    from    [microm_menus_items_allowed_routes] with (rowlock, holdlock, updlock)
+    from    [dbo].[microm_menus_items_allowed_routes] with (rowlock, holdlock, updlock)
     where   c_menu_id = @menu_id
             and c_menu_item_id = @menu_item_id
             and c_route_id = @route_id
@@ -44,7 +44,7 @@ begin try
     if @cu is null
     begin
 
-        insert  [microm_menus_items_allowed_routes]
+        insert  [dbo].[microm_menus_items_allowed_routes]
         values
             (
             @menu_id
@@ -58,7 +58,7 @@ begin try
             , @login
             )
 
-        update  [microm_menus]
+        update  [dbo].[microm_menus]
         set     dt_last_route_updated = @now
 		where   c_menu_id = @menu_id
 

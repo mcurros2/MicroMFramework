@@ -1,4 +1,4 @@
-﻿create or alter proc usr_logoff @username varchar(255) as
+﻿create or alter proc [dbo].usr_logoff @username varchar(255) as
 
 if @username is null
 begin
@@ -11,7 +11,7 @@ begin try
 	begin tran
 
 		delete	a
-		from	microm_users_devices a
+		from	[dbo].microm_users_devices a
 				join microm_users b
 				on(b.c_user_id=a.c_user_id)
 		where	b.vc_username=@username

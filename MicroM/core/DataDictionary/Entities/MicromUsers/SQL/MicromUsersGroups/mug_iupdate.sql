@@ -1,4 +1,4 @@
-﻿create or alter proc mug_iupdate
+﻿create or alter proc [dbo].mug_iupdate
         @user_group_id Char(20)
         , @user_group_name VarChar(255)
         , @group_members VarChar(max)
@@ -25,16 +25,16 @@ begin try
     END
 
     select  @cu=dt_lu
-    from    [microm_users_groups] with (rowlock, holdlock, updlock)
+    from    [dbo].[microm_users_groups] with (rowlock, holdlock, updlock)
     where   c_user_group_id = @user_group_id
 
     if @cu is null
     begin
         declare @id bigint
-        exec num_iGetNewNumber 'mug', @nextnumber = @id out
+        exec [dbo].num_iGetNewNumber 'mug', @nextnumber = @id out
         select @user_group_id = case when @user_group_id is null then right('0000000000'+rtrim(@id),10) else @user_group_id end
 
-        insert  [microm_users_groups]
+        insert  [dbo].[microm_users_groups]
         values
             (
             @user_group_id
@@ -47,7 +47,7 @@ begin try
             , @login
             )
 
-        insert  microm_users_groups_members
+        insert  [dbo].microm_users_groups_members
         select  @user_group_id
                 , a.[user_id]
                 , @now
@@ -68,7 +68,7 @@ begin try
         return
     end
 
-    update  [microm_users_groups]
+    update  [dbo].[microm_users_groups]
     set     vc_user_group_name = @user_group_name
             , vc_webluuser = @webusr
             , vc_luuser = @login
@@ -76,12 +76,12 @@ begin try
     where   c_user_group_id = @user_group_id
 
     -- delete members
-    delete  microm_users_groups_members
+    delete  [dbo].microm_users_groups_members
 	where   c_user_group_id = @user_group_id
 			and c_user_id not in (select [user_id] from [#TempMembers])
 
     -- insert new members
-    insert  microm_users_groups_members
+    insert  [dbo].microm_users_groups_members
     select  @user_group_id
 			, a.[user_id]
 			, @now
@@ -94,7 +94,7 @@ begin try
 	where   not exists 
             (
                 select  1
-                from    microm_users_groups_members b 
+                from    [dbo].microm_users_groups_members b 
                 where   b.c_user_group_id = @user_group_id 
                         and b.c_user_id = a.[user_id]
             )

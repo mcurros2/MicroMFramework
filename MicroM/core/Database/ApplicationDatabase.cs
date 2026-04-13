@@ -1,4 +1,5 @@
 ﻿using MicroM.Configuration;
+using MicroM.Configuration.Entities;
 using MicroM.Data;
 using MicroM.DataDictionary.CategoriesDefinitions;
 using MicroM.DataDictionary.Entities;

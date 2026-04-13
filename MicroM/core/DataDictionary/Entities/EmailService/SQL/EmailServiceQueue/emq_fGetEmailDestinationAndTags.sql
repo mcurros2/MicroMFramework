@@ -1,4 +1,4 @@
-﻿create or alter function emq_fGetEmailDestinationAndTags(
+﻿create or alter function [dbo].emq_fGetEmailDestinationAndTags(
 	@reference_id varchar(255)
 	, @destination_email varchar(2048)
 	, @destination_name varchar(255)

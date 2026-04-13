@@ -1,4 +1,4 @@
-﻿create or alter proc ipr_UpdateStatus
+﻿create or alter proc [dbo].ipr_UpdateStatus
 		@import_process_id Char(20)
 		, @import_status_id Char(20)
 		, @webusr VarChar(255)
@@ -10,7 +10,7 @@ if (@import_status_id is null or trim(@import_status_id) = '') begin select 11, 
 begin try
 	declare @now datetime=getdate(), @login sysname=original_login()
 
-	update  [import_process_status]
+	update  [dbo].[import_process_status]
 	set     c_statusvalue_id = @import_status_id
 			, dt_lu = @now
 			, vc_webluuser = @webusr

@@ -1,4 +1,4 @@
-﻿create or alter proc mmi_update
+﻿create or alter proc [dbo].mmi_update
         @menu_id Char(50)
         , @menu_item_id Char(50)
         , @parent_menu_id Char(50)
@@ -21,21 +21,21 @@ begin try
     begin tran
 
     select  @cu=dt_lu
-    from    [microm_menus_items] with (rowlock, holdlock, updlock)
+    from    [dbo].[microm_menus_items] with (rowlock, holdlock, updlock)
     where   c_menu_id = @menu_id
             and c_menu_item_id = @menu_item_id
 
     if @cu is null
     begin
 
-        if exists (select 1 from [microm_menus_items] where c_menu_id = @menu_id and vc_menu_item_path = @menu_item_path)
+        if exists (select 1 from [dbo].[microm_menus_items] where c_menu_id = @menu_id and vc_menu_item_path = @menu_item_path)
         begin
             rollback tran
             select 11, 'The menu item path already exists. '+rtrim(@menu_id)+' '+@menu_item_path
             return
         end
 
-        insert  [microm_menus_items]
+        insert  [dbo].[microm_menus_items]
         values
             (
             @menu_id
@@ -64,7 +64,7 @@ begin try
         return
     end
 
-    update  [microm_menus_items]
+    update  [dbo].[microm_menus_items]
     set     c_parent_menu_id = @parent_menu_id
             , c_parent_item_id = @parent_item_id
             , vc_menu_item_path = @menu_item_path

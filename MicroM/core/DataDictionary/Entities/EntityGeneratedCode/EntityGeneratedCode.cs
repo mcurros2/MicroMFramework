@@ -1,4 +1,5 @@
 ﻿using MicroM.Configuration;
+using MicroM.Configuration.Entities;
 using MicroM.Core;
 using MicroM.Data;
 using MicroM.Extensions;

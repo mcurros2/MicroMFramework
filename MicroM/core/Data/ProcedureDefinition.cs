@@ -20,7 +20,15 @@ public class ProcedureDefinition
     }
 
     private string? _Schema;
-    public string? Schema { get; internal set; } = null;
+    public string? Schema
+    {
+        get => _Schema;
+        internal set
+        {
+            if (_Schema == null) _Schema = value;
+            else throw new ArgumentException($"The property {nameof(Schema)} can only be modified if the value is null.");
+        }
+    }
 
     public string QualifiedName => string.IsNullOrEmpty(_Schema) ? Name : $"[{_Schema}].{Name}";
 

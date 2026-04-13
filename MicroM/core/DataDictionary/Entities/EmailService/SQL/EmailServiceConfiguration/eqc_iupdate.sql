@@ -1,4 +1,4 @@
-﻿create or alter proc eqc_iupdate
+﻿create or alter proc [dbo].eqc_iupdate
         @email_configuration_id Char(20)
         , @smtp_host VarChar(2048)
         , @smtp_port Int
@@ -23,13 +23,13 @@ begin try
     declare @email_template_id char(20)='RECOVERY'
 
     select  @cu=dt_lu
-    from    [email_service_configuration] with (rowlock, holdlock, updlock)
+    from    [dbo].[email_service_configuration] with (rowlock, holdlock, updlock)
     where   c_email_configuration_id = @email_configuration_id
 
     if @template_subject is not null and @template_body is not null
-    and not exists(select 1 from [email_service_templates] where c_email_template_id=@email_template_id)
+    and not exists(select 1 from [dbo].[email_service_templates] where c_email_template_id=@email_template_id)
     begin
-        insert  [email_service_templates]
+        insert  [dbo].[email_service_templates]
         values
             (
             @email_template_id
@@ -47,7 +47,7 @@ begin try
     if @cu is null
     begin
 
-        insert  [email_service_configuration]
+        insert  [dbo].[email_service_configuration]
         values
             (
             @email_configuration_id
@@ -77,7 +77,7 @@ begin try
         return
     end
 
-    update  [email_service_configuration]
+    update  [dbo].[email_service_configuration]
     set     vc_smtp_host = @smtp_host
             , i_smtp_port = @smtp_port
             , vc_user_name = @user_name
@@ -93,7 +93,7 @@ begin try
     if @template_subject is not null and @template_body is not null
     begin
 
-        update  [email_service_templates]
+        update  [dbo].[email_service_templates]
         set     vc_template_subject = @template_subject
                 , vc_template_body = @template_body
                 , vc_webluuser = @webusr
@@ -105,7 +105,7 @@ begin try
     else
     begin
 
-        delete  [email_service_templates]
+        delete  [dbo].[email_service_templates]
         where   c_email_template_id = @email_template_id
 
     end

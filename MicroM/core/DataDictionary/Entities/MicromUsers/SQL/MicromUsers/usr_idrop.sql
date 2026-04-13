@@ -1,4 +1,4 @@
-﻿create or alter proc usr_idrop
+﻿create or alter proc [dbo].usr_idrop
         @user_id Char(20)
         , @result int output
         , @msg varchar(255) output
@@ -8,16 +8,16 @@ if @@trancount = 0 throw 51000, 'usr_idrop must be called within a transaction',
 
 begin try
 
-    delete  [microm_users_groups_members]
+    delete  [dbo].[microm_users_groups_members]
     where   c_user_id = @user_id
 
-    delete  [microm_users_devices]
+    delete  [dbo].[microm_users_devices]
     where   c_user_id = @user_id
 
-    delete  [microm_users_cat]
+    delete  [dbo].[microm_users_cat]
     where   c_user_id = @user_id
 
-    delete  [microm_users]
+    delete  [dbo].[microm_users]
     where   c_user_id = @user_id
 
     select  @result=0, @msg='OK'

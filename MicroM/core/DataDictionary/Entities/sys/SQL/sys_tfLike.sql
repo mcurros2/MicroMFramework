@@ -1,4 +1,4 @@
-﻿create or alter function sys_tflike(@like varchar(max))
+﻿create or alter function [dbo].sys_tflike(@like varchar(max))
 returns @result table (phrase varchar(max))
 as
 begin

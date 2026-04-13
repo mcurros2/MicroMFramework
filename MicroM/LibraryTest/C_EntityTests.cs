@@ -1,6 +1,7 @@
 ﻿using LibraryTest.DataDictionary;
 using LibraryTest.DataDictionary.CategoriesData;
 using MicroM.Configuration;
+using MicroM.Configuration.Entities;
 using MicroM.Core;
 using MicroM.Data;
 using MicroM.DataDictionary.CategoriesDefinitions;
@@ -29,6 +30,8 @@ public class C_EntityTests
     public async Task OrderedExecution()
     {
         var init = new EntityTestsUtil();
+
+        DataDefaults.DataDictionarySchema = "microm";
 
         await CheckProcsDefinitionFromClass();
 
@@ -281,7 +284,7 @@ public class C_EntityTests
         await CreateSchemaAndDictionary<TestQueueItems>(client, cts.Token);
 
         var asm = Assembly.GetExecutingAssembly();
-        await asm.CreateAssemblyCustomProcs(client, cts.Token);
+        await asm.CreateAssemblyCustomProcs(client, cts.Token, replace_dd_schema: false);
 
         await client.Disconnect();
     }

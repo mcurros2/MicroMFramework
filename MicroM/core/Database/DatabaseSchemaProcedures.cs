@@ -10,7 +10,7 @@ namespace MicroM.Database;
 
 public static class DatabaseSchemaProcedures
 {
-    public static async Task CreateCustomProcs<T>(T? ent, IEntityClient ec, CancellationToken ct) where T : EntityBase, new()
+    public static async Task CreateCustomProcs<T>(T? ent, IEntityClient ec, CancellationToken ct, bool replace_dd_schema = false) where T : EntityBase, new()
     {
         bool should_close = !(ec.ConnectionState == System.Data.ConnectionState.Open);
         try
@@ -27,7 +27,7 @@ public static class DatabaseSchemaProcedures
                 new_ent = ent;
             }
 
-            foreach (string script in await new_ent.GetAllCustomProcs(new_ent.Def.Mneo, ct))
+            foreach (string script in await new_ent.GetAllCustomProcs(new_ent.Def.Mneo, ct, replace_dd_schema: replace_dd_schema))
             {
                 await ec.ExecuteSQLNonQuery(script, ct);
             }

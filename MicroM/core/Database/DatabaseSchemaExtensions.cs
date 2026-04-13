@@ -1,6 +1,5 @@
 ﻿using MicroM.Core;
 using MicroM.Data;
-using MicroM.Extensions;
 using System.Reflection;
 
 namespace MicroM.Database
@@ -34,32 +33,6 @@ namespace MicroM.Database
                     )
                 );
             }
-        }
-
-        public async static Task<CustomOrderedDictionary<CustomScript>> GetAllClassifiedCustomProcs(this Assembly assembly, CancellationToken ct)
-        {
-            CustomOrderedDictionary<CustomScript> ret = new();
-
-            foreach (string name in assembly.GetManifestResourceNames())
-            {
-                ct.ThrowIfCancellationRequested();
-                if (!name.EndsWith(".sql", StringComparison.OrdinalIgnoreCase)) continue;
-
-                using var manifest = assembly.GetManifestResourceStream(name);
-                if (manifest != null)
-                {
-                    using StreamReader reader = new(manifest);
-                    string custom_sql = await reader.ReadToEndAsync(ct);
-                    reader.Close();
-
-                    foreach (var custom_proc in DatabaseSchemaCustomScripts.ClassifyCustomSQLScript(custom_sql))
-                    {
-                        ret.Add(custom_proc.ProcName == null || !custom_proc.ProcType.IsIn(SQLScriptType.Procedure, SQLScriptType.Function) ? $"{Guid.NewGuid()}" : custom_proc.ProcName, custom_proc);
-                    }
-                }
-            }
-
-            return ret;
         }
 
         public static CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>> GetAllEntities(this Assembly assembly, IEntityClient ec, CancellationToken ct, bool create_or_alter = true)

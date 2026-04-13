@@ -1,4 +1,5 @@
 ﻿using MicroM.Configuration;
+using MicroM.Configuration.Entities;
 using MicroM.Core;
 using MicroM.Data;
 using MicroM.Database;
@@ -151,7 +152,6 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
             control_panel.SQLPassword = secrets?.ConfigSQLPassword ?? "";
         }
 
-        //_log.LogError("ERROR: User: {user} Pass: {pass}", control_panel.SQLUser, control_panel.SQLPassword);
         _ApplicationsCache.TryAdd(control_panel.ApplicationID, control_panel);
     }
 
@@ -252,7 +252,11 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
 
                         foreach (var type in types)
                         {
-                            _EntityTypesCache.TryAdd($"{app_id}.{type.Key}", type.Value);
+                            if (!_EntityTypesCache.TryAdd($"{app_id}.{type.Key}", type.Value))
+                            {
+                                _log.LogWarning("WARNING: APP: {app} - Type {type} from assembly {assembly} already exists in the cache. All types in the same application must have unique names even if in different assemblies.",
+                                    ConfigurationDefaults.ControlPanelAppID, type.Key, type.Value);
+                            }
                         }
 
                         // ensure that each assembly is processed once, as it may be referenced by other APPS
@@ -313,7 +317,11 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
                 var types = assembly.GetEntitiesTypes();
                 foreach (var type in types)
                 {
-                    _EntityTypesCache.TryAdd($"{ConfigurationDefaults.ControlPanelAppID}.{type.Key}", type.Value);
+                    if (!_EntityTypesCache.TryAdd($"{ConfigurationDefaults.ControlPanelAppID}.{type.Key}", type.Value))
+                    {
+                        _log.LogWarning("WARNING: APP: {app} - Type {type} from assembly {assembly} already exists in the cache. All types in the same application must have unique names even if in different assemblies.",
+                            ConfigurationDefaults.ControlPanelAppID, type.Key, assembly.FullName);
+                    }
                 }
             }
         }

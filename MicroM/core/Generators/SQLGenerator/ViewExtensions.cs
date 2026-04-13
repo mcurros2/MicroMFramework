@@ -65,6 +65,7 @@ namespace MicroM.Generators.SQLGenerator
             var tparms = new TemplateValues(create_or_alter)
             {
                 MNEO = entity.Def.Mneo,
+                SCHEMA_NAME = entity.Def.SchemaName ?? "dbo",
                 TABLE_NAME = $"{entity.Def.FullTableName} a",
                 PARMS_DECLARATION = parms.AsProcParmsDeclaration(separator: $"\n{TAB}{TAB}, "),
                 WHERE_CLAUSE = $"{(where?.Count > 0 ? where.Values.AsColumnValuePairs(alias: "a", union_string: $"\n{TAB}{TAB}and ") : "")}{(where?.Count > 0 && likes.Count > 0 ? $"\n{TAB}{TAB}and\n{TAB}{TAB}" : "")}{like_template}",

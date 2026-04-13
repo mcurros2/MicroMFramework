@@ -96,4 +96,10 @@ public static class DatabaseManagement
         return await ec.ExecuteSQLSingleColumn<int>(query, ct) == 1;
     }
 
+    public static async Task<bool> SchemaExists(IEntityClient ec, string schema_name, CancellationToken ct)
+    {
+        string query = $"SELECT count(*) FROM information_schema.schemata WHERE schema_name = '{schema_name}'";
+        return await ec.ExecuteSQLSingleColumn<int>(query, ct) == 1;
+    }
+
 }

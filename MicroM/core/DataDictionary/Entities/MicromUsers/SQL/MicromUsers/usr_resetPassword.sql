@@ -1,4 +1,4 @@
-﻿create or alter proc usr_resetPassword 
+﻿create or alter proc [dbo].usr_resetPassword 
 	@username varchar(255)
 as
 
@@ -13,7 +13,7 @@ begin try
 	begin tran
 
 	-- MMC: reset the hash, this hash will never validate the signature
-	update	microm_users
+	update	[dbo].microm_users
 	set		vc_pwhash = convert(varchar,NEWID())
 			, dt_locked = null
 			, i_badlogonattempts = 0
@@ -22,8 +22,8 @@ begin try
 	where	vc_username=@username
 
 	delete	a
-	from	microm_users_devices a
-			join microm_users b
+	from	[dbo].microm_users_devices a
+			join [dbo].microm_users b
 			on(b.c_user_id=a.c_user_id)
 	where	b.vc_username = @username
 

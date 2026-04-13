@@ -30,6 +30,9 @@ internal static class CategoriesExtensions
         var sb = new StringBuilder();
         var Fakes = entity.Def.Columns.GetWithFlags(ColumnFlags.Fake, ColumnFlags.None);
 
+        // Get the fully qualified table name from the CategoriesValues entity definition
+        var categoriesValues = new CategoriesValues();
+
         foreach (var cav_col in Fakes)
         {
             if (entity.Def.RelatedCategories.Contains(cav_col.RelatedCategoryID!) && cav_col.SQLMetadata.IsArray)
@@ -38,7 +41,8 @@ internal static class CategoriesExtensions
                 {
                     CATEGORY_TEMP_TABLE = $"[#Temp{cav_col.RelatedCategoryID}]",
                     CATEGORY_PARM = cav_col.AsProcParm(false),
-                    CATEGORY = $"'{cav_col.RelatedCategoryID!.SQLEscape()}'"
+                    CATEGORY = $"'{cav_col.RelatedCategoryID!.SQLEscape()}'",
+                    DD_CATEGORIES_VALUES_TABLE = categoriesValues.Def.FullTableName
                 };
                 sb.Append(Templates.JSON_CATEGORIES_PARSE_TEMPLATE.ReplaceTemplate(parms));
             }

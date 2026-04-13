@@ -1,7 +1,7 @@
-﻿using MicroM.Core;
+﻿using MicroM.Configuration.Entities;
+using MicroM.Core;
 using MicroM.Data;
 using MicroM.DataDictionary.CategoriesDefinitions;
-using MicroM.DataDictionary.Entities;
 using MicroM.Extensions;
 using static MicroM.Database.DataDictionarySchema;
 
@@ -16,15 +16,11 @@ public static class ConfigurationDatabaseSchema
         result.TryAddType<EntitiesAssemblies>();
         result.TryAddType<EntitiesAssembliesTypes>();
         result.TryAddType<Applications>();
-
         result.TryAddType<ApplicationsCat>();
         result.TryAddType<ApplicationsAssemblies>();
-
         result.TryAddType<ApplicationAssemblyTypes>();
-
         result.TryAddType<ApplicationsUrls>();
         result.TryAddType<ApplicationOidcConfiguration>();
-
         result.TryAddType<MicromApplicationApiKeys>();
         result.TryAddType<MicromApplicationCertificates>();
         result.TryAddType<ApplicationOidcClients>();
@@ -34,27 +30,24 @@ public static class ConfigurationDatabaseSchema
         return result;
     }
 
-    public static CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>> GetConfigurationEntitiesTypes(IEntityClient ec)
+    public static CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>> GetConfigurationEntitiesInstances(IEntityClient? ec = null)
     {
-        CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>> result = GetDataDictionaryEntitiesTypes(ec);
+        CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>> result = GetDataDictionaryEntitiesInstances(ec);
 
         result.TryAddEntities(create_or_alter: true, entities: [
-            new EntitiesAssemblies(ec),
-            new EntitiesAssembliesTypes(ec),
-            new Applications(ec),
-            new ApplicationsCat(ec),
-            new ApplicationsAssemblies(ec),
-            new ApplicationAssemblyTypes(ec),
-            new ApplicationsUrls(ec),
-
-            new ApplicationOidcConfiguration(ec),
-
-            new MicromApplicationApiKeys(ec),
-            new MicromApplicationCertificates(ec),
-
-            new ApplicationOidcClients(ec),
-            new ApplicationOidcClientsAuthorizedUrls(ec),
-            new ApplicationAdConfiguration(ec),
+            ec == null ? new EntitiesAssemblies() : new EntitiesAssemblies(ec),
+            ec == null ? new EntitiesAssembliesTypes() : new EntitiesAssembliesTypes(ec),
+            ec == null ? new Applications() : new Applications(ec),
+            ec == null ? new ApplicationsCat() : new ApplicationsCat(ec),
+            ec == null ? new ApplicationsAssemblies() : new ApplicationsAssemblies(ec),
+            ec == null ? new ApplicationAssemblyTypes() : new ApplicationAssemblyTypes(ec),
+            ec == null ? new ApplicationsUrls() : new ApplicationsUrls(ec),
+            ec == null ? new ApplicationOidcConfiguration() : new ApplicationOidcConfiguration(ec),
+            ec == null ? new MicromApplicationApiKeys() : new MicromApplicationApiKeys(ec),
+            ec == null ? new MicromApplicationCertificates() : new MicromApplicationCertificates(ec),
+            ec == null ? new ApplicationOidcClients() : new ApplicationOidcClients(ec),
+            ec == null ? new ApplicationOidcClientsAuthorizedUrls() : new ApplicationOidcClientsAuthorizedUrls(ec),
+            ec == null ? new ApplicationAdConfiguration() : new ApplicationAdConfiguration(ec),
             ]);
 
         return result;

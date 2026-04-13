@@ -7,10 +7,12 @@ namespace MicroM.Database;
 
 public static partial class DatabaseSchemaCustomScripts
 {
-    public static CustomScript? ExtractCustomScript(string sql_text)
+    public static CustomScript? ExtractCustomScript(string original_sql_text)
     {
-        if (string.IsNullOrWhiteSpace(sql_text))
+        if (string.IsNullOrWhiteSpace(original_sql_text))
             return null;
+
+        string sql_text = original_sql_text;
 
         // Delete block comments /* ... */
         while (true)
@@ -78,7 +80,7 @@ public static partial class DatabaseSchemaCustomScripts
                     mneo = proc_name.Split('_')[0];
                 }
 
-                return new(proc_name, mneo, proc_type, GetProcStandardType(proc_name), sql_text);
+                return new(proc_name, mneo, proc_type, GetProcStandardType(proc_name), original_sql_text);
             }
             else if (
                 tokens[0].Equals("create", StringComparison.OrdinalIgnoreCase) ||

@@ -48,43 +48,83 @@ public static class DataDictionarySchema
         }
     }
 
-    public static CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>> GetDataDictionaryEntitiesTypes(IEntityClient ec)
+    public static Dictionary<string, Type> GetCoreEntitiesTypes()
+    {
+        Dictionary<string, Type> result = [];
+
+        result.TryAddType<Objects>();
+        result.TryAddType<Numbering>();
+        result.TryAddType<SystemProcs>();
+        result.TryAddType<Categories>();
+        result.TryAddType<CategoriesValues>();
+        result.TryAddType<Status>();
+        result.TryAddType<StatusValues>();
+        result.TryAddType<ObjectsCategories>();
+        result.TryAddType<ObjectsStatus>();
+        result.TryAddType<MicromRoutes>();
+        result.TryAddType<MicromUsers>();
+        result.TryAddType<MicromUsersCat>();
+        result.TryAddType<MicromUsersGroups>();
+        result.TryAddType<MicromUsersGroupsMembers>();
+        result.TryAddType<MicromUsersGroupsMenus>();
+        result.TryAddType<MicromUsersDevices>();
+        result.TryAddType<MicromUsersLoginHistory>();
+        result.TryAddType<MicromMenus>();
+        result.TryAddType<MicromMenusItems>();
+        result.TryAddType<MicromMenusItemsAllowedRoutes>();
+        result.TryAddType<FileStoreProcess>();
+        result.TryAddType<FileStore>();
+        result.TryAddType<FileStoreStatus>();
+        result.TryAddType<EmailServiceConfiguration>();
+        result.TryAddType<EmailServiceQueue>();
+        result.TryAddType<EmailServiceQueueStatus>();
+        result.TryAddType<EmailServiceTemplates>();
+        result.TryAddType<ImportProcess>();
+        result.TryAddType<ImportProcessErrors>();
+        result.TryAddType<ImportProcessStatus>();
+        result.TryAddType<ApplicationOidcActiveSessions>();
+
+        return result;
+    }
+
+
+    public static CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>> GetDataDictionaryEntitiesInstances(IEntityClient? ec = null)
     {
         CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>> result = new();
 
         result.TryAddEntities(create_or_alter: true, entities: [
-            new Objects(ec),
-            new Numbering(ec),
-            new SystemProcs(ec),
-            new Categories(ec),
-            new CategoriesValues(ec),
-            new Status(ec),
-            new StatusValues(ec),
-            new Classes(ec),
-            new ObjectsCategories(ec),
-            new ObjectsStatus(ec),
-            new FileStoreProcess(ec),
-            new FileStore(ec),
-            new FileStoreStatus(ec),
-            new MicromRoutes(ec),
-            new MicromUsers(ec),
-            new MicromUsersCat(ec),
-            new MicromUsersLoginHistory(ec),
-            new MicromUsersGroups(ec),
-            new MicromUsersDevices(ec),
-            new MicromUsersGroupsMembers(ec),
-            new MicromMenus(ec),
-            new MicromMenusItems(ec),
-            new MicromMenusItemsAllowedRoutes(ec),
-            new MicromUsersGroupsMenus(ec),
-            new EmailServiceConfiguration(ec),
-            new EmailServiceQueue(ec),
-            new EmailServiceQueueStatus(ec),
-            new EmailServiceTemplates(ec),
-            new ImportProcess(ec),
-            new ImportProcessErrors(ec),
-            new ImportProcessStatus(ec),
-            new ApplicationOidcActiveSessions(ec),
+            ec == null ? new Objects() : new Objects(ec),
+            ec == null ? new Numbering() : new Numbering(ec),
+            ec == null ? new SystemProcs() : new SystemProcs(ec),
+            ec == null ? new Categories() : new Categories(ec),
+            ec == null ? new CategoriesValues() : new CategoriesValues(ec),
+            ec == null ? new Status() : new Status(ec),
+            ec == null ? new StatusValues() : new StatusValues(ec),
+            ec == null ? new Classes() : new Classes(ec),
+            ec == null ? new ObjectsCategories() : new ObjectsCategories(ec),
+            ec == null ? new ObjectsStatus() : new ObjectsStatus(ec),
+            ec == null ? new FileStoreProcess() : new FileStoreProcess(ec),
+            ec == null ? new FileStore() : new FileStore(ec),
+            ec == null ? new FileStoreStatus() : new FileStoreStatus(ec),
+            ec == null ? new MicromRoutes() : new MicromRoutes(ec),
+            ec == null ? new MicromUsers() : new MicromUsers(ec),
+            ec == null ? new MicromUsersCat() : new MicromUsersCat(ec),
+            ec == null ? new MicromUsersLoginHistory() : new MicromUsersLoginHistory(ec),
+            ec == null ? new MicromUsersGroups() : new MicromUsersGroups(ec),
+            ec == null ? new MicromUsersDevices() : new MicromUsersDevices(ec),
+            ec == null ? new MicromUsersGroupsMembers() : new MicromUsersGroupsMembers(ec),
+            ec == null ? new MicromMenus() : new MicromMenus(ec),
+            ec == null ? new MicromMenusItems() : new MicromMenusItems(ec),
+            ec == null ? new MicromMenusItemsAllowedRoutes() : new MicromMenusItemsAllowedRoutes(ec),
+            ec == null ? new MicromUsersGroupsMenus() : new MicromUsersGroupsMenus(ec),
+            ec == null ? new EmailServiceConfiguration() : new EmailServiceConfiguration(ec),
+            ec == null ? new EmailServiceQueue() : new EmailServiceQueue(ec),
+            ec == null ? new EmailServiceQueueStatus() : new EmailServiceQueueStatus(ec),
+            ec == null ? new EmailServiceTemplates() : new EmailServiceTemplates(ec),
+            ec == null ? new ImportProcess() : new ImportProcess(ec),
+            ec == null ? new ImportProcessErrors() : new ImportProcessErrors(ec),
+            ec == null ? new ImportProcessStatus() : new ImportProcessStatus(ec),
+            ec == null ? new ApplicationOidcActiveSessions() : new ApplicationOidcActiveSessions(ec),
             ]);
 
         return result;
@@ -102,18 +142,20 @@ public static class DataDictionarySchema
             await ec.Connect(ct);
 
             Assembly asm = typeof(Objects).Assembly;
-            custom_procs = await asm.GetAllClassifiedCustomProcs(ct);
+            custom_procs = await asm.GetAllClassifiedCustomProcs(ct, replace_dd_schema: true);
+
+            entities = GetDataDictionaryEntitiesInstances(ec);
+
+            // Tables and constraints
+            await CreateAllInexistingSchemas(ec, entities, ct);
 
             // Create types and sequences
             if (custom_procs?.Count > 0) await CreateAllCustomSQLTypes(ec, custom_procs, ct);
 
-            entities = GetDataDictionaryEntitiesTypes(ec);
-
-            // Tables and constraints
             created_tables = await CreateEntitiesInexistentTables(ec, entities, ct);
             await CreateEntitiesConstraintsAndIndexes(ec, created_tables, ct);
 
-            // create custom tables is any
+            // create custom tables if any
             if (custom_procs?.Count > 0)
             {
                 await CreateAllCustomTables(ec, custom_procs, ct);
@@ -143,52 +185,9 @@ public static class DataDictionarySchema
         }
     }
 
-    public static Dictionary<string, Type> GetCoreEntitiesTypes()
-    {
-        Dictionary<string, Type> result = [];
-        result.TryAddType<SystemProcs>();
-        result.TryAddType<Categories>();
-        result.TryAddType<CategoriesValues>();
-
-        result.TryAddType<Status>();
-        result.TryAddType<StatusValues>();
-
-        result.TryAddType<MicromRoutes>();
-
-        result.TryAddType<MicromUsersLoginHistory>();
-        result.TryAddType<MicromUsersGroups>();
-        result.TryAddType<MicromUsers>();
-        result.TryAddType<MicromUsersCat>();
-        result.TryAddType<MicromUsersDevices>();
-        result.TryAddType<MicromUsersGroupsMembers>();
-
-        result.TryAddType<MicromMenus>();
-        result.TryAddType<MicromMenusItems>();
-        result.TryAddType<MicromMenusItemsAllowedRoutes>();
-
-        result.TryAddType<MicromUsersGroupsMenus>();
-
-        result.TryAddType<FileStoreProcess>();
-        result.TryAddType<FileStore>();
-        result.TryAddType<FileStoreStatus>();
-
-        result.TryAddType<EmailServiceConfiguration>();
-        result.TryAddType<EmailServiceQueue>();
-        result.TryAddType<EmailServiceQueueStatus>();
-        result.TryAddType<EmailServiceTemplates>();
-
-        result.TryAddType<ImportProcess>();
-        result.TryAddType<ImportProcessErrors>();
-        result.TryAddType<ImportProcessStatus>();
-
-        result.TryAddType<ApplicationOidcActiveSessions>();
-
-        return result;
-    }
-
     public async static Task GrantPermissionsToSystemProcs(IEntityClient ec, string login_or_group, CancellationToken ct)
     {
-        CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>> entities = GetDataDictionaryEntitiesTypes(ec);
+        CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>> entities = GetDataDictionaryEntitiesInstances(ec);
 
         await GrantExecutionToAllProcs(ec, entities, login_or_group, ct);
     }
@@ -222,10 +221,11 @@ public static class DataDictionarySchema
 
     public static async Task<T> CreateSchemaAndDictionary<T>(
         IEntityClient ec, CancellationToken ct, bool create_or_alter = false, bool create_if_not_exists = true,
-        bool create_custom_procs = false, bool drop_and_recreate_indexes = false, bool create_procs = true
+        bool create_custom_procs = false, bool drop_and_recreate_indexes = false, bool create_procs = true,
+        bool replace_dd_schema = false
         ) where T : EntityBase, new()
     {
-        T ent = await CreateSchema<T>(ec, create_or_alter, create_if_not_exists, create_custom_procs, drop_and_recreate_indexes, create_procs, ct);
+        T ent = await CreateDBSchema<T>(ec, create_or_alter, create_if_not_exists, create_custom_procs, drop_and_recreate_indexes, create_procs, ct, replace_dd_schema);
 
         await ent.AddToDataDictionary(ct);
 

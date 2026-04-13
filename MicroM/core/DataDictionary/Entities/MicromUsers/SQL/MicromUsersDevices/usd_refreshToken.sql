@@ -1,4 +1,4 @@
-﻿create or alter proc usd_refreshToken @user_id char(20), @device_id varchar(255), @refreshtoken varchar(255), @new_refresh_token varchar(255), @refresh_expiration_hours int, @max_refresh_count int as
+﻿create or alter proc [dbo].usd_refreshToken @user_id char(20), @device_id varchar(255), @refreshtoken varchar(255), @new_refresh_token varchar(255), @refresh_expiration_hours int, @max_refresh_count int as
 
 if @user_id is null
 begin
@@ -24,8 +24,8 @@ begin try
 				, @disabled = a.bt_disabled
 				, @refresh_counter = b.i_refreshcount
 				, @refresh_expiration = b.dt_refresh_expiration
-		from	microm_users a with (holdlock, rowlock, updlock)
-				join microm_users_devices b
+		from	[dbo].microm_users a with (holdlock, rowlock, updlock)
+				join [dbo].microm_users_devices b
 				on(b.c_user_id=a.c_user_id and b.c_device_id=@device_id)
 		where	a.c_user_id=@user_id
 
@@ -47,7 +47,7 @@ begin try
 		if @disabled = 1
 		begin
 			-- MMC: invalidate actual token as account is disabled
-			update	microm_users_devices
+			update	[dbo].microm_users_devices
 			set		vc_refreshtoken = null
 					, dt_refresh_expiration = null
 					, i_refreshcount = 0
@@ -64,7 +64,7 @@ begin try
 		if @expired = 1
 		begin
 			-- MMC: invalidate expired
-			update	microm_users_devices
+			update	[dbo].microm_users_devices
 			set		vc_refreshtoken = null
 					, dt_refresh_expiration = null
 					, i_refreshcount = 0
@@ -81,7 +81,7 @@ begin try
 		if @refresh_counter >= @max_refresh_count
 		begin
 			-- MMC: invalidate actual token as max refresh reached
-			update	microm_users_devices
+			update	[dbo].microm_users_devices
 			set		vc_refreshtoken = null
 					, dt_refresh_expiration = null
 					, i_refreshcount = 0
@@ -100,7 +100,7 @@ begin try
 		if @actual_refresh_token = @refreshtoken
 		begin
 			--select	@refresh_expiration = dateadd(hh,@refresh_expiration_hours,@now)
-			update	microm_users_devices
+			update	[dbo].microm_users_devices
 			set		vc_refreshtoken = @new_refresh_token
 					-- MMC: the refresh expiration should be honored even when obtaining a new refresh token.
 					-- it should only be renewed at login
@@ -111,7 +111,7 @@ begin try
 			where	c_user_id=@user_id
 					and c_device_id=@device_id
 
-			update	microm_users
+			update	[dbo].microm_users
 			set		dt_last_refresh = @now
 					, dt_lu = @now
 					, vc_luuser = @login
@@ -125,7 +125,7 @@ begin try
 		else
 		begin
 			-- MMC: update invalid attempt
-			update	microm_users_devices
+			update	[dbo].microm_users_devices
 			set		i_refreshcount += 1
 					, dt_lu = @now
 					, vc_luuser = @login

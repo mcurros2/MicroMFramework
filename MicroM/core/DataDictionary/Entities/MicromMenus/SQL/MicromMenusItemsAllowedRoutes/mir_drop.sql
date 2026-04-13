@@ -1,4 +1,4 @@
-﻿create or alter proc mir_drop
+﻿create or alter proc [dbo].mir_drop
         @menu_id Char(50)
         , @menu_item_id Char(50)
         , @route_id Char(20)
@@ -10,12 +10,12 @@ begin try
 
     begin tran
 
-    delete  [microm_menus_items_allowed_routes]
+    delete  [dbo].[microm_menus_items_allowed_routes]
     where   c_menu_id = @menu_id
             and c_menu_item_id = @menu_item_id
             and c_route_id = @route_id
 
-    update  [microm_menus]
+    update  [dbo].[microm_menus]
     set     dt_last_route_updated = @now
 	where   c_menu_id = @menu_id
 

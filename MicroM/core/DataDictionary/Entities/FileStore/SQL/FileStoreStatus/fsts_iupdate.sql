@@ -1,4 +1,4 @@
-﻿create or alter proc fsts_iupdate
+﻿create or alter proc [dbo].fsts_iupdate
         @file_id Char(20)
         , @status_id Char(20)
         , @statusvalue_id Char(20)
@@ -14,14 +14,14 @@ begin try
     declare @cu datetime, @now datetime=getdate(), @login sysname=original_login()
     
     select  @cu=dt_lu
-    from    [file_store_status] with (rowlock, holdlock, updlock)
+    from    [dbo].[file_store_status] with (rowlock, holdlock, updlock)
     where   c_file_id = @file_id
             and c_status_id = @status_id
 
     if @cu is null
     begin
         
-        insert  [file_store_status]
+        insert  [dbo].[file_store_status]
         values
             (
             @file_id
@@ -43,7 +43,7 @@ begin try
     
     -- MMC: no concurrency, this is designed to be called from the backend
 
-    update  [file_store_status]
+    update  [dbo].[file_store_status]
     set     c_statusvalue_id = @statusvalue_id
             , vc_webluuser = @webusr
             , vc_luuser = @login

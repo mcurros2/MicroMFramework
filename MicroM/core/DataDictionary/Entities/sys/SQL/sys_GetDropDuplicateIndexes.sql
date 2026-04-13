@@ -1,4 +1,4 @@
-﻿create or alter proc sys_GetDropDuplicateIndexes as
+﻿create or alter proc [dbo].sys_GetDropDuplicateIndexes as
 
 select	'table_name'=object_name(a.object_id)
 		, a.name

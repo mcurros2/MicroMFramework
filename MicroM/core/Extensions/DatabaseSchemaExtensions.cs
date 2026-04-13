@@ -6,9 +6,9 @@ namespace MicroM.Extensions;
 
 public static class DatabaseSchemaExtensions
 {
-    public static async Task CreateAssemblyCustomProcs(this Assembly assembly, IEntityClient ec, CancellationToken ct, string? mneo = null, string? starts_with = null)
+    public static async Task CreateAssemblyCustomProcs(this Assembly assembly, IEntityClient ec, CancellationToken ct, string? mneo = null, string? starts_with = null, bool replace_dd_schema = false)
     {
-        foreach (string script in await assembly.GetAssemblyCustomProcs(mneo, starts_with, ct))
+        foreach (string script in await assembly.GetAssemblyCustomProcs(mneo, starts_with, ct, replace_dd_schema))
         {
             try
             {

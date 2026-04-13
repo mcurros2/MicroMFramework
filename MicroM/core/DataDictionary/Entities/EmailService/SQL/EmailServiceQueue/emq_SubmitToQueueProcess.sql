@@ -1,4 +1,4 @@
-﻿create or alter proc emq_SubmitToQueueProcess
+﻿create or alter proc [dbo].emq_SubmitToQueueProcess
 	@email_configuration_id char(20),
 	@sender_name varchar(255), 
 	@sender_email varchar(255),
@@ -14,7 +14,7 @@ if (@subject is null or trim(@subject) = '') throw 51000, 'The parameter @subjec
 if (@message is null or trim(@message) = '') throw 51000, 'The parameter @message cannot be null or empty', 1
 if (@email_configuration_id is null or trim(@email_configuration_id) = '') throw 51000, 'The parameter @email_configuration_id cannot be null or empty', 1
 
-if not exists (select 1 from email_service_configuration where c_email_configuration_id=@email_configuration_id)  throw 51000, 'The email configuration does not exist', 1
+if not exists (select 1 from [dbo].email_service_configuration where c_email_configuration_id=@email_configuration_id)  throw 51000, 'The email configuration does not exist', 1
 
 set @message = replace(@message, char(10), '<br />')
 
@@ -47,7 +47,7 @@ begin try
     begin tran
 
         declare @id bigint
-        exec num_iGetNewNumber 'emq', @nextnumber = @id out
+        exec [dbo].num_iGetNewNumber 'emq', @nextnumber = @id out
 
 		select	id=right('0000000000'+rtrim(@id+row_number() over(order by a.reference_id)),10)
 				, a.reference_id
@@ -66,7 +66,7 @@ begin try
 		into	#tmp_queue
 		from    #tmp_destinations a
 
-		insert	email_service_queue
+		insert	[dbo].email_service_queue
 		select	a.id
 				, @email_configuration_id
 				, a.reference_id
@@ -87,7 +87,7 @@ begin try
 				, @login
 		from	#tmp_queue a
 
-		insert	email_service_queue_status
+		insert	[dbo].email_service_queue_status
 		select	c_email_queue_id=a.id
 				, c_status_id='EMAILSTATUS'
 				, c_statusvalue_id='QUEUED'
@@ -99,7 +99,7 @@ begin try
 				, a.vc_luuser
 		from	#tmp_queue a
 
-		update  numbering
+		update  [dbo].numbering
         set     bi_lastnumber=
 				(
 					select	max(convert(bigint,id))

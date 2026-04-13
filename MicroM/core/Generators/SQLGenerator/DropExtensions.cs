@@ -15,6 +15,7 @@ namespace MicroM.Generators.SQLGenerator
             var parms = new TemplateValues(create_or_alter)
             {
                 MNEO = entity.Def.Mneo,
+                SCHEMA_NAME = entity.Def.SchemaName ?? "dbo",
                 TABLE_NAME = entity.Def.FullTableName,
                 PARMS_DECLARATION = entity.Def.Columns.GetWithFlags(ColumnFlags.Delete).AsProcParmsDeclaration(separator: $"\n{TAB}{TAB}, "),
                 PARMS = entity.Def.Columns.GetWithFlags(ColumnFlags.Delete).AsProcParms(separator: $"\n{TAB}{TAB}{TAB}, "),
@@ -36,6 +37,7 @@ namespace MicroM.Generators.SQLGenerator
             var parms = new TemplateValues(create_or_alter)
             {
                 MNEO = entity.Def.Mneo,
+                SCHEMA_NAME = entity.Def.SchemaName ?? "dbo",
                 TABLE_NAME = entity.Def.FullTableName,
                 PARMS_DECLARATION = entity.Def.Columns.GetWithFlags(ColumnFlags.Delete).AsProcParmsDeclaration(separator: $"\n{TAB}{TAB}, "),
                 PARMS = entity.Def.Columns.GetWithFlags(ColumnFlags.Delete).AsProcParms(separator: $"\n{TAB}{TAB}{TAB}, "),

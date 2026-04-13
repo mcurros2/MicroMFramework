@@ -1,7 +1,7 @@
 ﻿using MicroM.Configuration;
+using MicroM.Configuration.Entities;
 using MicroM.Core;
 using MicroM.Data;
-using MicroM.DataDictionary.Entities;
 using MicroM.Web.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;

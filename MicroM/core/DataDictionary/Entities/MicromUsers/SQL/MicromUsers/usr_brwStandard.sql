@@ -1,4 +1,4 @@
-﻿create or alter proc usr_brwStandard
+﻿create or alter proc [dbo].usr_brwStandard
         @user_id Char(20)
         , @like VarChar(max)
         , @d Char(1)
@@ -23,7 +23,7 @@ select  [User Id] = rtrim(a.c_user_id)
         , [Locked] = a.dt_locked
         , [Last Login] = a.dt_last_login
         , [Last Refresh] = a.dt_last_refresh
-from    [microm_users] a
+from    [dbo].[microm_users] a
 where   
         not exists (
             select  1

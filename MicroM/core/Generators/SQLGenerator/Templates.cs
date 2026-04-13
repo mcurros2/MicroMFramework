@@ -15,7 +15,7 @@ internal class Templates
 ";
     internal const string VIEW_TEMPLATE =
 @"
-{CREATE} proc {MNEO}_brwStandard
+{CREATE} proc [{SCHEMA_NAME}].{MNEO}_brwStandard
         {PARMS_DECLARATION}
         as
 
@@ -26,7 +26,7 @@ where   {WHERE_CLAUSE}
 
     internal const string DROP_TEMPLATE =
 @"
-{CREATE} proc {MNEO}_drop
+{CREATE} proc [{SCHEMA_NAME}].{MNEO}_drop
         {PARMS_DECLARATION}
         as
 
@@ -57,7 +57,7 @@ end catch
 
     internal const string IDROP_TEMPLATE =
 @"
-{CREATE} proc {MNEO}_idrop
+{CREATE} proc [{SCHEMA_NAME}].{MNEO}_idrop
         {PARMS_DECLARATION}
         , @result int output
         , @msg varchar(255) output
@@ -84,7 +84,7 @@ end catch
 
     internal const string DROP_CALLS_IDROP_TEMPLATE =
 @"
-{CREATE} proc {MNEO}_drop
+{CREATE} proc [{SCHEMA_NAME}].{MNEO}_drop
         {PARMS_DECLARATION}
         as
 
@@ -94,7 +94,7 @@ begin try
 
     begin tran
 
-    exec    {MNEO}_idrop
+    exec    [{SCHEMA_NAME}].{MNEO}_idrop
             {PARMS}
             , @result = @result OUT
             , @msg = @msg OUT
@@ -123,7 +123,7 @@ end catch
 
     internal const string LOOKUP_TEMPLATE =
 @"
-{CREATE} proc {MNEO}_lookup
+{CREATE} proc [{SCHEMA_NAME}].{MNEO}_lookup
         {PARMS_DECLARATION}
         as
 
@@ -142,7 +142,7 @@ where   {WHERE_CLAUSE}
 
     internal const string GET_TEMPLATE =
 @"
-{CREATE} proc {MNEO}_get
+{CREATE} proc [{SCHEMA_NAME}].{MNEO}_get
         {PARMS_DECLARATION}
         as
 
@@ -194,12 +194,12 @@ where   {WHERE_CLAUSE}
         select  isnull(rtrim(b.c_categoryvalue_id),CONVERT(VARCHAR(20), CONVERT(BIGINT, CHECKSUM(category_desc)) & 0xFFFFFFFF))
                 , category_desc
         from    openjson({CATEGORY_PARM}) WITH (category_desc varchar(max) '$') a
-                left join categories_values b
+                left join {DD_CATEGORIES_VALUES_TABLE} b
                 on(b.c_categoryvalue_id=a.category_desc and b.c_category_id={CATEGORY})
     END
 
     -- insert new categories first
-    insert  [categories_values]
+    insert  {DD_CATEGORIES_VALUES_TABLE}
     select  {CATEGORY}
             , a.jsoncategory_id
             , a.category_desc
@@ -212,9 +212,9 @@ where   {WHERE_CLAUSE}
     from    {CATEGORY_TEMP_TABLE} a
     where   not exists (
 				select  *
-				from    [categories_values]
-				where   c_category_id = {CATEGORY}
-						and c_categoryvalue_id = a.jsoncategory_id
+				from    {DD_CATEGORIES_VALUES_TABLE} x
+				where   x.c_category_id = {CATEGORY}
+						and x.c_categoryvalue_id = a.jsoncategory_id
 				)
 ";
 
@@ -263,7 +263,7 @@ where   {WHERE_CLAUSE}
 
     internal const string UPDATE_TEMPLATE =
 @"
-{CREATE} proc {MNEO}_update
+{CREATE} proc [{SCHEMA_NAME}].{MNEO}_update
         {PARMS_DECLARATION}
         as
 
@@ -324,7 +324,7 @@ end catch
 
     internal const string IUPDATE_TEMPLATE =
 @"
-{CREATE} proc {MNEO}_iupdate
+{CREATE} proc [{SCHEMA_NAME}].{MNEO}_iupdate
         {PARMS_DECLARATION}
         , @result int output
         , @msg varchar(255) output
@@ -377,7 +377,7 @@ end catch
 
     internal const string UPDATE_CALLS_IUPDATE_TEMPLATE =
 @"
-{CREATE} proc {MNEO}_update
+{CREATE} proc [{SCHEMA_NAME}].{MNEO}_update
         {PARMS_DECLARATION}
         as
 
@@ -390,7 +390,7 @@ begin try
 
     begin tran
 
-    exec    {MNEO}_iupdate
+    exec    [{SCHEMA_NAME}].{MNEO}_iupdate
             {PARMS}
             , @result = @result OUT
             , @msg = @msg OUT
@@ -520,10 +520,10 @@ end catch
                 , @webusr
                 , @login
                 , @login
-        from    status_values a
-                join objects_status b
+        from    {DD_STATUS_VALUES_TABLE} a
+                join {DD_OBJECTS_STATUS_TABLE} b
                 on(b.c_status_id = a.c_status_id)
-                join [objects] c
+                join {DD_OBJECTS_TABLE} c
                 on(c.c_object_id = b.c_object_id)
         where   c.c_mneo_id = {MNEO} and
                 a.bt_initial_value = 1

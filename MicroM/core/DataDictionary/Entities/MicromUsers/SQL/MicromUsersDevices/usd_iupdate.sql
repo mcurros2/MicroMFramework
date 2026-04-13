@@ -1,4 +1,4 @@
-﻿create or alter proc usd_iupdate
+﻿create or alter proc [dbo].usd_iupdate
         @user_id Char(20)
         , @device_id VarChar(255)
         , @useragent VarChar(4096)
@@ -30,14 +30,14 @@ begin try
     declare @cu datetime, @now datetime=getdate(), @login sysname=original_login()
 
     select  @cu=dt_lu
-    from    [microm_users_devices] with (rowlock, holdlock, updlock)
+    from    [dbo].[microm_users_devices] with (rowlock, holdlock, updlock)
     where   c_user_id = @user_id
             and c_device_id = @device_id
 
     if @cu is null
     begin
         
-        insert  [microm_users_devices]
+        insert  [dbo].[microm_users_devices]
         values
             (
             @user_id
@@ -62,7 +62,7 @@ begin try
     
     -- MMC: explicitly avoid LU
 
-    update  [microm_users_devices]
+    update  [dbo].[microm_users_devices]
     set     vc_refreshtoken = @refreshtoken
             , dt_refresh_expiration = @refresh_expiration
             , i_refreshcount = @refreshcount

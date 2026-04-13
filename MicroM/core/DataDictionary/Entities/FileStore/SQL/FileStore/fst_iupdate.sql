@@ -1,4 +1,4 @@
-﻿create or alter proc fst_iupdate
+﻿create or alter proc [dbo].fst_iupdate
         @file_id Char(20)
         , @fileprocess_id Char(20)
         , @filename VarChar(255)
@@ -20,7 +20,7 @@ begin try
     select  @fileprocess_id=nullif(@fileprocess_id,'')
     
     select  @cu=dt_lu
-    from    [file_store] with (rowlock, holdlock, updlock)
+    from    [dbo].[file_store] with (rowlock, holdlock, updlock)
     where   c_file_id = @file_id
 
     if @cu is null
@@ -29,7 +29,7 @@ begin try
         -- MMC: create a new file process if needed
         if @fileprocess_id is null
         begin
-            exec fsp_iupdate null, @lu = null
+            exec [dbo].fsp_iupdate null, @lu = null
                 , @webusr = @webusr
                 , @result = @result OUT
                 , @msg = @msg OUT
@@ -43,10 +43,10 @@ begin try
         end
 
         declare @id bigint
-        exec num_iGetNewNumber 'fst', @nextnumber = @id out
+        exec [dbo].num_iGetNewNumber 'fst', @nextnumber = @id out
         select @file_id = right('0000000000'+rtrim(@id),10)
 
-        insert  [file_store]
+        insert  [dbo].[file_store]
         values
             (
             @file_id
@@ -63,7 +63,7 @@ begin try
             , @login
             )
         
-        insert  [file_store_status]
+        insert  [dbo].[file_store_status]
         select  @file_id
                 , a.c_status_id
                 , a.c_statusvalue_id
@@ -73,10 +73,10 @@ begin try
                 , @webusr
                 , @login
                 , @login
-        from    status_values a
-                join objects_status b
+        from    [dbo].status_values a
+                join [dbo].objects_status b
                 on(b.c_status_id = a.c_status_id)
-                join [objects] c
+                join [dbo].[objects] c
                 on(c.c_object_id = b.c_object_id)
         where   c.c_mneo_id = 'fst' and
                 a.bt_initial_value = 1
@@ -92,7 +92,7 @@ begin try
         return
     end
 
-    update  [file_store]
+    update  [dbo].[file_store]
     set     bi_filesize = @filesize
             , vc_webluuser = @webusr
             , vc_luuser = @login

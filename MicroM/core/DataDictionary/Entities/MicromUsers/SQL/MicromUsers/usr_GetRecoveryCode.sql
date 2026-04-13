@@ -1,4 +1,4 @@
-﻿create or alter proc usr_GetRecoveryCode @username varchar(255) as
+﻿create or alter proc [dbo].usr_GetRecoveryCode @username varchar(255) as
 
 declare	@now datetime=getdate(), @login sysname = ORIGINAL_LOGIN()
 
@@ -10,7 +10,7 @@ select	@last_refresh = b.dt_last_recovery
 		, @locked = b.dt_locked
 		, @disabled = b.bt_disabled
 		, @user_id = b.c_user_id
-from	microm_users b
+from	[dbo].microm_users b
 where	b.vc_username=@username
 
 if @user_id is null
@@ -37,7 +37,7 @@ begin try
 
 	select	@recovery_code=NEWID()
 
-	update	microm_users
+	update	[dbo].microm_users
 	set		vc_recovery_code=@recovery_code
 			, dt_last_recovery=@now
 	where	c_user_id=@user_id
