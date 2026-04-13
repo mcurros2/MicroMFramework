@@ -105,7 +105,7 @@ public class ProcedureDefinition
                     var parm = (ColumnBase?)prop.GetMemberValue(obj);
                     if (!Parms.ContainsKey(prop.Name) && parm != null)
                     {
-                        parm.Name = prop.Name;
+                        if (parm.Name.IsNullOrEmpty()) parm.Name = prop.Name;
                         Parms.Add(prop.Name, parm);
                     }
                 }

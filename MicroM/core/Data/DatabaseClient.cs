@@ -966,8 +966,11 @@ public class DatabaseClient : IDisposable, IAsyncDisposable, IEntityClient
     /// expected by the stored procedure.</param>
     /// <param name="result">The channel used to receive the results of the stored procedure execution. Cannot be null.</param>
     /// <param name="records_channel_capacity">The maximum number of records that the result channel can buffer before requiring processing. Must be a positive
-    /// <param name="complete_channel">Indicates whether the result channel should be marked as complete after all results have been sent. If true, the channel will be completed; if false, the channel will remain open for additional writes. Default is true.</param>
-    /// <param name="max_allowed_rows">An optional parameter that specifies the maximum number of rows allowed to be returned by the SQL command. If the result set exceeds this limit, an exception will be thrown. This parameter is used to prevent excessive memory usage when processing large result sets. If null, there is no limit on the number of rows returned.</param>
+    /// integer.</param>
+    /// <param name="complete_channel">Indicates whether the result channel should be marked as complete after all results have been sent. 
+    /// If true, the channel will be completed; if false, the channel will remain open for additional writes. Default is true.</param>
+    /// <param name="max_allowed_rows">An optional parameter that specifies the maximum number of rows allowed to be returned by the SQL command. 
+    /// If the result set exceeds this limit, an exception will be thrown. This parameter is used to prevent excessive memory usage when processing large result sets. If null, there is no limit on the number of rows returned.</param>
     /// <param name="ct">A cancellation token that can be used to cancel the operation.</param>
     /// <returns>A task that represents the asynchronous operation of executing the stored procedure and streaming the results.</returns>
     public Task ExecuteSPChannel(string sp_name, IEnumerable<ColumnBase>? parms, DataResultSetChannel result, int records_channel_capacity, CancellationToken ct, bool complete_channel = true, int? max_allowed_rows = null)
