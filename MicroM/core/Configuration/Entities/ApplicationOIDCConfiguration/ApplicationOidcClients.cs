@@ -6,7 +6,7 @@ namespace MicroM.Configuration.Entities;
 
 public class ApplicationOidcClientsDef : EntityDefinition
 {
-    public ApplicationOidcClientsDef() : base("aoi", nameof(ApplicationOidcClients), schemaName: DataDefaults.DataDictionarySchema) { }
+    public ApplicationOidcClientsDef() : base("aoi", nameof(ApplicationOidcClients)) { }
 
     public readonly Column<string> c_application_id = Column<string>.PK();
     public readonly Column<string> c_client_app_id = Column<string>.PK(autonum: true);
@@ -42,7 +42,8 @@ public class ApplicationOidcClientsDef : EntityDefinition
 public class ApplicationOidcClients : Entity<ApplicationOidcClientsDef>
 {
     public ApplicationOidcClients() : base() { }
-    public ApplicationOidcClients(IEntityClient ec, IMicroMEncryption? encryptor = null) : base(ec, encryptor) { }
+    public ApplicationOidcClients(string? schema_name) : base(schema_name) { }
+    public ApplicationOidcClients(IEntityClient ec, IMicroMEncryption? encryptor = null, string? schema_name = null) : base(ec, encryptor, schema_name) { }
 
     public override async Task<DBStatusResult> InsertData(CancellationToken ct, bool throw_dbstat_exception = false, MicroMOptions? options = null, Dictionary<string, object>? server_claims = null, IWebAPIServices? api = null, string? app_id = null)
     {

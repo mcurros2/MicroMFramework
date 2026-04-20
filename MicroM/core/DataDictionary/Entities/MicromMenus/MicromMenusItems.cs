@@ -1,6 +1,4 @@
-﻿
-using MicroM.Configuration;
-using MicroM.Core;
+﻿using MicroM.Core;
 using MicroM.Data;
 using MicroM.Web.Services;
 
@@ -8,7 +6,7 @@ namespace MicroM.DataDictionary.Entities;
 
 public class MicromMenusItemsDef : EntityDefinition
 {
-    public MicromMenusItemsDef() : base("mmi", nameof(MicromMenusItems), schemaName: DataDefaults.DataDictionarySchema) { }
+    public MicromMenusItemsDef() : base("mmi", nameof(MicromMenusItems)) { }
 
     public readonly Column<string> c_menu_id = Column<string>.PK(size: 50);
     public readonly Column<string> c_menu_item_id = Column<string>.PK(size: 50);
@@ -36,6 +34,7 @@ public class MicromMenusItemsDef : EntityDefinition
 public class MicromMenusItems : Entity<MicromMenusItemsDef>
 {
     public MicromMenusItems() : base() { }
-    public MicromMenusItems(IEntityClient ec, IMicroMEncryption? encryptor = null) : base(ec, encryptor) { }
+    public MicromMenusItems(string? schema_name) : base(schema_name) { }
+    public MicromMenusItems(IEntityClient ec, IMicroMEncryption? encryptor = null, string? schema_name = null) : base(ec, encryptor, schema_name) { }
 
 }

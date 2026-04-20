@@ -22,6 +22,8 @@ select	ApplicationID = rtrim(a.c_application_id)
 		, OIDCCertificatePassword = f.vc_certificate_password
 		, OIDCIdPSubjectPepper=d.vc_oidc_idp_subject_pepper
 		, FrontendURLS=e.frontend_urls
+		, APPSchema = a.vc_app_schema
+		, DDSchema = a.vc_datadictionary_schema
 from	[dbo].applications a
 		left join [dbo].applications_cat b
 		on(b.c_application_id=a.c_application_id and b.c_category_id='AuthenticationTypes')

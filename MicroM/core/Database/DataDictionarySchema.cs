@@ -1,14 +1,13 @@
-﻿using MicroM.Core;
+﻿using MicroM.Configuration;
+using MicroM.Core;
 using MicroM.Data;
 using MicroM.DataDictionary.CategoriesDefinitions;
 using MicroM.DataDictionary.Configuration;
 using MicroM.DataDictionary.Entities;
 using MicroM.DataDictionary.StatusDefinitions;
 using MicroM.Extensions;
-using System.Reflection;
 using static MicroM.Database.DatabaseSchema;
 using static MicroM.Database.DatabaseSchemaPermissions;
-using static MicroM.Database.DatabaseSchemaTables;
 
 namespace MicroM.Database;
 
@@ -16,14 +15,14 @@ public static class DataDictionarySchema
 {
 
 
-    public static async Task AddToDataDictionary<T>(IEntityClient ec, CancellationToken ct) where T : EntityBase, new()
+    public static async Task AddToDataDictionary<T>(IEntityClient ec, CancellationToken ct, string? dd_schema_name = null) where T : EntityBase, new()
     {
         bool should_close = !(ec.ConnectionState == System.Data.ConnectionState.Open);
         try
         {
             T ent = new();
             ent.Init(ec);
-            await ent.AddToDataDictionary(ct);
+            await ent.AddToDataDictionary(ct, dd_schema_name);
         }
         finally
         {
@@ -31,7 +30,7 @@ public static class DataDictionarySchema
         }
     }
 
-    public static async Task AddEntitiesToDataDictionary(IEntityClient ec, CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>> options, CancellationToken ct)
+    public static async Task AddEntitiesToDataDictionary(IEntityClient ec, CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>> options, CancellationToken ct, string? dd_schema_name = null)
     {
         bool should_close = !(ec.ConnectionState == System.Data.ConnectionState.Open);
         try
@@ -39,7 +38,7 @@ public static class DataDictionarySchema
             await ec.Connect(ct);
             foreach (var option in options.Values)
             {
-                await option.EntityInstance.AddInstanceToDataDictionary(ct);
+                await option.EntityInstance.AddInstanceToDataDictionary(ct, dd_schema_name);
             }
         }
         finally
@@ -88,106 +87,85 @@ public static class DataDictionarySchema
     }
 
 
-    public static CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>> GetDataDictionaryEntitiesInstances(IEntityClient? ec = null)
+    public static CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>> GetDataDictionaryEntitiesInstances(IEntityClient? ec = null, string? schema_name = null)
     {
         CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>> result = new();
 
         result.TryAddEntities(create_or_alter: true, entities: [
-            ec == null ? new Objects() : new Objects(ec),
-            ec == null ? new Numbering() : new Numbering(ec),
-            ec == null ? new SystemProcs() : new SystemProcs(ec),
-            ec == null ? new Categories() : new Categories(ec),
-            ec == null ? new CategoriesValues() : new CategoriesValues(ec),
-            ec == null ? new Status() : new Status(ec),
-            ec == null ? new StatusValues() : new StatusValues(ec),
-            ec == null ? new Classes() : new Classes(ec),
-            ec == null ? new ObjectsCategories() : new ObjectsCategories(ec),
-            ec == null ? new ObjectsStatus() : new ObjectsStatus(ec),
-            ec == null ? new FileStoreProcess() : new FileStoreProcess(ec),
-            ec == null ? new FileStore() : new FileStore(ec),
-            ec == null ? new FileStoreStatus() : new FileStoreStatus(ec),
-            ec == null ? new MicromRoutes() : new MicromRoutes(ec),
-            ec == null ? new MicromUsers() : new MicromUsers(ec),
-            ec == null ? new MicromUsersCat() : new MicromUsersCat(ec),
-            ec == null ? new MicromUsersLoginHistory() : new MicromUsersLoginHistory(ec),
-            ec == null ? new MicromUsersGroups() : new MicromUsersGroups(ec),
-            ec == null ? new MicromUsersDevices() : new MicromUsersDevices(ec),
-            ec == null ? new MicromUsersGroupsMembers() : new MicromUsersGroupsMembers(ec),
-            ec == null ? new MicromMenus() : new MicromMenus(ec),
-            ec == null ? new MicromMenusItems() : new MicromMenusItems(ec),
-            ec == null ? new MicromMenusItemsAllowedRoutes() : new MicromMenusItemsAllowedRoutes(ec),
-            ec == null ? new MicromUsersGroupsMenus() : new MicromUsersGroupsMenus(ec),
-            ec == null ? new EmailServiceConfiguration() : new EmailServiceConfiguration(ec),
-            ec == null ? new EmailServiceQueue() : new EmailServiceQueue(ec),
-            ec == null ? new EmailServiceQueueStatus() : new EmailServiceQueueStatus(ec),
-            ec == null ? new EmailServiceTemplates() : new EmailServiceTemplates(ec),
-            ec == null ? new ImportProcess() : new ImportProcess(ec),
-            ec == null ? new ImportProcessErrors() : new ImportProcessErrors(ec),
-            ec == null ? new ImportProcessStatus() : new ImportProcessStatus(ec),
-            ec == null ? new ApplicationOidcActiveSessions() : new ApplicationOidcActiveSessions(ec),
+            ec == null ? new Objects(schema_name) : new Objects(ec, schema_name: schema_name),
+            ec == null ? new Numbering(schema_name) : new Numbering(ec, schema_name: schema_name),
+            ec == null ? new SystemProcs(schema_name) : new SystemProcs(ec, schema_name: schema_name),
+            ec == null ? new Categories(schema_name) : new Categories(ec, schema_name: schema_name),
+            ec == null ? new CategoriesValues(schema_name) : new CategoriesValues(ec, schema_name: schema_name),
+            ec == null ? new Status(schema_name) : new Status(ec, schema_name: schema_name),
+            ec == null ? new StatusValues(schema_name) : new StatusValues(ec, schema_name: schema_name),
+            ec == null ? new Classes(schema_name) : new Classes(ec, schema_name: schema_name),
+            ec == null ? new ObjectsCategories(schema_name) : new ObjectsCategories(ec, schema_name: schema_name),
+            ec == null ? new ObjectsStatus(schema_name) : new ObjectsStatus(ec, schema_name: schema_name),
+            ec == null ? new FileStoreProcess(schema_name) : new FileStoreProcess(ec, schema_name: schema_name),
+            ec == null ? new FileStore(schema_name) : new FileStore(ec, schema_name: schema_name),
+            ec == null ? new FileStoreStatus(schema_name) : new FileStoreStatus(ec, schema_name: schema_name),
+            ec == null ? new MicromRoutes(schema_name) : new MicromRoutes(ec, schema_name: schema_name),
+            ec == null ? new MicromUsers(schema_name) : new MicromUsers(ec, schema_name: schema_name),
+            ec == null ? new MicromUsersCat(schema_name) : new MicromUsersCat(ec, schema_name: schema_name),
+            ec == null ? new MicromUsersLoginHistory(schema_name) : new MicromUsersLoginHistory(ec, schema_name: schema_name),
+            ec == null ? new MicromUsersGroups(schema_name) : new MicromUsersGroups(ec, schema_name: schema_name),
+            ec == null ? new MicromUsersDevices(schema_name) : new MicromUsersDevices(ec, schema_name: schema_name),
+            ec == null ? new MicromUsersGroupsMembers(schema_name) : new MicromUsersGroupsMembers(ec, schema_name: schema_name),
+            ec == null ? new MicromMenus(schema_name) : new MicromMenus(ec, schema_name: schema_name),
+            ec == null ? new MicromMenusItems(schema_name) : new MicromMenusItems(ec, schema_name: schema_name),
+            ec == null ? new MicromMenusItemsAllowedRoutes(schema_name) : new MicromMenusItemsAllowedRoutes(ec, schema_name: schema_name),
+            ec == null ? new MicromUsersGroupsMenus(schema_name) : new MicromUsersGroupsMenus(ec, schema_name: schema_name),
+            ec == null ? new EmailServiceConfiguration(schema_name) : new EmailServiceConfiguration(ec, schema_name: schema_name),
+            ec == null ? new EmailServiceQueue(schema_name) : new EmailServiceQueue(ec, schema_name: schema_name),
+            ec == null ? new EmailServiceQueueStatus(schema_name) : new EmailServiceQueueStatus(ec, schema_name: schema_name),
+            ec == null ? new EmailServiceTemplates(schema_name) : new EmailServiceTemplates(ec, schema_name: schema_name),
+            ec == null ? new ImportProcess(schema_name) : new ImportProcess(ec, schema_name: schema_name),
+            ec == null ? new ImportProcessErrors(schema_name) : new ImportProcessErrors(ec, schema_name: schema_name),
+            ec == null ? new ImportProcessStatus(schema_name) : new ImportProcessStatus(ec, schema_name: schema_name),
+            ec == null ? new ApplicationOidcActiveSessions(schema_name) : new ApplicationOidcActiveSessions(ec, schema_name: schema_name),
             ]);
 
         return result;
     }
 
-    public async static Task CreateDatadictionarySchemaAndProcs(IEntityClient ec, CancellationToken ct, bool create_or_alter = false)
+    public async static Task<CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>>?> CreateDatadictionarySchemaAndProcs(IEntityClient ec, AppDBSchemaConfiguration schema_config, CancellationToken ct, bool create_or_alter = false)
     {
         bool should_close = !(ec.ConnectionState == System.Data.ConnectionState.Open);
 
-        CustomOrderedDictionary<CustomScript>? custom_procs = null;
         CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>>? entities = null;
-        CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>>? created_tables = null;
         try
         {
             await ec.Connect(ct);
 
-            Assembly asm = typeof(Objects).Assembly;
-            custom_procs = await asm.GetAllClassifiedCustomProcs(ct, replace_dd_schema: true);
+            entities = GetDataDictionaryEntitiesInstances(ec, schema_config.DDSchema);
+            var custom_procs_assembly = (entities[0]?.EntityType.Assembly) ?? throw new InvalidOperationException("Unable to determine the DataDictionary assembly for custom procedures.");
+            var custom_procs = await custom_procs_assembly.GetAllClassifiedCustomSQLScripts(ct, schema_name: schema_config.DDSchema);
 
-            entities = GetDataDictionaryEntitiesInstances(ec);
+            var filtered_custom_procs = custom_procs.Filter(entities);
 
-            // Tables and constraints
-            await CreateAllInexistingSchemas(ec, entities, ct);
+            await entities.CreateSchemaAndProcs(ec, schema_config, ct, create_or_alter, filtered_custom_procs);
 
-            // Create types and sequences
-            if (custom_procs?.Count > 0) await CreateAllCustomSQLTypes(ec, custom_procs, ct);
+            await CreateCategory<UserTypes>(ec, ct, schema_config.DDSchema);
 
-            created_tables = await CreateEntitiesInexistentTables(ec, entities, ct);
-            await CreateEntitiesConstraintsAndIndexes(ec, created_tables, ct);
+            await CreateStatus<FileUpload>(ec, ct, schema_config.DDSchema);
+            await CreateStatus<ProcessStatus>(ec, ct, schema_config.DDSchema);
+            await CreateStatus<EmailStatus>(ec, ct, schema_config.DDSchema);
+            await CreateStatus<ImportStatus>(ec, ct, schema_config.DDSchema);
 
-            // create custom tables if any
-            if (custom_procs?.Count > 0)
-            {
-                await CreateAllCustomTables(ec, custom_procs, ct);
-                await CreateAllCustomViews(ec, custom_procs, ct);
-            }
-
-            await CreateAllEntitiesProcs(ec, entities, custom_procs, ct, create_or_alter);
-
-            await CreateCategory<UserTypes>(ec, ct);
-            await CreateCategory<IdentityProviderRole>(ec, ct);
-
-            await CreateStatus<FileUpload>(ec, ct);
-            await CreateStatus<ProcessStatus>(ec, ct);
-            await CreateStatus<EmailStatus>(ec, ct);
-            await CreateStatus<ImportStatus>(ec, ct);
-
-            // MMC: add to data dictionary
-            await AddEntitiesToDataDictionary(ec, entities, ct);
-
+            await entities.AddEntitiesToDataDictionary(ec, ct, schema_config.DDSchema);
         }
         finally
         {
-            if (custom_procs?.Count > 0) custom_procs.Clear();
-            if (entities?.Count > 0) entities.Clear();
-            if (created_tables?.Count > 0) created_tables.Clear();
             if (should_close) await ec.Disconnect();
         }
+
+        return entities;
     }
 
-    public async static Task GrantPermissionsToSystemProcs(IEntityClient ec, string login_or_group, CancellationToken ct)
+    public async static Task GrantPermissionsToSystemProcs(IEntityClient ec, string login_or_group, AppDBSchemaConfiguration schema_config, CancellationToken ct)
     {
-        CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>> entities = GetDataDictionaryEntitiesInstances(ec);
+        CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>> entities = GetDataDictionaryEntitiesInstances(ec, schema_name: schema_config.DDSchema);
 
         await GrantExecutionToAllProcs(ec, entities, login_or_group, ct);
     }
@@ -196,38 +174,35 @@ public static class DataDictionarySchema
     /// <summary>
     /// Creates a <see cref="Categories"/> record and adds it to data dictionary tables
     /// </summary>
-    /// <typeparam name="T"></typeparam>
-    /// <param name="ec"></param>
-    /// <param name="ct"></param>
-    /// <returns></returns>
-    public async static Task<Categories> CreateCategory<T>(IEntityClient ec, CancellationToken ct) where T : CategoryDefinition, new()
+    public async static Task<Categories> CreateCategory<T>(IEntityClient ec, CancellationToken ct, string? schema_name = null) where T : CategoryDefinition, new()
     {
         T cst = new();
-        return await cst.AddCategory(ec, ct);
+        return await cst.AddCategory(ec, ct, schema_name);
     }
 
     /// <summary>
     /// Creates a <see cref="Status"/> record and adds it to data dictionary tables
     /// </summary>
-    /// <typeparam name="T"></typeparam>
-    /// <param name="ec"></param>
-    /// <param name="ct"></param>
-    /// <returns></returns>
-    public async static Task<Status> CreateStatus<T>(IEntityClient ec, CancellationToken ct) where T : StatusDefinition, new()
+    public async static Task<Status> CreateStatus<T>(IEntityClient ec, CancellationToken ct, string? schema_name = null) where T : StatusDefinition, new()
     {
         T sst = new();
-        return await sst.AddStatus(ec, ct);
+        return await sst.AddStatus(ec, ct, schema_name);
     }
 
+    /// <summary>
+    /// Creates the database schema for the specified entity type and adds it to the data dictionary asynchronously. 
+    /// It will create the entity with the provided <see cref="AppDBSchemaConfiguration.APPSchema"/> 
+    /// </summary>
     public static async Task<T> CreateSchemaAndDictionary<T>(
-        IEntityClient ec, CancellationToken ct, bool create_or_alter = false, bool create_if_not_exists = true,
-        bool create_custom_procs = false, bool drop_and_recreate_indexes = false, bool create_procs = true,
-        bool replace_dd_schema = false
+        IEntityClient ec,
+        AppDBSchemaConfiguration schema_config,
+        CancellationToken ct, bool create_or_alter = false, bool create_if_not_exists = true,
+        bool create_custom_procs = false, bool drop_and_recreate_indexes = false, bool create_procs = true
         ) where T : EntityBase, new()
     {
-        T ent = await CreateDBSchema<T>(ec, create_or_alter, create_if_not_exists, create_custom_procs, drop_and_recreate_indexes, create_procs, ct, replace_dd_schema);
+        T ent = await CreateDBSchema<T>(ec, create_or_alter, create_if_not_exists, create_custom_procs, drop_and_recreate_indexes, create_procs, schema_config, ct);
 
-        await ent.AddToDataDictionary(ct);
+        await ent.AddToDataDictionary(ct, schema_config.DDSchema);
 
         return ent;
     }

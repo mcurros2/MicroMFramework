@@ -1,4 +1,5 @@
-﻿using MicroM.Configuration.Entities;
+﻿using MicroM.Configuration;
+using MicroM.Configuration.Entities;
 using MicroM.Core;
 using MicroM.Data;
 using MicroM.DataDictionary.CategoriesDefinitions;
@@ -30,56 +31,67 @@ public static class ConfigurationDatabaseSchema
         return result;
     }
 
-    public static CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>> GetConfigurationEntitiesInstances(IEntityClient? ec = null)
+    public static CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>> GetConfigurationEntitiesInstances(IEntityClient? ec = null, string? schema_name = null)
     {
-        CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>> result = GetDataDictionaryEntitiesInstances(ec);
+        CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>> result = new();// GetDataDictionaryEntitiesInstances(ec, schema_name);
 
         result.TryAddEntities(create_or_alter: true, entities: [
-            ec == null ? new EntitiesAssemblies() : new EntitiesAssemblies(ec),
-            ec == null ? new EntitiesAssembliesTypes() : new EntitiesAssembliesTypes(ec),
-            ec == null ? new Applications() : new Applications(ec),
-            ec == null ? new ApplicationsCat() : new ApplicationsCat(ec),
-            ec == null ? new ApplicationsAssemblies() : new ApplicationsAssemblies(ec),
-            ec == null ? new ApplicationAssemblyTypes() : new ApplicationAssemblyTypes(ec),
-            ec == null ? new ApplicationsUrls() : new ApplicationsUrls(ec),
-            ec == null ? new ApplicationOidcConfiguration() : new ApplicationOidcConfiguration(ec),
-            ec == null ? new MicromApplicationApiKeys() : new MicromApplicationApiKeys(ec),
-            ec == null ? new MicromApplicationCertificates() : new MicromApplicationCertificates(ec),
-            ec == null ? new ApplicationOidcClients() : new ApplicationOidcClients(ec),
-            ec == null ? new ApplicationOidcClientsAuthorizedUrls() : new ApplicationOidcClientsAuthorizedUrls(ec),
-            ec == null ? new ApplicationAdConfiguration() : new ApplicationAdConfiguration(ec),
+            ec == null ? new EntitiesAssemblies(schema_name) : new EntitiesAssemblies(ec, schema_name: schema_name),
+            ec == null ? new EntitiesAssembliesTypes(schema_name) : new EntitiesAssembliesTypes(ec, schema_name: schema_name),
+            ec == null ? new Applications(schema_name) : new Applications(ec, schema_name: schema_name),
+            ec == null ? new ApplicationsCat(schema_name) : new ApplicationsCat(ec, schema_name: schema_name),
+            ec == null ? new ApplicationsAssemblies(schema_name) : new ApplicationsAssemblies(ec, schema_name: schema_name),
+            ec == null ? new ApplicationAssemblyTypes(schema_name) : new ApplicationAssemblyTypes(ec, schema_name: schema_name),
+            ec == null ? new ApplicationsUrls(schema_name) : new ApplicationsUrls(ec, schema_name: schema_name),
+            ec == null ? new ApplicationOidcConfiguration(schema_name) : new ApplicationOidcConfiguration(ec, schema_name: schema_name),
+            ec == null ? new MicromApplicationApiKeys(schema_name) : new MicromApplicationApiKeys(ec, schema_name: schema_name),
+            ec == null ? new MicromApplicationCertificates(schema_name) : new MicromApplicationCertificates(ec, schema_name: schema_name),
+            ec == null ? new ApplicationOidcClients(schema_name) : new ApplicationOidcClients(ec, schema_name: schema_name),
+            ec == null ? new ApplicationOidcClientsAuthorizedUrls(schema_name) : new ApplicationOidcClientsAuthorizedUrls(ec, schema_name: schema_name),
+            ec == null ? new ApplicationAdConfiguration(schema_name) : new ApplicationAdConfiguration(ec, schema_name: schema_name),
             ]);
 
         return result;
     }
 
 
-    public async static Task CreateConfigurationDBSchemaAndProcs(IEntityClient ec, CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>> entities, CancellationToken ct, bool create_or_alter = false)
+    public async static Task<CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>>?> CreateConfigurationDBSchemaAndProcs(IEntityClient ec, AppDBSchemaConfiguration schema_config, CancellationToken ct, bool create_or_alter = false)
     {
         bool should_close = !(ec.ConnectionState == System.Data.ConnectionState.Open);
+
+        CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>>? dd_entities = null;
+        CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>>? cfg_entities = null;
         try
         {
             await ec.Connect(ct);
-            await CreateDatadictionarySchemaAndProcs(ec, ct, create_or_alter);
-            await CreateCategory<AuthenticationTypes>(ec, ct);
-            await CreateSchemaAndDictionary<EntitiesAssemblies>(ec, ct, create_custom_procs: true, create_or_alter: create_or_alter);
-            await CreateSchemaAndDictionary<EntitiesAssembliesTypes>(ec, ct, create_custom_procs: true, create_or_alter: create_or_alter);
-            await CreateSchemaAndDictionary<Applications>(ec, ct, create_custom_procs: true, create_or_alter: create_or_alter);
-            await CreateSchemaAndDictionary<ApplicationsCat>(ec, ct, create_custom_procs: true, create_or_alter: create_or_alter);
-            await CreateSchemaAndDictionary<ApplicationsAssemblies>(ec, ct, create_custom_procs: true, create_or_alter: create_or_alter);
-            await CreateSchemaAndDictionary<ApplicationAssemblyTypes>(ec, ct, create_custom_procs: true, create_or_alter: create_or_alter);
-            await CreateSchemaAndDictionary<ApplicationsUrls>(ec, ct, create_custom_procs: true, create_or_alter: create_or_alter);
-            await CreateSchemaAndDictionary<MicromApplicationCertificates>(ec, ct, create_custom_procs: true, create_or_alter: create_or_alter);
-            await CreateSchemaAndDictionary<ApplicationOidcConfiguration>(ec, ct, create_custom_procs: true, create_or_alter: create_or_alter);
-            await CreateSchemaAndDictionary<MicromApplicationApiKeys>(ec, ct, create_custom_procs: true, create_or_alter: create_or_alter);
-            await CreateSchemaAndDictionary<ApplicationOidcClients>(ec, ct, create_custom_procs: true, create_or_alter: create_or_alter);
-            await CreateSchemaAndDictionary<ApplicationOidcClientsAuthorizedUrls>(ec, ct, create_custom_procs: true, create_or_alter: create_or_alter);
-            await CreateSchemaAndDictionary<ApplicationAdConfiguration>(ec, ct, create_custom_procs: true, create_or_alter: create_or_alter);
+
+            // This will also create the schema_name. If for any reason you want to have tweo schemas here you will need to take care of creating the schema yourself
+            dd_entities = await CreateDatadictionarySchemaAndProcs(ec, schema_config, ct, create_or_alter);
+
+            cfg_entities = GetConfigurationEntitiesInstances(ec, schema_config.APPSchema);
+
+            // Get all custom procs in the assembly (this will get DataDictionary and Configuration
+            var custom_procs_assembly = (cfg_entities[0]?.EntityType.Assembly) ?? throw new InvalidOperationException("Unable to determine the assembly for custom procedures.");
+            var custom_procs = await custom_procs_assembly.GetAllClassifiedCustomSQLScripts(ct, schema_name: schema_config.APPSchema);
+
+            // Filter custom_procs based on the configuration entities mnemonic code (Mneo) to ensure only relevant procedures are included and return a new CustomOrderedDictionary<CustomScript> with the filtered procedures
+            var cfg_custom_procs = custom_procs.Filter(cfg_entities);
+
+            await cfg_entities.CreateSchemaAndProcs(ec, schema_config, ct, create_or_alter, cfg_custom_procs);
+
+            await CreateCategory<AuthenticationTypes>(ec, ct, schema_config.DDSchema);
+            await CreateCategory<IdentityProviderRole>(ec, ct, schema_config.DDSchema);
+
+            await cfg_entities.AddEntitiesToDataDictionary(ec, ct, schema_config.DDSchema);
+
         }
         finally
         {
+            if (dd_entities?.Count > 0) dd_entities.Clear();
             if (should_close) await ec.Disconnect();
         }
+
+        return cfg_entities;
     }
 
 

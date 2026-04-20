@@ -31,8 +31,6 @@ public class C_EntityTests
     {
         var init = new EntityTestsUtil();
 
-        DataDefaults.DataDictionarySchema = "microm";
-
         await CheckProcsDefinitionFromClass();
 
         await init.DeleteTestDBAsync().ConfigureAwait(false);
@@ -81,6 +79,8 @@ public class C_EntityTests
 
     public async Task DataDictionary_InitialConfigurationAsync()
     {
+        AppDBSchemaConfiguration schema_config = new("microm", "dbo");
+        ConfigurationDefaults.SchemaConfiguration = schema_config;
 
         var cts = new CancellationTokenSource();
         var enc = new LocalEncryptor();
@@ -91,7 +91,7 @@ public class C_EntityTests
 
         using var client = new DatabaseClient(DatabaseConfiguration.Server, "master", DatabaseConfiguration.user, DatabaseConfiguration.password);
 
-        var cfg = new ConfigurationDB(client, enc);
+        var cfg = new ConfigurationDB(client, enc, schema_config.APPSchema);
 
         cfg.Def.vc_configdatabase.Value = DatabaseConfiguration.ConfigurationDatabase;
         cfg.Def.vc_configsqluser.Value = DatabaseConfiguration.ConfigurationUser;
@@ -174,6 +174,7 @@ public class C_EntityTests
 
     public async Task DataDictionary_CreateSchemaAsync()
     {
+        AppDBSchemaConfiguration schema_config = new("microm", "dbo");
 
         using var client = new DatabaseClient(DatabaseConfiguration.Server, DatabaseConfiguration.TestDatabase, DatabaseConfiguration.user, DatabaseConfiguration.password);
         var cts = new CancellationTokenSource();
@@ -186,12 +187,12 @@ public class C_EntityTests
 
         Assert.AreEqual(db_name, DatabaseConfiguration.TestDatabase, $"Incorrect database found while creating schema. Expecting {DatabaseConfiguration.TestDatabase} found {db_name}");
 
-        await CreateDatadictionarySchemaAndProcs(client, cts.Token);
+        await CreateDatadictionarySchemaAndProcs(client, schema_config, cts.Token);
 
         var menu = new MainMenuDefinition();
-        await menu.AddMenu(client, cts.Token);
+        await menu.AddMenu(client, cts.Token, dd_schema_name: schema_config.DDSchema);
 
-        var users = new MicromUsers(client);
+        var users = new MicromUsers(client, schema_name: schema_config.DDSchema);
         users.Def.vc_username.Value = "admin";
         users.Def.vc_password.Value = "123456";
         users.Def.c_usertype_id.Value = nameof(UserTypes.ADMIN);
@@ -200,6 +201,7 @@ public class C_EntityTests
 
     public async Task Configure_Categories()
     {
+        AppDBSchemaConfiguration schema_config = new("microm", "dbo");
 
         using var client = new DatabaseClient(DatabaseConfiguration.Server, DatabaseConfiguration.TestDatabase, DatabaseConfiguration.user, DatabaseConfiguration.password);
         var cts = new CancellationTokenSource();
@@ -213,16 +215,16 @@ public class C_EntityTests
         Assert.AreEqual(db_name, DatabaseConfiguration.TestDatabase, $"Incorrect database found while creating schema. Expecting {DatabaseConfiguration.TestDatabase} found {db_name}");
 
         var test = new QueueType();
-        await test.AddCategory(client, cts.Token);
+        await test.AddCategory(client, cts.Token, schema_name: schema_config.DDSchema);
 
 
-        var check = new Categories(client);
+        var check = new Categories(client, schema_name: schema_config.DDSchema);
         check.Def.c_category_id.Value = test.CategoryID;
         await check.GetData(cts.Token);
 
         Assert.AreEqual(check.Def.vc_description.Value, test.Description, $"Incorrect data found testing configuration categories. Expecting {test.Description} found {check.Def.vc_description.Value}");
 
-        var checkv = new CategoriesValues(client);
+        var checkv = new CategoriesValues(client, schema_name: schema_config.DDSchema);
         checkv.Def.c_category_id.Value = test.CategoryID;
         checkv.Def.c_categoryvalue_id.Value = test.VALUE3.CategoryValueID;
         await checkv.GetData(cts.Token);
@@ -233,6 +235,7 @@ public class C_EntityTests
 
     public async Task Configure_Status()
     {
+        AppDBSchemaConfiguration schema_config = new("microm", "dbo");
 
         using var client = new DatabaseClient(DatabaseConfiguration.Server, DatabaseConfiguration.TestDatabase, DatabaseConfiguration.user, DatabaseConfiguration.password);
         var cts = new CancellationTokenSource();
@@ -246,16 +249,16 @@ public class C_EntityTests
         Assert.AreEqual(db_name, DatabaseConfiguration.TestDatabase, $"Incorrect database found while creating schema. Expecting {DatabaseConfiguration.TestDatabase} found {db_name}");
 
         var test = new QUEUE();
-        await test.AddStatus(client, cts.Token);
+        await test.AddStatus(client, cts.Token, schema_name: schema_config.DDSchema);
 
 
-        var check = new Status(client);
+        var check = new Status(client, schema_name: schema_config.DDSchema);
         check.Def.c_status_id.Value = test.StatusID;
         await check.GetData(cts.Token);
 
         Assert.AreEqual(check.Def.vc_description.Value, test.Description, $"Incorrect data found testing configuration status. Expecting {test.Description} found {check.Def.vc_description.Value}");
 
-        var checkv = new StatusValues(client);
+        var checkv = new StatusValues(client, schema_name: schema_config.DDSchema);
         checkv.Def.c_status_id.Value = test.StatusID;
         checkv.Def.c_statusvalue_id.Value = test.FAILURE.StatusValueID;
         await checkv.GetData(cts.Token);
@@ -266,6 +269,7 @@ public class C_EntityTests
 
     public async Task Entity_CreateSchemaAsync()
     {
+        AppDBSchemaConfiguration schema_config = new("microm", "dbo");
 
         using var client = new DatabaseClient(DatabaseConfiguration.Server, DatabaseConfiguration.TestDatabase, DatabaseConfiguration.user, DatabaseConfiguration.password);
         var cts = new CancellationTokenSource();
@@ -278,13 +282,20 @@ public class C_EntityTests
 
         Assert.AreEqual(db_name, DatabaseConfiguration.TestDatabase, $"Incorrect database found while creating schema. Expecting {DatabaseConfiguration.TestDatabase} found {db_name}");
 
-        await CreateSchemaAndDictionary<TestQueue>(client, cts.Token);
-        await CreateSchemaAndDictionary<TestQueueCat>(client, cts.Token);
-        await CreateSchemaAndDictionary<TestQueueStatus>(client, cts.Token);
-        await CreateSchemaAndDictionary<TestQueueItems>(client, cts.Token);
+        var dd_entities = GetDataDictionaryEntitiesInstances(client, schema_config.DDSchema);
+
+        var test_queue = new TestQueue(client, schema_name: schema_config.APPSchema);
+        var test_queue_cat = new TestQueueCat(client, schema_name: schema_config.APPSchema);
+        var test_queue_status = new TestQueueStatus(client, schema_name: schema_config.APPSchema);
+        var test_queue_items = new TestQueueItems(client, schema_name: schema_config.APPSchema);
+
+        await CreateSchemaAndDictionary<TestQueue>(client, schema_config, cts.Token);
+        await CreateSchemaAndDictionary<TestQueueCat>(client, schema_config, cts.Token);
+        await CreateSchemaAndDictionary<TestQueueStatus>(client, schema_config, cts.Token);
+        await CreateSchemaAndDictionary<TestQueueItems>(client, schema_config, cts.Token);
 
         var asm = Assembly.GetExecutingAssembly();
-        await asm.CreateAssemblyCustomProcs(client, cts.Token, replace_dd_schema: false);
+        await asm.CreateAssemblyCustomProcs(client, cts.Token, schema_name: schema_config.APPSchema);
 
         await client.Disconnect();
     }
@@ -292,13 +303,14 @@ public class C_EntityTests
 
     public async Task Queue_Insert()
     {
+        AppDBSchemaConfiguration schema_config = new("microm", "dbo");
+
         using var client = new DatabaseClient(DatabaseConfiguration.Server, DatabaseConfiguration.TestDatabase, DatabaseConfiguration.user, DatabaseConfiguration.password);
         var cts = new CancellationTokenSource();
 
         await client.Connect(cts.Token);
 
-
-        TestQueue test = new(client);
+        TestQueue test = new(client, schema_name: schema_config.APPSchema);
         test.Def.c_queue_id.Value = "1";
         test.Def.vc_description.Value = "Test 1";
         test.Def.c_queuetype_id.Value = nameof(QueueType.VALUE1);
@@ -311,11 +323,12 @@ public class C_EntityTests
 
     public async Task Queue_Get()
     {
+        AppDBSchemaConfiguration schema_config = new("microm", "dbo");
+
         using var client = new DatabaseClient(DatabaseConfiguration.Server, DatabaseConfiguration.TestDatabase, DatabaseConfiguration.user, DatabaseConfiguration.password);
         var cts = new CancellationTokenSource();
 
-        var queue = await TestQueue.CreateAndGet(client, "1", cts.Token);
-
+        var queue = await TestQueue.CreateAndGet(client, "1", cts.Token, schema_name: schema_config.APPSchema);
 
         Assert.AreEqual("Test 1", queue.Def.vc_description.Value);
         Assert.AreEqual(nameof(QueueType.VALUE1), queue.Def.c_queuetype_id.Value?.Trim());
@@ -324,26 +337,29 @@ public class C_EntityTests
 
     public async Task Queue_Update()
     {
+        AppDBSchemaConfiguration schema_config = new("microm", "dbo");
+
         using var client = new DatabaseClient(DatabaseConfiguration.Server, DatabaseConfiguration.TestDatabase, DatabaseConfiguration.user, DatabaseConfiguration.password);
         var cts = new CancellationTokenSource();
 
-        var cat = await TestQueue.CreateAndGet(client, "1", cts.Token);
+        var cat = await TestQueue.CreateAndGet(client, "1", cts.Token, schema_name: schema_config.APPSchema);
         cat.Def.vc_description.Value = "Test 1 Updated";
         await cat.UpdateData(cts.Token);
 
-        var cat2 = await TestQueue.CreateAndGet(client, "1", cts.Token);
-
+        var cat2 = await TestQueue.CreateAndGet(client, "1", cts.Token, schema_name: schema_config.APPSchema);
         Assert.AreEqual("Test 1 Updated", cat2.Def.vc_description.Value);
 
     }
 
     public async Task Queue_Status()
     {
+        AppDBSchemaConfiguration schema_config = new("microm", "dbo");
+
         using var client = new DatabaseClient(DatabaseConfiguration.Server, DatabaseConfiguration.TestDatabase, DatabaseConfiguration.user, DatabaseConfiguration.password);
         var cts = new CancellationTokenSource();
 
 
-        var queue = await TestQueueStatus.CreateAndGet(client, "1", nameof(QUEUE), cts.Token);
+        var queue = await TestQueueStatus.CreateAndGet(client, "1", nameof(QUEUE), cts.Token, schema_name: schema_config.APPSchema);
 
         Assert.AreEqual(nameof(QUEUE.DRAFT), queue.Def.c_statusvalue_id.Value?.Trim());
 
@@ -351,10 +367,12 @@ public class C_EntityTests
 
     public async Task Queue_Delete()
     {
+        AppDBSchemaConfiguration schema_config = new("microm", "dbo");
+
         using var client = new DatabaseClient(DatabaseConfiguration.Server, DatabaseConfiguration.TestDatabase, DatabaseConfiguration.user, DatabaseConfiguration.password);
         var cts = new CancellationTokenSource();
 
-        TestQueue test = new(client);
+        TestQueue test = new(client, schema_name: schema_config.APPSchema);
         test.Def.c_queue_id.Value = "2";
         test.Def.vc_description.Value = "Test 2";
         test.Def.c_queuetype_id.Value = nameof(QueueType.VALUE3);
@@ -362,22 +380,23 @@ public class C_EntityTests
 
         await client.Disconnect();
 
-        var drop = new TestQueue(client);
+        var drop = new TestQueue(client, schema_name: schema_config.APPSchema);
         drop.Def.c_queue_id.Value = "2";
         await drop.DeleteData(cts.Token);
 
-        var queue = await TestQueue.CreateAndGet(client, "2", cts.Token);
-
+        var queue = await TestQueue.CreateAndGet(client, "2", cts.Token, schema_name: schema_config.APPSchema);
         Assert.IsNull(queue.Def.vc_description.Value);
 
     }
 
     public async Task Queue_Test_Action()
     {
+        AppDBSchemaConfiguration schema_config = new("microm", "dbo");
+
         using var client = new DatabaseClient(DatabaseConfiguration.Server, DatabaseConfiguration.TestDatabase, DatabaseConfiguration.user, DatabaseConfiguration.password);
         var cts = new CancellationTokenSource();
 
-        TestQueue test = new(client);
+        TestQueue test = new(client, schema_name: schema_config.APPSchema);
 
         DataWebAPIRequest args = new()
         {

@@ -1,32 +1,35 @@
-﻿using MicroM.Core;
+﻿using MicroM.Configuration;
+using MicroM.Core;
 using MicroM.Data;
 using MicroM.Extensions;
 using MicroM.Generators.SQLGenerator;
 using System.Reflection;
 using static MicroM.Database.DatabaseManagement;
 using static MicroM.Database.DatabaseSchemaProcedures;
-using static MicroM.Database.DatabaseSchemaTables;
 
 namespace MicroM.Database;
 
 public static class DatabaseSchema
 {
-
+    /// <summary>
+    /// Creates the database schema for the specified entity type asynchronously in the provided <see cref="AppDBSchemaConfiguration.APPSchema"/> 
+    /// </summary>
     public static async Task<T> CreateDBSchema<T>(
         IEntityClient ec,
         bool create_or_alter, bool create_if_not_exists, bool create_custom_procs, bool drop_and_recreate_indexes,
         bool create_procs,
-        CancellationToken ct,
-        bool replace_dd_schema = false
+        AppDBSchemaConfiguration schema_config,
+        CancellationToken ct
         ) where T : EntityBase, new()
     {
 
         bool should_close = !(ec.ConnectionState == System.Data.ConnectionState.Open);
         T ent = new();
+        ent.Init(null, null, schema_config.APPSchema);
 
         try
         {
-            ent.Init(ec);
+            ent.Init(ec, schema_name: schema_config.APPSchema);
 
             if (ent.Def.Fake == false)
             {
@@ -42,7 +45,7 @@ public static class DatabaseSchema
                 {
                     // If drop_and_recreate_indexes is true, we should only get the script with the primiary key and no indexes
                     // as we will drop and recreate them
-                    await ec.ExecuteSQLNonQuery(ent.AsCreateTable(table_and_primary_key_only: drop_and_recreate_indexes), ct);
+                    await ec.ExecuteSQLNonQuery(ent.AsCreateTable(schema_config, table_and_primary_key_only: drop_and_recreate_indexes), ct);
                 }
 
                 if (table_exists || create)
@@ -56,20 +59,20 @@ public static class DatabaseSchema
 
                         await ec.ExecuteSQLNonQuery(ent.AsAlterPrimaryKey() ?? "", ct);
                         await ec.ExecuteSQLNonQuery(ent.AsAlterUniqueConstraints() ?? "", ct);
-                        await ec.ExecuteSQLNonQuery(ent.AsAlterForeignKeys(with_drop: false) ?? "", ct);
+                        await ec.ExecuteSQLNonQuery(ent.AsAlterForeignKeys(schema_config, with_drop: false) ?? "", ct);
                         await ec.ExecuteSQLNonQuery(ent.AsCreateIndexes() ?? "", ct);
                     }
 
                     if (create_procs)
                     {
-                        await CreateProcs(ent, ec, create_or_alter, ct, create_custom_procs);
+                        await CreateProcs(ent, ec, create_or_alter, schema_config.DDSchema, ct, create_custom_procs);
                     }
                 }
 
             }
             else
             {
-                if (create_procs && create_custom_procs) await CreateCustomProcs<T>(ent, ec, ct, replace_dd_schema);
+                if (create_procs && create_custom_procs) await CreateCustomProcs<T>(ent, ec, ct, schema_config.APPSchema);
             }
 
         }
@@ -81,7 +84,7 @@ public static class DatabaseSchema
         return ent;
     }
 
-    public async static Task CreateAllEntitiesProcs(IEntityClient ec, CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>> entities, CustomOrderedDictionary<CustomScript>? classified_custom_scripts, CancellationToken ct, bool create_or_alter = true)
+    public async static Task CreateAllEntitiesProcs(IEntityClient ec, CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>> entities, CustomOrderedDictionary<CustomScript>? classified_custom_scripts, string dd_schema, CancellationToken ct, bool create_or_alter = true)
     {
         bool should_close = !(ec.ConnectionState == System.Data.ConnectionState.Open);
         try
@@ -137,10 +140,10 @@ public static class DatabaseSchema
             // Standard generated procs are created if no custom proc replacing it exists
             foreach (var options in entities.Values)
             {
-                await CreateGeneratedProcs(options.EntityInstance, ec, classified_custom_scripts, create_or_alter, ct);
+                await CreateGeneratedProcs(options.EntityInstance, ec, classified_custom_scripts, create_or_alter, dd_schema, ct);
             }
 
-            // the rest of the custom procs, in order
+            // the rest of the custom procs, in order, that correspond to the entities defined mnemonic code
             if (classified_custom_scripts?.Count > 0)
             {
 
@@ -177,7 +180,7 @@ public static class DatabaseSchema
         }
     }
 
-    public async static Task CreateEntitiesDatabaseSchemaAndDictionary(IEntityClient ec, CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>> entities, CancellationToken ct, bool create_or_alter = false)
+    public async static Task CreateEntitiesDatabaseSchemaAndDictionary(IEntityClient ec, CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>> entities, AppDBSchemaConfiguration schema_config, CancellationToken ct, bool create_or_alter = false)
     {
         bool should_close = !(ec.ConnectionState == System.Data.ConnectionState.Open);
 
@@ -191,39 +194,20 @@ public static class DatabaseSchema
                 throw new InvalidOperationException("No entities to create.");
             }
 
-            await CreateAllInexistingSchemas(ec, entities, ct);
+            await entities.CreateSchemaAndProcs(ec, schema_config, ct, create_or_alter);
 
             Assembly asm = entities[0]!.EntityType.Assembly;
-            custom_procs = await asm.GetAllClassifiedCustomProcs(ct);
 
-            // Create types and sequences
-            if (custom_procs?.Count > 0) await CreateAllCustomSQLTypes(ec, custom_procs, ct);
-
-            // Tables and constraints
-            await CreateEntitiesInexistentTables(ec, entities, ct);
-
-            await CreateEntitiesConstraintsAndIndexes(ec, entities, ct);
-
-            // create custom tables if any
-            if (custom_procs?.Count > 0)
-            {
-                await CreateAllCustomTables(ec, custom_procs, ct);
-                await CreateAllCustomViews(ec, custom_procs, ct);
-            }
-
-            await CreateAllEntitiesProcs(ec, entities, custom_procs, ct, create_or_alter);
-
-            await asm.CreateAllCategories(ec, ct);
-            await asm.CreateAllStatus(ec, ct);
-
+            await asm.CreateAllCategories(ec, ct, schema_config.DDSchema);
+            await asm.CreateAllStatus(ec, ct, schema_config.DDSchema);
 
             // MMC: add to data dictionary
-            await DataDictionarySchema.AddEntitiesToDataDictionary(ec, entities, ct);
+            await entities.AddEntitiesToDataDictionary(ec, ct, schema_config.DDSchema);
 
         }
         finally
         {
-            if (custom_procs?.Count > 0) custom_procs.Clear();
+            custom_procs?.Clear();
             if (should_close) await ec.Disconnect();
         }
     }

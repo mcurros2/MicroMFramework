@@ -6,7 +6,7 @@ namespace MicroM.Configuration.Entities;
 
 public class EntitiesAssembliesDef : EntityDefinition
 {
-    public EntitiesAssembliesDef() : base("eas", nameof(EntitiesAssemblies), schemaName: DataDefaults.DataDictionarySchema) { SQLCreationOptions = SQLCreationOptionsMetadata.WithIUpdateAndIDrop; }
+    public EntitiesAssembliesDef() : base("eas", nameof(EntitiesAssemblies)) { SQLCreationOptions = SQLCreationOptionsMetadata.WithIUpdateAndIDrop; }
 
     public readonly Column<string> c_assembly_id = Column<string>.PK(autonum: true);
     public readonly Column<string> vc_assemblypath = Column<string>.Text(size: 2048);
@@ -23,6 +23,8 @@ public class EntitiesAssemblies : Entity<EntitiesAssembliesDef>
 {
     public EntitiesAssemblies() : base() { }
 
-    public EntitiesAssemblies(IEntityClient ec, IMicroMEncryption? encryptor = null) : base(ec, encryptor) { }
+    public EntitiesAssemblies(string? schema_name) : base(schema_name) { }
+
+    public EntitiesAssemblies(IEntityClient ec, IMicroMEncryption? encryptor = null, string? schema_name = null) : base(ec, encryptor, schema_name) { }
 
 }

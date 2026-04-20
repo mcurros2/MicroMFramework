@@ -14,12 +14,12 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Collections.Concurrent;
 using System.Reflection;
-using static MicroM.Extensions.DataExtensions;
 using static System.ArgumentNullException;
 
 namespace MicroM.Web.Services;
 
 public sealed record MicroMConfigurationReloaded { }
+
 
 public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfiguration
 {
@@ -554,6 +554,5 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
         _log.LogWarning("The path {path} does not match the configured base path {basePath}", fullPath, _basePathString.Value);
         return null;
     }
-
 
 }

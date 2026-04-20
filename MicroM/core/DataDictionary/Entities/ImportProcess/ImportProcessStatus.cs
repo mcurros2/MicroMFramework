@@ -1,6 +1,4 @@
-﻿
-using MicroM.Configuration;
-using MicroM.Core;
+﻿using MicroM.Core;
 using MicroM.Data;
 using MicroM.Web.Services;
 
@@ -9,7 +7,7 @@ namespace MicroM.DataDictionary.Entities;
 
 public class ImportProcessStatusDef : EntityDefinition
 {
-    public ImportProcessStatusDef() : base("iprs", nameof(ImportProcessStatus), schemaName: DataDefaults.DataDictionarySchema) { }
+    public ImportProcessStatusDef() : base("iprs", nameof(ImportProcessStatus)) { }
 
     public readonly Column<string> c_import_process_id = Column<string>.PK();
     public readonly Column<string> c_status_id = Column<string>.PK();
@@ -25,6 +23,7 @@ public class ImportProcessStatusDef : EntityDefinition
 public class ImportProcessStatus : Entity<ImportProcessStatusDef>
 {
     public ImportProcessStatus() : base() { }
-    public ImportProcessStatus(IEntityClient ec, IMicroMEncryption? encryptor = null) : base(ec, encryptor) { }
+    public ImportProcessStatus(string? schema_name) : base(schema_name) { }
+    public ImportProcessStatus(IEntityClient ec, IMicroMEncryption? encryptor = null, string? schema_name = null) : base(ec, encryptor, schema_name) { }
 
 }

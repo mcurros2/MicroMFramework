@@ -17,6 +17,8 @@
 		, @AccountLockoutMinutes Int
 		, @MaxBadLogonAttempts Int
 		, @MaxRefreshTokenAttempts Int
+        , @app_schema VarChar(50)
+        , @datadictionary_schema VarChar(50)
 		, @authenticationtype_id Char(20)
 		, @assembly1 VarChar(2048)
 		, @assembly2 VarChar(2048)
@@ -91,6 +93,8 @@ begin try
 			, @AccountLockoutMinutes
 			, @MaxBadLogonAttempts
 			, @MaxRefreshTokenAttempts
+            , @app_schema
+            , @datadictionary_schema
             , @now
             , @now
             , @webusr
@@ -213,6 +217,8 @@ begin try
 			, i_AccountLockoutMinutes = @AccountLockoutMinutes
 			, i_MaxBadLogonAttempts = @MaxBadLogonAttempts
 			, i_MaxRefreshTokenAttempts = @MaxRefreshTokenAttempts
+            , vc_app_schema = @app_schema
+            , vc_datadictionary_schema = @datadictionary_schema
             , vc_webluuser = @webusr
             , vc_luuser = @login
             , dt_lu = @now

@@ -50,12 +50,12 @@ namespace LibraryTest
     {
 
         public TestQueue() : base() { }
+        public TestQueue(string? schema_name) : base(schema_name: schema_name) { }
+        public TestQueue(IEntityClient ec, IMicroMEncryption? encryptor = null, string? schema_name = null) : base(ec, encryptor, schema_name: schema_name) { }
 
-        public TestQueue(IEntityClient ec, IMicroMEncryption? encryptor = null) : base(ec, encryptor) { }
-
-        public async static Task<TestQueue> CreateAndGet(IEntityClient ec, string queue_id, CancellationToken ct)
+        public async static Task<TestQueue> CreateAndGet(IEntityClient ec, string queue_id, CancellationToken ct, string? schema_name = null)
         {
-            var ret = new TestQueue(ec);
+            var ret = new TestQueue(ec, schema_name: schema_name);
             ret.Def.c_queue_id.Value = queue_id;
             await ret.Data.GetData(ct);
             return ret;

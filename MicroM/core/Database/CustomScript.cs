@@ -24,5 +24,5 @@ public enum SQLProcStandardType
     Unknown
 }
 
-public record CustomScript(string? ProcName, string? mneo, SQLScriptType ProcType, SQLProcStandardType StandardType, string SQLText);
+public record CustomScript(string? ProcName, string? mneo, SQLScriptType ProcType, SQLProcStandardType StandardType, string SQLText, string? schema);
 

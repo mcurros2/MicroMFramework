@@ -6,7 +6,7 @@ namespace MicroM.Configuration.Entities;
 
 public class ApplicationsUrlsDef : EntityDefinition
 {
-    public ApplicationsUrlsDef() : base("apu", nameof(ApplicationsUrls), schemaName: DataDefaults.DataDictionarySchema) { SQLCreationOptions = SQLCreationOptionsMetadata.WithIUpdate; }
+    public ApplicationsUrlsDef() : base("apu", nameof(ApplicationsUrls)) { SQLCreationOptions = SQLCreationOptionsMetadata.WithIUpdate; }
 
     public readonly Column<string> c_application_id = Column<string>.PK();
     public readonly Column<string> c_application_url_id = Column<string>.PK(autonum: true);
@@ -22,6 +22,7 @@ public class ApplicationsUrlsDef : EntityDefinition
 public class ApplicationsUrls : Entity<ApplicationsUrlsDef>
 {
     public ApplicationsUrls() : base() { }
-    public ApplicationsUrls(IEntityClient ec, IMicroMEncryption? encryptor = null) : base(ec, encryptor) { }
+    public ApplicationsUrls(string? schema_name) : base(schema_name) { }
+    public ApplicationsUrls(IEntityClient ec, IMicroMEncryption? encryptor = null, string? schema_name = null) : base(ec, encryptor, schema_name) { }
 
 }

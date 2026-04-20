@@ -7,7 +7,7 @@ namespace MicroM.Configuration.Entities;
 
 public class ApplicationAdConfigurationDef : EntityDefinition
 {
-    public ApplicationAdConfigurationDef() : base("aad", nameof(ApplicationAdConfiguration), schemaName: DataDefaults.DataDictionarySchema) { }
+    public ApplicationAdConfigurationDef() : base("aad", nameof(ApplicationAdConfiguration)) { }
 
     public readonly Column<string> c_ad_configuration_id = Column<string>.PK(autonum: true);
     public readonly Column<string> c_application_id = Column<string>.FK();
@@ -36,6 +36,9 @@ public class ApplicationAdConfigurationDef : EntityDefinition
 public class ApplicationAdConfiguration : Entity<ApplicationAdConfigurationDef>
 {
     public ApplicationAdConfiguration() : base() { }
-    public ApplicationAdConfiguration(IEntityClient ec, IMicroMEncryption? encryptor = null) : base(ec, encryptor) { }
+
+    public ApplicationAdConfiguration(string? schema_name) : base(schema_name) { }
+
+    public ApplicationAdConfiguration(IEntityClient ec, IMicroMEncryption? encryptor = null, string? schema_name = null) : base(ec, encryptor, schema_name) { }
 }
 

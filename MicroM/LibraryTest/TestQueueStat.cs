@@ -38,11 +38,11 @@ public class TestQueueStatus : Entity<TestQueueStatusDef>
 
     public TestQueueStatus() : base() { }
 
-    public TestQueueStatus(IEntityClient ec, IMicroMEncryption? encryptor = null) : base(ec, encryptor) { }
+    public TestQueueStatus(IEntityClient ec, IMicroMEncryption? encryptor = null, string? schema_name = null) : base(ec, encryptor) { }
 
-    public async static Task<TestQueueStatus> CreateAndGet(IEntityClient ec, string queue_id, string status_id, CancellationToken ct)
+    public async static Task<TestQueueStatus> CreateAndGet(IEntityClient ec, string queue_id, string status_id, CancellationToken ct, string? schema_name = null)
     {
-        var ret = new TestQueueStatus(ec);
+        var ret = new TestQueueStatus(ec, schema_name: schema_name);
         ret.Def.c_queue_id.Value = queue_id;
         ret.Def.c_status_id.Value = status_id;
         await ret.Data.GetData(ct);

@@ -7,7 +7,7 @@ namespace MicroM.Configuration.Entities;
 
 public class ApplicationsCatDef : EntityDefinition
 {
-    public ApplicationsCatDef() : base("appc", nameof(ApplicationsCat), schemaName: DataDefaults.DataDictionarySchema) { }
+    public ApplicationsCatDef() : base("appc", nameof(ApplicationsCat)) { }
 
     public readonly Column<string> c_application_id = Column<string>.PK();
     public readonly Column<string> c_category_id = Column<string>.PK();
@@ -22,6 +22,7 @@ public class ApplicationsCatDef : EntityDefinition
 public class ApplicationsCat : Entity<ApplicationsCatDef>
 {
     public ApplicationsCat() : base() { }
-    public ApplicationsCat(IEntityClient ec, IMicroMEncryption? encryptor = null) : base(ec, encryptor) { }
+    public ApplicationsCat(string? schema_name) : base(schema_name) { }
+    public ApplicationsCat(IEntityClient ec, IMicroMEncryption? encryptor = null, string? schema_name = null) : base(ec, encryptor, schema_name) { }
 
 }

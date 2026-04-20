@@ -1,5 +1,4 @@
-﻿using MicroM.Configuration;
-using MicroM.Core;
+﻿using MicroM.Core;
 using MicroM.Data;
 using MicroM.Web.Services;
 using Microsoft.IdentityModel.Tokens;
@@ -23,7 +22,7 @@ public record OidcSessionItem
 
 public class ApplicationOidcActiveSessionsDef : EntityDefinition
 {
-    public ApplicationOidcActiveSessionsDef() : base("aos", nameof(ApplicationOidcActiveSessions), schemaName: DataDefaults.DataDictionarySchema) { }
+    public ApplicationOidcActiveSessionsDef() : base("aos", nameof(ApplicationOidcActiveSessions)) { }
 
     public readonly Column<string> c_application_id = Column<string>.PK();
     public readonly Column<string> c_user_id = Column<string>.PK(); // UserID is different at the IdP and the client app, treat as local
@@ -75,7 +74,8 @@ public class ApplicationOidcActiveSessionsDef : EntityDefinition
 public class ApplicationOidcActiveSessions : Entity<ApplicationOidcActiveSessionsDef>
 {
     public ApplicationOidcActiveSessions() : base() { }
-    public ApplicationOidcActiveSessions(IEntityClient ec, IMicroMEncryption? encryptor = null) : base(ec, encryptor) { }
+    public ApplicationOidcActiveSessions(string? schema_name) : base(schema_name) { }
+    public ApplicationOidcActiveSessions(IEntityClient ec, IMicroMEncryption? encryptor = null, string? schema_name = null) : base(ec, encryptor, schema_name) { }
 
     public static string GetDerivedSub(string client_app_id, string idp_user_id, string subject_pepper)
     {

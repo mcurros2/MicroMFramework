@@ -18,18 +18,18 @@ public abstract class Entity<TDefinition> : EntityBase where TDefinition : Entit
         Init(null);
     }
 
-    public Entity(string table_name)
+    public Entity(string? schema_name = null)
     {
-        Def = new TDefinition() { TableName = table_name };
+        Def = new TDefinition() { SchemaName = schema_name };
         Def.ValidateDefinition(typeof(TDefinition).ToString());
-        Init(null);
+        Init(null, schema_name: schema_name);
     }
 
-    public Entity(IEntityClient ec, IMicroMEncryption? encryptor)
+    public Entity(IEntityClient ec, IMicroMEncryption? encryptor, string? schema_name = null)
     {
-        Def = new TDefinition();
+        Def = new TDefinition() { SchemaName = schema_name };
         Def.ValidateDefinition(typeof(TDefinition).ToString());
-        Init(ec, encryptor);
+        Init(ec, encryptor, schema_name);
     }
 
 

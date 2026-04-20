@@ -6,7 +6,7 @@ namespace MicroM.Configuration.Entities;
 
 public class MicromApplicationCertificatesDef : EntityDefinition
 {
-    public MicromApplicationCertificatesDef() : base("mac", nameof(MicromApplicationCertificates), schemaName: DataDefaults.DataDictionarySchema) { SQLCreationOptions = SQLCreationOptionsMetadata.WithIUpdate; }
+    public MicromApplicationCertificatesDef() : base("mac", nameof(MicromApplicationCertificates)) { SQLCreationOptions = SQLCreationOptionsMetadata.WithIUpdate; }
 
     public readonly Column<string> c_application_id = Column<string>.PK();
     public readonly Column<string> c_certificate_id = Column<string>.PK(autonum: true);
@@ -26,7 +26,8 @@ public class MicromApplicationCertificatesDef : EntityDefinition
 public class MicromApplicationCertificates : Entity<MicromApplicationCertificatesDef>
 {
     public MicromApplicationCertificates() : base() { }
-    public MicromApplicationCertificates(IEntityClient ec, IMicroMEncryption? encryptor = null) : base(ec, encryptor) { }
+    public MicromApplicationCertificates(string? schema_name) : base(schema_name) { }
+    public MicromApplicationCertificates(IEntityClient ec, IMicroMEncryption? encryptor = null, string? schema_name = null) : base(ec, encryptor, schema_name) { }
 
     public static (Guid guid, byte[] certificate, string password) CreateNewApplicationCertificate(string application_id)
     {

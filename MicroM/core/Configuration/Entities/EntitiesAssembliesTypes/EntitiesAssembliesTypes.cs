@@ -6,7 +6,7 @@ namespace MicroM.Configuration.Entities;
 
 public class EntitiesAssembliesTypesDef : EntityDefinition
 {
-    public EntitiesAssembliesTypesDef() : base("eat", nameof(EntitiesAssembliesTypes), schemaName: DataDefaults.DataDictionarySchema) { SQLCreationOptions = SQLCreationOptionsMetadata.WithIUpdateAndIDrop; }
+    public EntitiesAssembliesTypesDef() : base("eat", nameof(EntitiesAssembliesTypes)) { SQLCreationOptions = SQLCreationOptionsMetadata.WithIUpdateAndIDrop; }
 
     public readonly Column<string> c_assembly_id = Column<string>.PK();
     public readonly Column<string> c_assemblytype_id = Column<string>.PK(autonum: true);
@@ -25,6 +25,7 @@ public class EntitiesAssembliesTypesDef : EntityDefinition
 public class EntitiesAssembliesTypes : Entity<EntitiesAssembliesTypesDef>
 {
     public EntitiesAssembliesTypes() : base() { }
-    public EntitiesAssembliesTypes(IEntityClient ec, IMicroMEncryption? encryptor = null) : base(ec, encryptor) { }
+    public EntitiesAssembliesTypes(string? schema_name) : base(schema_name) { }
+    public EntitiesAssembliesTypes(IEntityClient ec, IMicroMEncryption? encryptor = null, string? schema_name = null) : base(ec, encryptor, schema_name) { }
 
 }

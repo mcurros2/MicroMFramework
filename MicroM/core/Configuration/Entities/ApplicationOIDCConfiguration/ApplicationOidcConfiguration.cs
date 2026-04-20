@@ -6,7 +6,7 @@ namespace MicroM.Configuration.Entities;
 
 public class ApplicationOidcConfigurationDef : EntityDefinition
 {
-    public ApplicationOidcConfigurationDef() : base("aoc", nameof(ApplicationOidcConfiguration), schemaName: DataDefaults.DataDictionarySchema) { SQLCreationOptions = SQLCreationOptionsMetadata.WithIUpdate; }
+    public ApplicationOidcConfigurationDef() : base("aoc", nameof(ApplicationOidcConfiguration)) { SQLCreationOptions = SQLCreationOptionsMetadata.WithIUpdate; }
 
     public readonly Column<string> c_application_id = Column<string>.PK();
 
@@ -26,7 +26,10 @@ public class ApplicationOidcConfigurationDef : EntityDefinition
 public class ApplicationOidcConfiguration : Entity<ApplicationOidcConfigurationDef>
 {
     public ApplicationOidcConfiguration() : base() { }
-    public ApplicationOidcConfiguration(IEntityClient ec, IMicroMEncryption? encryptor = null) : base(ec, encryptor) { }
+
+    public ApplicationOidcConfiguration(string? schema_name) : base(schema_name) { }
+
+    public ApplicationOidcConfiguration(IEntityClient ec, IMicroMEncryption? encryptor = null, string? schema_name = null) : base(ec, encryptor, schema_name) { }
 
 }
 

@@ -1,5 +1,4 @@
-﻿using MicroM.Configuration;
-using MicroM.Core;
+﻿using MicroM.Core;
 using MicroM.Data;
 using MicroM.Web.Services;
 
@@ -7,7 +6,7 @@ namespace MicroM.DataDictionary.Entities;
 
 public class CategoriesValuesDef : EntityDefinition
 {
-    public CategoriesValuesDef() : base("cav", nameof(CategoriesValues), schemaName: DataDefaults.DataDictionarySchema) { }
+    public CategoriesValuesDef() : base("cav", nameof(CategoriesValues)) { }
 
     public readonly Column<string> c_category_id = Column<string>.PK();
     public readonly Column<string> c_categoryvalue_id = Column<string>.PK();
@@ -23,6 +22,7 @@ public class CategoriesValuesDef : EntityDefinition
 public class CategoriesValues : Entity<CategoriesValuesDef>
 {
     public CategoriesValues() : base() { }
-    public CategoriesValues(IEntityClient ec, IMicroMEncryption? encryptor = null) : base(ec, encryptor) { }
+    public CategoriesValues(string? schema_name) : base(schema_name) { }
+    public CategoriesValues(IEntityClient ec, IMicroMEncryption? encryptor = null, string? schema_name = null) : base(ec, encryptor, schema_name) { }
 
 }

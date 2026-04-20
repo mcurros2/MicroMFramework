@@ -8,7 +8,7 @@ namespace MicroM.Configuration.Entities;
 
 public class ConfigurationDBDef : EntityDefinition
 {
-    public ConfigurationDBDef() : base("dfg", nameof(ConfigurationDB), schemaName: DataDefaults.DataDictionarySchema) { Fake = true; }
+    public ConfigurationDBDef() : base("dfg", nameof(ConfigurationDB)) { Fake = true; }
 
     public readonly Column<string> c_confgidb_id = Column<string>.PK(value: "1");
 
@@ -40,7 +40,8 @@ public class ConfigurationDBDef : EntityDefinition
 public class ConfigurationDB : Entity<ConfigurationDBDef>
 {
     public ConfigurationDB() : base() { }
-    public ConfigurationDB(IEntityClient ec, IMicroMEncryption? encryptor = null) : base(ec, encryptor) { }
+    public ConfigurationDB(string? schema_name) : base(schema_name) { }
+    public ConfigurationDB(IEntityClient ec, IMicroMEncryption? encryptor = null, string? schema_name = null) : base(ec, encryptor, schema_name) { }
 
 
     public override async Task<bool> GetData(CancellationToken ct, MicroMOptions? options = null, Dictionary<string, object>? server_claims = null, IWebAPIServices? api = null, string? app_id = null)

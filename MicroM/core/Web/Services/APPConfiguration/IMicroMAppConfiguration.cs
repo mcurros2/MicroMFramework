@@ -25,4 +25,5 @@ public interface IMicroMAppConfiguration
     public bool IsCORSOriginAllowed(string? app_id, string origin);
 
     public string? GetTenantPath(HttpContext context);
+
 }

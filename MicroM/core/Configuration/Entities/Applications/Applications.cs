@@ -12,7 +12,7 @@ namespace MicroM.Configuration.Entities;
 
 public class ApplicationsDef : EntityDefinition
 {
-    public ApplicationsDef() : base("app", nameof(Applications), schemaName: DataDefaults.DataDictionarySchema) { SQLCreationOptions = SQLCreationOptionsMetadata.WithIUpdate; }
+    public ApplicationsDef() : base("app", nameof(Applications)) { SQLCreationOptions = SQLCreationOptionsMetadata.WithIUpdate; }
 
     public readonly Column<string> c_application_id = Column<string>.PK();
     public readonly Column<string> vc_appname = Column<string>.Text();
@@ -35,6 +35,9 @@ public class ApplicationsDef : EntityDefinition
     public readonly Column<int> i_AccountLockoutMinutes = new();
     public readonly Column<int> i_MaxBadLogonAttempts = new();
     public readonly Column<int> i_MaxRefreshTokenAttempts = new();
+
+    public readonly Column<string?> vc_app_schema = Column<string?>.Text(size: 50, nullable: true);
+    public readonly Column<string?> vc_datadictionary_schema = Column<string?>.Text(size: 50, nullable: true);
 
     public readonly Column<string> c_authenticationtype_id = Column<string>.EmbedCategory(nameof(AuthenticationTypes));
 
@@ -81,7 +84,17 @@ public class ApplicationsDef : EntityDefinition
 public class Applications : Entity<ApplicationsDef>
 {
     public Applications() : base() { }
-    public Applications(IEntityClient ec, IMicroMEncryption? encryptor = null) : base(ec, encryptor) { }
+    public Applications(string? schema_name) : base(schema_name) { }
+    public Applications(IEntityClient ec, IMicroMEncryption? encryptor = null, string? schema_name = null) : base(ec, encryptor, schema_name) { }
+
+    private ApplicationOption GetAppConfig(IWebAPIServices? api)
+    {
+        ArgumentNullException.ThrowIfNull(api, nameof(api));
+        ApplicationOption? app_cfg = api.app_config.GetAppConfiguration(Def.c_application_id.Value);
+        ArgumentNullException.ThrowIfNull(app_cfg, nameof(app_cfg));
+
+        return app_cfg;
+    }
 
     private async Task<DBStatusResult> PerformCreateOrDropDatabase(CancellationToken ct, MicroMOptions? options = null, Dictionary<string, object>? server_claims = null, IWebAPIServices? api = null)
     {
@@ -109,13 +122,15 @@ public class Applications : Entity<ApplicationsDef>
 
         if (Def.b_createdatabase.Value)
         {
-            var result = await CreateAppDatabase(this, false, ct, options, server_claims, api);
+            var app_cfg = GetAppConfig(api);
+            var result = await CreateAppDatabase(this, false, app_cfg, ct, options, server_claims, api);
             if (result.Failed) return result;
         }
 
         if (Def.b_createdatabase.Value == false && Def.b_dropdatabase.Value == false && Def.b_appdbexists.Value && Def.b_updatedatabase.Value == true)
         {
-            var result = await UpdateAppDatabase(this, ct, server_claims);
+            var app_cfg = GetAppConfig(api);
+            var result = await UpdateAppDatabase(this, app_cfg, ct, server_claims);
             if (result.Failed) return result;
         }
 
@@ -157,10 +172,10 @@ public class Applications : Entity<ApplicationsDef>
             var result = await base.InsertData(ct, throw_dbstat_exception, options, server_claims, api);
             if (!result.Failed && api != null)
             {
+                await api.app_config.RefreshConfiguration(Def.c_application_id.Value.Trim(), ct);
                 result = await PerformCreateOrDropDatabase(ct, options, server_claims, api);
                 if (!result.Failed)
                 {
-                    await api.app_config.RefreshConfiguration(Def.c_application_id.Value.Trim(), ct);
                     await api.securityService.RefreshGroupsSecurityRecords(Def.c_application_id.Value.Trim(), ct);
                 }
             }
@@ -211,10 +226,10 @@ public class Applications : Entity<ApplicationsDef>
 
             if (!result.Failed && api != null)
             {
+                await api.app_config.RefreshConfiguration(Def.c_application_id.Value.Trim(), ct);
                 result = await PerformCreateOrDropDatabase(ct, options, server_claims, api);
                 if (!result.Failed)
                 {
-                    await api.app_config.RefreshConfiguration(Def.c_application_id.Value.Trim(), ct);
                     await api.securityService.RefreshGroupsSecurityRecords(Def.c_application_id.Value.Trim(), ct);
                 }
             }
@@ -283,6 +298,11 @@ public class Applications : Entity<ApplicationsDef>
                     OIDCCertificateBlob = await fv.GetFieldValueAsync<byte[]?>(nameof(app_result.OIDCCertificateBlob), ct),
                     OIDCCertificatePassword = await fv.GetFieldValueAsync<string>(nameof(app_result.OIDCCertificatePassword), ct),
                     OIDCIdPSubjectPepper = await fv.GetFieldValueAsync<string?>(nameof(app_result.OIDCIdPSubjectPepper), ct),
+                    SchemaConfiguration = new AppDBSchemaConfiguration
+                    (
+                        APPSchema: await fv.GetFieldValueAsync<string?>(nameof(AppDBSchemaConfiguration.APPSchema), ct) ?? "dbo",
+                        DDSchema: await fv.GetFieldValueAsync<string?>(nameof(AppDBSchemaConfiguration.DDSchema), ct) ?? "dbo"
+                    )
                 };
 
                 var appurls = await fv.GetFieldValueAsync<string?>(nameof(app_result.FrontendURLS), ct);
@@ -303,35 +323,35 @@ public class Applications : Entity<ApplicationsDef>
 
             List<OIDCClientConfigurationOption> oidc_clients = [];
             oidc_clients = await app.Data.ExecuteProc(app.Def.app_GetOIDCClients, ct, set_parms_from_columns: false, mapper: async (IValueReader fv, string[] headers, string[] typeInfo, CancellationToken ct) =>
-            {
-                OIDCClientConfigurationOption client_result = new()
-                {
-                    ApplicationID = await fv.GetFieldValueAsync<string>(nameof(client_result.ApplicationID), ct),
-                    ClientAPPID = await fv.GetFieldValueAsync<string>(nameof(client_result.ClientAPPID), ct),
-                    URLFrontChannelLogout = await fv.GetFieldValueAsync<string>(nameof(client_result.URLFrontChannelLogout), ct),
-                    URLBackchannelLogout = await fv.GetFieldValueAsync<string>(nameof(client_result.URLBackchannelLogout), ct),
-                    URLClientJWKS = await fv.GetFieldValueAsync<string>(nameof(client_result.URLClientJWKS), ct),
-                    CertificateUniqueID = await fv.GetFieldValueAsync<string>(nameof(client_result.CertificateUniqueID), ct),
-                    APIKey = await fv.GetFieldValueAsync<string>(nameof(client_result.APIKey), ct),
-                    APISecret = await fv.GetFieldValueAsync<string>(nameof(client_result.APISecret), ct),
-                    OIDCSubjectPepper = await fv.GetFieldValueAsync<string>(nameof(client_result.OIDCSubjectPepper), ct),
-                };
+                    {
+                        OIDCClientConfigurationOption client_result = new()
+                        {
+                            ApplicationID = await fv.GetFieldValueAsync<string>(nameof(client_result.ApplicationID), ct),
+                            ClientAPPID = await fv.GetFieldValueAsync<string>(nameof(client_result.ClientAPPID), ct),
+                            URLFrontChannelLogout = await fv.GetFieldValueAsync<string>(nameof(client_result.URLFrontChannelLogout), ct),
+                            URLBackchannelLogout = await fv.GetFieldValueAsync<string>(nameof(client_result.URLBackchannelLogout), ct),
+                            URLClientJWKS = await fv.GetFieldValueAsync<string>(nameof(client_result.URLClientJWKS), ct),
+                            CertificateUniqueID = await fv.GetFieldValueAsync<string>(nameof(client_result.CertificateUniqueID), ct),
+                            APIKey = await fv.GetFieldValueAsync<string>(nameof(client_result.APIKey), ct),
+                            APISecret = await fv.GetFieldValueAsync<string>(nameof(client_result.APISecret), ct),
+                            OIDCSubjectPepper = await fv.GetFieldValueAsync<string>(nameof(client_result.OIDCSubjectPepper), ct),
+                        };
 
-                var redirect_urls = await fv.GetFieldValueAsync<string?>(nameof(client_result.URLAuthorizedRedirects), ct);
-                if (!string.IsNullOrEmpty(redirect_urls))
-                {
-                    client_result.URLAuthorizedRedirects = JsonSerializer.Deserialize<List<string>>(redirect_urls) ?? [];
-                }
+                        var redirect_urls = await fv.GetFieldValueAsync<string?>(nameof(client_result.URLAuthorizedRedirects), ct);
+                        if (!string.IsNullOrEmpty(redirect_urls))
+                        {
+                            client_result.URLAuthorizedRedirects = JsonSerializer.Deserialize<List<string>>(redirect_urls) ?? [];
+                        }
 
-                if (encryptor != null)
-                {
-                    client_result.APIKey = encryptor.Decrypt(client_result.APIKey);
-                    client_result.APISecret = encryptor.Decrypt(client_result.APISecret);
-                    client_result.OIDCSubjectPepper = encryptor.Decrypt(client_result.OIDCSubjectPepper);
-                }
+                        if (encryptor != null)
+                        {
+                            client_result.APIKey = encryptor.Decrypt(client_result.APIKey);
+                            client_result.APISecret = encryptor.Decrypt(client_result.APISecret);
+                            client_result.OIDCSubjectPepper = encryptor.Decrypt(client_result.OIDCSubjectPepper);
+                        }
 
-                return client_result;
-            });
+                        return client_result;
+                    });
 
             // Assign clients to the right application
             foreach (var app_item in result)

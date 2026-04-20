@@ -1,6 +1,4 @@
-﻿
-using MicroM.Configuration;
-using MicroM.Core;
+﻿using MicroM.Core;
 using MicroM.Data;
 using MicroM.Web.Services;
 
@@ -9,7 +7,7 @@ namespace MicroM.DataDictionary.Entities;
 
 public class FileStoreStatusDef : EntityDefinition
 {
-    public FileStoreStatusDef() : base("fsts", nameof(FileStoreStatus), schemaName: DataDefaults.DataDictionarySchema) { SQLCreationOptions = SQLCreationOptionsMetadata.WithIUpdateAndIDrop; }
+    public FileStoreStatusDef() : base("fsts", nameof(FileStoreStatus)) { SQLCreationOptions = SQLCreationOptionsMetadata.WithIUpdateAndIDrop; }
 
     public readonly Column<string> c_file_id = Column<string>.PK();
     public readonly Column<string> c_status_id = Column<string>.PK();
@@ -25,7 +23,8 @@ public class FileStoreStatusDef : EntityDefinition
 public class FileStoreStatus : Entity<FileStoreStatusDef>
 {
     public FileStoreStatus() : base() { }
-    public FileStoreStatus(IEntityClient ec, IMicroMEncryption? encryptor = null) : base(ec, encryptor) { }
+    public FileStoreStatus(string? schema_name) : base(schema_name) { }
+    public FileStoreStatus(IEntityClient ec, IMicroMEncryption? encryptor = null, string? schema_name = null) : base(ec, encryptor, schema_name) { }
 
 
 }

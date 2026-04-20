@@ -1,4 +1,6 @@
 ﻿using MicroM.Core;
+using MicroM.Data;
+using MicroM.Database;
 using MicroM.DataDictionary.Configuration;
 using System.Collections.Concurrent;
 using System.Reflection;
@@ -55,13 +57,39 @@ public static class ReflectionExtensions
         Dictionary<string, Type> entitiesTypes = new(StringComparer.OrdinalIgnoreCase);
         foreach (Type type in asm.GetTypes())
         {
-            if (typeof(Core.EntityBase).IsAssignableFrom(type))
+            if (typeof(EntityBase).IsAssignableFrom(type))
             {
                 entitiesTypes.Add(type.Name, type);
             }
         }
         return entitiesTypes;
     }
+
+    public static CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>> GetEntitiesInstances(this Assembly assembly, IEntityClient ec, CancellationToken ct, bool create_or_alter = true, string? schema_name = null)
+    {
+        CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>> ret = new();
+
+        foreach (Type type in assembly.GetTypes())
+        {
+            ct.ThrowIfCancellationRequested();
+            if (typeof(EntityBase).IsAssignableFrom(type))
+            {
+
+                var ent = (EntityBase?)Activator.CreateInstance(type) ?? throw new InvalidOperationException($"Can't create entity instance. {type.Name}");
+                if (ent != null)
+                {
+                    ent.Init(ec, schema_name: schema_name);
+                    ret.Add(type.Name, new DatabaseSchemaCreationOptions<EntityBase>(
+                        ent,
+                        create_or_alter
+                        ));
+                }
+            }
+        }
+
+        return ret;
+    }
+
 
     public static Dictionary<string, Type> GetCategoriesTypes(this Assembly asm)
     {

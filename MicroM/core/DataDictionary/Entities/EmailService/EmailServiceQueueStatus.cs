@@ -1,5 +1,4 @@
-﻿using MicroM.Configuration;
-using MicroM.Core;
+﻿using MicroM.Core;
 using MicroM.Data;
 using MicroM.Web.Services;
 
@@ -7,7 +6,7 @@ namespace MicroM.DataDictionary.Entities;
 
 public class EmailServiceQueueStatusDef : EntityDefinition
 {
-    public EmailServiceQueueStatusDef() : base("emqs", nameof(EmailServiceQueueStatus), schemaName: DataDefaults.DataDictionarySchema) { }
+    public EmailServiceQueueStatusDef() : base("emqs", nameof(EmailServiceQueueStatus)) { }
 
     public readonly Column<string> c_email_queue_id = Column<string>.PK();
     public readonly Column<string> c_status_id = Column<string>.PK();
@@ -22,6 +21,7 @@ public class EmailServiceQueueStatusDef : EntityDefinition
 public class EmailServiceQueueStatus : Entity<EmailServiceQueueStatusDef>
 {
     public EmailServiceQueueStatus() : base() { }
-    public EmailServiceQueueStatus(IEntityClient ec, IMicroMEncryption? encryptor = null) : base(ec, encryptor) { }
+    public EmailServiceQueueStatus(string? schema_name) : base(schema_name) { }
+    public EmailServiceQueueStatus(IEntityClient ec, IMicroMEncryption? encryptor = null, string? schema_name = null) : base(ec, encryptor, schema_name) { }
 
 }

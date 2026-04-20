@@ -36,7 +36,9 @@ select  [c_application_id] = rtrim(a.c_application_id)
 		, a.i_AccountLockoutMinutes
 		, a.i_MaxBadLogonAttempts
 		, a.i_MaxRefreshTokenAttempts
-		, [c_categoryvalue_id] = rtrim(b.c_categoryvalue_id)
+		, a.vc_app_schema
+		, a.vc_datadictionary_schema
+		, [c_authenticationtype_id] = rtrim(b.c_categoryvalue_id)
 		, vc_assembly1 = (select x.vc_assemblypath from asm x where x.c_application_id=a.c_application_id and x.i_order=1)
 		, vc_assembly2 = (select x.vc_assemblypath from asm x where x.c_application_id=a.c_application_id and x.i_order=2)
 		, vc_assembly3 = (select x.vc_assemblypath from asm x where x.c_application_id=a.c_application_id and x.i_order=3)

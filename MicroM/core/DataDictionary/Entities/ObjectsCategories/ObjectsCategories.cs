@@ -1,5 +1,4 @@
-﻿using MicroM.Configuration;
-using MicroM.Core;
+﻿using MicroM.Core;
 using MicroM.Data;
 using MicroM.Web.Services;
 
@@ -7,7 +6,7 @@ namespace MicroM.DataDictionary.Entities;
 
 public class ObjectsCategoriesDef : EntityDefinition
 {
-    public ObjectsCategoriesDef() : base("oca", nameof(ObjectsCategories), schemaName: DataDefaults.DataDictionarySchema) { }
+    public ObjectsCategoriesDef() : base("oca", nameof(ObjectsCategories)) { }
 
     public readonly Column<string> c_object_id = Column<string>.PK();
     public readonly Column<string> c_category_id = Column<string>.PK();
@@ -22,6 +21,7 @@ public class ObjectsCategoriesDef : EntityDefinition
 public class ObjectsCategories : Entity<ObjectsCategoriesDef>
 {
     public ObjectsCategories() : base() { }
-    public ObjectsCategories(IEntityClient ec, IMicroMEncryption? encryptor = null) : base(ec, encryptor) { }
+    public ObjectsCategories(string? schema_name) : base(schema_name) { }
+    public ObjectsCategories(IEntityClient ec, IMicroMEncryption? encryptor = null, string? schema_name = null) : base(ec, encryptor, schema_name) { }
 
 }

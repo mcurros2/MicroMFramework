@@ -1,5 +1,4 @@
-﻿using MicroM.Configuration;
-using MicroM.Core;
+﻿using MicroM.Core;
 using MicroM.Data;
 using MicroM.Web.Services;
 
@@ -7,7 +6,7 @@ namespace MicroM.DataDictionary.Entities;
 
 public class ProcsDef : EntityDefinition
 {
-    public ProcsDef() : base("prc", nameof(Procs), schemaName: DataDefaults.DataDictionarySchema) { }
+    public ProcsDef() : base("prc", nameof(Procs)) { }
 
     public readonly Column<string> c_object_id = Column<string>.PK();
     public readonly Column<int> c_proc_id = Column<int>.PK(autonum: true);
@@ -24,7 +23,7 @@ public class ProcsDef : EntityDefinition
 public class Procs : Entity<ProcsDef>
 {
     public Procs() : base() { }
-
-    public Procs(IEntityClient ec, IMicroMEncryption? encryptor = null) : base(ec, encryptor) { }
+    public Procs(string? schema_name) : base(schema_name) { }
+    public Procs(IEntityClient ec, IMicroMEncryption? encryptor = null, string? schema_name = null) : base(ec, encryptor, schema_name) { }
 
 }

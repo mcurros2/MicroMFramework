@@ -1,5 +1,4 @@
-﻿using MicroM.Configuration;
-using MicroM.Core;
+﻿using MicroM.Core;
 using MicroM.Data;
 using MicroM.Web.Services;
 
@@ -7,7 +6,7 @@ namespace MicroM.DataDictionary.Entities;
 
 public class ViewParmsDef : EntityDefinition
 {
-    public ViewParmsDef() : base("vip", nameof(ViewParms), schemaName: DataDefaults.DataDictionarySchema) { }
+    public ViewParmsDef() : base("vip", nameof(ViewParms)) { }
 
     public readonly Column<string> c_object_id = Column<string>.PK();
     public readonly Column<int> c_proc_id = Column<int>.PK();
@@ -28,7 +27,7 @@ public class ViewParmsDef : EntityDefinition
 public class ViewParms : Entity<ViewParmsDef>
 {
     public ViewParms() : base() { }
-
-    public ViewParms(IEntityClient ec, IMicroMEncryption? encryptor = null) : base(ec, encryptor) { }
+    public ViewParms(string? schema_name) : base(schema_name) { }
+    public ViewParms(IEntityClient ec, IMicroMEncryption? encryptor = null, string? schema_name = null) : base(ec, encryptor, schema_name) { }
 
 }

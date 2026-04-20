@@ -1,6 +1,4 @@
-﻿
-using MicroM.Configuration;
-using MicroM.Core;
+﻿using MicroM.Core;
 using MicroM.Data;
 using MicroM.Web.Services;
 
@@ -8,7 +6,7 @@ namespace MicroM.DataDictionary.Entities;
 
 public class MicromMenusItemsRoutesDef : EntityDefinition
 {
-    public MicromMenusItemsRoutesDef() : base("mir", nameof(MicromMenusItemsAllowedRoutes), schemaName: DataDefaults.DataDictionarySchema) { SQLCreationOptions = SQLCreationOptionsMetadata.WithIUpdate; }
+    public MicromMenusItemsRoutesDef() : base("mir", nameof(MicromMenusItemsAllowedRoutes)) { SQLCreationOptions = SQLCreationOptionsMetadata.WithIUpdate; }
 
     public readonly Column<string> c_menu_id = Column<string>.PK(size: 50);
     public readonly Column<string> c_menu_item_id = Column<string>.PK(size: 50);
@@ -29,6 +27,7 @@ public class MicromMenusItemsRoutesDef : EntityDefinition
 public class MicromMenusItemsAllowedRoutes : Entity<MicromMenusItemsRoutesDef>
 {
     public MicromMenusItemsAllowedRoutes() : base() { }
-    public MicromMenusItemsAllowedRoutes(IEntityClient ec, IMicroMEncryption? encryptor = null) : base(ec, encryptor) { }
+    public MicromMenusItemsAllowedRoutes(string? schema_name) : base(schema_name) { }
+    public MicromMenusItemsAllowedRoutes(IEntityClient ec, IMicroMEncryption? encryptor = null, string? schema_name = null) : base(ec, encryptor, schema_name) { }
 
 }

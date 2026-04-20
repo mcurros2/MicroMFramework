@@ -1,4 +1,5 @@
-﻿using MicroM.Core;
+﻿using MicroM.Configuration;
+using MicroM.Core;
 using MicroM.Data;
 using MicroM.Generators.SQLGenerator;
 using System.Text;
@@ -72,7 +73,7 @@ namespace MicroM.Database
             }
         }
 
-        public static async Task<CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>>> CreateEntitiesInexistentTables(IEntityClient ec, CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>> entities, CancellationToken ct)
+        public static async Task<CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>>> CreateEntitiesInexistentTables(IEntityClient ec, CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>> entities, AppDBSchemaConfiguration schema_config, CancellationToken ct)
         {
             bool should_close = !(ec.ConnectionState == System.Data.ConnectionState.Open);
             CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>> created_tables = new();
@@ -89,7 +90,7 @@ namespace MicroM.Database
                     // if the table does not exist, create it
                     if (inexisting_tables.Contains(options.EntityInstance.Def.FullTableName))
                     {
-                        var scripts = options.EntityInstance.AsCreateTable(table_and_primary_key_only: true);
+                        var scripts = options.EntityInstance.AsCreateTable(schema_config, table_and_primary_key_only: true);
                         if (scripts?.Count > 0)
                         {
                             sb_create_tables.Append(scripts[0]);
@@ -278,7 +279,7 @@ namespace MicroM.Database
             }
         }
 
-        public static async Task CreateEntitiesConstraintsAndIndexes(IEntityClient ec, CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>> entities, CancellationToken ct)
+        public static async Task CreateEntitiesConstraintsAndIndexes(IEntityClient ec, CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>> entities, AppDBSchemaConfiguration schema_config, CancellationToken ct)
         {
             bool should_close = !(ec.ConnectionState == System.Data.ConnectionState.Open);
             try
@@ -293,7 +294,7 @@ namespace MicroM.Database
                 {
                     sb_create_PKs.Append(options.EntityInstance.AsAlterPrimaryKey());
                     sb_create_UNs.Append(options.EntityInstance.AsAlterUniqueConstraints());
-                    sb_create_FKs.Append(options.EntityInstance.AsAlterForeignKeys());
+                    sb_create_FKs.Append(options.EntityInstance.AsAlterForeignKeys(schema_config));
                     sb_create_IDXs.Append(options.EntityInstance.AsCreateIndexes());
                 }
                 // create constraints and indexes

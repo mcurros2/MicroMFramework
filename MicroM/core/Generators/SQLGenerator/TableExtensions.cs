@@ -1,5 +1,7 @@
-﻿using MicroM.Core;
+﻿using MicroM.Configuration;
+using MicroM.Core;
 using MicroM.Data;
+using MicroM.Database;
 using MicroM.DataDictionary.Configuration;
 using MicroM.Extensions;
 using MicroM.Generators.Extensions;
@@ -44,7 +46,9 @@ public static class TableExtensions
     /// <summary>
     /// Returns a SQL script with the DDL to create the table and another script with indexes for each <see cref="EntityForeignKey{TParent, TChild}"/> (if they exist), for the <see cref="Entity{TDefinition}"/>
     /// </summary>
-    public static List<string> AsCreateTable<T>(this T entity, bool force = false, bool table_and_primary_key_only = false) where T : EntityBase
+    public static List<string> AsCreateTable<T>(this T entity,
+           AppDBSchemaConfiguration schema_config, bool force = false, bool table_and_primary_key_only = false
+        ) where T : EntityBase
     {
         List<string> result = [];
         if (entity.Def.Fake && force == false) return result;
@@ -53,7 +57,6 @@ public static class TableExtensions
         StringBuilder ret = new();
         StringBuilder sb_primary_key = new();
         StringBuilder sb_unique_constraints = new();
-
 
         ret.AppendFormat(CultureInfo.InvariantCulture, "create table {0}\n(\n", entity.Def.FullTableName);
 
@@ -96,11 +99,15 @@ public static class TableExtensions
             }
         }
 
+        var dd_types = DataDictionarySchema.GetCoreEntitiesTypes();
+
         foreach (var foreign_key in entity.Def.ForeignKeys.Values)
         {
             if (!foreign_key.Fake && !table_and_primary_key_only)
             {
                 EntityBase? parent_entity = (EntityBase?)Activator.CreateInstance(foreign_key.ParentEntityType) ?? throw new ArgumentException($"Cannot create foreign key {foreign_key.Name}. You may need to map columns.");
+                string parent_schema = dd_types.ContainsKey(foreign_key.ParentEntityType.Name) ? schema_config.DDSchema : schema_config.APPSchema;
+                parent_entity.Init(null, null, parent_schema);
 
                 if (foreign_key.KeyMappings.Count > 0)
                 {
@@ -474,19 +481,24 @@ public static class TableExtensions
         return sb_indexes.ToString();
     }
 
-    public static string? AsAlterForeignKeys<T>(this T entity, bool with_drop = false) where T : EntityBase
+    public static string? AsAlterForeignKeys<T>(this T entity, AppDBSchemaConfiguration schema_config, bool with_drop = false) where T : EntityBase
     {
         if (entity.Def.Fake) return null;
 
         StringBuilder sb_foreign_keys = new();
 
+        var dd_types = DataDictionarySchema.GetCoreEntitiesTypes();
+
         foreach (var foreign_key in entity.Def.ForeignKeys.Values)
         {
             if (!foreign_key.Fake)
             {
+
                 string fk_name = $"{(!entity.Def.QualifiedSchemaName.IsNullOrEmpty() ? $"{entity.Def.QualifiedSchemaName}." : "")}{foreign_key.Name}";
 
                 EntityBase? parent_entity = (EntityBase?)Activator.CreateInstance(foreign_key.ParentEntityType) ?? throw new ArgumentException($"Cannot create foreign key {fk_name}. You may need to map columns.");
+                string parent_schema = dd_types.ContainsKey(foreign_key.ParentEntityType.Name) ? schema_config.DDSchema : schema_config.APPSchema;
+                parent_entity.Init(null, null, parent_schema);
 
                 if (with_drop) sb_foreign_keys.AppendFormat(CultureInfo.InvariantCulture, "if object_id('{0}') is not null ALTER TABLE {0} DROP CONSTRAINT {1}\n", entity.Def.FullTableName, fk_name);
 

@@ -6,7 +6,7 @@ namespace MicroM.Configuration.Entities;
 
 public class ApplicationOidcClientsAuthorizedUrlsDef : EntityDefinition
 {
-    public ApplicationOidcClientsAuthorizedUrlsDef() : base("aou", nameof(ApplicationOidcClientsAuthorizedUrls), schemaName: DataDefaults.DataDictionarySchema) { }
+    public ApplicationOidcClientsAuthorizedUrlsDef() : base("aou", nameof(ApplicationOidcClientsAuthorizedUrls)) { }
 
     public readonly Column<string> c_application_id = Column<string>.PK();
     public readonly Column<string> c_client_app_id = Column<string>.PK();
@@ -22,6 +22,7 @@ public class ApplicationOidcClientsAuthorizedUrlsDef : EntityDefinition
 public class ApplicationOidcClientsAuthorizedUrls : Entity<ApplicationOidcClientsAuthorizedUrlsDef>
 {
     public ApplicationOidcClientsAuthorizedUrls() : base() { }
-    public ApplicationOidcClientsAuthorizedUrls(IEntityClient ec, IMicroMEncryption? encryptor = null) : base(ec, encryptor) { }
+    public ApplicationOidcClientsAuthorizedUrls(string? schema_name) : base(schema_name) { }
+    public ApplicationOidcClientsAuthorizedUrls(IEntityClient ec, IMicroMEncryption? encryptor = null, string? schema_name = null) : base(ec, encryptor, schema_name) { }
 }
 

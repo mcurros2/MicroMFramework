@@ -14,7 +14,7 @@ namespace MicroM.Database;
 
 public class ApplicationDatabase
 {
-    private static async Task InitializeDatabase(IEntityClient admin_dbc, Applications app, string grant_user, CancellationToken ct)
+    private static async Task InitializeDatabase(IEntityClient admin_dbc, Applications app, ApplicationOption app_config, string grant_user, IWebAPIServices api, CancellationToken ct)
     {
         // MMC: Clone here is used to create a connection to the same server with the app database name
         using var app_ec = admin_dbc.Clone(new_db: app.Def.vc_database.Value);
@@ -38,9 +38,10 @@ public class ApplicationDatabase
                         if (result != null)
                         {
                             IDatabaseSchema instance = (IDatabaseSchema)result;
-                            var migration_result = await instance.MigrateDatabase(app_ec, ct);
 
-                            var entities = await instance.GetEntitiesTypes(app_ec, ct);
+                            var migration_result = await instance.MigrateDatabase(app_ec, app_config.SchemaConfiguration, ct);
+
+                            var entities = await instance.GetEntitiesInstances(app_ec, app_config.SchemaConfiguration, ct);
                             try
                             {
                                 if (entities == null || entities.Count == 0)
@@ -50,14 +51,14 @@ public class ApplicationDatabase
 
                                 if (migration_result == DatabaseMigrationResult.NoMigrationNeeded)
                                 {
-                                    await instance.CreateDBSchemaAndProcs(app_ec, entities, ct);
+                                    await instance.CreateDBSchemaAndProcs(app_ec, entities, app_config.SchemaConfiguration, ct);
                                 }
 
-                                await instance.GrantPermissions(app_ec, entities, grant_user, ct);
+                                await instance.GrantPermissions(app_ec, entities, grant_user, app_config.SchemaConfiguration, ct);
 
-                                await app_ec.ExecuteSQLNonQuery("delete microm_menus_items_allowed_routes; delete microm_routes;", ct);
+                                var del_result = await MicromRoutes.DeleteAllRoutes(app_ec, app_config.SchemaConfiguration.DDSchema, ct);
 
-                                await instance.CreateMenus(app_ec, entities, ct);
+                                await instance.CreateMenus(app_ec, entities, app_config.SchemaConfiguration, ct);
 
                                 entities.Clear();
                             }
@@ -133,7 +134,7 @@ public class ApplicationDatabase
     /// <summary>
     /// Creates a new database for the application. It will use the app existing connection
     /// </summary>
-    public static async Task<DBStatusResult> CreateAppDatabase(Applications app, bool drop_and_recreate, CancellationToken ct, MicroMOptions? options = null, Dictionary<string, object>? server_claims = null, IWebAPIServices? api = null)
+    public static async Task<DBStatusResult> CreateAppDatabase(Applications app, bool drop_and_recreate, ApplicationOption app_config, CancellationToken ct, MicroMOptions? options = null, Dictionary<string, object>? server_claims = null, IWebAPIServices? api = null)
     {
 
         ArgumentNullException.ThrowIfNull(server_claims);
@@ -144,8 +145,8 @@ public class ApplicationDatabase
         string? admin_user = (string?)admin_user_obj;
         string? admin_password = (string?)admin_password_obj;
 
-        if (string.IsNullOrEmpty(admin_user)) throw new ArgumentNullException(nameof(server_claims));
-
+        ArgumentException.ThrowIfNullOrEmpty(admin_user, nameof(admin_user));
+        ArgumentNullException.ThrowIfNull(api, nameof(api));
 
         List<DBStatus> errors = [];
 
@@ -216,7 +217,7 @@ public class ApplicationDatabase
             await CreateLoginAndDatabaseUser(admin_dbc, app.Def.vc_database.Value, app.Def.vc_user.Value, app.Def.vc_password.Value ?? "", ct);
 
             // Create tables and procs
-            await InitializeDatabase(admin_dbc, app, app.Def.vc_user.Value, ct);
+            await InitializeDatabase(admin_dbc, app, app_config, app.Def.vc_user.Value, api, ct);
 
             // Create a MicroM Admin User
             if (app.Def.c_authenticationtype_id.Value.Equals(nameof(AuthenticationTypes.MicroMAuthentication), StringComparison.OrdinalIgnoreCase)
@@ -224,8 +225,10 @@ public class ApplicationDatabase
                 && !string.IsNullOrEmpty(app.Def.vc_app_admin_password.Value)
                 )
             {
+                var schema_config = app_config.SchemaConfiguration;
+
                 using var app_dbc = admin_dbc.Clone(new_db: app.Def.vc_database.Value);
-                var usr = new MicromUsers(app_dbc);
+                var usr = new MicromUsers(app_dbc, schema_name: schema_config.DDSchema);
                 usr.Def.vc_username.Value = app.Def.vc_app_admin_user.Value;
                 usr.Def.vc_password.Value = app.Def.vc_app_admin_password.Value;
                 usr.Def.c_usertype_id.Value = nameof(UserTypes.ADMIN);
@@ -240,7 +243,7 @@ public class ApplicationDatabase
         return new() { Results = [new() { Status = DBStatusCodes.OK }] };
     }
 
-    public static async Task<DBStatusResult> UpdateAppDatabase(Applications app, CancellationToken ct, Dictionary<string, object>? server_claims = null, MicroMOptions? options = null, IWebAPIServices? api = null)
+    public static async Task<DBStatusResult> UpdateAppDatabase(Applications app, ApplicationOption app_config, CancellationToken ct, Dictionary<string, object>? server_claims = null, MicroMOptions? options = null, IWebAPIServices? api = null)
     {
         ArgumentNullException.ThrowIfNull(server_claims);
         // MMC: this is the logged in user to the control panel, it should be admin
@@ -251,6 +254,7 @@ public class ApplicationDatabase
         string? admin_password = (string?)admin_password_obj;
 
         if (string.IsNullOrEmpty(admin_user)) throw new ArgumentNullException(nameof(server_claims));
+        ArgumentNullException.ThrowIfNull(api, nameof(api));
 
         using var admin_dbc = app.Client.Clone(app.Def.vc_server.Value, app.Client.MasterDatabase, admin_user, admin_password ?? "");
 
@@ -274,7 +278,7 @@ public class ApplicationDatabase
         }
 
         // Create tables and procs
-        await InitializeDatabase(admin_dbc, app, app.Def.vc_user.Value, ct);
+        await InitializeDatabase(admin_dbc, app, app_config, app.Def.vc_user.Value, api, ct);
 
         // try to recreate user if for any reason has been deleted
         try
@@ -288,8 +292,10 @@ public class ApplicationDatabase
                 && !string.IsNullOrEmpty(app.Def.vc_app_admin_password.Value)
                 )
             {
+                var schema_config = app_config.SchemaConfiguration;
+
                 using var app_dbc = admin_dbc.Clone(new_db: app.Def.vc_database.Value);
-                var usr = new MicromUsers(app_dbc);
+                var usr = new MicromUsers(app_dbc, schema_name: schema_config.DDSchema);
                 usr.Def.vc_username.Value = app.Def.vc_app_admin_user.Value;
                 usr.Def.vc_password.Value = app.Def.vc_app_admin_password.Value;
                 usr.Def.c_usertype_id.Value = nameof(UserTypes.ADMIN);

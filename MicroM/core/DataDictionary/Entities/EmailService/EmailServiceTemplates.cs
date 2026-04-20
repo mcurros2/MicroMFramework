@@ -1,5 +1,4 @@
-﻿using MicroM.Configuration;
-using MicroM.Core;
+﻿using MicroM.Core;
 using MicroM.Data;
 using MicroM.Web.Services;
 
@@ -7,7 +6,7 @@ namespace MicroM.DataDictionary.Entities;
 
 public class EmailServiceTemplatesDef : EntityDefinition
 {
-    public EmailServiceTemplatesDef() : base("eqt", nameof(EmailServiceTemplates), schemaName: DataDefaults.DataDictionarySchema) { SQLCreationOptions = SQLCreationOptionsMetadata.WithIUpdateAndIDrop; }
+    public EmailServiceTemplatesDef() : base("eqt", nameof(EmailServiceTemplates)) { SQLCreationOptions = SQLCreationOptionsMetadata.WithIUpdateAndIDrop; }
 
     public readonly Column<string> c_email_template_id = Column<string>.PK();
 
@@ -20,6 +19,7 @@ public class EmailServiceTemplatesDef : EntityDefinition
 public class EmailServiceTemplates : Entity<EmailServiceTemplatesDef>
 {
     public EmailServiceTemplates() : base() { }
-    public EmailServiceTemplates(IEntityClient ec, IMicroMEncryption? encryptor = null) : base(ec, encryptor) { }
+    public EmailServiceTemplates(string? schema_name) : base(schema_name) { }
+    public EmailServiceTemplates(IEntityClient ec, IMicroMEncryption? encryptor = null, string? schema_name = null) : base(ec, encryptor, schema_name) { }
 
 }

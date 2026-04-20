@@ -28,45 +28,79 @@ public class MenuDefinition
 
     private void FillMenuItemsDictionary()
     {
-        IOrderedEnumerable<MemberInfo> instance_members = this.GetType().GetAndCacheInstanceMembers();
+        var visitedMenuItems = new HashSet<MenuItemDefinition>();
 
-        foreach (var prop in instance_members)
+        ProcessContainer(this, defaultParentMenuItemID: null);
+
+        void ProcessContainer(object container, string? defaultParentMenuItemID)
         {
-            if (prop.MemberType.IsIn(MemberTypes.Property, MemberTypes.Field) && prop.GetCustomAttribute<CompilerGeneratedAttribute>() == null)
+            IOrderedEnumerable<MemberInfo> instance_members = container.GetType().GetAndCacheInstanceMembers();
+
+            foreach (var member in instance_members)
             {
-                if (prop.GetMemberType() == typeof(MenuItemDefinition))
+                if (!member.MemberType.IsIn(MemberTypes.Property, MemberTypes.Field) ||
+                    member.GetCustomAttribute<CompilerGeneratedAttribute>() != null)
                 {
-                    var menu_item = (MenuItemDefinition?)prop.GetMemberValue(this);
-                    if (menu_item != null)
-                    {
-                        if (MenuItems.TryAdd(prop.Name, menu_item))
-                        {
-                            menu_item.MenuID = this.MenuID;
-                            menu_item.MenuItemID = prop.Name;
-                            if (menu_item.ParentMenuItemID != null)
-                            {
-                                if (MenuItems.TryGetValue(menu_item.ParentMenuItemID, out MenuItemDefinition? parent))
-                                {
-                                    menu_item.Parent = parent;
-                                    parent!.Children.Add(menu_item);
-                                    menu_item.ItemPath = $"{parent.ItemPath}/{menu_item.MenuItemID}";
-                                }
-                                else
-                                {
-                                    throw new ArgumentException($"Parent MenuItem not found: Value {menu_item.ParentMenuItemID} ({menu_item.MenuItemDescription}), Menu {this.MenuID} ({this.MenuDescription})");
-                                }
-                            }
-                            else
-                            {
-                                menu_item.ItemPath = $"/{menu_item.MenuItemID}";
-                            }
-                        }
-                        else
-                        {
-                            throw new ArgumentException($"Duplicate MenuItem: Value {menu_item.MenuItemID} ({menu_item.MenuItemDescription}), Menu {this.MenuID} ({this.MenuDescription})");
-                        }
-                    }
+                    continue;
                 }
+
+                if (member.GetMemberType() != typeof(MenuItemDefinition))
+                {
+                    continue;
+                }
+
+                // Skip base infrastructure members like MenuItemDefinition.Parent
+                if (member.DeclaringType == typeof(MenuItemDefinition))
+                {
+                    continue;
+                }
+
+                var menu_item = (MenuItemDefinition?)member.GetMemberValue(container);
+                if (menu_item == null)
+                {
+                    continue;
+                }
+
+                if (menu_item.ParentMenuItemID == null && defaultParentMenuItemID != null)
+                {
+                    menu_item.ParentMenuItemID = defaultParentMenuItemID;
+                }
+
+                AddMenuItem(member.Name, menu_item);
+
+                if (visitedMenuItems.Add(menu_item))
+                {
+                    ProcessContainer(menu_item, member.Name);
+                }
+            }
+        }
+
+        void AddMenuItem(string menuItemID, MenuItemDefinition menu_item)
+        {
+            if (!MenuItems.TryAdd(menuItemID, menu_item))
+            {
+                throw new ArgumentException($"Duplicate MenuItem: Value {menuItemID} ({menu_item.MenuItemDescription}), Menu {this.MenuID} ({this.MenuDescription})");
+            }
+
+            menu_item.MenuID = this.MenuID;
+            menu_item.MenuItemID = menuItemID;
+
+            if (menu_item.ParentMenuItemID != null)
+            {
+                if (MenuItems.TryGetValue(menu_item.ParentMenuItemID, out MenuItemDefinition? parent))
+                {
+                    menu_item.Parent = parent;
+                    parent!.Children.Add(menu_item);
+                    menu_item.ItemPath = $"{parent.ItemPath}/{menu_item.MenuItemID}";
+                }
+                else
+                {
+                    throw new ArgumentException($"Parent MenuItem not found: Value {menu_item.ParentMenuItemID} ({menu_item.MenuItemDescription}), Menu {this.MenuID} ({this.MenuDescription})");
+                }
+            }
+            else
+            {
+                menu_item.ItemPath = $"/{menu_item.MenuItemID}";
             }
         }
     }

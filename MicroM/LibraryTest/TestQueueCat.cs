@@ -40,11 +40,11 @@ public class TestQueueCat : Entity<TestQueueCatDef>
 
     public TestQueueCat() : base() { }
 
-    public TestQueueCat(IEntityClient ec, IMicroMEncryption? encryptor = null) : base(ec, encryptor) { }
+    public TestQueueCat(IEntityClient ec, IMicroMEncryption? encryptor = null, string? schema_name = null) : base(ec, encryptor, schema_name) { }
 
-    public async static Task<TestQueueCat> CreateAndGet(IEntityClient ec, string queue_id, string category_id, CancellationToken ct)
+    public async static Task<TestQueueCat> CreateAndGet(IEntityClient ec, string queue_id, string category_id, CancellationToken ct, string? schema_name = null)
     {
-        var ret = new TestQueueCat(ec);
+        var ret = new TestQueueCat(ec, schema_name: schema_name);
         ret.Def.c_queue_id.Value = queue_id;
         ret.Def.c_category_id.Value = category_id;
         await ret.Data.GetData(ct);

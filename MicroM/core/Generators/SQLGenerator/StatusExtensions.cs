@@ -23,7 +23,7 @@ internal static class StatusExtensions
         return entity.CreateCategoryOrStatusTable(true);
     }
 
-    internal static string AsStatusInsertValues<T>(this T entity, string separator = $"\n{TAB}{TAB}{TAB}{TAB}, ", string status_alias = "a") where T : EntityBase
+    internal static string AsStatusInsertValues<T>(this T entity, string dd_schema, string separator = $"\n{TAB}{TAB}{TAB}{TAB}, ", string status_alias = "a") where T : EntityBase
     {
         if (entity.Def.RelatedStatus.Count == 0) return "";
 
@@ -33,9 +33,9 @@ internal static class StatusExtensions
         string entity_PK = PKs.AsProcParms(separator);
 
         // Get fully qualified table names from the DD entity definitions
-        var statusValues = new StatusValues();
-        var objectsStatus = new ObjectsStatus();
-        var objects = new Objects();
+        var statusValues = new StatusValues(schema_name: dd_schema);
+        var objectsStatus = new ObjectsStatus(schema_name: dd_schema);
+        var objects = new Objects(schema_name: dd_schema);
 
         var parms = new TemplateValues()
         {

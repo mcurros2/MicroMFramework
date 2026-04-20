@@ -1,5 +1,4 @@
-﻿using MicroM.Configuration;
-using MicroM.Core;
+﻿using MicroM.Core;
 using MicroM.Data;
 using MicroM.Web.Services;
 
@@ -7,7 +6,7 @@ namespace MicroM.DataDictionary.Entities;
 
 public class ConfigurationParametersDef : EntityDefinition
 {
-    public ConfigurationParametersDef() : base("cfp", nameof(ConfigurationParameters), schemaName: DataDefaults.DataDictionarySchema) { }
+    public ConfigurationParametersDef() : base("cfp", nameof(ConfigurationParameters)) { }
 
     public readonly Column<string> c_configuration_id = Column<string>.PK();
     public readonly Column<string> c_parameter_id = Column<string>.PK();
@@ -20,6 +19,6 @@ public class ConfigurationParametersDef : EntityDefinition
 public class ConfigurationParameters : Entity<ConfigurationParametersDef>
 {
     public ConfigurationParameters() : base() { }
-
-    public ConfigurationParameters(IEntityClient ec, IMicroMEncryption? encryptor = null) : base(ec, encryptor) { }
+    public ConfigurationParameters(string? schema_name) : base(schema_name) { }
+    public ConfigurationParameters(IEntityClient ec, IMicroMEncryption? encryptor = null, string? schema_name = null) : base(ec, encryptor, schema_name) { }
 }

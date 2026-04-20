@@ -6,7 +6,7 @@ namespace MicroM.Configuration.Entities;
 
 public class MicromApplicationApiKeysDef : EntityDefinition
 {
-    public MicromApplicationApiKeysDef() : base("mak", nameof(MicromApplicationApiKeys), schemaName: DataDefaults.DataDictionarySchema) { SQLCreationOptions = SQLCreationOptionsMetadata.WithIUpdate; }
+    public MicromApplicationApiKeysDef() : base("mak", nameof(MicromApplicationApiKeys)) { SQLCreationOptions = SQLCreationOptionsMetadata.WithIUpdate; }
 
     public readonly Column<string> c_application_id = Column<string>.PK();
     public readonly Column<string> c_api_key_id = Column<string>.PK(autonum: true);
@@ -29,7 +29,8 @@ public class MicromApplicationApiKeysDef : EntityDefinition
 public class MicromApplicationApiKeys : Entity<MicromApplicationApiKeysDef>
 {
     public MicromApplicationApiKeys() : base() { }
-    public MicromApplicationApiKeys(IEntityClient ec, IMicroMEncryption? encryptor = null) : base(ec, encryptor) { }
+    public MicromApplicationApiKeys(string? schema_name) : base(schema_name) { }
+    public MicromApplicationApiKeys(IEntityClient ec, IMicroMEncryption? encryptor = null, string? schema_name = null) : base(ec, encryptor, schema_name) { }
 
     public override Task<DBStatusResult> InsertData(CancellationToken ct, bool throw_dbstat_exception = false, MicroMOptions? options = null, Dictionary<string, object>? server_claims = null, IWebAPIServices? api = null, string? app_id = null)
     {

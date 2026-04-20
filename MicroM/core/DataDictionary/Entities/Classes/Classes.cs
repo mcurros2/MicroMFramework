@@ -1,5 +1,4 @@
-﻿using MicroM.Configuration;
-using MicroM.Core;
+﻿using MicroM.Core;
 using MicroM.Data;
 using MicroM.Web.Services;
 
@@ -7,7 +6,7 @@ namespace MicroM.DataDictionary.Entities;
 
 public class ClassesDef : EntityDefinition
 {
-    public ClassesDef() : base("cla", nameof(Classes), schemaName: DataDefaults.DataDictionarySchema) { }
+    public ClassesDef() : base("cla", nameof(Classes)) { }
 
     public readonly Column<string> c_object_id = Column<string>.PK();
     public readonly Column<string> c_class_id = Column<string>.PK(autonum: true);
@@ -24,7 +23,8 @@ public class ClassesDef : EntityDefinition
 public class Classes : Entity<ClassesDef>
 {
     public Classes() : base() { }
+    public Classes(string? schema_name) : base(schema_name) { }
 
-    public Classes(IEntityClient ec, IMicroMEncryption? encryptor = null) : base(ec, encryptor) { }
+    public Classes(IEntityClient ec, IMicroMEncryption? encryptor = null, string? schema_name = null) : base(ec, encryptor, schema_name) { }
 
 }

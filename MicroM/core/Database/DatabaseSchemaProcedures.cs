@@ -10,7 +10,7 @@ namespace MicroM.Database;
 
 public static class DatabaseSchemaProcedures
 {
-    public static async Task CreateCustomProcs<T>(T? ent, IEntityClient ec, CancellationToken ct, bool replace_dd_schema = false) where T : EntityBase, new()
+    public static async Task CreateCustomProcs<T>(T? ent, IEntityClient ec, CancellationToken ct, string? schema_name = null) where T : EntityBase, new()
     {
         bool should_close = !(ec.ConnectionState == System.Data.ConnectionState.Open);
         try
@@ -20,14 +20,14 @@ public static class DatabaseSchemaProcedures
             if (ent == null)
             {
                 new_ent = new();
-                new_ent.Init(ec);
+                new_ent.Init(ec, schema_name: schema_name);
             }
             else
             {
                 new_ent = ent;
             }
 
-            foreach (string script in await new_ent.GetAllCustomProcs(new_ent.Def.Mneo, ct, replace_dd_schema: replace_dd_schema))
+            foreach (string script in await new_ent.GetAllCustomProcs(new_ent.Def.Mneo, ct))
             {
                 await ec.ExecuteSQLNonQuery(script, ct);
             }
@@ -43,6 +43,7 @@ public static class DatabaseSchemaProcedures
         IEntityClient ec,
         CustomOrderedDictionary<CustomScript>? classified_custom_procs,
         bool create_or_alter,
+        string dd_schema,
         CancellationToken ct
         ) where T : EntityBase
     {
@@ -62,7 +63,7 @@ public static class DatabaseSchemaProcedures
 
             CustomOrderedDictionary<string> generated_scripts = new();
 
-            var generated_update_scripts = ent.AsCreateUpdateProc(create_or_alter, with_iupdate);
+            var generated_update_scripts = ent.AsCreateUpdateProc(dd_schema, create_or_alter, with_iupdate);
             if (generated_update_scripts?.Count > 0)
             {
                 if (with_iupdate)
@@ -120,6 +121,7 @@ public static class DatabaseSchemaProcedures
         T ent,
         IEntityClient ec,
         bool create_or_alter,
+        string dd_schema,
         CancellationToken ct,
         bool create_custom_procs = true
         ) where T : EntityBase
@@ -144,7 +146,7 @@ public static class DatabaseSchemaProcedures
 
             CustomOrderedDictionary<string> generated_scripts = new();
 
-            var generated_update_scripts = ent.AsCreateUpdateProc(create_or_alter, with_iupdate);
+            var generated_update_scripts = ent.AsCreateUpdateProc(dd_schema, create_or_alter, with_iupdate);
             if (generated_update_scripts?.Count > 0)
             {
                 if (with_iupdate)
@@ -289,6 +291,7 @@ public static class DatabaseSchemaProcedures
     T? ent,
     IEntityClient ec,
     bool create_or_alter,
+    string dd_schema,
     CancellationToken ct,
     bool create_custom_procs = true
     ) where T : EntityBase, new()
@@ -308,7 +311,7 @@ public static class DatabaseSchemaProcedures
                 new_ent = ent;
             }
 
-            await CreateProcs(new_ent, ec, create_or_alter, ct, create_custom_procs);
+            await CreateProcs(new_ent, ec, create_or_alter, dd_schema, ct, create_custom_procs);
 
             return new_ent;
         }

@@ -1,6 +1,4 @@
-﻿
-using MicroM.Configuration;
-using MicroM.Core;
+﻿using MicroM.Core;
 using MicroM.Data;
 using MicroM.Web.Services;
 
@@ -8,7 +6,7 @@ namespace MicroM.DataDictionary.Entities;
 
 public class MicromUsersLoginHistoryDef : EntityDefinition
 {
-    public MicromUsersLoginHistoryDef() : base("ulh", nameof(MicromUsersLoginHistory), schemaName: DataDefaults.DataDictionarySchema) { SQLCreationOptions = SQLCreationOptionsMetadata.WithIUpdate; }
+    public MicromUsersLoginHistoryDef() : base("ulh", nameof(MicromUsersLoginHistory)) { SQLCreationOptions = SQLCreationOptionsMetadata.WithIUpdate; }
 
     public readonly Column<string> c_user_history_id = Column<string>.PK(autonum: true);
     public readonly Column<string> c_user_id = Column<string>.PK();
@@ -25,6 +23,7 @@ public class MicromUsersLoginHistoryDef : EntityDefinition
 public class MicromUsersLoginHistory : Entity<MicromUsersLoginHistoryDef>
 {
     public MicromUsersLoginHistory() : base() { }
-    public MicromUsersLoginHistory(IEntityClient ec, IMicroMEncryption? encryptor = null) : base(ec, encryptor) { }
+    public MicromUsersLoginHistory(string? schema_name) : base(schema_name) { }
+    public MicromUsersLoginHistory(IEntityClient ec, IMicroMEncryption? encryptor = null, string? schema_name = null) : base(ec, encryptor, schema_name) { }
 
 }

@@ -21,7 +21,20 @@ public abstract class EntityDefinition
 
     private string _ParentClassName = null!;
 
-    public string? SchemaName { get; protected init; } = null;
+    private string? _schemaName = null;
+    public string? SchemaName
+    {
+        get => _schemaName;
+        set
+        {
+            if (_schemaName == null)
+            {
+                _schemaName = value;
+                UpdateProcsAndViewsSchemaIfNull();
+            }
+            else throw new ArgumentException($"The property {nameof(SchemaName)} can only be modified if the value is null.");
+        }
+    }
 
     /// <summary>
     /// Returns the name of the class
@@ -339,6 +352,21 @@ public abstract class EntityDefinition
             }
         }
 
+    }
+
+
+    private void UpdateProcsAndViewsSchemaIfNull()
+    {
+        if (SchemaName.IsNullOrEmpty()) return;
+
+        foreach (var proc in _Procs.Values)
+        {
+            if (proc.Schema.IsNullOrEmpty()) proc.Schema = SchemaName;
+        }
+        foreach (var view in _Views.Values)
+        {
+            if (view.Proc.Schema.IsNullOrEmpty()) view.Proc.Schema = SchemaName;
+        }
     }
 
     private void FillCollectionsAndSetPropertyNames()

@@ -1,5 +1,4 @@
-﻿using MicroM.Configuration;
-using MicroM.Core;
+﻿using MicroM.Core;
 using MicroM.Data;
 using MicroM.DataDictionary.StatusDefinitions;
 using MicroM.Extensions;
@@ -10,7 +9,7 @@ namespace MicroM.DataDictionary.Entities;
 
 public class ImportProcessDef : EntityDefinition
 {
-    public ImportProcessDef() : base("ipr", nameof(ImportProcess), schemaName: DataDefaults.DataDictionarySchema) { }
+    public ImportProcessDef() : base("ipr", nameof(ImportProcess)) { }
 
     public readonly Column<string> c_import_process_id = Column<string>.PK(autonum: true);
     public readonly Column<string> c_fileprocess_id = Column<string>.FK();
@@ -34,7 +33,8 @@ public class ImportProcessDef : EntityDefinition
 public class ImportProcess : Entity<ImportProcessDef>
 {
     public ImportProcess() : base() { }
-    public ImportProcess(IEntityClient ec, IMicroMEncryption? encryptor = null) : base(ec, encryptor) { }
+    public ImportProcess(string? schema_name) : base(schema_name) { }
+    public ImportProcess(IEntityClient ec, IMicroMEncryption? encryptor = null, string? schema_name = null) : base(ec, encryptor, schema_name) { }
 
     public async Task UpdateStatus(string status, CancellationToken ct)
     {

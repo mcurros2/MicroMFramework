@@ -64,10 +64,5 @@
         /// </summary>
         public static string RowLimitParameterName { get; set; } = "@row_limit";
 
-        /// <summary>
-        /// Gets or sets the schema name for Data Dictionary tables and stored procedures. Default is null (uses dbo).
-        /// </summary>
-        public static string? DataDictionarySchema { get; set; } = null;
-
     }
 }

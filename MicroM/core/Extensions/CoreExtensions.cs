@@ -101,7 +101,7 @@ public static class CoreExtensions
     {
         IEntityClient ec = clone_connection ? original.Client.Clone() : original.Client;
         T result = new();
-        result.Init(ec);
+        result.Init(ec, schema_name: original.Def.SchemaName);
         result.CopyFrom(original);
         return result;
     }

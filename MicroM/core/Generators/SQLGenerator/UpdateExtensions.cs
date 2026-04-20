@@ -42,7 +42,7 @@ internal static class UpdateExtensions
     }
 
 
-    internal static string GetUpdateProc<T>(this T entity, bool create_or_alter = false, bool force = false) where T : EntityBase
+    internal static string GetUpdateProc<T>(this T entity, string dd_schema, bool create_or_alter = false, bool force = false) where T : EntityBase
     {
         if (entity.Def.Fake && force == false) return "";
 
@@ -81,13 +81,13 @@ internal static class UpdateExtensions
 
             NULLIF_CHECKS = entity.Def.Columns.GetWithFlags(ColumnFlags.Insert | ColumnFlags.Update, ColumnFlags.None).AsNullIfChecks(),
 
-            JSON_CATEGORIES = entity.AsJSONCategories(),
+            JSON_CATEGORIES = entity.AsJSONCategories(dd_schema),
             JSON_CATEGORIES_INSERT = entity.AsInsertJSONCategories(),
             JSON_CATEGORIES_UPDATE = entity.AsUpdateJSONCategories(),
 
             CATEGORIES_INSERT = entity.AsCategoriesInsertValues(),
             CATEGORIES_UPDATE = categories_update,
-            STATUS_INSERT = entity.AsStatusInsertValues(),
+            STATUS_INSERT = entity.AsStatusInsertValues(dd_schema),
             STATUS_UPDATE = status_update,
             AUTONUM_RETURN = autonum_return,
             UPDATE_LU_CONTROL = (upd_cols.Count > 0 || !string.IsNullOrEmpty(categories_update)) ? Templates.UPDATE_LU_CONTROL_TEMPLATE : "",
@@ -97,7 +97,7 @@ internal static class UpdateExtensions
         return Templates.UPDATE_TEMPLATE.ReplaceTemplate(parms).RemoveEmptyLines();
     }
 
-    internal static string GetIUpdateProc<T>(this T entity, bool create_or_alter = false, bool force = false) where T : EntityBase
+    internal static string GetIUpdateProc<T>(this T entity, string dd_schema, bool create_or_alter = false, bool force = false) where T : EntityBase
     {
         if (entity.Def.Fake && force == false) return "";
 
@@ -134,13 +134,13 @@ internal static class UpdateExtensions
             INSERT_VALUES = ins_cols.AsProcParms(separator: $"\n{TAB}{TAB}{TAB}, "),
             AUTONUM = autonum,
 
-            JSON_CATEGORIES = entity.AsJSONCategories(),
+            JSON_CATEGORIES = entity.AsJSONCategories(dd_schema),
             JSON_CATEGORIES_INSERT = entity.AsInsertJSONCategories(),
             JSON_CATEGORIES_UPDATE = entity.AsUpdateJSONCategories(),
 
             CATEGORIES_INSERT = entity.AsCategoriesInsertValues(),
             CATEGORIES_UPDATE = categories_update,
-            STATUS_INSERT = entity.AsStatusInsertValues(),
+            STATUS_INSERT = entity.AsStatusInsertValues(dd_schema),
             STATUS_UPDATE = status_update,
 
             AUTONUM_RETURN = autonum_return,
@@ -174,25 +174,19 @@ internal static class UpdateExtensions
     /// <summary>
     /// Returns a SQL script to create the default _update stored procedure for the specified <see cref="Entity{TDefinition}"/>.
     /// </summary>
-    /// <typeparam name="T"></typeparam>
-    /// <param name="entity"></param>
-    /// <param name="create_or_alter"></param>
-    /// <param name="with_iupdate"></param>
-    /// <param name="force"></param>
-    /// <returns></returns>
-    public static List<string> AsCreateUpdateProc<T>(this T entity, bool create_or_alter = false, bool with_iupdate = false, bool force = false) where T : EntityBase
+    public static List<string> AsCreateUpdateProc<T>(this T entity, string dd_schema, bool create_or_alter = false, bool with_iupdate = false, bool force = false) where T : EntityBase
     {
         List<string> scripts = [];
         if (entity.Def.Fake && force == false) return scripts;
 
         if (with_iupdate)
         {
-            scripts.Add(entity.GetIUpdateProc(create_or_alter, force: force));
+            scripts.Add(entity.GetIUpdateProc(dd_schema, create_or_alter, force: force));
             scripts.Add(entity.GetUpdateForIUpdateProc(create_or_alter, force: force));
         }
         else
         {
-            scripts.Add(entity.GetUpdateProc(create_or_alter, force: force));
+            scripts.Add(entity.GetUpdateProc(dd_schema, create_or_alter, force: force));
         }
 
         return scripts;

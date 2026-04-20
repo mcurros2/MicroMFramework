@@ -1,5 +1,6 @@
 ﻿using MicroM.Core;
 using MicroM.Data;
+using MicroM.Database;
 using MicroM.Extensions;
 using MicroM.Generators.SQLGenerator;
 using MicroM.Web.Authentication;
@@ -55,7 +56,12 @@ public class APTGetCode : EntityActionBase
         assembly_id.ThrowIfNullOrEmpty(nameof(assembly_id));
         assemblytype_id.ThrowIfNullOrEmpty(nameof(assemblytype_id));
 
+        ArgumentNullException.ThrowIfNull(API, nameof(API));
+
         ArgumentNullException.ThrowIfNull(parms.ServerClaims, nameof(parms.ServerClaims));
+
+        ApplicationOption app_config = API.app_config.GetAppConfiguration(app_id) ?? throw new InvalidOperationException($"App configuration not found for AppID {app_id}");
+
         var claims = parms.ServerClaims;
 
         // MMC: this is the logged in user to the control panel
@@ -73,12 +79,18 @@ public class APTGetCode : EntityActionBase
 
         if (!await LoggedInUserHasAdminRights(admin_dbc, ct)) throw new UnauthorizedAccessException("The logged in user does not have admin permissions");
 
-        var eat = new EntitiesAssembliesTypes(admin_dbc);
+        var schema_config = app_config.SchemaConfiguration;
+
+        var eat = new EntitiesAssembliesTypes(admin_dbc, schema_name: ConfigurationDefaults.SchemaConfiguration.APPSchema);
+
         var entity_name = await eat.LookupData(ct) ?? throw new InvalidOperationException($"Can't find entity for AppID {app_id}, AssemblyID {assembly_id}, TypeID {assemblytype_id}");
         var entity_type = API?.app_config.GetEntityType(app_id, entity_name) ?? throw new InvalidOperationException($"Entity not found. {app_id} {entity_name}");
         var ent = (EntityBase?)Activator.CreateInstance(entity_type) ?? throw new InvalidOperationException($"Can't create entity instance. {app_id} {entity_name}"); ;
+        ent.Init(null, null, schema_config.APPSchema);
 
-        var table = ent.AsCreateTable();
+        var dd_entities = DataDictionarySchema.GetDataDictionaryEntitiesInstances(schema_name: schema_config.DDSchema);
+
+        var table = ent.AsCreateTable(schema_config);
         var idrop = ent.AsCreateIDropProc(true);
 
         APTGetCodeResult result = new()
@@ -87,8 +99,8 @@ public class APTGetCode : EntityActionBase
             {
                 table = table[0],
                 indexes = table.Count > 1 ? table[1] : "",
-                sp_update = ent.GetUpdateProc(true),
-                sp_iupdate = ent.GetIUpdateProc(true),
+                sp_update = ent.GetUpdateProc(schema_config.DDSchema, true),
+                sp_iupdate = ent.GetIUpdateProc(schema_config.DDSchema, true),
                 sp_updatei = ent.GetUpdateForIUpdateProc(true),
                 sp_get = ent.AsCreateGetProc(true),
                 sp_lookup = ent.AsCreateLookupProc(true),
@@ -97,7 +109,7 @@ public class APTGetCode : EntityActionBase
                 sp_idrop = idrop[0],
                 sp_dropi = idrop[1]
             },
-            CustomSQL = await ent.GetAllCustomProcs(ent.Def.Mneo, ct, replace_dd_schema: !DataDefaults.DataDictionarySchema.IsNullOrEmpty()),
+            CustomSQL = await ent.GetAllCustomProcs(ent.Def.Mneo, ct),
         };
 
 

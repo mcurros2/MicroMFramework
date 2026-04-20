@@ -258,9 +258,8 @@ public static class ConfigurationDBHandlers
 
             await dbc.ExecuteSQLNonQuery($"use [{cfg.Def.vc_configdatabase.Value}]", ct);
 
-            var entities = GetConfigurationEntitiesInstances(dbc);
-            await CreateConfigurationDBSchemaAndProcs(dbc, entities, ct, true);
-            await GrantExecutionToAllProcs(dbc, entities, cfg.Def.vc_configsqluser.Value, ct);
+            var entities = await CreateConfigurationDBSchemaAndProcs(dbc, ConfigurationDefaults.SchemaConfiguration, ct, true);
+            await GrantExecutionToAllProcs(dbc, entities!, cfg.Def.vc_configsqluser.Value, ct);
 
             api?.log.LogWarning("Changing {user} sql password", cfg.Def.vc_configsqluser.Value);
 

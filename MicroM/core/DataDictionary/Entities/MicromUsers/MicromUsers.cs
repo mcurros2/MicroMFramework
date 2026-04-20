@@ -13,7 +13,7 @@ namespace MicroM.DataDictionary.Entities;
 public class MicromUsersDef : EntityDefinition
 {
 
-    public MicromUsersDef() : base("usr", nameof(MicromUsers), schemaName: DataDefaults.DataDictionarySchema) { SQLCreationOptions = SQLCreationOptionsMetadata.WithIUpdateAndIDrop; }
+    public MicromUsersDef() : base("usr", nameof(MicromUsers)) { SQLCreationOptions = SQLCreationOptionsMetadata.WithIUpdateAndIDrop; }
 
     public readonly Column<string> c_user_id = Column<string>.PK(autonum: true);
     public readonly Column<string> vc_username = Column<string>.Text();
@@ -65,7 +65,8 @@ public class MicromUsersDef : EntityDefinition
 public class MicromUsers : Entity<MicromUsersDef>
 {
     public MicromUsers() : base() { }
-    public MicromUsers(IEntityClient ec, IMicroMEncryption? encryptor = null) : base(ec, encryptor) { }
+    public MicromUsers(string? schema_name) : base(schema_name) { }
+    public MicromUsers(IEntityClient ec, IMicroMEncryption? encryptor = null, string? schema_name = null) : base(ec, encryptor, schema_name) { }
 
     public override Task<DBStatusResult> InsertData(CancellationToken ct, bool throw_dbstat_exception = false, MicroMOptions? options = null, Dictionary<string, object>? server_claims = null, IWebAPIServices? api = null, string? app_id = null)
     {

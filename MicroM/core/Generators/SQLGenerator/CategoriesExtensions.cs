@@ -24,14 +24,14 @@ internal static class CategoriesExtensions
         return entity.CreateCategoryOrStatusTable(false);
     }
 
-    internal static string AsJSONCategories<T>(this T entity, string separator = $"\n{TAB}{TAB}{TAB}, ") where T : EntityBase
+    internal static string AsJSONCategories<T>(this T entity, string dd_schema, string separator = $"\n{TAB}{TAB}{TAB}, ") where T : EntityBase
     {
         if (entity.Def.RelatedCategories.Count == 0) return "";
         var sb = new StringBuilder();
         var Fakes = entity.Def.Columns.GetWithFlags(ColumnFlags.Fake, ColumnFlags.None);
 
         // Get the fully qualified table name from the CategoriesValues entity definition
-        var categoriesValues = new CategoriesValues();
+        var categoriesValues = new CategoriesValues(schema_name: dd_schema);
 
         foreach (var cav_col in Fakes)
         {

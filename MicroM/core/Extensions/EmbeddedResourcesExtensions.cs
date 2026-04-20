@@ -1,5 +1,4 @@
-﻿using MicroM.Configuration;
-using MicroM.Core;
+﻿using MicroM.Core;
 using MicroM.Database;
 using System.Reflection;
 using System.Text;
@@ -10,10 +9,10 @@ public static class EmbeddedResourcesExtensions
 {
     private record SQLReplacement(string StringToFind, string ReplaceWith);
 
-    private static List<SQLReplacement> BuildReplacements()
+    private static List<SQLReplacement> BuildReplacements(string? schema_name)
     {
         return [
-            new SQLReplacement("[dbo].", $"[{DataDefaults.DataDictionarySchema ?? "dbo"}]."),
+            new SQLReplacement("[dbo].", $"[{schema_name ?? "dbo"}]."),
         ];
     }
 
@@ -35,9 +34,9 @@ public static class EmbeddedResourcesExtensions
         return result.ToString();
     }
 
-    public async static Task<List<string>> GetAllCustomProcs<T>(this T assembly_class, string? mneo, CancellationToken ct, bool replace_dd_schema = false) where T : class
+    public async static Task<List<string>> GetAllCustomProcs<T>(this T entity, string? mneo, CancellationToken ct) where T : EntityBase
     {
-        var replacements = BuildReplacements();
+        var replacements = BuildReplacements(entity.Def.SchemaName);
 
         var assembly = typeof(T).Assembly;
         List<string> ret = [];
@@ -50,7 +49,7 @@ public static class EmbeddedResourcesExtensions
                 {
                     using StreamReader reader = new(manifest);
                     var sqlText = await reader.ReadToEndAsync(ct);
-                    ret.Add(replace_dd_schema ? sqlText.ReplaceEntityReferences(replacements) : sqlText);
+                    ret.Add(entity.Def.SchemaName != null ? sqlText.ReplaceEntityReferences(replacements) : sqlText);
                     reader.Close();
                 }
             }
@@ -58,9 +57,9 @@ public static class EmbeddedResourcesExtensions
         return ret;
     }
 
-    public async static Task<List<string>> GetAssemblyCustomProcs(this Assembly assembly, string? mneo, string? starts_with, CancellationToken ct, bool replace_dd_schema = false)
+    public async static Task<List<string>> GetAssemblyCustomProcs(this Assembly assembly, string? mneo, string? starts_with, CancellationToken ct, string? schema_name = null)
     {
-        var replacements = BuildReplacements();
+        var replacements = BuildReplacements(schema_name);
 
         List<string> ret = [];
         foreach (string name in assembly.GetManifestResourceNames())
@@ -76,19 +75,18 @@ public static class EmbeddedResourcesExtensions
             {
                 using StreamReader reader = new(manifest);
                 var sqlText = await reader.ReadToEndAsync(ct);
-                ret.Add(replace_dd_schema ? sqlText.ReplaceEntityReferences(replacements) : sqlText);
+                ret.Add(schema_name != null ? sqlText.ReplaceEntityReferences(replacements) : sqlText);
                 reader.Close();
             }
         }
         return ret;
     }
 
-    public async static Task<CustomOrderedDictionary<CustomScript>> GetAllClassifiedCustomProcs(this Assembly assembly, CancellationToken ct, bool replace_dd_schema = false)
+    public async static Task<CustomOrderedDictionary<CustomScript>> GetAllClassifiedCustomSQLScripts(this Assembly assembly, CancellationToken ct, string? schema_name = null)
     {
         CustomOrderedDictionary<CustomScript> ret = new();
 
-        var replacements = BuildReplacements();
-
+        var replacements = BuildReplacements(schema_name);
         foreach (string name in assembly.GetManifestResourceNames())
         {
             ct.ThrowIfCancellationRequested();
@@ -101,7 +99,7 @@ public static class EmbeddedResourcesExtensions
                 string sqlText = await reader.ReadToEndAsync(ct);
                 reader.Close();
 
-                string custom_sql = replace_dd_schema ? sqlText.ReplaceEntityReferences(replacements) : sqlText;
+                string custom_sql = schema_name != null ? sqlText.ReplaceEntityReferences(replacements) : sqlText;
 
                 foreach (var custom_proc in DatabaseSchemaCustomScripts.ClassifyCustomSQLScript(custom_sql))
                 {

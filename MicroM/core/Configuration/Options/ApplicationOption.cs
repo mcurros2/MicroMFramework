@@ -55,4 +55,6 @@ public class ApplicationOption
     public Dictionary<string, ADConfigurationOption>? ADConfiguration { get; set; } = null;
 
     public List<string> FrontendURLS { get; set; } = [];
+
+    public AppDBSchemaConfiguration SchemaConfiguration { get; set; } = new("dbo", "dbo");
 }

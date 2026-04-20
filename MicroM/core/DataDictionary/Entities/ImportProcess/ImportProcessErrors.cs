@@ -1,6 +1,4 @@
-﻿
-using MicroM.Configuration;
-using MicroM.Core;
+﻿using MicroM.Core;
 using MicroM.Data;
 using MicroM.Web.Services;
 
@@ -9,7 +7,7 @@ namespace MicroM.DataDictionary.Entities;
 
 public class ImportProcessErrorsDef : EntityDefinition
 {
-    public ImportProcessErrorsDef() : base("ipe", nameof(ImportProcessErrors), schemaName: DataDefaults.DataDictionarySchema) { }
+    public ImportProcessErrorsDef() : base("ipe", nameof(ImportProcessErrors)) { }
 
     public readonly Column<string> c_import_process_id = Column<string>.PK();
     public readonly Column<string> c_import_process_error_id = Column<string>.PK(autonum: true);
@@ -26,6 +24,7 @@ public class ImportProcessErrorsDef : EntityDefinition
 public class ImportProcessErrors : Entity<ImportProcessErrorsDef>
 {
     public ImportProcessErrors() : base() { }
-    public ImportProcessErrors(IEntityClient ec, IMicroMEncryption? encryptor = null) : base(ec, encryptor) { }
+    public ImportProcessErrors(string? schema_name) : base(schema_name) { }
+    public ImportProcessErrors(IEntityClient ec, IMicroMEncryption? encryptor = null, string? schema_name = null) : base(ec, encryptor, schema_name) { }
 
 }

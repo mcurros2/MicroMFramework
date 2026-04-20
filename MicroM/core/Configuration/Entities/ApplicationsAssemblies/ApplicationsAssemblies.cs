@@ -1,13 +1,12 @@
 ﻿using MicroM.Core;
 using MicroM.Data;
-using MicroM.DataDictionary.Entities;
 using MicroM.Web.Services;
 
 namespace MicroM.Configuration.Entities;
 
 public class ApplicationsAssembliesDef : EntityDefinition
 {
-    public ApplicationsAssembliesDef() : base("apa", nameof(ApplicationsAssemblies), schemaName: DataDefaults.DataDictionarySchema) { SQLCreationOptions = SQLCreationOptionsMetadata.WithIUpdateAndIDrop; }
+    public ApplicationsAssembliesDef() : base("apa", nameof(ApplicationsAssemblies)) { SQLCreationOptions = SQLCreationOptionsMetadata.WithIUpdateAndIDrop; }
 
     public readonly Column<string> c_application_id = Column<string>.PK();
     public readonly Column<string> c_assembly_id = Column<string>.PK();
@@ -26,7 +25,10 @@ public class ApplicationsAssembliesDef : EntityDefinition
 public class ApplicationsAssemblies : Entity<ApplicationsAssembliesDef>
 {
     public ApplicationsAssemblies() : base() { }
-    public ApplicationsAssemblies(IEntityClient ec, IMicroMEncryption? encryptor = null) : base(ec, encryptor) { }
+
+    public ApplicationsAssemblies(string? schema_name) : base(schema_name) { }
+
+    public ApplicationsAssemblies(IEntityClient ec, IMicroMEncryption? encryptor = null, string? schema_name = null) : base(ec, encryptor, schema_name) { }
 
 
 }
