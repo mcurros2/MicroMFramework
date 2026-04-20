@@ -25,6 +25,7 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
 {
     private static readonly Dictionary<string, ApplicationOption> _ApplicationsCache = new(StringComparer.OrdinalIgnoreCase);
     private static readonly Dictionary<string, Type> _EntityTypesCache = new(StringComparer.OrdinalIgnoreCase);
+    private static readonly Dictionary<string, Type> _DDTypesCache = new(StringComparer.OrdinalIgnoreCase);
     private static readonly Dictionary<string, PublicEndpointSecurityRecord> _PublicAccessCache = new(StringComparer.OrdinalIgnoreCase);
     private static readonly HashSet<string> _globalAllowedURLS = new(StringComparer.OrdinalIgnoreCase);
     private readonly ConcurrentDictionary<string, HashSet<string>> _appAllowedURLS = new(StringComparer.OrdinalIgnoreCase);
@@ -37,7 +38,7 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
     private readonly string _jwtkey;
     private readonly PathString _basePathString;
 
-    private readonly IMemoryEventBus _bus;
+    private readonly IMemoryEventsService _bus;
 
     private static string NormalizeURL(string url)
     {
@@ -51,7 +52,7 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
         ILogger<MicroMAppConfigurationProvider> logger,
         IMicroMEncryption encryptor,
         IBackgroundTaskQueue queue,
-        IMemoryEventBus bus,
+        IMemoryEventsService bus,
         IConfiguration config)
     {
         ThrowIfNull(options);
@@ -144,6 +145,7 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
                 SQLUser = secrets?.ConfigSQLUser ?? "",
                 SQLPassword = secrets?.ConfigSQLPassword ?? "",
                 MaxRefreshTokenAttempts = 15,
+                SchemaConfiguration = ConfigurationDefaults.SchemaConfiguration,
             };
         }
         else
@@ -203,7 +205,7 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
         if (control_panel != null)
         {
             _EntityTypesCache.Clear();
-            LoadControlPanelAssemblies();
+            LoadControlPanelEntitiesTypes();
 
             using DatabaseClient client = control_panel.CreateDatabaseClient(_log, null, null);
 
@@ -307,28 +309,39 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
         return ret;
     }
 
-    private void LoadControlPanelAssemblies()
+    private void LoadControlPanelEntitiesTypes()
     {
         try
         {
-            var assemblies = AppDomain.CurrentDomain.GetAssemblies();
-            foreach (var assembly in assemblies)
+            var assembly = typeof(Objects).Assembly;
+
+            var types = assembly.GetEntitiesTypes();
+
+            var dd_types = DataDictionarySchema.GetCoreEntitiesTypes();
+
+            foreach (var type in types)
             {
-                var types = assembly.GetEntitiesTypes();
-                foreach (var type in types)
+                if (!_EntityTypesCache.TryAdd($"{ConfigurationDefaults.ControlPanelAppID}.{type.Key}", type.Value))
                 {
-                    if (!_EntityTypesCache.TryAdd($"{ConfigurationDefaults.ControlPanelAppID}.{type.Key}", type.Value))
-                    {
-                        _log.LogWarning("WARNING: APP: {app} - Type {type} from assembly {assembly} already exists in the cache. All types in the same application must have unique names even if in different assemblies.",
-                            ConfigurationDefaults.ControlPanelAppID, type.Key, assembly.FullName);
-                    }
+                    _log.LogWarning("WARNING: APP: {app} - Type {type} from assembly {assembly} already exists in the cache. All types in the same application must have unique names even if in different assemblies.",
+                        ConfigurationDefaults.ControlPanelAppID, type.Key, assembly.FullName);
+                }
+                if (dd_types.ContainsKey(type.Key))
+                {
+                    _DDTypesCache.TryAdd(type.Key, type.Value);
                 }
             }
+
         }
         catch (Exception ex)
         {
             _log.LogError(ex, "ERROR: Fatal error trying to load control panes assemblies");
         }
+    }
+
+    public bool IsDDType(string type_name)
+    {
+        return _DDTypesCache.ContainsKey(type_name);
     }
 
     public Type? GetEntityType(string app_id, string entity_name)

@@ -52,7 +52,7 @@ public class SecretsAuthenticator(
         try
         {
 
-            var keys = new MicromApplicationApiKeys(ec, _encryptor);
+            var keys = new MicromApplicationApiKeys(ec, _encryptor, schema_name: ConfigurationDefaults.SchemaConfiguration.APPSchema);
             keys.Def.c_application_id.Value = app_config.ApplicationID;
             keys.Def.vc_apikey.Value = user_login.Username;
 

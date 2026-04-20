@@ -30,7 +30,7 @@ public class FileController : ControllerBase, IFileController
 
             using var ec = await ents.CreateDbConnection(app, parms.ServerClaims, ct);
 
-            var result = await ups.ServeFile(app_id, fileguid, ec, ct);
+            var result = await ups.ServeFile(app, fileguid, ec, ct);
 
             if (result == null) return NotFound();
 
@@ -54,7 +54,7 @@ public class FileController : ControllerBase, IFileController
 
             using var ec = await ents.CreateDbConnection(app, parms.ServerClaims, ct);
 
-            var result = await ups.ServeThumbnail(app_id, fileguid, maxSize, quality, ec, ct);
+            var result = await ups.ServeThumbnail(app, fileguid, maxSize, quality, ec, ct);
 
             if (result == null) return NotFound();
 
@@ -78,7 +78,7 @@ public class FileController : ControllerBase, IFileController
 
             using var ec = await ents.CreateDbConnection(app, parms.ServerClaims, ct);
 
-            var result = await ups.UploadFile(app_id, fileprocess_id, file_name, Request.Body, maxSize, quality, ec, ct);
+            var result = await ups.UploadFile(app, fileprocess_id, file_name, Request.Body, maxSize, quality, ec, ct);
 
             return Ok(result);
         }

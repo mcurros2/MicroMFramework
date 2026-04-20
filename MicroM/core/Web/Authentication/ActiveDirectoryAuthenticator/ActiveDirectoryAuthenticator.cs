@@ -78,7 +78,7 @@ public class ActiveDirectoryAuthenticator(
             await ec.Connect(ct);
 
             // MMC: Get the data needed to perform the login attempt: password hash and account status
-            login_data = await MicromUsers.GetUserData(user_login.Username, null, device_id, ec, ct);
+            login_data = await MicromUsers.GetUserData(app_config, user_login.Username, null, device_id, ec, ct);
 
             result.PasswordVerificationResult = auth_result == ADAuthenticationResult.Authenticated ? PasswordVerificationResult.Success : PasswordVerificationResult.Failed;
 
@@ -113,7 +113,7 @@ public class ActiveDirectoryAuthenticator(
                     }
 
                     // Re-read freshly provisioned user
-                    login_data = await MicromUsers.GetUserData(user_login.Username, null, device_id, ec, ct);
+                    login_data = await MicromUsers.GetUserData(app_config, user_login.Username, null, device_id, ec, ct);
 
                     result.LoginData = login_data;
                     if (login_data!.disabled)
@@ -138,6 +138,7 @@ public class ActiveDirectoryAuthenticator(
 
             // MMC: take note that the refresh token will be invalidated (null) if there is a bad login attempt
             var attempt_result = await MicromUsers.UpdateLoginAttempt(
+                app: app_config,
                 user_id: login_data.user_id,
                 device_id: device_id,
                 new_refresh_token: result.PasswordVerificationResult.IsIn(PasswordVerificationResult.Success, PasswordVerificationResult.SuccessRehashNeeded) ? new_refresh_token : login_data.refresh_token,
@@ -157,7 +158,7 @@ public class ActiveDirectoryAuthenticator(
                 if (!string.IsNullOrEmpty(attempt_result.RefreshToken)) WriteRefreshTokenToCookie(app_config, attempt_result.RefreshToken);
 
                 // Get claims
-                var (server_claims, client_claims) = await MicromUsers.GetClaims(user_login.Username, ec, ct);
+                var (server_claims, client_claims) = await MicromUsers.GetClaims(app_config, user_login.Username, ec, ct);
 
                 result.ClientClaims = client_claims;
                 result.ServerClaims = server_claims;
@@ -219,11 +220,11 @@ public class ActiveDirectoryAuthenticator(
         {
             await ec.Connect(ct);
 
-            LoginData? login_data = await MicromUsers.GetUserData(null, user_id, device_id, ec, ct);
+            LoginData? login_data = await MicromUsers.GetUserData(app_config, null, user_id, device_id, ec, ct);
             if (login_data != null && !login_data.disabled && !login_data.refresh_expired && !login_data.locked && string.IsNullOrEmpty(login_data.refresh_token) == false)
             {
                 var new_token = CryptClass.GenerateRandomBase64String();
-                var validated_token = await MicromUsers.RefreshToken(user_id, device_id, refresh_token, new_token, app_config.JWTRefreshExpirationHours, app_config.MaxRefreshTokenAttempts, ec, ct);
+                var validated_token = await MicromUsers.RefreshToken(app_config, user_id, device_id, refresh_token, new_token, app_config.JWTRefreshExpirationHours, app_config.MaxRefreshTokenAttempts, ec, ct);
                 if (validated_token != null)
                 {
                     result = validated_token;
@@ -263,7 +264,7 @@ public class ActiveDirectoryAuthenticator(
 
         using DatabaseClient ec = app_config.CreateDatabaseClient(log, deviceIdService, null);
 
-        var _ = await MicromUsers.Logoff(user_name, ec, ct);
+        var _ = await MicromUsers.Logoff(app_config, user_name, ec, ct);
         DeleteRefreshCookie(app_config);
     }
 

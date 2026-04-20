@@ -81,7 +81,7 @@ public static class WebAPIBaseExtensions
 
     public static IServiceCollection AddMemoryEventBus(this IServiceCollection services)
     {
-        services.AddSingleton<IMemoryEventBus, MemoryEventBus>();
+        services.AddSingleton<IMemoryEventsService, MemoryEventsService>();
         return services;
     }
 

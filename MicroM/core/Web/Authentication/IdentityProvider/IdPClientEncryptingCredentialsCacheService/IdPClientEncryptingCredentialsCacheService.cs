@@ -16,14 +16,14 @@ public class IdPClientEncryptingCredentialsCacheService : IIdPClientEncryptingCr
     private readonly IEtagCacheService<OIDCJwksResponse> jwksCache;
     private readonly IOIDCHttpClient oidcHttpClient;
     private readonly ILogger<IdPClientEncryptingCredentialsCacheService> log;
-    private readonly IMemoryEventBus bus;
+    private readonly IMemoryEventsService bus;
 
     public IdPClientEncryptingCredentialsCacheService(
         IMicroMAppConfiguration appConfig,
         IApplicationCertificateCacheService certCache,
         IEtagCacheService<OIDCJwksResponse> jwksCache,
         IOIDCHttpClient oidcHttpClient,
-        IMemoryEventBus bus,
+        IMemoryEventsService bus,
         ILogger<IdPClientEncryptingCredentialsCacheService> log
     )
     {

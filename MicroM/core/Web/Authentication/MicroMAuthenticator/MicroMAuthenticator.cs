@@ -1,5 +1,4 @@
 ﻿using MicroM.Configuration;
-using MicroM.Configuration.Entities;
 using MicroM.Core;
 using MicroM.Data;
 using MicroM.DataDictionary.CategoriesDefinitions;
@@ -75,7 +74,7 @@ public class MicroMAuthenticator(
             var (device_id, ipaddress, user_agent) = _deviceIdService.GetDeviceID(user_login.LocalDeviceID);
 
             // MMC: Get the data needed to perform the login attempt: password hash and account status
-            login_data = await MicromUsers.GetUserData(user_login.Username, null, device_id, ec, ct);
+            login_data = await MicromUsers.GetUserData(app_config, user_login.Username, null, device_id, ec, ct);
 
             if (login_data != null)
             {
@@ -98,6 +97,7 @@ public class MicroMAuthenticator(
 
                     // MMC: take note that the refresh token will be invalidated (null) if there is a bad login attempt
                     var attempt_result = await MicromUsers.UpdateLoginAttempt(
+                        app: app_config,
                         login_data.user_id,
                         device_id,
                         result.PasswordVerificationResult.IsIn(PasswordVerificationResult.Success, PasswordVerificationResult.SuccessRehashNeeded) ? new_refresh_token : login_data.refresh_token,
@@ -117,7 +117,7 @@ public class MicroMAuthenticator(
                         if (!string.IsNullOrEmpty(attempt_result.RefreshToken)) WriteRefreshTokenToCookie(app_config, attempt_result.RefreshToken);
 
                         // Get claims
-                        var (server_claims, client_claims) = await MicromUsers.GetClaims(user_login.Username, ec, ct);
+                        var (server_claims, client_claims) = await MicromUsers.GetClaims(app_config, user_login.Username, ec, ct);
 
                         result.ClientClaims = client_claims;
                         result.ServerClaims = server_claims;
@@ -182,11 +182,11 @@ public class MicroMAuthenticator(
         {
             await ec.Connect(ct);
 
-            LoginData? login_data = await MicromUsers.GetUserData(null, user_id, device_id, ec, ct);
+            LoginData? login_data = await MicromUsers.GetUserData(app_config, null, user_id, device_id, ec, ct);
             if (login_data != null && !login_data.disabled && !login_data.refresh_expired && !login_data.locked && string.IsNullOrEmpty(login_data.refresh_token) == false)
             {
                 var new_token = CryptClass.GenerateRandomBase64String();
-                var validated_token = await MicromUsers.RefreshToken(user_id, device_id, refresh_token, new_token, app_config.JWTRefreshExpirationHours, app_config.MaxRefreshTokenAttempts, ec, ct);
+                var validated_token = await MicromUsers.RefreshToken(app_config, user_id, device_id, refresh_token, new_token, app_config.JWTRefreshExpirationHours, app_config.MaxRefreshTokenAttempts, ec, ct);
                 if (validated_token != null)
                 {
                     result = validated_token;
@@ -225,7 +225,7 @@ public class MicroMAuthenticator(
 
         using DatabaseClient ec = app_config.CreateDatabaseClient(_log, _deviceIdService, null);
 
-        var _ = await MicromUsers.Logoff(user_name, ec, ct);
+        var _ = await MicromUsers.Logoff(app_config, user_name, ec, ct);
         DeleteRefreshCookie(app_config);
     }
 
@@ -253,14 +253,14 @@ public class MicroMAuthenticator(
                 return new(true, "No email template found for recovery email");
             }
 
-            var emails = await MicromUsers.GetRecoveryEmails(user_name, ec, ct);
+            var emails = await MicromUsers.GetRecoveryEmails(app_config, user_name, ec, ct);
             if (emails == null || emails.Count == 0)
             {
                 _log.LogWarning("{app_id} No emails found for user: {user_name}", app_id, user_name);
                 return new(true, $"No emails found for user: {user_name}");
             }
 
-            var get_code = await MicromUsers.GetRecoveryCode(user_name, ec, ct);
+            var get_code = await MicromUsers.GetRecoveryCode(app_config, user_name, ec, ct);
             if (string.IsNullOrEmpty(get_code.Result))
             {
                 _log.LogWarning("{app_id} Can't get a recovery code for user: {user_name} {error}", app_id, user_name, get_code.Status);
@@ -303,7 +303,7 @@ public class MicroMAuthenticator(
 
         try
         {
-            var result = await MicromUsers.RecoverPassword(user_name, recovery_code, new_password, ec, ct);
+            var result = await MicromUsers.RecoverPassword(app_config, user_name, recovery_code, new_password, ec, ct);
             if (result != null)
             {
                 if (result.Failed)
@@ -341,7 +341,7 @@ public class MicroMAuthenticator(
             await ec.Connect(ct);
 
             // Lookup user by username
-            LoginData? login_data = await MicromUsers.GetUserData(identity.Username, null, device_id, ec, ct);
+            LoginData? login_data = await MicromUsers.GetUserData(app, identity.Username, null, device_id, ec, ct);
 
             // JIT provision if missing
             if (login_data == null)
@@ -357,7 +357,7 @@ public class MicroMAuthenticator(
                 await jitUser.InsertData(ct);
 
                 // Re-read freshly provisioned user
-                login_data = await MicromUsers.GetUserData(identity.Username, null, device_id, ec, ct);
+                login_data = await MicromUsers.GetUserData(app, identity.Username, null, device_id, ec, ct);
             }
 
             if (login_data != null && !login_data.disabled && !login_data.locked)
@@ -365,6 +365,7 @@ public class MicroMAuthenticator(
                 // Issue per-device refresh token and set cookie
                 var new_refresh_token = CryptClass.GenerateRandomBase64String();
                 var attempt_result = await MicromUsers.UpdateLoginAttempt(
+                    app: app,
                     login_data.user_id,
                     device_id,
                     new_refresh_token,
@@ -385,7 +386,7 @@ public class MicroMAuthenticator(
                 }
 
                 // Load DB-backed claims
-                var (db_server_claims, db_client_claims) = await MicromUsers.GetClaims(identity.Username, ec, ct);
+                var (db_server_claims, db_client_claims) = await MicromUsers.GetClaims(app, identity.Username, ec, ct);
                 foreach (var kv in db_server_claims) serverClaims[kv.Key] = kv.Value;
                 foreach (var kv in db_client_claims) clientClaims[kv.Key] = kv.Value;
 
@@ -406,6 +407,7 @@ public class MicroMAuthenticator(
                 if (!string.IsNullOrWhiteSpace(identity.SessionId))
                 {
                     await ApplicationOidcActiveSessions.CreateOrUpdateExternalSignInSession(
+                        app: app,
                         app.ApplicationID,
                         identity.Username,
                         login_data.user_id,

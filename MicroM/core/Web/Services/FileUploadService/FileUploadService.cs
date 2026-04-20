@@ -21,7 +21,7 @@ namespace MicroM.Web.Services
         private bool disposedValue;
 
         private async Task<(string? errorMessage, FileStore? file_store, string? fullPath, string? extension)>
-            QueueFile(string app_id, string fileprocess_id, string file_name, IEntityClient ec, CancellationToken ct)
+            QueueFile(ApplicationOption app, string fileprocess_id, string file_name, IEntityClient ec, CancellationToken ct)
         {
             var (allowed, extension) = file_name.IsFileExtensionAllowed(_options.AllowedUploadFileExtensions ?? ConfigurationDefaults.AllowedFileUploadExtensions);
 
@@ -32,7 +32,7 @@ namespace MicroM.Web.Services
 
             string newFileName = $"{Guid.NewGuid()}{extension}";
             string folder = DateTime.Now.ToString("yyyyMM", CultureInfo.InvariantCulture);
-            var uploadsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, app_id, _options.UploadsFolder ?? ConfigurationDefaults.UploadsFolder, folder);
+            var uploadsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, app.ApplicationID, _options.UploadsFolder ?? ConfigurationDefaults.UploadsFolder, folder);
 
             string fullPath = Path.Combine(uploadsPath, newFileName);
 
@@ -52,7 +52,7 @@ namespace MicroM.Web.Services
 
                 await ec.Connect(ct);
 
-                fileStore = new FileStore(ec);
+                fileStore = new FileStore(ec, schema_name: app.SchemaConfiguration.DDSchema);
                 fileStore.Def.c_fileprocess_id.Value = fileprocess_id;
                 fileStore.Def.vc_filename.Value = Path.GetFileName(file_name);
                 fileStore.Def.vc_fileguid.Value = newFileName;
@@ -76,12 +76,12 @@ namespace MicroM.Web.Services
             return (errorMessage: null, file_store: fileStore, fullPath, extension);
         }
 
-        public async Task<UploadFileResult> UploadFile(string app_id, string fileprocess_id, string fileName, Stream fileData, int? maxSize, int? quality, IEntityClient ec, CancellationToken ct)
+        public async Task<UploadFileResult> UploadFile(ApplicationOption app, string fileprocess_id, string fileName, Stream fileData, int? maxSize, int? quality, IEntityClient ec, CancellationToken ct)
         {
             string fullPath = string.Empty;
             try
             {
-                var result = await QueueFile(app_id, fileprocess_id, fileName, ec, ct);
+                var result = await QueueFile(app, fileprocess_id, fileName, ec, ct);
 
                 if (result.errorMessage != null)
                 {
@@ -105,7 +105,7 @@ namespace MicroM.Web.Services
                 // MMC: change status to uploading
                 await ec.Connect(ct);
 
-                var fileStoreSatus = new FileStoreStatus(ec);
+                var fileStoreSatus = new FileStoreStatus(ec, schema_name: app.SchemaConfiguration.DDSchema);
                 fileStoreSatus.Def.c_file_id.Value = fileStore.Def.c_file_id.Value;
                 fileStoreSatus.Def.c_status_id.Value = nameof(FileUpload);
                 fileStoreSatus.Def.c_statusvalue_id.Value = nameof(FileUpload.Uploading);
@@ -178,7 +178,7 @@ namespace MicroM.Web.Services
         }
 
 
-        public async Task<string?> GetFilePath(string app_id, string fileguid, IEntityClient ec, CancellationToken ct)
+        public async Task<string?> GetFilePath(ApplicationOption app, string fileguid, IEntityClient ec, CancellationToken ct)
         {
             string cacheKey = $"FileStore_{fileguid}";
 
@@ -191,7 +191,7 @@ namespace MicroM.Web.Services
             {
                 await ec.Connect(ct);
 
-                var fileStore = new FileStore(ec);
+                var fileStore = new FileStore(ec, schema_name: app.SchemaConfiguration.DDSchema);
                 fileStore.Def.fst_getByGUID.Parms[nameof(fileStore.Def.vc_fileguid)].ValueObject = fileguid;
                 var fileDetails = await fileStore.ExecuteProcSingleRow<FileDetails>(fileStore.Def.fst_getByGUID, ct, set_parms_from_columns: false, mode: AutoMapperMode.ByNameLaxNotThrow);
                 if (fileDetails != null)
@@ -199,7 +199,7 @@ namespace MicroM.Web.Services
                     if (fileDetails.c_fileuploadstatus_id == nameof(FileUpload.Uploaded))
                     {
 
-                        var uploadsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, app_id, _options.UploadsFolder ?? ConfigurationDefaults.UploadsFolder, fileDetails.vc_filefolder);
+                        var uploadsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, app.ApplicationID, _options.UploadsFolder ?? ConfigurationDefaults.UploadsFolder, fileDetails.vc_filefolder);
 
                         filePath = Path.Combine(uploadsPath, fileDetails.vc_fileguid);
 
@@ -238,11 +238,11 @@ namespace MicroM.Web.Services
             return filePath;
         }
 
-        public async Task<ServeFileResult?> ServeFile(string app_id, string fileguid, IEntityClient ec, CancellationToken ct)
+        public async Task<ServeFileResult?> ServeFile(ApplicationOption app, string fileguid, IEntityClient ec, CancellationToken ct)
         {
             ServeFileResult? result = null;
 
-            var filePath = await GetFilePath(app_id, fileguid, ec, ct);
+            var filePath = await GetFilePath(app, fileguid, ec, ct);
             if (filePath != null)
             {
                 if (File.Exists(filePath))
@@ -260,11 +260,11 @@ namespace MicroM.Web.Services
             return result;
         }
 
-        public async Task<ServeFileResult?> ServeThumbnail(string app_id, string fileguid, int? maxSize, int? quality, IEntityClient ec, CancellationToken ct)
+        public async Task<ServeFileResult?> ServeThumbnail(ApplicationOption app, string fileguid, int? maxSize, int? quality, IEntityClient ec, CancellationToken ct)
         {
             ServeFileResult? result = null;
 
-            var filePath = await GetFilePath(app_id, fileguid, ec, ct);
+            var filePath = await GetFilePath(app, fileguid, ec, ct);
             if (filePath != null)
             {
                 var thumb = _thumbnailService.GetThumbnailFilename(filePath);

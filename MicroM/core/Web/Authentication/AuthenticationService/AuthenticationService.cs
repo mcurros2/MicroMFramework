@@ -76,7 +76,7 @@ public class AuthenticationService(
 
                             var sid = OauthTokenServiceProvider.EnsureSID();
 
-                            var sub_hash = await ApplicationOidcActiveSessions.CreateOrUpdateIdPSession(dbc, app.ApplicationID, authenticatorResult.LoginData.username, authenticatorResult.LoginData.user_id, device_id, app.OIDCIdPSubjectPepper!, sid, encryptor, ct);
+                            var sub_hash = await ApplicationOidcActiveSessions.CreateOrUpdateIdPSession(app, dbc, app.ApplicationID, authenticatorResult.LoginData.username, authenticatorResult.LoginData.user_id, device_id, app.OIDCIdPSubjectPepper!, sid, encryptor, ct);
 
                             authenticatorResult.ServerClaims[MicroMServerClaimTypes.MicroMOidcSessionID] = sid;
 

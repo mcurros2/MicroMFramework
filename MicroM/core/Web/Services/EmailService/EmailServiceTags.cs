@@ -1,8 +1,7 @@
-﻿namespace MicroM.Web.Services
+﻿namespace MicroM.Web.Services;
+
+public record EmailServiceTags
 {
-    public record EmailServiceTags
-    {
-        public string? tag { get; set; }
-        public string? value { get; set; }
-    }
+    public string? tag { get; set; }
+    public string? value { get; set; }
 }

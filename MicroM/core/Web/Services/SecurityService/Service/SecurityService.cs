@@ -42,7 +42,13 @@ public class SecurityService(IMicroMAppConfiguration app_config, ILogger<Securit
                 return [];
             }
 
-            var groups = new MicromUsersGroups(dbc);
+            var app = app_config.GetAppConfiguration(app_id);
+            if (app == null)
+            {
+                return [];
+            }
+
+            var groups = new MicromUsersGroups(dbc, schema_name: app.SchemaConfiguration.DDSchema);
 
             var result = await groups.ExecuteProc<GetAllGroupsAllowedRoutesResult>(groups.Def.mug_GetAllGroupsAllowedRoutes, ct);
 

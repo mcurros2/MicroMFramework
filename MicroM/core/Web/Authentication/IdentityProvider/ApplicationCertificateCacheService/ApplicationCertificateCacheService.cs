@@ -10,9 +10,9 @@ public class ApplicationCertificateCacheService : IApplicationCertificateCacheSe
 {
     private readonly ConcurrentDictionary<string, X509Certificate2> _certificateCache = new();
     private readonly ILogger<ApplicationCertificateCacheService> log;
-    private readonly IMemoryEventBus bus;
+    private readonly IMemoryEventsService bus;
 
-    public ApplicationCertificateCacheService(ILogger<ApplicationCertificateCacheService> log, IMemoryEventBus bus)
+    public ApplicationCertificateCacheService(ILogger<ApplicationCertificateCacheService> log, IMemoryEventsService bus)
     {
         this.log = log;
         this.bus = bus;

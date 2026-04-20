@@ -627,7 +627,7 @@ public class OIDCClientService(
                 if (!sid.IsNullOrEmpty())
                 {
                     // Determine sub in this app to purge
-                    sub = await ApplicationOidcActiveSessions.GetSUBFromSID(dbc, app.ApplicationID, sid!, ct);
+                    sub = await ApplicationOidcActiveSessions.GetSUBFromSID(app, dbc, app.ApplicationID, sid!, ct);
                     if (sub.IsNullOrEmpty())
                     {
                         log.LogWarning("Backchannel logout: no active session found for app {app} sid={sid}", app.ApplicationID, sid);
@@ -641,7 +641,7 @@ public class OIDCClientService(
                 }
             }
 
-            await ApplicationOidcActiveSessions.DeleteSessionsBySUB(dbc, sub!, ct);
+            await ApplicationOidcActiveSessions.DeleteSessionsBySUB(app, dbc, sub!, ct);
 
             return new(OIDCLogoutProcessingStatus.Success, null);
         }
@@ -810,7 +810,7 @@ public class OIDCClientService(
             await dbc.Connect(ct);
 
             // Load IdP refresh token for this sid (prefer current device row if present)
-            var session = await ApplicationOidcActiveSessions.GetSessionBySID(dbc, app.ApplicationID, sid, ct, encryptor);
+            var session = await ApplicationOidcActiveSessions.GetSessionBySID(app, dbc, app.ApplicationID, sid, ct, encryptor);
 
             if (session == null || string.IsNullOrWhiteSpace(session.vc_oidc_refreshtoken))
             {
@@ -833,6 +833,7 @@ public class OIDCClientService(
             }
 
             await ApplicationOidcActiveSessions.CreateOrUpdateExternalSignInSession(
+                app: app,
                 app_id,
                 session.vc_username,
                 session.c_user_id,

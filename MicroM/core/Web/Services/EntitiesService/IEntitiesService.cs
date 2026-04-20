@@ -11,7 +11,7 @@ public interface IEntitiesService
     /// Creates an Entity if exists in the configured assembly />.
     /// </summary>
     public EntityBase? CreateEntity(ApplicationOption app, string entity_name, Dictionary<string, object>? server_claims, IEntityClient? ec = null);
-    public EntityBase? CreateEntity(ApplicationOption app, string entity_name, Dictionary<string, object>? server_claims, CancellationToken ct);
+    public Task<EntityBase?> CreateEntity(ApplicationOption app, string entity_name, Dictionary<string, object>? server_claims, CancellationToken ct);
 
     /// <summary>
     /// Connection factory for the webAPI.

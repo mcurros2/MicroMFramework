@@ -65,17 +65,28 @@ public class EntitiesService : IEntitiesService
         EntityBase? entity = null;
         ec ??= CreateDbConnection(app, server_claims);
         Type? ent_type = _api.app_config.GetEntityType(app.ApplicationID, entity_name);
-        if (ent_type != null) entity = (EntityBase?)Activator.CreateInstance(ent_type, ec, _api.encryptor);
+        if (ent_type != null)
+        {
+            var shema = _api.app_config.IsDDType(ent_type.Name) ? app.SchemaConfiguration.DDSchema : app.SchemaConfiguration.APPSchema;
+            entity = (EntityBase?)Activator.CreateInstance(ent_type, ec, _api.encryptor);
+            entity?.Init(ec, _api.encryptor, shema);
+        }
 
         return entity;
     }
 
-    public EntityBase? CreateEntity(ApplicationOption app, string entity_name, Dictionary<string, object>? server_claims, CancellationToken ct)
+    public async Task<EntityBase?> CreateEntity(ApplicationOption app, string entity_name, Dictionary<string, object>? server_claims, CancellationToken ct)
     {
         EntityBase? entity = null;
-        var ec = CreateDbConnection(app, server_claims, ct);
+        var ec = await CreateDbConnection(app, server_claims, ct);
         Type? ent_type = _api.app_config.GetEntityType(app.ApplicationID, entity_name);
-        if (ent_type != null) entity = (EntityBase?)Activator.CreateInstance(ent_type, ec, _api.encryptor);
+
+        if (ent_type != null)
+        {
+            var shema = _api.app_config.IsDDType(ent_type.Name) ? app.SchemaConfiguration.DDSchema : app.SchemaConfiguration.APPSchema;
+            entity = (EntityBase?)Activator.CreateInstance(ent_type, ec, _api.encryptor);
+            entity?.Init(ec, _api.encryptor, shema);
+        }
 
         return entity;
     }
@@ -637,7 +648,7 @@ public class EntitiesService : IEntitiesService
                             return null;
                         }
 
-                        var file_path = await _api.upload.GetFilePath(app_id, import_process.Def.vc_fileguid.Value, ec, ct);
+                        var file_path = await _api.upload.GetFilePath(app, import_process.Def.vc_fileguid.Value, ec, ct);
                         if (string.IsNullOrEmpty(file_path))
                         {
                             await import_process.UpdateStatus(nameof(ImportStatus.Error), ct);

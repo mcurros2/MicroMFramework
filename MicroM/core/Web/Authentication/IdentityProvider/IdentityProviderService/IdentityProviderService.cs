@@ -220,7 +220,7 @@ public class IdentityProviderService(
             try
             {
                 using var lookupDbc = app.CreateDatabaseClient(log, null, null);
-                var sessions = await ApplicationOidcActiveSessions.GetSessionsBySubject(lookupDbc, sub, ct);
+                var sessions = await ApplicationOidcActiveSessions.GetSessionsBySubject(app, lookupDbc, sub, ct);
                 if (sessions != null && sessions.Count == 1)
                 {
                     existingSid = sessions[0].vc_oidc_session_id;
@@ -285,7 +285,7 @@ public class IdentityProviderService(
             try
             {
                 await dbc.Connect(ct);
-                await ApplicationOidcActiveSessions.DeleteSessionsBySUB(dbc, sub, ct);
+                await ApplicationOidcActiveSessions.DeleteSessionsBySUB(app, dbc, sub, ct);
             }
             catch (Exception ex)
             {

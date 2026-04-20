@@ -81,18 +81,18 @@ public class MicromUsers : Entity<MicromUsersDef>
         return base.InsertData(ct, throw_dbstat_exception, options, server_claims, api);
     }
 
-    public async static Task<DBStatusResult> Logoff(string username, IEntityClient ec, CancellationToken ct)
+    public async static Task<DBStatusResult> Logoff(ApplicationOption app, string username, IEntityClient ec, CancellationToken ct)
     {
-        MicromUsers user = new(ec);
+        MicromUsers user = new(ec, schema_name: app.SchemaConfiguration.DDSchema);
 
         var proc = user.Def.usr_logoff;
         proc[nameof(MicromUsersDef.vc_username)].ValueObject = username;
         return await user.Data.ExecuteProcDBStatus(proc, ct);
     }
 
-    public async static Task<LoginData?> GetUserData(string? username, string? user_id, string device_id, IEntityClient ec, CancellationToken ct)
+    public async static Task<LoginData?> GetUserData(ApplicationOption app, string? username, string? user_id, string device_id, IEntityClient ec, CancellationToken ct)
     {
-        MicromUsers user = new(ec);
+        MicromUsers user = new(ec, schema_name: app.SchemaConfiguration.DDSchema);
 
         var proc = user.Def.usr_getUserData;
 
@@ -133,14 +133,14 @@ public class MicromUsers : Entity<MicromUsersDef>
         return [];
     }
 
-    public async static Task<(Dictionary<string, object> server_claims, Dictionary<string, string> client_claims)> GetClaims(string username, IEntityClient ec, CancellationToken ct)
+    public async static Task<(Dictionary<string, object> server_claims, Dictionary<string, string> client_claims)> GetClaims(ApplicationOption app, string username, IEntityClient ec, CancellationToken ct)
     {
         Dictionary<string, object> server_claims = [];
         Dictionary<string, string> client_claims = [];
 
         try
         {
-            MicromUsers user = new(ec);
+            MicromUsers user = new(ec, schema_name: app.SchemaConfiguration.DDSchema);
             await ec.Connect(ct);
 
             user.Def.vc_username.Value = username;
@@ -158,9 +158,9 @@ public class MicromUsers : Entity<MicromUsersDef>
     }
 
 
-    public async static Task<LoginAttemptResult> UpdateLoginAttempt(string user_id, string device_id, string? new_refresh_token, bool success, int account_lockout_mins, int refresh_expiration_hours, int max_bad_logon_attempts, string ipaddress, string user_agent, IEntityClient ec, CancellationToken ct)
+    public async static Task<LoginAttemptResult> UpdateLoginAttempt(ApplicationOption app, string user_id, string device_id, string? new_refresh_token, bool success, int account_lockout_mins, int refresh_expiration_hours, int max_bad_logon_attempts, string ipaddress, string user_agent, IEntityClient ec, CancellationToken ct)
     {
-        MicromUsers user = new(ec);
+        MicromUsers user = new(ec, schema_name: app.SchemaConfiguration.DDSchema);
         LoginAttemptResult result = new();
 
 
@@ -188,9 +188,9 @@ public class MicromUsers : Entity<MicromUsersDef>
         return result;
     }
 
-    public async static Task<RefreshTokenResult?> RefreshToken(string user_id, string device_id, string refreshtoken, string new_refresh_token, int refresh_expiration_hours, int max_refresh_count, IEntityClient ec, CancellationToken ct)
+    public async static Task<RefreshTokenResult?> RefreshToken(ApplicationOption app, string user_id, string device_id, string refreshtoken, string new_refresh_token, int refresh_expiration_hours, int max_refresh_count, IEntityClient ec, CancellationToken ct)
     {
-        MicromUsersDevices user = new(ec);
+        MicromUsersDevices user = new(ec, schema_name: app.SchemaConfiguration.DDSchema);
 
         var proc = user.Def.usd_refreshToken;
         proc[nameof(MicromUsersDef.c_user_id)].ValueObject = user_id;
@@ -204,9 +204,9 @@ public class MicromUsers : Entity<MicromUsersDef>
         return result;
     }
 
-    public async static Task<ResultWithStatus<string, string>> GetRecoveryCode(string username, IEntityClient ec, CancellationToken ct)
+    public async static Task<ResultWithStatus<string, string>> GetRecoveryCode(ApplicationOption app, string username, IEntityClient ec, CancellationToken ct)
     {
-        MicromUsers user = new(ec);
+        MicromUsers user = new(ec, schema_name: app.SchemaConfiguration.DDSchema);
 
         user.Def.vc_username.Value = username;
 
@@ -222,9 +222,9 @@ public class MicromUsers : Entity<MicromUsersDef>
         return new(recovery_code, null);
     }
 
-    public async static Task<List<string>> GetRecoveryEmails(string username, IEntityClient ec, CancellationToken ct)
+    public async static Task<List<string>> GetRecoveryEmails(ApplicationOption app, string username, IEntityClient ec, CancellationToken ct)
     {
-        MicromUsers user = new(ec);
+        MicromUsers user = new(ec, schema_name: app.SchemaConfiguration.DDSchema);
 
         user.Def.vc_username.Value = username;
 
@@ -238,9 +238,9 @@ public class MicromUsers : Entity<MicromUsersDef>
         return result[0].ToListOfStringColumn(header_index.Value);
     }
 
-    public async static Task<DBStatusResult> RecoverPassword(string username, string recovery_code, string new_password, IEntityClient ec, CancellationToken ct)
+    public async static Task<DBStatusResult> RecoverPassword(ApplicationOption app, string username, string recovery_code, string new_password, IEntityClient ec, CancellationToken ct)
     {
-        MicromUsers user = new(ec);
+        MicromUsers user = new(ec, schema_name: app.SchemaConfiguration.DDSchema);
 
         var proc = user.Def.usr_RecoverPassword;
         proc[nameof(MicromUsersDef.vc_username)].ValueObject = username;
@@ -251,10 +251,10 @@ public class MicromUsers : Entity<MicromUsersDef>
     }
 
 
-    public async static Task<DBStatusResult> SetPassword(string username, string pwhash, IEntityClient ec, CancellationToken ct)
+    public async static Task<DBStatusResult> SetPassword(ApplicationOption app, string username, string pwhash, IEntityClient ec, CancellationToken ct)
     {
 
-        MicromUsers user = new(ec);
+        MicromUsers user = new(ec, schema_name: app.SchemaConfiguration.DDSchema);
 
         var proc = user.Def.usr_setPassword;
         proc[nameof(MicromUsersDef.vc_username)].ValueObject = username;
@@ -263,10 +263,10 @@ public class MicromUsers : Entity<MicromUsersDef>
         return await user.Data.ExecuteProcDBStatus(proc, ct);
     }
 
-    public async static Task<DBStatusResult> ResetPassword(string username, IEntityClient ec, CancellationToken ct)
+    public async static Task<DBStatusResult> ResetPassword(ApplicationOption app, string username, IEntityClient ec, CancellationToken ct)
     {
 
-        MicromUsers user = new(ec);
+        MicromUsers user = new(ec, schema_name: app.SchemaConfiguration.DDSchema);
 
         var proc = user.Def.usr_resetPassword;
         proc[nameof(MicromUsersDef.vc_username)].ValueObject = username;

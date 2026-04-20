@@ -1,9 +1,8 @@
-﻿namespace MicroM.Web.Authentication
+﻿namespace MicroM.Web.Authentication;
+
+public class UserRecoverPassword
 {
-    public class UserRecoverPassword
-    {
-        public string Username { get; set; } = "";
-        public string Password { get; set; } = "";
-        public string RecoveryCode { get; set; } = "";
-    }
+    public string Username { get; set; } = "";
+    public string Password { get; set; } = "";
+    public string RecoveryCode { get; set; } = "";
 }

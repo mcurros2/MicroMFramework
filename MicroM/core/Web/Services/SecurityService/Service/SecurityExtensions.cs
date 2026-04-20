@@ -126,7 +126,7 @@ public static class SecurityExtensions
 
     }
 
-    public async static Task CreateEntityRoutes(this EntityBase entity, IEntityClient ec, CancellationToken ct)
+    public async static Task CreateEntityRoutes(this EntityBase entity, ApplicationOption app, IEntityClient ec, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(entity);
         bool should_close = !(ec.ConnectionState == System.Data.ConnectionState.Open);
@@ -136,7 +136,7 @@ public static class SecurityExtensions
             var entity_type = entity.GetType();
             var paths = entity.GetRoutePaths(entity_type.Name, AllowedRouteFlags.All);
 
-            var routes = new MicromRoutes(ec);
+            var routes = new MicromRoutes(ec, schema_name: app.SchemaConfiguration.DDSchema);
 
             foreach (var path in paths)
             {
@@ -152,7 +152,7 @@ public static class SecurityExtensions
         }
     }
 
-    public async static Task CreateEntityRoutes(this Type entity_type, IEntityClient ec, CancellationToken ct)
+    public async static Task CreateEntityRoutes(this Type entity_type, ApplicationOption app, IEntityClient ec, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(entity_type);
         if (!typeof(EntityBase).IsAssignableFrom(entity_type))
@@ -163,7 +163,7 @@ public static class SecurityExtensions
         EntityBase? entity = (EntityBase?)Activator.CreateInstance(entity_type);
         if (entity == null) return;
 
-        await entity.CreateEntityRoutes(ec, ct);
+        await entity.CreateEntityRoutes(app, ec, ct);
 
     }
 

@@ -1,6 +1,6 @@
 ﻿namespace MicroM.Web.Services;
 
-public interface IMemoryEventBus
+public interface IMemoryEventsService
 {
     void Publish<TEvent>(TEvent @event) where TEvent : class;
     void Subscribe<TEvent>(Action<TEvent> handler) where TEvent : class;

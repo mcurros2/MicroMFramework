@@ -17,7 +17,7 @@ public class EtagCacheService<T> : IEtagCacheService<T> where T : class?
     private EtagCache<T> _etagCache = new();
 
 
-    public EtagCacheService(IMemoryEventBus bus, ILogger<EtagCacheService<T>> log)
+    public EtagCacheService(IMemoryEventsService bus, ILogger<EtagCacheService<T>> log)
     {
         bus.Subscribe<MicroMConfigurationReloaded>(_ =>
         {

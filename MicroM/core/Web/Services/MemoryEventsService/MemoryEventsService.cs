@@ -3,7 +3,7 @@ using System.Collections.Concurrent;
 
 namespace MicroM.Web.Services;
 
-public class MemoryEventBus(ILogger<MemoryEventBus> log) : IMemoryEventBus
+public class MemoryEventsService(ILogger<MemoryEventsService> log) : IMemoryEventsService
 {
     private readonly ConcurrentDictionary<Type, List<Delegate>> _subscribers = [];
 

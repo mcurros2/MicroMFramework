@@ -26,4 +26,6 @@ public interface IMicroMAppConfiguration
 
     public string? GetTenantPath(HttpContext context);
 
+    public bool IsDDType(string type_name);
+
 }

@@ -53,6 +53,7 @@ public class OauthTokenService(
             await dbc.Connect(ct);
 
             var session = await ApplicationOidcActiveSessions.GetSessionByRefreshToken(
+                app: app,
                 ec: dbc,
                 client_id: record.client_id,
                 refresh_token: record.refresh_token,

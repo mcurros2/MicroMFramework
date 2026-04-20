@@ -1,4 +1,5 @@
-﻿using MicroM.Core;
+﻿using MicroM.Configuration;
+using MicroM.Core;
 using MicroM.Data;
 using MicroM.Web.Services;
 using Microsoft.IdentityModel.Tokens;
@@ -88,6 +89,7 @@ public class ApplicationOidcActiveSessions : Entity<ApplicationOidcActiveSession
     /// This method creates or update an OIDC session record for a user in the Identity Provider (IdP) database.
     /// </summary>
     public static async Task<string> CreateOrUpdateIdPSession(
+        ApplicationOption app,
         IEntityClient ec,
         string client_app_id,
         string? username,
@@ -107,7 +109,7 @@ public class ApplicationOidcActiveSessions : Entity<ApplicationOidcActiveSession
         {
             await ec.Connect(ct);
 
-            var new_session = new ApplicationOidcActiveSessions(ec, encryptor);
+            var new_session = new ApplicationOidcActiveSessions(ec, encryptor, schema_name: app.SchemaConfiguration.DDSchema);
 
             new_session.Def.c_application_id.Value = client_app_id;
             new_session.Def.c_user_id.Value = idp_user_id;
@@ -138,6 +140,7 @@ public class ApplicationOidcActiveSessions : Entity<ApplicationOidcActiveSession
     /// This method creates or updates an OIDC session record for a user in a client application database (at the client app side).
     /// </summary>
     public static async Task<DBStatusResult> CreateOrUpdateExternalSignInSession(
+        ApplicationOption app,
         string app_id,
         string username,
         string user_id,
@@ -155,7 +158,7 @@ public class ApplicationOidcActiveSessions : Entity<ApplicationOidcActiveSession
         {
             await ec.Connect(ct);
 
-            var sess = new ApplicationOidcActiveSessions(ec, encryptor);
+            var sess = new ApplicationOidcActiveSessions(ec, encryptor, schema_name: app.SchemaConfiguration.DDSchema);
 
             sess.Def.c_application_id.Value = app_id;
             sess.Def.c_user_id.Value = user_id;
@@ -206,9 +209,9 @@ public class ApplicationOidcActiveSessions : Entity<ApplicationOidcActiveSession
         return result;
     }
 
-    public static async Task<List<OidcSessionItem>> GetSessionsBySid(IEntityClient ec, string app_id, string sid, CancellationToken ct, IMicroMEncryption? encryptor = null)
+    public static async Task<List<OidcSessionItem>> GetSessionsBySid(ApplicationOption app, IEntityClient ec, string app_id, string sid, CancellationToken ct, IMicroMEncryption? encryptor = null)
     {
-        var entity = new ApplicationOidcActiveSessions(ec, encryptor);
+        var entity = new ApplicationOidcActiveSessions(ec, encryptor, schema_name: app.SchemaConfiguration.DDSchema);
         List<OidcSessionItem>? result = [];
 
         bool should_close = !(ec.ConnectionState == ConnectionState.Open);
@@ -231,9 +234,9 @@ public class ApplicationOidcActiveSessions : Entity<ApplicationOidcActiveSession
         return result;
     }
 
-    public static async Task<List<OidcSessionItem>> GetSessionsByUsername(IEntityClient ec, string username, CancellationToken ct, IMicroMEncryption? encryptor = null)
+    public static async Task<List<OidcSessionItem>> GetSessionsByUsername(ApplicationOption app, IEntityClient ec, string username, CancellationToken ct, IMicroMEncryption? encryptor = null)
     {
-        var entity = new ApplicationOidcActiveSessions(ec, encryptor);
+        var entity = new ApplicationOidcActiveSessions(ec, encryptor, schema_name: app.SchemaConfiguration.DDSchema);
         List<OidcSessionItem>? result = [];
 
         var should_close = !(ec.ConnectionState == ConnectionState.Open);
@@ -250,9 +253,9 @@ public class ApplicationOidcActiveSessions : Entity<ApplicationOidcActiveSession
         return result;
     }
 
-    public static async Task<List<OidcSessionItem>> GetSessionsBySubject(IEntityClient ec, string sub, CancellationToken ct, IMicroMEncryption? encryptor = null)
+    public static async Task<List<OidcSessionItem>> GetSessionsBySubject(ApplicationOption app, IEntityClient ec, string sub, CancellationToken ct, IMicroMEncryption? encryptor = null)
     {
-        var entity = new ApplicationOidcActiveSessions(ec, encryptor);
+        var entity = new ApplicationOidcActiveSessions(ec, encryptor, schema_name: app.SchemaConfiguration.DDSchema);
         List<OidcSessionItem>? result = [];
 
         var should_close = !(ec.ConnectionState == ConnectionState.Open);
@@ -269,9 +272,9 @@ public class ApplicationOidcActiveSessions : Entity<ApplicationOidcActiveSession
         return result;
     }
 
-    public static async Task<OidcSessionItem?> GetSessionByRefreshToken(IEntityClient ec, string client_id, string refresh_token, CancellationToken ct, IMicroMEncryption? encryptor = null)
+    public static async Task<OidcSessionItem?> GetSessionByRefreshToken(ApplicationOption app, IEntityClient ec, string client_id, string refresh_token, CancellationToken ct, IMicroMEncryption? encryptor = null)
     {
-        var entity = new ApplicationOidcActiveSessions(ec, encryptor);
+        var entity = new ApplicationOidcActiveSessions(ec, encryptor, schema_name: app.SchemaConfiguration.DDSchema);
         List<OidcSessionItem>? result = [];
 
         var should_close = !(ec.ConnectionState == ConnectionState.Open);
@@ -292,9 +295,9 @@ public class ApplicationOidcActiveSessions : Entity<ApplicationOidcActiveSession
         return result.Count > 0 ? result[0] : null;
     }
 
-    public static async Task<OidcSessionItem?> GetSessionBySID(IEntityClient ec, string client_id, string sid, CancellationToken ct, IMicroMEncryption? encryptor = null)
+    public static async Task<OidcSessionItem?> GetSessionBySID(ApplicationOption app, IEntityClient ec, string client_id, string sid, CancellationToken ct, IMicroMEncryption? encryptor = null)
     {
-        var entity = new ApplicationOidcActiveSessions(ec, encryptor);
+        var entity = new ApplicationOidcActiveSessions(ec, encryptor, schema_name: app.SchemaConfiguration.DDSchema);
         List<OidcSessionItem>? result = [];
 
         var should_close = !(ec.ConnectionState == ConnectionState.Open);
@@ -314,9 +317,9 @@ public class ApplicationOidcActiveSessions : Entity<ApplicationOidcActiveSession
         return result.Count > 0 ? result[0] : null;
     }
 
-    public static async Task<string?> GetUsernameFromSIDorSUB(IEntityClient ec, string app_id, string? sid, string? sub, CancellationToken ct)
+    public static async Task<string?> GetUsernameFromSIDorSUB(ApplicationOption app, IEntityClient ec, string app_id, string? sid, string? sub, CancellationToken ct)
     {
-        var entity = new ApplicationOidcActiveSessions(ec);
+        var entity = new ApplicationOidcActiveSessions(ec, schema_name: app.SchemaConfiguration.DDSchema);
         string? result = null;
 
         var should_close = !(ec.ConnectionState == ConnectionState.Open);
@@ -335,9 +338,9 @@ public class ApplicationOidcActiveSessions : Entity<ApplicationOidcActiveSession
         return result;
     }
 
-    public static async Task<string?> GetSUBFromSID(IEntityClient ec, string app_id, string sid, CancellationToken ct)
+    public static async Task<string?> GetSUBFromSID(ApplicationOption app, IEntityClient ec, string app_id, string sid, CancellationToken ct)
     {
-        var entity = new ApplicationOidcActiveSessions(ec);
+        var entity = new ApplicationOidcActiveSessions(ec, schema_name: app.SchemaConfiguration.DDSchema);
         string? result = null;
 
         var should_close = !(ec.ConnectionState == ConnectionState.Open);
@@ -355,9 +358,9 @@ public class ApplicationOidcActiveSessions : Entity<ApplicationOidcActiveSession
         return result;
     }
 
-    public static async Task<DBStatusResult> DeleteSessionsBySUB(IEntityClient ec, string sub, CancellationToken ct)
+    public static async Task<DBStatusResult> DeleteSessionsBySUB(ApplicationOption app, IEntityClient ec, string sub, CancellationToken ct)
     {
-        var entity = new ApplicationOidcActiveSessions(ec);
+        var entity = new ApplicationOidcActiveSessions(ec, schema_name: app.SchemaConfiguration.DDSchema);
 
         var should_close = !(ec.ConnectionState == ConnectionState.Open);
         try

@@ -195,6 +195,7 @@ public static class OauthTokenServiceProvider
             await dbc.Connect(ct);
 
             var sub_hash = await ApplicationOidcActiveSessions.CreateOrUpdateIdPSession(
+                app: app,
                 dbc,
                 client_app_id: client_id,
                 username: null,
