@@ -14,7 +14,7 @@ internal static class UpdateExtensions
         string ret = "";
         if (entity.Def.AutonumColumn != null)
         {
-            ret = $"declare @id bigint\n{TAB}{TAB}exec num_iGetNewNumber '{entity.Def.Mneo}', @nextnumber = @id out";
+            ret = $"declare @id bigint\n{TAB}{TAB}exec {entity.Def.QualifiedSchemaName}.num_iGetNewNumber '{entity.Def.Mneo}', @nextnumber = @id out";
             if (entity.Def.AutonumColumn.SQLMetadata.SQLType.IsIn(SqlDbType.Char, SqlDbType.NChar))
             {
                 ret = $"{ret}\n{TAB}{TAB}select @{entity.Def.AutonumColumn.SQLParameterName} = right('0000000000'+rtrim(@id),10)\n";

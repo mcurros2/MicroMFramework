@@ -29,7 +29,7 @@ begin try
     if @cu is null
     begin
         declare @id bigint
-        exec num_iGetNewNumber 'mak', @nextnumber = @id out
+        exec [dbo].num_iGetNewNumber 'mak', @nextnumber = @id out
         select @api_key_id = right('0000000000'+rtrim(@id),10)
 
         insert  [dbo].[microm_application_api_keys]
