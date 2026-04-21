@@ -67,9 +67,9 @@ public class EntitiesService : IEntitiesService
         Type? ent_type = _api.app_config.GetEntityType(app.ApplicationID, entity_name);
         if (ent_type != null)
         {
-            var shema = _api.app_config.IsDDType(ent_type.Name) ? app.SchemaConfiguration.DDSchema : app.SchemaConfiguration.APPSchema;
-            entity = (EntityBase?)Activator.CreateInstance(ent_type, ec, _api.encryptor);
-            entity?.Init(ec, _api.encryptor, shema);
+            var schema = _api.app_config.IsDDType(ent_type.Name) ? app.SchemaConfiguration.DDSchema : app.SchemaConfiguration.APPSchema;
+            entity = (EntityBase?)Activator.CreateInstance(ent_type);
+            entity?.Init(ec, _api.encryptor, schema);
         }
 
         return entity;
@@ -83,9 +83,9 @@ public class EntitiesService : IEntitiesService
 
         if (ent_type != null)
         {
-            var shema = _api.app_config.IsDDType(ent_type.Name) ? app.SchemaConfiguration.DDSchema : app.SchemaConfiguration.APPSchema;
-            entity = (EntityBase?)Activator.CreateInstance(ent_type, ec, _api.encryptor);
-            entity?.Init(ec, _api.encryptor, shema);
+            var schema = _api.app_config.IsDDType(ent_type.Name) ? app.SchemaConfiguration.DDSchema : app.SchemaConfiguration.APPSchema;
+            entity = (EntityBase?)Activator.CreateInstance(ent_type);
+            entity?.Init(ec, _api.encryptor, schema);
         }
 
         return entity;
@@ -567,12 +567,13 @@ public class EntitiesService : IEntitiesService
         Type? ent_type = _api.app_config.GetEntityType(app.ApplicationID, entity_name);
         if (ent_type != null)
         {
+            var schema = _api.app_config.IsDDType(ent_type.Name) ? app.SchemaConfiguration.DDSchema : app.SchemaConfiguration.APPSchema;
             EntityBase? obj = (EntityBase?)Activator.CreateInstance(ent_type);
             if (obj != null)
             {
+                obj.Init(null, _api.encryptor, schema);
                 result = obj.Def;
             }
-
         }
         else
         {

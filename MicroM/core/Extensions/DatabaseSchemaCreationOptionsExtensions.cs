@@ -49,7 +49,7 @@ public static class DatabaseSchemaCreationOptionsExtensions
     /// including schemas, tables, types, sequences, constraints, indexes, and custom stored procedures. It will connect
     /// to the database if not already connected and disconnect upon completion if it established the connection. The
     /// method is safe to call multiple times; it will only create or alter objects as needed.</remarks>
-    public async static Task CreateSchemaAndProcs(this CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>> entities, IEntityClient ec, AppDBSchemaConfiguration schema_config, CancellationToken ct, bool create_or_alter = false, CustomOrderedDictionary<CustomScript>? custom_procs = null)
+    public async static Task CreateSchemaAndProcs(this CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>> entities, IEntityClient ec, AppDBSchemaConfiguration schema_config, CancellationToken ct, bool create_or_alter = false, CustomOrderedDictionary<CustomScript>? custom_procs = null, bool generate_standard_procs = true)
     {
         bool should_close = !(ec.ConnectionState == System.Data.ConnectionState.Open);
 
@@ -84,7 +84,7 @@ public static class DatabaseSchemaCreationOptionsExtensions
                 await CreateAllCustomViews(ec, custom_procs, ct);
             }
 
-            await CreateAllEntitiesProcs(ec, entities, custom_procs, schema_config.DDSchema, ct, create_or_alter);
+            await CreateAllEntitiesProcs(ec, entities, custom_procs, schema_config.DDSchema, generate_standard_procs, ct, create_or_alter);
 
         }
         finally

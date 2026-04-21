@@ -186,21 +186,20 @@ namespace MicroM.Database
             }
         }
 
-        public static async Task DropEntitiesIndexes(IEntityClient ec, Dictionary<string, Type> entities, CancellationToken ct)
+        public static async Task DropEntitiesIndexes(IEntityClient ec, CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>> entities, CancellationToken ct)
         {
             bool should_close = !(ec.ConnectionState == System.Data.ConnectionState.Open);
             try
             {
                 await ec.Connect(ct);
                 StringBuilder sb_drop_IDXs = new();
-                foreach (var entity_type in entities.Values)
+                foreach (var entity_option in entities.Values)
                 {
-                    if (entity_type != null)
+                    if (entity_option != null)
                     {
-                        var ent = (EntityBase?)Activator.CreateInstance(entity_type) ?? throw new InvalidOperationException($"Can't create entity instance. {entity_type.Name}");
+                        var ent = entity_option.EntityInstance;
                         if (ent != null)
                         {
-                            ent.Init(ec);
                             sb_drop_IDXs.Append(ent.AsDropIndexes());
                         }
                     }
@@ -214,21 +213,20 @@ namespace MicroM.Database
             }
         }
 
-        public static async Task CreateEntitiesIndexes(IEntityClient ec, Dictionary<string, Type> entities, CancellationToken ct)
+        public static async Task CreateEntitiesIndexes(IEntityClient ec, CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>> entities, CancellationToken ct)
         {
             bool should_close = !(ec.ConnectionState == System.Data.ConnectionState.Open);
             try
             {
                 await ec.Connect(ct);
                 StringBuilder sb_create_IDXs = new();
-                foreach (var entity_type in entities.Values)
+                foreach (var entity_option in entities.Values)
                 {
-                    if (entity_type != null)
+                    if (entity_option != null)
                     {
-                        var ent = (EntityBase?)Activator.CreateInstance(entity_type) ?? throw new InvalidOperationException($"Can't create entity instance. {entity_type.Name}");
+                        var ent = entity_option.EntityInstance;
                         if (ent != null)
                         {
-                            ent.Init(ec);
                             sb_create_IDXs.Append(ent.AsCreateIndexes());
                         }
                     }
@@ -242,7 +240,7 @@ namespace MicroM.Database
             }
         }
 
-        public static async Task DropEntitiesConstraintsAndIndexes(IEntityClient ec, Dictionary<string, Type> entities, CancellationToken ct, bool drop_primary_keys = false)
+        public static async Task DropEntitiesConstraintsAndIndexes(IEntityClient ec, CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>> entities, CancellationToken ct, bool drop_primary_keys = false)
         {
             bool should_close = !(ec.ConnectionState == System.Data.ConnectionState.Open);
             try
@@ -252,14 +250,13 @@ namespace MicroM.Database
                 StringBuilder sb_drop_PKs = new();
                 StringBuilder sb_drop_UNs = new();
                 StringBuilder sb_drop_IDXs = new();
-                foreach (var entity_type in entities.Values)
+                foreach (var entity_option in entities.Values)
                 {
-                    if (entity_type != null)
+                    if (entity_option != null)
                     {
-                        var ent = (EntityBase?)Activator.CreateInstance(entity_type) ?? throw new InvalidOperationException($"Can't create entity instance. {entity_type.Name}");
+                        var ent = entity_option.EntityInstance;
                         if (ent != null)
                         {
-                            ent.Init(ec);
                             if (drop_primary_keys) sb_drop_PKs.Append(ent.AsDropPrimaryKey());
                             sb_drop_FKs.Append(ent.AsDropForeignKeys());
                             sb_drop_UNs.Append(ent.AsDropUniqueConstraints());

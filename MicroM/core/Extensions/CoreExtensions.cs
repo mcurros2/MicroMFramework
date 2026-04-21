@@ -8,7 +8,7 @@ public static class CoreExtensions
 {
     public static ProcedureDefinition AddProc(this Dictionary<string, ProcedureDefinition> collection, string name, bool readonly_locks = false, params ColumnBase[] parms)
     {
-        var proc = new ProcedureDefinition(name, readonly_locks);
+        var proc = new ProcedureDefinition(name: name, readonly_locks: readonly_locks);
         foreach (var col in parms)
         {
             proc.AddParmFromCol(col);
@@ -78,7 +78,7 @@ public static class CoreExtensions
     {
         if (column_names.Length == 0)
         {
-            return new ProcedureDefinition("", readonly_locks);
+            return new ProcedureDefinition(readonly_locks: readonly_locks);
         }
 
         ColumnBase[] parms = new ColumnBase[column_names.Length];

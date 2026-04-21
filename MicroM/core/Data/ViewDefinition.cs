@@ -98,7 +98,7 @@ namespace MicroM.Data
 
         public ViewDefinition(bool add_default_parms = true, params string[] parms)
         {
-            Proc = new ProcedureDefinition("", true);
+            Proc = new ProcedureDefinition(readonly_locks: true);
             foreach (var col in parms)
             {
                 _ColumnNames.Add(col);
@@ -117,7 +117,7 @@ namespace MicroM.Data
 
         public ViewDefinition(string? name = "", bool add_default_parms = true, params ViewParm[] parms)
         {
-            Proc = new ProcedureDefinition(name, true);
+            Proc = new ProcedureDefinition(name: name, readonly_locks: true);
             AddViewParms(parms);
             if (add_default_parms) AddDefaultParms();
         }

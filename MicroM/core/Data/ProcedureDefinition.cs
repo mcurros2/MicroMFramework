@@ -41,7 +41,7 @@ public class ProcedureDefinition
     public readonly bool isLookup;
     public readonly bool isImport;
 
-    public ProcedureDefinition(string? name = "", bool readonly_locks = false, bool is_lookup = false, bool is_import = false, string[]? from_columns_in_definition = null, ColumnBase[]? parms = null)
+    public ProcedureDefinition(bool readonly_locks = false, bool is_lookup = false, bool is_import = false, string[]? from_columns_in_definition = null, ColumnBase[]? parms = null, string? name = "")
     {
         ReadonlyLocks = readonly_locks;
         isLookup = is_lookup;
@@ -78,7 +78,7 @@ public class ProcedureDefinition
     {
     }
 
-    public ProcedureDefinition(params ColumnBase[] parms) : this(default, default, default, default, default, parms)
+    public ProcedureDefinition(params ColumnBase[] parms) : this(default, default, default, default, parms, default)
     {
     }
 
@@ -106,6 +106,7 @@ public class ProcedureDefinition
                     if (!Parms.ContainsKey(prop.Name) && parm != null)
                     {
                         if (parm.Name.IsNullOrEmpty()) parm.Name = prop.Name;
+                        if (parm.Name != prop.Name) throw new ArgumentException($"The name of the parameter {prop.Name} does not match the property name for procedure {Name}.");
                         Parms.Add(prop.Name, parm);
                     }
                 }

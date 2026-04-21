@@ -117,12 +117,12 @@ public class EmailService(ILogger<EmailService> logger, IBackgroundTaskQueue btq
         {
             if (config.i_smtp_port == 587)
             {
-                await client.ConnectAsync(config.vc_smtp_host, config.i_smtp_port, SecureSocketOptions.StartTls, ct);
+                await client.ConnectAsync(config.vc_smtp_host!, config.i_smtp_port, SecureSocketOptions.StartTls, ct);
 
             }
             else
             {
-                await client.ConnectAsync(config.vc_smtp_host, config.i_smtp_port, config.bt_use_ssl, ct);
+                await client.ConnectAsync(config.vc_smtp_host!, config.i_smtp_port, config.bt_use_ssl, ct);
             }
 
             if (!string.IsNullOrEmpty(config.vc_user_name) && !string.IsNullOrEmpty(config.vc_password))
@@ -227,13 +227,20 @@ public class EmailService(ILogger<EmailService> logger, IBackgroundTaskQueue btq
                             if (!config.TryGetValue(item.c_email_configuration_id, out var smtp_config))
                             {
                                 smtp_config = await GetEmailConfiguration(app, item.c_email_configuration_id, dbc, ct);
-                                if (smtp_config != null)
+                                if (smtp_config != null && !smtp_config.vc_smtp_host.IsNullOrEmpty() && !smtp_config.vc_user_name.IsNullOrEmpty() && !smtp_config.vc_password.IsNullOrEmpty())
                                 {
                                     config[item.c_email_configuration_id] = smtp_config;
                                 }
                                 else
                                 {
-                                    logger.LogWarning("EmailService.StartProcessingQueue [{app_id}]: Can't get email configuration for {email_configuration_id}", app_id, item.c_email_configuration_id);
+                                    if (smtp_config == null)
+                                    {
+                                        logger.LogWarning("EmailService.StartProcessingQueue [{app_id}]: Can't get email configuration for {email_configuration_id}", app_id, item.c_email_configuration_id);
+                                    }
+                                    else
+                                    {
+                                        logger.LogWarning("EmailService.StartProcessingQueue [{app_id}]: Invalid email server configuration for {email_configuration_id}: host = {host}", app_id, item.c_email_configuration_id, smtp_config.vc_smtp_host);
+                                    }
                                     await UpdateQueueStatus(emq, item, nameof(EmailStatus.ERROR), "Can't get email configuration", ct);
                                     continue;
                                 }

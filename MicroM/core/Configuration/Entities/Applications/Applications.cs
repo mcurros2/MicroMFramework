@@ -130,7 +130,7 @@ public class Applications : Entity<ApplicationsDef>
         if (Def.b_createdatabase.Value == false && Def.b_dropdatabase.Value == false && Def.b_appdbexists.Value && Def.b_updatedatabase.Value == true)
         {
             var app_cfg = GetAppConfig(api);
-            var result = await UpdateAppDatabase(this, app_cfg, ct, server_claims);
+            var result = await UpdateAppDatabase(this, app_cfg, ct, server_claims, options, api);
             if (result.Failed) return result;
         }
 

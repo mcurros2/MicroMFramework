@@ -84,7 +84,7 @@ public static class DatabaseSchema
         return ent;
     }
 
-    public async static Task CreateAllEntitiesProcs(IEntityClient ec, CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>> entities, CustomOrderedDictionary<CustomScript>? classified_custom_scripts, string dd_schema, CancellationToken ct, bool create_or_alter = true)
+    public async static Task CreateAllEntitiesProcs(IEntityClient ec, CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>> entities, CustomOrderedDictionary<CustomScript>? classified_custom_scripts, string dd_schema, bool generate_standard_procs, CancellationToken ct, bool create_or_alter = true)
     {
         bool should_close = !(ec.ConnectionState == System.Data.ConnectionState.Open);
         try
@@ -137,10 +137,13 @@ public static class DatabaseSchema
                 } while (retry);
             }
 
-            // Standard generated procs are created if no custom proc replacing it exists
-            foreach (var options in entities.Values)
+            if (generate_standard_procs)
             {
-                await CreateGeneratedProcs(options.EntityInstance, ec, classified_custom_scripts, create_or_alter, dd_schema, ct);
+                // Standard generated procs are created if no custom proc replacing it exists
+                foreach (var options in entities.Values)
+                {
+                    await CreateGeneratedProcs(options.EntityInstance, ec, classified_custom_scripts, create_or_alter, dd_schema, ct);
+                }
             }
 
             // the rest of the custom procs, in order, that correspond to the entities defined mnemonic code
