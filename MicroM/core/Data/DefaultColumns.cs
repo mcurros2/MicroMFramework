@@ -1,6 +1,6 @@
 ﻿namespace MicroM.Data;
 
-internal class DefaultColumns
+public class DefaultColumns
 {
     public readonly Column<DateTime> dt_inserttime = DefaultColumnsFactory.dt_inserttime();
     public readonly Column<DateTime> dt_lu = DefaultColumnsFactory.dt_lu();

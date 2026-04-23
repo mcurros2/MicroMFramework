@@ -11,11 +11,11 @@ public class EntityData(IEntityClient ec, EntityDefinition def, IMicroMEncryptio
 {
     public IEntityClient EntityClient { get; init; } = ec;
 
-    private readonly EntityDefinition def = def;
+    protected readonly EntityDefinition def = def;
 
     public IMicroMEncryption? Encryptor => encryptor;
 
-    protected List<DBStatus> ReadStatus(List<DataResult> results, bool set_autonum = false)
+    protected virtual List<DBStatus> ReadStatus(List<DataResult> results, bool set_autonum = false)
     {
         bool failed = false;
         List<DBStatus> ret = [];
@@ -33,7 +33,7 @@ public class EntityData(IEntityClient ec, EntityDefinition def, IMicroMEncryptio
         return ret;
     }
 
-    protected void SetAutonum(List<DBStatus> status)
+    protected virtual void SetAutonum(List<DBStatus> status)
     {
         foreach (var status_item in status)
         {
@@ -49,7 +49,7 @@ public class EntityData(IEntityClient ec, EntityDefinition def, IMicroMEncryptio
         }
     }
 
-    private async Task<DBStatusResult> ExecuteStatusData(string proc_name, IEnumerable<ColumnBase> parms, CancellationToken ct, bool throw_dbstat_exception = false)
+    protected virtual async Task<DBStatusResult> ExecuteStatusData(string proc_name, IEnumerable<ColumnBase> parms, CancellationToken ct, bool throw_dbstat_exception = false)
     {
         bool failed = false;
         bool autonum = false;
@@ -80,7 +80,7 @@ public class EntityData(IEntityClient ec, EntityDefinition def, IMicroMEncryptio
 
     }
 
-    private string QualifiedProcName(string procName) => string.IsNullOrEmpty(def.SchemaName) ? procName : $"[{def.SchemaName}].{procName}";
+    protected virtual string QualifiedProcName(string procName) => string.IsNullOrEmpty(def.SchemaName) ? procName : $"[{def.SchemaName}].{procName}";
 
     /// <summary>
     /// Updates a record for an entity. This method will execute the XXXX_update stored procedure for the entity.
@@ -90,7 +90,7 @@ public class EntityData(IEntityClient ec, EntityDefinition def, IMicroMEncryptio
     /// <param name="throw_dbstat_exception"></param>
     /// <returns></returns>
     /// <exception cref="DataAbstractionException"></exception>
-    public async Task<DBStatusResult> UpdateData(CancellationToken ct, bool throw_dbstat_exception = false)
+    public virtual async Task<DBStatusResult> UpdateData(CancellationToken ct, bool throw_dbstat_exception = false)
     {
         var parms = def.Columns.GetParmsWithFlags(ColumnFlags.Update);
         if (Encryptor != null) parms.EncryptColumnData(Encryptor);
@@ -105,7 +105,7 @@ public class EntityData(IEntityClient ec, EntityDefinition def, IMicroMEncryptio
     /// <param name="throw_dbstat_exception"></param>
     /// <returns></returns>
     /// <exception cref="DataAbstractionException"></exception>
-    public async Task<DBStatusResult> InsertData(CancellationToken ct, bool throw_dbstat_exception = false)
+    public virtual async Task<DBStatusResult> InsertData(CancellationToken ct, bool throw_dbstat_exception = false)
     {
         var parms = def.Columns.GetParmsWithFlags(ColumnFlags.Insert);
         if (Encryptor != null) parms.EncryptColumnData(Encryptor);
@@ -120,7 +120,7 @@ public class EntityData(IEntityClient ec, EntityDefinition def, IMicroMEncryptio
     /// <param name="throw_dbstat_exception"></param>
     /// <returns></returns>
     /// <exception cref="DataAbstractionException"></exception>
-    public async Task<DBStatusResult> DeleteData(CancellationToken ct, bool throw_dbstat_exception = false)
+    public virtual async Task<DBStatusResult> DeleteData(CancellationToken ct, bool throw_dbstat_exception = false)
     {
         var parms = def.Columns.GetParmsWithFlags(ColumnFlags.Delete);
         return await ExecuteStatusData(QualifiedProcName($"{def.Mneo}_drop"), parms, ct, throw_dbstat_exception);
@@ -133,7 +133,7 @@ public class EntityData(IEntityClient ec, EntityDefinition def, IMicroMEncryptio
     /// <param name="ct"></param>
     /// <returns></returns>
     /// <exception cref="InvalidOperationException">is thrown if the number of columns returned by the XXXX_get stored procedure is not equal to the number of columns defined in <see cref="EntityDefinition"/></exception>
-    public async Task<bool> GetData(CancellationToken ct)
+    public virtual async Task<bool> GetData(CancellationToken ct)
     {
         var parms = def.Columns.GetParmsWithFlags(ColumnFlags.Get);
         var result = await EntityClient.ExecuteSP(QualifiedProcName($"{def.Mneo}_get"), parms, ct);
@@ -143,7 +143,7 @@ public class EntityData(IEntityClient ec, EntityDefinition def, IMicroMEncryptio
         return ret;
     }
 
-    public bool MapGetColumns(List<DataResult>? result)
+    public virtual bool MapGetColumns(List<DataResult>? result)
     {
         bool ret = false;
 
@@ -176,7 +176,7 @@ public class EntityData(IEntityClient ec, EntityDefinition def, IMicroMEncryptio
     /// <param name="mode"></param>
     /// <param name="mapper"></param>
     /// <returns></returns>
-    public async Task<T?> GetData<T>(CancellationToken ct, AutoMapperMode mode = AutoMapperMode.ByNameLaxNotThrow, MapResult<T>? mapper = null) where T : class, new()
+    public virtual async Task<T?> GetData<T>(CancellationToken ct, AutoMapperMode mode = AutoMapperMode.ByNameLaxNotThrow, MapResult<T>? mapper = null) where T : class, new()
     {
         var parms = def.Columns.GetParmsWithFlags(ColumnFlags.Get);
 
@@ -193,7 +193,7 @@ public class EntityData(IEntityClient ec, EntityDefinition def, IMicroMEncryptio
     /// <param name="ct"></param>
     /// <param name="lookup_name"></param>
     /// <returns>The string representing the description for a record of the entity</returns>
-    public async Task<string?> LookupData(CancellationToken ct, string? lookup_name = null)
+    public virtual async Task<string?> LookupData(CancellationToken ct, string? lookup_name = null)
     {
         string? lkp_proc = lookup_name;
         IEnumerable<ColumnBase> parms;
@@ -240,7 +240,7 @@ public class EntityData(IEntityClient ec, EntityDefinition def, IMicroMEncryptio
     /// <param name="view"></param>
     /// <param name="row_limit"></param>
     /// <returns></returns>
-    public async Task<List<DataResult>> ExecuteView(ViewDefinition view, CancellationToken ct, int? row_limit = null)
+    public virtual async Task<List<DataResult>> ExecuteView(ViewDefinition view, CancellationToken ct, int? row_limit = null)
     {
         row_limit ??= DataDefaults.DefaultRowLimitForViews;
         return await ExecuteProc(view.Proc, ct, (int)row_limit);
@@ -260,7 +260,7 @@ public class EntityData(IEntityClient ec, EntityDefinition def, IMicroMEncryptio
     /// <param name="complete_channel">Indicates whether to complete the result channel after execution. Set to <see langword="true"/> to signal that no more results will be sent.</param>
     /// <param name="max_allowed_rows">An optional parameter that specifies the maximum number of rows allowed to be returned by the SQL command. If the result set exceeds this limit, an exception will be thrown. This parameter is used to prevent excessive memory usage when processing large result sets. If null, there is no limit on the number of rows returned.</param>
     /// <returns>A task that represents the asynchronous operation of executing the view and sending results to the channel.</returns>
-    public async Task ExecuteViewChannel(ViewDefinition view, DataResultSetChannel result_channel, CancellationToken ct, int? row_limit = null, int? records_channel_capacity = null, bool complete_channel = true, int? max_allowed_rows = null)
+    public virtual async Task ExecuteViewChannel(ViewDefinition view, DataResultSetChannel result_channel, CancellationToken ct, int? row_limit = null, int? records_channel_capacity = null, bool complete_channel = true, int? max_allowed_rows = null)
     {
         row_limit ??= DataDefaults.DefaultRowLimitForViews;
         await ExecuteProcChannel(view.Proc, result_channel, ct, (int)row_limit, records_channel_capacity: records_channel_capacity, complete_channel: complete_channel, max_allowed_rows: max_allowed_rows);
@@ -270,7 +270,7 @@ public class EntityData(IEntityClient ec, EntityDefinition def, IMicroMEncryptio
     /// Executes the specified <paramref name="proc"/> for an entity. This method will execute stored procedure specified for the entity.
     /// If the client is not connected to the database server, it will open a new connection.
     /// </summary>
-    public async Task<DBStatusResult> ExecuteProcDBStatus(ProcedureDefinition proc, CancellationToken ct, bool set_parms_from_columns = true, bool throw_dbstat_exception = false)
+    public virtual async Task<DBStatusResult> ExecuteProcDBStatus(ProcedureDefinition proc, CancellationToken ct, bool set_parms_from_columns = true, bool throw_dbstat_exception = false)
     {
         //proc.Parms.TryGetValue(SystemColumnNames.webusr, out ColumnBase? webusr);
         //if (webusr != null) webusr.ValueObject = EntityClient.WebUser;
@@ -307,7 +307,7 @@ public class EntityData(IEntityClient ec, EntityDefinition def, IMicroMEncryptio
     /// Executes the specified <paramref name="proc"/> for an entity. This method will execute stored procedure specified for the entity.
     /// If the client is not connected to the database server, it will open a new connection.
     /// </summary>
-    public async Task<List<DataResult>> ExecuteProc(ProcedureDefinition proc, CancellationToken ct, int row_limit = 0, bool set_parms_from_columns = true)
+    public virtual async Task<List<DataResult>> ExecuteProc(ProcedureDefinition proc, CancellationToken ct, int row_limit = 0, bool set_parms_from_columns = true)
     {
         if (row_limit != 0 && proc.ReadonlyLocks == false) throw new ArgumentException($"Procedure {proc.QualifiedName} is defined with {nameof(proc.ReadonlyLocks)} false and cannot specify a {nameof(row_limit)} at execution");
 
@@ -367,7 +367,7 @@ public class EntityData(IEntityClient ec, EntityDefinition def, IMicroMEncryptio
     /// results.</returns>
     /// <exception cref="ArgumentException">Thrown when a nonzero row limit is specified for a procedure that is not defined with readonly locks.</exception>
     /// <exception cref="InvalidOperationException">Thrown when attempting to execute a procedure with readonly locks inside an open transaction.</exception>
-    public async Task ExecuteProcChannel(ProcedureDefinition proc, DataResultSetChannel result_channel, CancellationToken ct, int row_limit = 0, bool set_parms_from_columns = true, int? records_channel_capacity = null, bool complete_channel = true, int? max_allowed_rows = null)
+    public virtual async Task ExecuteProcChannel(ProcedureDefinition proc, DataResultSetChannel result_channel, CancellationToken ct, int row_limit = 0, bool set_parms_from_columns = true, int? records_channel_capacity = null, bool complete_channel = true, int? max_allowed_rows = null)
     {
         if (row_limit != 0 && proc.ReadonlyLocks == false) throw new ArgumentException($"Procedure {proc.QualifiedName} is defined with {nameof(proc.ReadonlyLocks)} false and cannot specify a {nameof(row_limit)} at execution");
 
@@ -403,7 +403,7 @@ public class EntityData(IEntityClient ec, EntityDefinition def, IMicroMEncryptio
 
 
 
-    public async Task<T?> ExecuteProcSingleRow<T>(ProcedureDefinition proc, CancellationToken ct, bool set_parms_from_columns = true, AutoMapperMode mode = AutoMapperMode.ByName, MapResult<T>? mapper = null) where T : class, new()
+    public virtual async Task<T?> ExecuteProcSingleRow<T>(ProcedureDefinition proc, CancellationToken ct, bool set_parms_from_columns = true, AutoMapperMode mode = AutoMapperMode.ByName, MapResult<T>? mapper = null) where T : class, new()
     {
         T? result = null;
 
@@ -413,7 +413,7 @@ public class EntityData(IEntityClient ec, EntityDefinition def, IMicroMEncryptio
         return result;
     }
 
-    public async Task<List<T>> ExecuteProc<T>(ProcedureDefinition proc, CancellationToken ct, int row_limit = 0, bool set_parms_from_columns = true, AutoMapperMode mode = AutoMapperMode.ByName, MapResult<T>? mapper = null) where T : class, new()
+    public virtual async Task<List<T>> ExecuteProc<T>(ProcedureDefinition proc, CancellationToken ct, int row_limit = 0, bool set_parms_from_columns = true, AutoMapperMode mode = AutoMapperMode.ByName, MapResult<T>? mapper = null) where T : class, new()
     {
         if (row_limit != 0 && proc.ReadonlyLocks == false) throw new ArgumentException($"Procedure {proc.QualifiedName} is defined with {nameof(proc.ReadonlyLocks)} false and cannot specify a {nameof(row_limit)} at execution");
 
@@ -450,7 +450,7 @@ public class EntityData(IEntityClient ec, EntityDefinition def, IMicroMEncryptio
         return result;
     }
 
-    public async Task<T?> ExecuteProcSingleColumn<T>(ProcedureDefinition proc, CancellationToken ct, int row_limit = 0, bool set_parms_from_columns = true)
+    public virtual async Task<T?> ExecuteProcSingleColumn<T>(ProcedureDefinition proc, CancellationToken ct, int row_limit = 0, bool set_parms_from_columns = true)
     {
         if (row_limit != 0 && proc.ReadonlyLocks == false) throw new ArgumentException($"Procedure {proc.QualifiedName} is defined with {nameof(proc.ReadonlyLocks)} false and cannot specify a {nameof(row_limit)} at execution");
 

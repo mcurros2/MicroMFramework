@@ -57,7 +57,7 @@ public static class ReflectionExtensions
         Dictionary<string, Type> entitiesTypes = new(StringComparer.OrdinalIgnoreCase);
         foreach (Type type in asm.GetTypes())
         {
-            if (typeof(EntityBase).IsAssignableFrom(type))
+            if (typeof(EntityBase).IsAssignableFrom(type) && !type.IsAbstract)
             {
                 entitiesTypes.Add(type.Name, type);
             }
@@ -72,7 +72,7 @@ public static class ReflectionExtensions
         foreach (Type type in assembly.GetTypes())
         {
             ct.ThrowIfCancellationRequested();
-            if (typeof(EntityBase).IsAssignableFrom(type))
+            if (typeof(EntityBase).IsAssignableFrom(type) && !type.IsAbstract)
             {
 
                 var ent = (EntityBase?)Activator.CreateInstance(type) ?? throw new InvalidOperationException($"Can't create entity instance. {type.Name}");

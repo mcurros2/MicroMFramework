@@ -24,12 +24,12 @@ public abstract class EntityBase : InitBase
 
     public Dictionary<string, Action> Actions { get; private set; } = new(StringComparer.OrdinalIgnoreCase);
 
-    public virtual void Init(IEntityClient? ec, IMicroMEncryption? encryptor = null, string? schema_name = null)
+    public virtual void Init(IEntityClient? ec, IMicroMEncryption? encryptor = null, string? schema_name = null, IEntityData? data = null)
     {
         if (Def.SchemaName.IsNullOrEmpty()) Def.SchemaName = schema_name;
         if (ec != null)
         {
-            _data = new EntityData(ec, Def, encryptor);
+            _data = data ?? new EntityData(ec, Def, encryptor);
             IsInitialized = true;
         }
     }

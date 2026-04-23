@@ -282,7 +282,7 @@ public abstract class EntityDefinition
     protected virtual void DefineConstraints() { }
 
     private static readonly ConcurrentDictionary<string, byte> _ValidatedDefinitions = new();
-    internal void ValidateDefinition(string definition_class_name)
+    public virtual void ValidateDefinition(string definition_class_name)
     {
         if (!_ValidatedDefinitions.ContainsKey(definition_class_name))
         {
