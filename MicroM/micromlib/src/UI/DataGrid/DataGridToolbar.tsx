@@ -30,6 +30,8 @@ export interface DataGridToolbarOptions {
     searchData: SelectItem[],
     setSearchData: Dispatch<SetStateAction<SelectItem[]>>,
 
+    maxSearchTerms?: number,
+
     FiltersEntity?: EntityConstructor,
     filterTooltip?: string,
     parentKeys?: ValuesObject,
@@ -123,7 +125,7 @@ export function DataGridToolbar(props: DataGridToolbarOptions) {
         filtersDescription, setFiltersDescription, initialColumnFilters, filtersTitle,
         editFitersLabel, clearFiltersLabel, filtersAccordionVariant, filtersBadgeVariant,
         showSearchInput, showSelectRowsButton, showColumnsConfig, configMenuOpened, setConfigMenuOpened,
-        configMenuDropdown
+        configMenuDropdown, maxSearchTerms
     } = useComponentDefaultProps('DataGridToolbar', DataGridToolbarDefaultProps, props);
 
     const theme = useMantineTheme();
@@ -170,6 +172,8 @@ export function DataGridToolbar(props: DataGridToolbarOptions) {
                         onCreate={filtersAPI.createSearchPhrase}
 
                         clearSearchOnChange
+
+                        maxSelectedValues={maxSearchTerms}
 
                         size={buttonsSize}
                         iconsSize={iconsSize}

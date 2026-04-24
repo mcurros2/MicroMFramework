@@ -1,190 +1,188 @@
 ﻿using MicroM.Core;
 using MicroM.Extensions;
-using System.Globalization;
 
-namespace MicroM.Data
+namespace MicroM.Data;
+
+/// <summary>
+/// This class is used to map a stored procedure that works as a view. The naming convention enforced is [mnemonic]_brw[name of view]
+/// ie: "pers_brwStandard"
+/// Where "pers" is the mnemonic for Persons entity, "_brw" indicates a view (the acronym cames for browse), "Standard" the name of the view. 
+/// </summary>
+public class ViewDefinition
 {
     /// <summary>
-    /// This class is used to map a stored procedure that works as a view. The naming convention enforced is [mnemonic]_brw[name of view]
-    /// ie: "pers_brwStandard"
-    /// Where "pers" is the mnemonic for Persons entity, "_brw" indicates a view (the acronym cames for browse), "Standard" the name of the view. 
+    /// Holds the view parameters <see cref="ViewParm"/>
     /// </summary>
-    public class ViewDefinition
+    public readonly Dictionary<string, ViewParm> Parms = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Holds groups for getting Compound Keys. The Key is the name of the group, the value holds the <see cref="ViewParm"/>
+    /// </summary>
+    public readonly Dictionary<string, List<ViewParm>> CompoundKeyGroups = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Indicates the most significant part of a Key
+    /// </summary>
+    public ViewParm BrowsingKeyParm = null!;
+
+    /// <summary>
+    /// The procedure that represents the view
+    /// </summary>
+    public readonly ProcedureDefinition Proc;
+
+    public readonly EntityFilterBase? Filters;
+
+    private void AddViewParms(params ViewParm[] parms)
     {
-        /// <summary>
-        /// Holds the view parameters <see cref="ViewParm"/>
-        /// </summary>
-        public readonly Dictionary<string, ViewParm> Parms = new(StringComparer.OrdinalIgnoreCase);
-
-        /// <summary>
-        /// Holds groups for getting Compound Keys. The Key is the name of the group, the value holds the <see cref="ViewParm"/>
-        /// </summary>
-        public readonly Dictionary<string, List<ViewParm>> CompoundKeyGroups = new(StringComparer.OrdinalIgnoreCase);
-
-        /// <summary>
-        /// Indicates the most significant part of a Key
-        /// </summary>
-        public ViewParm BrowsingKeyParm = null!;
-
-        /// <summary>
-        /// The procedure that represents the view
-        /// </summary>
-        public readonly ProcedureDefinition Proc;
-
-        public readonly EntityFilterBase? Filters;
-
-        private void AddViewParms(params ViewParm[] parms)
+        foreach (var parm in parms)
         {
-            foreach (var parm in parms)
-            {
-                if (parm.Column.Name.ToLower(CultureInfo.InvariantCulture).IsIn(SystemViewParmNames.like, SystemViewParmNames.d))
-                {
-                    throw new ArgumentException($"You can´t define parameters for views with system names {SystemViewParmNames.like} or {SystemViewParmNames.d}. Use constructor parameter add_default_parms");
-                }
-                Parms.Add(parm.Column.Name, parm);
-                Proc.AddParm(parm.Column);
-                if (parm.BrowsingKey) BrowsingKeyParm = parm;
-                CreateCompoundKeyGroups(parm);
-            }
-        }
-
-        private void AddViewParmFromCol(ColumnBase col, int column_mapping = -1, bool browsing_key = false)
-        {
-            ViewParm parm = new(col, column_mapping: column_mapping, browsing_key: browsing_key);
-            if (parm.Column.Name.ToLowerInvariant().IsIn(SystemViewParmNames.like, SystemViewParmNames.d))
+            if (parm.Column.Name.IsIn(comparer: StringComparer.OrdinalIgnoreCase, parms: [SystemViewParmNames.like, SystemViewParmNames.d]))
             {
                 throw new ArgumentException($"You can´t define parameters for views with system names {SystemViewParmNames.like} or {SystemViewParmNames.d}. Use constructor parameter add_default_parms");
             }
             Parms.Add(parm.Column.Name, parm);
             Proc.AddParm(parm.Column);
             if (parm.BrowsingKey) BrowsingKeyParm = parm;
+            CreateCompoundKeyGroups(parm);
         }
+    }
 
-        internal bool IsInitialized = true;
-        internal void CreateParmsFromNames(IReadonlyOrderedDictionary<ColumnBase> cols)
+    private void AddViewParmFromCol(ColumnBase col, int column_mapping = -1, bool browsing_key = false)
+    {
+        ViewParm parm = new(col, column_mapping: column_mapping, browsing_key: browsing_key);
+        if (parm.Column.Name.IsIn(comparer: StringComparer.OrdinalIgnoreCase, parms: [SystemViewParmNames.like, SystemViewParmNames.d]))
         {
-            if (IsInitialized) return;
+            throw new ArgumentException($"You can´t define parameters for views with system names {SystemViewParmNames.like} or {SystemViewParmNames.d}. Use constructor parameter add_default_parms");
+        }
+        Parms.Add(parm.Column.Name, parm);
+        Proc.AddParm(parm.Column);
+        if (parm.BrowsingKey) BrowsingKeyParm = parm;
+    }
 
-            if (_ColumnNames.Count == 0)
-            {
-                AddDefaultParms();
-                IsInitialized = true;
-                return;
-            }
+    internal bool IsInitialized = true;
+    internal void CreateParmsFromNames(IReadonlyOrderedDictionary<ColumnBase> cols)
+    {
+        if (IsInitialized) return;
 
-            int last_column = _ColumnNames.Count - 1;
-
-            for (int x = 0; x < _ColumnNames.Count; x++)
-            {
-                string colname = _ColumnNames[x];
-                if (!cols.Contains(colname)) throw new ArgumentException($"View {Proc.Name}: cannot find a column with name {colname} in the entity definition.");
-                if (x != last_column)
-                {
-                    AddViewParmFromCol(cols[colname]!);
-                }
-                else
-                {
-                    AddViewParmFromCol(cols[colname]!, 0, true);
-                }
-
-            }
-
-            _ColumnNames.Clear();
+        if (_ColumnNames.Count == 0)
+        {
             AddDefaultParms();
             IsInitialized = true;
+            return;
         }
 
-        private readonly List<string> _ColumnNames = [];
+        int last_column = _ColumnNames.Count - 1;
 
-        public ViewDefinition(bool add_default_parms = true, params string[] parms)
+        for (int x = 0; x < _ColumnNames.Count; x++)
         {
-            Proc = new ProcedureDefinition(readonly_locks: true);
-            foreach (var col in parms)
+            string colname = _ColumnNames[x];
+            if (!cols.Contains(colname)) throw new ArgumentException($"View {Proc.Name}: cannot find a column with name {colname} in the entity definition.");
+            if (x != last_column)
             {
-                _ColumnNames.Add(col);
+                AddViewParmFromCol(cols[colname]!);
             }
-            IsInitialized = false;
-        }
-
-        /// <summary>
-        /// StandardView constructor indicating the defined column names. When the entity definition is created, the view parameters are created.
-        /// </summary>
-        /// <param name="parms"></param>
-        public ViewDefinition(params string[] parms) : this(add_default_parms: true, parms)
-        {
-        }
-
-
-        public ViewDefinition(string? name = "", bool add_default_parms = true, params ViewParm[] parms)
-        {
-            Proc = new ProcedureDefinition(name: name, readonly_locks: true);
-            AddViewParms(parms);
-            if (add_default_parms) AddDefaultParms();
-        }
-
-        public ViewDefinition(bool add_default_parms = true, params ViewParm[] parms) : this(default, add_default_parms, parms)
-        {
-        }
-
-        /// <summary>
-        /// Constructs a view with a filters entity. The view will have the default parameters <b>like</b> and <b>d</b>
-        /// all the columns in the filters entity will be added as parameters.
-        /// </summary>
-        /// <param name="filters_entity"></param>
-        /// <param name="parms"></param>
-        public ViewDefinition(EntityFilterBase filters_entity, params string[] parms) : this(add_default_parms: true, parms)
-        {
-            Filters = filters_entity;
-            // Get the column names from columns properties in the filters entity
-            foreach (var col_name in filters_entity.FilterEntityType.GetColumnNames())
+            else
             {
-                if (!col_name.IsIn(SystemColumnNames.AsStringArray) && col_name != nameof(EntityDefinition.AutonumColumn) && !_ColumnNames.Contains(col_name)) _ColumnNames.Add(col_name);
-            }
-        }
-
-        private void CreateCompoundKeyGroups(ViewParm parm)
-        {
-
-            if (!string.IsNullOrEmpty(parm.CompoundGroup))
-            {
-                if (!CompoundKeyGroups.TryGetValue(parm.CompoundGroup, out List<ViewParm>? value))
-                {
-                    CompoundKeyGroups.Add(parm.CompoundGroup, [parm]);
-                }
-                else
-                {
-                    value.Add(parm);
-                }
-
+                AddViewParmFromCol(cols[colname]!, 0, true);
             }
 
         }
 
-        /// <summary>
-        /// Add the default parameters <b>like</b> that will receive a search string.
-        /// </summary>
-        /// <exception cref="InvalidOperationException"></exception>
-        private void AddDefaultParms()
+        _ColumnNames.Clear();
+        AddDefaultParms();
+        IsInitialized = true;
+    }
+
+    private readonly List<string> _ColumnNames = [];
+
+    public ViewDefinition(bool add_default_parms = true, params string[] parms)
+    {
+        Proc = new ProcedureDefinition(readonly_locks: true);
+        foreach (var col in parms)
         {
-            if (Proc.Parms.ContainsKey(SystemViewParmNames.like) || Proc.Parms.ContainsKey(SystemViewParmNames.d))
+            _ColumnNames.Add(col);
+        }
+        IsInitialized = false;
+    }
+
+    /// <summary>
+    /// StandardView constructor indicating the defined column names. When the entity definition is created, the view parameters are created.
+    /// </summary>
+    /// <param name="parms"></param>
+    public ViewDefinition(params string[] parms) : this(add_default_parms: true, parms)
+    {
+    }
+
+
+    public ViewDefinition(string? name = "", bool add_default_parms = true, params ViewParm[] parms)
+    {
+        Proc = new ProcedureDefinition(name: name, readonly_locks: true);
+        AddViewParms(parms);
+        if (add_default_parms) AddDefaultParms();
+    }
+
+    public ViewDefinition(bool add_default_parms = true, params ViewParm[] parms) : this(default, add_default_parms, parms)
+    {
+    }
+
+    /// <summary>
+    /// Constructs a view with a filters entity. The view will have the default parameters <b>like</b> and <b>d</b>
+    /// all the columns in the filters entity will be added as parameters.
+    /// </summary>
+    /// <param name="filters_entity"></param>
+    /// <param name="parms"></param>
+    public ViewDefinition(EntityFilterBase filters_entity, params string[] parms) : this(add_default_parms: true, parms)
+    {
+        Filters = filters_entity;
+        // Get the column names from columns properties in the filters entity
+        foreach (var col_name in filters_entity.FilterEntityType.GetColumnNames())
+        {
+            if (!col_name.IsIn(SystemColumnNames.AsStringArray) && col_name != nameof(EntityDefinition.AutonumColumn) && !_ColumnNames.Contains(col_name)) _ColumnNames.Add(col_name);
+        }
+    }
+
+    private void CreateCompoundKeyGroups(ViewParm parm)
+    {
+
+        if (!string.IsNullOrEmpty(parm.CompoundGroup))
+        {
+            if (!CompoundKeyGroups.TryGetValue(parm.CompoundGroup, out List<ViewParm>? value))
             {
-                throw new InvalidOperationException($"The default columns for view {Proc.Name} had already been added.");
+                CompoundKeyGroups.Add(parm.CompoundGroup, [parm]);
+            }
+            else
+            {
+                value.Add(parm);
             }
 
-            Column<string> d = Column<string>.Char(name: SystemViewParmNames.d, size: 1);
-            Column<string[]> like = Column<string[]>.Text(name: SystemViewParmNames.like, size: 0, isArray: true);
-
-            Parms.Add(like.Name, new ViewParm(like));
-            Proc.AddParm(like);
-
-            Parms.Add(d.Name, new ViewParm(d));
-            Proc.AddParm(d);
-        }
-
-        public static EntityFilter<T> CreateFilters<T>(string name = "") where T : EntityBase
-        {
-            return new EntityFilter<T>(name);
         }
 
     }
+
+    /// <summary>
+    /// Add the default parameters <b>like</b> that will receive a search string.
+    /// </summary>
+    /// <exception cref="InvalidOperationException"></exception>
+    private void AddDefaultParms()
+    {
+        if (Proc.Parms.ContainsKey(SystemViewParmNames.like) || Proc.Parms.ContainsKey(SystemViewParmNames.d))
+        {
+            throw new InvalidOperationException($"The default columns for view {Proc.Name} had already been added.");
+        }
+
+        Column<string> d = Column<string>.Char(name: SystemViewParmNames.d, size: 1);
+        Column<string[]> like = Column<string[]>.Text(name: SystemViewParmNames.like, size: 0, isArray: true);
+
+        Parms.Add(like.Name, new ViewParm(like));
+        Proc.AddParm(like);
+
+        Parms.Add(d.Name, new ViewParm(d));
+        Proc.AddParm(d);
+    }
+
+    public static EntityFilter<T> CreateFilters<T>(string name = "") where T : EntityBase
+    {
+        return new EntityFilter<T>(name);
+    }
+
 }

@@ -57,6 +57,7 @@ export const UseEntityFormDefaultProps: Partial<UseEntityFormOptions> = {
     cancelGetOnUnmount: true,
     cancelSaveOnUnmount: true
 }
+
 export function useEntityForm(props: UseEntityFormOptions): UseEntityFormReturnType {
     const {
         entity,

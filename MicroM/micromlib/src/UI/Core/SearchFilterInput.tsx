@@ -30,9 +30,9 @@ export const SearchFilterInput = forwardRef<HTMLInputElement, SearchFilterInputP
 
     const theme = useMantineTheme();
 
-    // Mantine has a bug in thsi component:
+    // Mantine has a bug in this component:
     // When all the items are selected and the multiselect is in a modal and it has autofocus
-    // you will need to press escape two time to close the modal
+    // you will need to press escape two times to close the modal
     // this is because it uses a popover with closeOnEscape and it traps escape even if the list is not shown
 
     return (

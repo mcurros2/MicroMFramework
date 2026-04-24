@@ -45,6 +45,7 @@ export interface DataGridProps extends UseEntityUIProps {
     showActions?: boolean,
     setInitialFiltersFromColumns?: boolean,
     visibleFilters?: string[],
+    maxSearchTerms?: number,
 
     // grid
     columnBorders?: boolean,

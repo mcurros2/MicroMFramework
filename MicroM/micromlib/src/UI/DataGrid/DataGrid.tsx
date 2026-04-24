@@ -69,7 +69,7 @@ export function DataGrid(props: DataGridProps) {
         enableAdd, enableEdit, enableDelete, enableView, enableExport, columnBorders, autoSizeColumnsOnLoad, rowBorders, withBorder,
         labels, columnsOverrides, toolbarSize, viewName, showActions, renderOnlyWhenVisible, filtersFormSize, parentKeys, search,
         limit, parentFormAPI, showToolbar, showActionsToolbar, enableImport, setInitialFiltersFromColumns, visibleFilters, formMode,
-        showColumnsConfigMenu, showSelectRowsButton
+        showColumnsConfigMenu, showSelectRowsButton, maxSearchTerms
     } = props;
 
     const theme = useMantineTheme();
@@ -125,6 +125,8 @@ export function DataGrid(props: DataGridProps) {
                             setSearchText={viewState.setSearchText}
                             searchData={searchData}
                             setSearchData={setSearchData}
+
+                            maxSearchTerms={maxSearchTerms}
 
                             client={entity?.API.client}
 
