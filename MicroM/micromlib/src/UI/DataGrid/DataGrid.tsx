@@ -107,7 +107,7 @@ export function DataGrid(props: DataGridProps) {
             {renderOnlyWhenVisible && isFirstVisible === false ?
                 <div ref={visibilityDivRef} style={{ height: props.gridHeight }}></div>
                 :
-                <section>
+                <section style={{ height: gridHeight === 'flex-grow' ? '100%' : undefined, display: gridHeight === 'flex-grow' ? 'flex' : undefined, flexDirection: gridHeight === 'flex-grow' ? 'column' : undefined }}>
                     {showToolbar &&
                         <DataGridToolbar
                             {...labels!}
@@ -179,7 +179,7 @@ export function DataGrid(props: DataGridProps) {
                             />
                         </>
                     }
-                    <Box pos={"relative"} mt="sm" mb="sm" >
+                    <Box pos={"relative"} mt="sm" mb="sm" style={{ height: gridHeight === 'flex-grow' ? '100%' : undefined }}>
                         {isLoading &&
                             <FakeProgressBar pos={"absolute"} style={{ top: 0, width: "100%", zIndex: 999 }} size="xs" />
                         }

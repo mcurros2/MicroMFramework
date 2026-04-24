@@ -353,7 +353,7 @@ export function useEntityForm(props: UseEntityFormOptions): UseEntityFormReturnT
 
     const prevLocationRef = useRef(window.location.hash);
 
-    // savew before local navigation
+    // save before local navigation
     useEffect(() => {
         const handleLocalNavigation = async () => {
             if (saveBeforeLocalNavigation && form.isDirty() && (prevLocationRef.current !== window.location.hash)) {

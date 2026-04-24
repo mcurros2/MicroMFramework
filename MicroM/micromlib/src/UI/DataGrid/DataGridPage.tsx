@@ -24,7 +24,7 @@ export const DataGridPageDefaultProps: Partial<DataGridPageProps> = {
 export function DataGridPage(props: DataGridPageProps) {
     const {
         title, icon, formMode, helpText, showTitle, client, enableAdd, enableDelete, enableEdit,
-        entityConstructor, ...others
+        entityConstructor, gridHeight, ...others
     } = useComponentDefaultProps('DataGridPage', props, DataGridPageDefaultProps);
 
     const theme = useMantineTheme();
@@ -35,7 +35,7 @@ export function DataGridPage(props: DataGridPageProps) {
     const EntityIcon = entity.current.Icon;
 
     return (
-        <Stack>
+        <Stack style={{ height: gridHeight === 'flex-grow' ? '100%' : undefined }}>
             {showTitle &&
                 <Accordion
                     variant="filled"
@@ -54,15 +54,16 @@ export function DataGridPage(props: DataGridPageProps) {
                     </Accordion.Item>
                 </Accordion>
             }
-            <Card shadow="sm" withBorder={theme.colorScheme === 'dark' ? false : true}>
+            <Card shadow="sm" withBorder={theme.colorScheme === 'dark' ? false : true} style={{ flexGrow: gridHeight === 'flex-grow' ? 1 : undefined }}>
                 <DataGrid
+                    {...others}
                     entity={entity.current}
                     enableAdd={formMode === 'view' ? false : enableAdd}
                     enableEdit={formMode === 'view' ? false : enableEdit}
                     enableDelete={formMode === 'view' ? false : enableDelete}
                     formMode={formMode}
-                    {...others}
-                    //ref={gridRef}
+                    gridHeight={gridHeight}
+                //ref={gridRef}
                 />
             </Card>
         </Stack>

@@ -59,7 +59,7 @@ export interface DataGridProps extends UseEntityUIProps {
     showActionsToolbar?: boolean,
     enableImport?: boolean,
 
-    gridHeight?: string | number | 'auto',
+    gridHeight?: string | number | 'auto' | 'flex-grow',
     autoSelectFirstRow?: boolean,
     onSelectionChanged?: DataGridSelectionChangedCallback,
     doubleClickAction?: 'edit' | 'view' | 'none' | ((record: GridRecord) => void),
