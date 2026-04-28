@@ -11,13 +11,13 @@ import { UseEntityFormReturnType, useFieldConfiguration } from "../Form";
 
 dayjs.extend(customParseFormat);
 
-export interface DateInputFieldProps extends DateInputProps {
+export interface DateInputFieldProps extends Omit<DateInputProps, 'autoFocus'> {
     column: EntityColumn<Value>,
     entityForm: UseEntityFormReturnType,
     validate?: ValidatorConfiguration,
     requiredMessage?: ReactNode,
     validationContainer?: React.ComponentType<{ children: ReactNode }>
-    autoFocus?: boolean
+    autoFocus?: 'autoFocusOnAdd' | 'autoFocusOnEdit' | boolean,
 }
 
 export const DateInputFieldDefaultProps: Partial<DateInputFieldProps> = {
@@ -31,6 +31,7 @@ export const DateInputFieldDefaultProps: Partial<DateInputFieldProps> = {
         zIndex: 10000
     }
 }
+
 export const DateInputField = forwardRef<HTMLInputElement, DateInputFieldProps>(function DateInputField(props, ref) {
     const {
         column, entityForm, validate, validationContainer, required, requiredMessage, readOnly, label,
@@ -40,6 +41,11 @@ export const DateInputField = forwardRef<HTMLInputElement, DateInputFieldProps>(
     useFieldConfiguration({ entityForm, column, validationContainer, validate, required, requiredMessage, readOnly });
 
     const [showDescription,] = entityForm.showDescriptionState;
+
+    const { formMode, status } = entityForm;
+    const add_autofocus = formMode === 'add' ? true : undefined;
+    const edit_autofocus = status.loading === false && formMode !== 'add' ? true : undefined;
+
 
     return (
         <DateInput
@@ -51,7 +57,8 @@ export const DateInputField = forwardRef<HTMLInputElement, DateInputFieldProps>(
             placeholder={placeholder ?? column.placeholder}
             description={showDescription ? (description ?? column.description) : ''}
             clearable={clearable ?? (!readOnly && !(entityForm.formMode === 'view'))}
-            data-autofocus={autoFocus}
+            data-autofocus={autoFocus === 'autoFocusOnAdd' ? add_autofocus : autoFocus === 'autoFocusOnEdit' ? edit_autofocus : autoFocus}
+            autoFocus={autoFocus === 'autoFocusOnAdd' ? add_autofocus : autoFocus === 'autoFocusOnEdit' ? edit_autofocus : autoFocus}
             readOnly={readOnly || entityForm.formMode === 'view'}
             {...entityForm.form.getInputProps(column.name)}
             ref={ref}

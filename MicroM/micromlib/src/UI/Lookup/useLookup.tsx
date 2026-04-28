@@ -1,3 +1,4 @@
+import { UseFormReturnType } from "@mantine/form";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { OperationStatus, toMicroMError, Value, ValuesObject } from "../../client";
 import { Entity, EntityDefinition, EntityLookup } from "../../Entity";
@@ -32,7 +33,7 @@ export interface UseLookupOptions {
 export interface UseLookupReturnType {
     status: OperationStatus<ValuesObject>,
     lookupResult?: LookupResultState,
-    lookupInputProps: any,
+    lookupInputProps: ReturnType<UseFormReturnType<ValuesObject>['getInputProps']>,
     onBlur: (bindingColumn: string, force?: boolean, event?: React.FocusEvent | null) => void;
 }
 
@@ -175,7 +176,7 @@ export const useLookup = ({
         }
     }, [entityForm.form, previousLookupResult?.key]);
 
-    const lookupInputProps = entityForm.form.getInputProps(column);
+    const lookupInputProps: ReturnType<UseFormReturnType<ValuesObject>['getInputProps']> = entityForm.form.getInputProps(column);
     const mantine_onblur = lookupInputProps.onBlur;
 
     const onBlur = useCallback(async (bindingColumn: string, force: boolean = false, event: React.FocusEvent | null = null, new_value: Value | undefined = undefined) => {

@@ -6,18 +6,20 @@ import { ValidatorConfiguration } from "../../Validation";
 import { UseEntityFormReturnType, useFieldConfiguration } from "../Form";
 import { useTextTransform, useTextTransformProps } from "./useTextTransform";
 
-export interface TextFieldProps extends TextInputProps, Omit<useTextTransformProps, 'entityForm' | 'column'> {
+export interface TextFieldProps extends Omit<TextInputProps, 'autoFocus'>, Omit<useTextTransformProps, 'entityForm' | 'column'> {
     column: EntityColumn<Value>,
     entityForm: UseEntityFormReturnType,
     validate?: ValidatorConfiguration,
     requiredMessage?: ReactNode,
     validationContainer?: React.ComponentType<{ children: ReactNode }>
-    autoFocus?: boolean,
+    autoFocus?: 'autoFocusOnAdd' | 'autoFocusOnEdit' | boolean,
+    autoMaxWidth?: { columnLenghtLessThanOrEqual: number, maxWidth: string },
 }
 
 const defaultProps: Partial<TextFieldProps> = {
     validationContainer: Group,
-    autoTrim: true
+    autoTrim: true,
+    autoMaxWidth: { columnLenghtLessThanOrEqual: 20, maxWidth: '20rem' },
 }
 
 export const TextField = forwardRef<HTMLInputElement, TextFieldProps>(function TextField(props: TextFieldProps, ref) {
@@ -25,7 +27,7 @@ export const TextField = forwardRef<HTMLInputElement, TextFieldProps>(function T
     const {
         column, entityForm, validate, validationContainer, maw, required, requiredMessage, maxLength, readOnly, label,
         placeholder, description, withAsterisk, autoFocus, onBlur, onChange, onFocus, transform, autoTrim, iconWidth,
-        ...others
+        autoMaxWidth, ...others
     } = useComponentDefaultProps('TextField', defaultProps, props);
 
     useFieldConfiguration({ entityForm, column, validationContainer, validate, required, requiredMessage, readOnly });
@@ -58,6 +60,9 @@ export const TextField = forwardRef<HTMLInputElement, TextFieldProps>(function T
         mantineOnFocus(event);
     }, [mantineOnFocus, onFocus]);
 
+    const { formMode, status } = entityForm;
+    const add_autofocus = formMode === 'add' ? true : undefined;
+    const edit_autofocus = status.loading === false && formMode !== 'add' ? true : undefined;
 
     return (
         <TextInput
@@ -67,15 +72,15 @@ export const TextField = forwardRef<HTMLInputElement, TextFieldProps>(function T
             label={label ?? column.prompt}
             placeholder={placeholder ?? column.placeholder}
             description={showDescription ? (description ?? column.description) : ''}
-            maw={maw ?? ((column.length <= 20) ? { maxWidth: '10rem' } : undefined)}
+            maw={maw ?? ((column.length <= autoMaxWidth!.columnLenghtLessThanOrEqual) ? autoMaxWidth!.maxWidth : undefined)}
             maxLength={maxLength ?? (column.length || undefined)}
             readOnly={entityForm.formMode === 'view' ? true : readOnly}
-            data-autofocus={autoFocus}
-            autoFocus={autoFocus}
+            data-autofocus={autoFocus === 'autoFocusOnAdd' ? add_autofocus : autoFocus === 'autoFocusOnEdit' ? edit_autofocus : autoFocus}
+            autoFocus={autoFocus === 'autoFocusOnAdd' ? add_autofocus : autoFocus === 'autoFocusOnEdit' ? edit_autofocus : autoFocus}
             onBlur={handleOnBlur}
             onChange={handleOnChange}
             onFocus={handleOnFocus}
-            iconWidth={iconWidth && typeof iconWidth === 'string' ? px(iconWidth) : iconWidth }
+            iconWidth={iconWidth && typeof iconWidth === 'string' ? px(iconWidth) : iconWidth}
             ref={ref}
         />
     )

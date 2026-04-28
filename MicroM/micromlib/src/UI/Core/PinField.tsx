@@ -6,13 +6,13 @@ import { ValidatorConfiguration } from "../../Validation";
 import { UseEntityFormReturnType, useFieldConfiguration } from "../Form";
 import { useTextTransform, useTextTransformProps } from "./useTextTransform";
 
-export interface PinFieldProps extends Omit<PinInputProps, 'validate'>, Omit<useTextTransformProps, 'entityForm' | 'column'> {
+export interface PinFieldProps extends Omit<PinInputProps, 'validate' | 'autoFocus'>, Omit<useTextTransformProps, 'entityForm' | 'column'> {
     column: EntityColumn<Value>,
     entityForm: UseEntityFormReturnType,
     validate?: ValidatorConfiguration,
     requiredMessage?: React.ReactNode,
     validationContainer?: React.ComponentType<{ children: ReactNode }>
-    autoFocus?: boolean,
+    autoFocus?: 'autoFocusOnAdd' | 'autoFocusOnEdit' | boolean,
     size?: MantineSize,
     description?: string,
     label?: string,
@@ -51,7 +51,9 @@ export function PinField(props: PinFieldProps) {
     const labelColor = theme.colorScheme === 'dark' ? theme.colors.dark[0] : theme.colors.gray[9];
     const descriptionColor = theme.colorScheme === 'dark' ? theme.colors.dark[2] : theme.colors.gray[6];
 
-    const { form } = entityForm;
+    const { form, formMode, status } = entityForm;
+    const add_autofocus = formMode === 'add' ? true : undefined;
+    const edit_autofocus = status.loading === false && formMode !== 'add' ? true : undefined;
 
     return (
         <Stack style={{ gap: "0.1rem" }}>
@@ -66,7 +68,8 @@ export function PinField(props: PinFieldProps) {
                 {...others}
                 {...entityForm.form.getInputProps(column.name)}
                 placeholder={placeholder ?? column.placeholder}
-                autoFocus={autoFocus}
+                autoFocus={autoFocus === 'autoFocusOnAdd' ? add_autofocus : autoFocus === 'autoFocusOnEdit' ? edit_autofocus : autoFocus}
+                data-autofocus={autoFocus === 'autoFocusOnAdd' ? add_autofocus : autoFocus === 'autoFocusOnEdit' ? edit_autofocus : autoFocus}
                 onComplete={handleOnComplete}
                 required={required ?? !column.hasFlag(EntityColumnFlags.nullable)}
                 mt="xs"

@@ -61,12 +61,6 @@ export function AddressAutocomplete(props: AddressAutocompleteProps) {
         form.setFieldValue(column.name, column.value || '');
     }, []);
 
-    //useEffect(() => {
-    //    if (!status.loading && status.operationType === 'get') {
-    //        form.setFieldValue(column.name, column.value);
-    //    }
-    //}, [status.loading, status.operationType]);
-
     return (
         <GoogleAddressAutocomplete
             {...rest}

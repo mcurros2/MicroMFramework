@@ -15,18 +15,20 @@ export interface PasswordFieldProps extends PasswordInputProps {
     disableOnLoading?: boolean,
     validate?: PasswordFieldValidatorConfiguration,
     requiredMessage?: ReactNode,
-    validationContainer?: React.ComponentType<{ children: ReactNode }>
+    validationContainer?: React.ComponentType<{ children: ReactNode }>,
+    autoMaxWidth?: { columnLenghtLessThanOrEqual: number, maxWidth: string },
 }
 
 const defaultProps: Partial<PasswordFieldProps> = {
-    validationContainer: Group
+    validationContainer: Group,
+    autoMaxWidth: { columnLenghtLessThanOrEqual: 20, maxWidth: '20rem' },
 }
 
 export function PasswordField(props: PasswordFieldProps) {
 
     const {
         column, loading, entityForm, maw, required, maxLength, disabled, disableOnLoading, label, validationContainer, validate, requiredMessage,
-        description, readOnly, withAsterisk, ...others
+        description, readOnly, withAsterisk, autoMaxWidth, ...others
     } = useComponentDefaultProps('PasswordField', defaultProps, props);
 
     useFieldConfiguration({ entityForm, column, validationContainer, validate, required, requiredMessage, readOnly });
@@ -39,7 +41,7 @@ export function PasswordField(props: PasswordFieldProps) {
             withAsterisk={withAsterisk ?? (!readOnly && !(entityForm.formMode === 'view') && (required ?? !column.hasFlag(EntityColumnFlags.nullable)))}
             label={label ?? column.prompt}
             description={showDescription ? (description ?? column.description) : ''}
-            maw={maw ?? ((column.length <= 20) ? '10rem' : undefined)}
+            maw={maw ?? ((column.length <= autoMaxWidth!.columnLenghtLessThanOrEqual) ? autoMaxWidth!.maxWidth : undefined)}
             maxLength={maxLength ?? column.length}
             readOnly={entityForm.formMode === 'view' ? true : readOnly}
             disabled={(disableOnLoading) ? loading : disabled}

@@ -6,7 +6,7 @@ import { ValidatorConfiguration } from "../../Validation";
 import { UseEntityFormReturnType, useFieldConfiguration } from "../Form";
 
 
-export interface NumberFieldProps extends NumberInputProps {
+export interface NumberFieldProps extends Omit<NumberInputProps, 'autoFocus'> {
     column: EntityColumn<Value>,
     entityForm: UseEntityFormReturnType,
     loading?: boolean,
@@ -14,7 +14,7 @@ export interface NumberFieldProps extends NumberInputProps {
     validate?: ValidatorConfiguration,
     requiredMessage?: ReactNode,
     validationContainer?: React.ComponentType<{ children: ReactNode }>
-    autoFocus?: boolean
+    autoFocus?: 'autoFocusOnAdd' | 'autoFocusOnEdit' | boolean
 }
 
 const defaultProps: Partial<NumberFieldProps> = {
@@ -34,8 +34,9 @@ export const NumberField = forwardRef<HTMLInputElement, NumberFieldProps>(functi
 
     const [showDescription,] = entityForm.showDescriptionState;
 
-    // MMC: disabled when loading is done at the form level in EntityForm and fieldset
-    //data-autofocus={autoFocus}  disabled={(disableOnLoading) ? loading : disabled}
+    const { formMode, status } = entityForm;
+    const add_autofocus = formMode === 'add' ? true : undefined;
+    const edit_autofocus = status.loading === false && formMode !== 'add' ? true : undefined;
 
     return (
         <NumberInput
@@ -45,7 +46,8 @@ export const NumberField = forwardRef<HTMLInputElement, NumberFieldProps>(functi
             placeholder={placeholder ?? column.placeholder}
             description={showDescription ? (description ?? column.description) : ''}
             readOnly={entityForm.formMode === 'view' ? true : readOnly}
-            data-autofocus={autoFocus}
+            data-autofocus={autoFocus === 'autoFocusOnAdd' ? add_autofocus : autoFocus === 'autoFocusOnEdit' ? edit_autofocus : autoFocus}
+            autoFocus={autoFocus === 'autoFocusOnAdd' ? add_autofocus : autoFocus === 'autoFocusOnEdit' ? edit_autofocus : autoFocus}
             precision={column.scale}
             {...entityForm.form.getInputProps(column.name)}
 

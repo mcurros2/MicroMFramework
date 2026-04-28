@@ -7,13 +7,13 @@ import { EntityColumn, EntityColumnFlags } from "../../Entity";
 import { ValidatorConfiguration } from "../../Validation";
 import { UseEntityFormReturnType, useFieldConfiguration } from "../Form";
 
-export interface TimeFieldProps extends Omit<TimeInputProps, 'validate'> {
+export interface TimeFieldProps extends Omit<TimeInputProps, 'validate' | 'autoFocus'> {
     column: EntityColumn<Value>,
     entityForm: UseEntityFormReturnType,
     validate?: ValidatorConfiguration,
     requiredMessage?: React.ReactNode,
     validationContainer?: React.ComponentType<{ children: ReactNode }>
-    autoFocus?: boolean,
+    autoFocus?: 'autoFocusOnAdd' | 'autoFocusOnEdit' | boolean,
     showTimePicker?: boolean,
 }
 
@@ -51,6 +51,10 @@ export const TimeField = forwardRef<TimeFieldRef, TimeFieldProps>(function TimeF
         }
     }), []);
 
+    const { formMode, status } = entityForm;
+    const add_autofocus = formMode === 'add' ? true : undefined;
+    const edit_autofocus = status.loading === false && formMode !== 'add' ? true : undefined;
+
     return (
         <TimeInput
             {...others}
@@ -58,7 +62,8 @@ export const TimeField = forwardRef<TimeFieldRef, TimeFieldProps>(function TimeF
             label={label ?? column.prompt}
             placeholder={placeholder ?? column.placeholder}
             description={showDescription ? (description ?? column.description) : ''}
-            data-autofocus={autoFocus}
+            data-autofocus={autoFocus === 'autoFocusOnAdd' ? add_autofocus : autoFocus === 'autoFocusOnEdit' ? edit_autofocus : autoFocus}
+            autoFocus={autoFocus === 'autoFocusOnAdd' ? add_autofocus : autoFocus === 'autoFocusOnEdit' ? edit_autofocus : autoFocus}
             ref={clockRef}
             rightSection={showTimePicker &&
                 <ActionIcon disabled={readOnly} onClick={() => clockRef.current?.showPicker?.()}>
@@ -66,6 +71,7 @@ export const TimeField = forwardRef<TimeFieldRef, TimeFieldProps>(function TimeF
                 </ActionIcon>
             }
             rightSectionWidth={showTimePicker ? "2.5rem" : undefined}
+
             {...entityForm.form.getInputProps(column.name)}
         />
     );
