@@ -55,7 +55,8 @@ public static class ConfigurationDatabaseSchema
     }
 
 
-    public async static Task<CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>>?> CreateConfigurationDBSchemaAndProcs(IEntityClient ec, AppDBSchemaConfiguration schema_config, CancellationToken ct, bool create_or_alter = false)
+    public async static Task<(CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>>? app_entities, CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>>? dd_entities)>
+        CreateConfigurationDBSchemaAndProcs(IEntityClient ec, AppDBSchemaConfiguration schema_config, CancellationToken ct, bool create_or_alter = false)
     {
         bool should_close = !(ec.ConnectionState == System.Data.ConnectionState.Open);
 
@@ -87,11 +88,10 @@ public static class ConfigurationDatabaseSchema
         }
         finally
         {
-            if (dd_entities?.Count > 0) dd_entities.Clear();
             if (should_close) await ec.Disconnect();
         }
 
-        return cfg_entities;
+        return (cfg_entities, dd_entities);
     }
 
 

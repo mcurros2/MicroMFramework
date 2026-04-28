@@ -6,7 +6,7 @@ begin try
 
     begin tran
     
-    delete  [dbo].application_oidc_server_sessions
+    delete  [dbo].application_oidc_active_sessions
     where   c_application_id = @application_id
 
     delete  [dbo].application_oidc_configuration

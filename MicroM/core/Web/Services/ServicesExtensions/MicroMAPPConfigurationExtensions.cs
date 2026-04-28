@@ -73,7 +73,11 @@ public static class MicroMAPPConfigurationExtensions
 
         if (!refreshed)
         {
-            throw new InvalidOperationException("MicroM app configuration refresh failed before registering application services.");
+            // get logger and log the error, but do not throw as we want the application to start even if the configuration service is not available at the moment. It will be retried in the background.
+            var serviceProvider = services.BuildServiceProvider();
+            var logger = serviceProvider.GetService<ILogger<MicroMAppConfigurationProvider>>();
+            logger?.LogError("Failed to refresh application configuration at startup. The application will start with default configuration, but may not function correctly until the configuration service is available.");
+            return services;
         }
 
         var discovered = new ConcurrentDictionary<Type, byte>();

@@ -258,7 +258,9 @@ public static class ConfigurationDBHandlers
 
             await dbc.ExecuteSQLNonQuery($"use [{cfg.Def.vc_configdatabase.Value}]", ct);
 
-            var entities = await CreateConfigurationDBSchemaAndProcs(dbc, ConfigurationDefaults.SchemaConfiguration, ct, true);
+            var (entities, dd_entities) = await CreateConfigurationDBSchemaAndProcs(dbc, ConfigurationDefaults.SchemaConfiguration, ct, true);
+
+            await GrantExecutionToAllProcs(dbc, dd_entities!, cfg.Def.vc_configsqluser.Value, ct);
             await GrantExecutionToAllProcs(dbc, entities!, cfg.Def.vc_configsqluser.Value, ct);
 
             api?.log.LogWarning("Changing {user} sql password", cfg.Def.vc_configsqluser.Value);
@@ -279,6 +281,9 @@ public static class ConfigurationDBHandlers
                 await api.app_config.RefreshConfiguration(null, ct);
                 await api.securityService.RefreshGroupsSecurityRecords(null, ct);
             }
+
+            entities?.Clear();
+            dd_entities?.Clear();
 
             return new() { Results = [new() { Status = DBStatusCodes.OK }] };
         }
