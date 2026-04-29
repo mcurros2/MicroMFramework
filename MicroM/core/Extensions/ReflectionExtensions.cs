@@ -240,4 +240,26 @@ public static class ReflectionExtensions
         return instance_members;
     }
 
+    public static string ToPropertiesValuesString(this object? obj, string[]? properties_filter = null)
+    {
+        if (obj == null) return "NULL object";
+        Type objType = obj.GetType();
+        PropertyInfo[] properties = objType.GetProperties(BindingFlags.Public | BindingFlags.Instance);
+        IEnumerable<PropertyInfo> filteredProperties = properties;
+        if (properties_filter != null && properties_filter.Length > 0)
+        {
+            var filterList = properties_filter.ToHashSet(StringComparer.OrdinalIgnoreCase);
+            filteredProperties = properties.Where(p => filterList.Contains(p.Name));
+        }
+        var propertyValues = filteredProperties.Select(p =>
+        {
+            object? value = p.GetValue(obj);
+            string valueStr = value != null ? value.ToString() ?? "NULL" : "NULL";
+            return $"{p.Name}: {valueStr}";
+        });
+
+        return string.Join(" | ", propertyValues);
+    }
+
+
 }

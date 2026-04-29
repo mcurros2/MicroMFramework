@@ -286,4 +286,10 @@ public static class DataExtensions
         return status == null || status.Failed;
     }
 
+    public static void ThrowIfFailed(this DBStatusResult? status, string? message = null)
+    {
+        if (status == null) throw new InvalidOperationException(message ?? "DBStatusResult is null");
+        if (status.Failed) throw new DataAbstractionException(message ?? "DB operation failed", status.Results!);
+    }
+
 }

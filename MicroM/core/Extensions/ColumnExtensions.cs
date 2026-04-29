@@ -126,7 +126,6 @@ public static class ColumnExtensions
         return record;
     }
 
-
     public static Column<T> AddCol<T>(this CustomOrderedDictionary<ColumnBase> collection, string name, SqlDbType? sql_type, int size = 0, byte precision = 0, byte scale = 0,
         T value = default!, bool output = false, ColumnFlags column_flags = ColumnFlags.Insert | ColumnFlags.Update)
     {
@@ -489,5 +488,25 @@ public static class ColumnExtensions
         return ret;
     }
 
+    public static void SetPropertiesValuesTo(this object source, IReadonlyOrderedDictionary<ColumnBase> destination)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        ArgumentNullException.ThrowIfNull(destination, nameof(destination));
 
+        Type sourceType = source.GetType();
+
+        PropertyInfo[] sourceProps = sourceType.GetProperties(BindingFlags.Public | BindingFlags.Instance);
+
+        foreach (var sourceProp in sourceProps)
+        {
+            if (!sourceProp.CanRead) continue;
+
+            if (destination.Contains(sourceProp.Name))
+            {
+                ColumnBase destCol = destination[sourceProp.Name]!;
+                object? value = sourceProp.GetValue(source);
+                destCol.ValueObject = value;
+            }
+        }
+    }
 }

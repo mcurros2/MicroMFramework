@@ -34,7 +34,7 @@ public class DataResult
             {
                 if (Header[x].Equals(key, StringComparison.OrdinalIgnoreCase))
                 {
-                    return records[x];
+                    return records[record][x];
                 }
             }
             throw new ArgumentException($"The record has no column with the name {key}");
@@ -47,5 +47,20 @@ public class DataResult<T>(int columns)
 {
     public string[] Header { get; private set; } = new string[columns];
 
-    public List<T> records { get; private set; } = [];
+    public List<T[]> records { get; private set; } = [];
+
+    public T this[int record, string key]
+    {
+        get
+        {
+            for (int x = 0; x < Header.Length; x++)
+            {
+                if (Header[x].Equals(key, StringComparison.OrdinalIgnoreCase))
+                {
+                    return records[record][x];
+                }
+            }
+            throw new ArgumentException($"The record has no column with the name {key}");
+        }
+    }
 }
