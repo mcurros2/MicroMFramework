@@ -10,7 +10,9 @@ export type useExecuteServerActionReturnType<TReturn extends ValuesObject> = {
 
 export function useExecuteServerAction<T extends EntityDefinition, TReturn extends ValuesObject>(
     entity: Entity<T>,
-    actionName: string
+    actionName: string,
+    doNotExecuteIfEntityValuesUnchanged?: boolean
+
 ): useExecuteServerActionReturnType<TReturn> {
     const [status, setStatus] = useState<OperationStatus<TReturn>>({ loading: false });
     const cancellation = useRef<AbortController>(new AbortController());
@@ -31,7 +33,7 @@ export function useExecuteServerAction<T extends EntityDefinition, TReturn exten
             return status;
         }
 
-        if (!areValuesObjectsEqual(values, prevValues.current)) {
+        if (!doNotExecuteIfEntityValuesUnchanged || !areValuesObjectsEqual(values, prevValues.current)) {
             // Abort the previous request before starting a new one
             cancellation.current.abort("ExecuteServerAction, aborting previous request.");
             cancellation.current = new AbortController();

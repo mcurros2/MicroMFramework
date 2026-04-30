@@ -57,4 +57,5 @@ public class ApplicationOption
     public List<string> FrontendURLS { get; set; } = [];
 
     public AppDBSchemaConfiguration SchemaConfiguration { get; set; } = new("dbo", "dbo");
+
 }

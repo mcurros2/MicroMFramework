@@ -33,4 +33,6 @@ public class ConfigurationDefaults
     ];
 
     public static AppDBSchemaConfiguration SchemaConfiguration { get; set; } = new(APPSchema: "dbo", DDSchema: "dbo");
+
+    public static string TestDataRootFolderName { get; set; } = "test_data";
 }
