@@ -6,6 +6,14 @@ using System.Reflection;
 
 namespace MicroM.Web.Services;
 
+public sealed record EntityTypeRecord
+{
+    public required string EntityName { get; set; }
+    public required string Type { get; set; }
+
+}
+
+
 public interface IMicroMAppConfiguration
 {
     public ApplicationOption? GetAppConfiguration(string app_id);

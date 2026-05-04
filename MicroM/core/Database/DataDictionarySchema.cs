@@ -82,6 +82,9 @@ public static class DataDictionarySchema
         result.TryAddType<ImportProcessErrors>();
         result.TryAddType<ImportProcessStatus>();
         result.TryAddType<ApplicationOidcActiveSessions>();
+        result.TryAddType<MicromEntitiesTypes>();
+        result.TryAddType<MicromDeveloperTools>();
+        result.TryAddType<MicromDeveloperToolsCodeGen>();
 
         return result;
     }
@@ -124,6 +127,9 @@ public static class DataDictionarySchema
             ec == null ? new ImportProcessErrors(schema_name) : new ImportProcessErrors(ec, schema_name: schema_name),
             ec == null ? new ImportProcessStatus(schema_name) : new ImportProcessStatus(ec, schema_name: schema_name),
             ec == null ? new ApplicationOidcActiveSessions(schema_name) : new ApplicationOidcActiveSessions(ec, schema_name: schema_name),
+            ec == null ? new MicromEntitiesTypes(schema_name) : new MicromEntitiesTypes(ec, schema_name: schema_name),
+            ec == null ? new MicromDeveloperTools(schema_name) : new MicromDeveloperTools(ec, schema_name: schema_name),
+            ec == null ? new MicromDeveloperToolsCodeGen(schema_name) : new MicromDeveloperToolsCodeGen(ec, schema_name: schema_name)
             ]);
 
         return result;

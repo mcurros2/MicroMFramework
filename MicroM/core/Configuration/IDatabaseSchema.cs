@@ -23,4 +23,6 @@ public interface IDatabaseSchema
 
     public Task<DatabaseMigrationResult> MigrateDatabase(IEntityClient ec, AppDBSchemaConfiguration schema_config, CancellationToken ct);
 
+    public Task SeedTestData(IEntityClient ec, AppDBSchemaConfiguration schema_config, CancellationToken ct);
+
 }

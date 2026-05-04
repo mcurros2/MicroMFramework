@@ -58,4 +58,8 @@ public class ApplicationOption
 
     public AppDBSchemaConfiguration SchemaConfiguration { get; set; } = new("dbo", "dbo");
 
+    public bool EnableDeveloperTools { get; set; } = false;
+
+    public bool EnableSeedTestData { get; set; } = false;
+
 }

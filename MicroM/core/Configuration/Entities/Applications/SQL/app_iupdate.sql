@@ -19,6 +19,8 @@
 		, @MaxRefreshTokenAttempts Int
         , @app_schema VarChar(50)
         , @datadictionary_schema VarChar(50)
+        , @enable_seed_test_data bit
+        , @enable_developer_tools bit
 		, @authenticationtype_id Char(20)
 		, @assembly1 VarChar(2048)
 		, @assembly2 VarChar(2048)
@@ -43,6 +45,9 @@ if @@trancount = 0 throw 50001, 'app_iupdate must be called within a transaction
 set @appurls = NULLIF(@appurls,'')
 
 set @apiurl = isnull(@apiurl, '')
+
+set @enable_seed_test_data = isnull(@enable_seed_test_data, 0)
+set @enable_developer_tools = isnull(@enable_developer_tools, 0)
 
 create table [#TempAppUrls] (c_application_url_id char(20) null, vc_application_url varchar(max))
 
@@ -95,6 +100,8 @@ begin try
 			, @MaxRefreshTokenAttempts
             , @app_schema
             , @datadictionary_schema
+            , @enable_seed_test_data
+            , @enable_developer_tools
             , @now
             , @now
             , @webusr
@@ -219,6 +226,8 @@ begin try
 			, i_MaxRefreshTokenAttempts = @MaxRefreshTokenAttempts
             , vc_app_schema = @app_schema
             , vc_datadictionary_schema = @datadictionary_schema
+            , b_enable_seed_test_data = @enable_seed_test_data
+            , b_enable_developer_tools = @enable_developer_tools
             , vc_webluuser = @webusr
             , vc_luuser = @login
             , dt_lu = @now

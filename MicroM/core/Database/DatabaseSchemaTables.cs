@@ -29,11 +29,10 @@ namespace MicroM.Database
             return inexisting_tables;
         }
 
-        public static async Task<HashSet<string>> CreateAllInexistingSchemas(IEntityClient ec, CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>> entities, CancellationToken ct)
+        public static async Task CreateAllInexistingSchemas(IEntityClient ec, CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>> entities, CancellationToken ct)
         {
             bool should_close = !(ec.ConnectionState == System.Data.ConnectionState.Open);
-            HashSet<string> created_schemas = new(StringComparer.OrdinalIgnoreCase);
-            HashSet<string> inexistent_schemas = new(StringComparer.OrdinalIgnoreCase);
+            HashSet<string> processed_schemas = new(StringComparer.OrdinalIgnoreCase);
 
             try
             {
@@ -45,16 +44,14 @@ namespace MicroM.Database
                     var entity = options.EntityInstance;
                     if (!string.IsNullOrEmpty(entity.Def.SchemaName))
                     {
-                        if (!inexistent_schemas.Contains(entity.Def.SchemaName))
+                        if (!processed_schemas.Contains(entity.Def.SchemaName))
                         {
                             bool schema_exists = await SchemaExists(ec, entity.Def.SchemaName, ct);
                             if (!schema_exists)
                             {
-                                inexistent_schemas.Add(entity.Def.SchemaName);
                                 sb_create_schemas.Append($"create schema {entity.Def.QualifiedSchemaName};");
-                                created_schemas.Add(entity.Def.SchemaName);
                             }
-
+                            processed_schemas.Add(entity.Def.SchemaName);
                         }
                     }
                 }
@@ -64,11 +61,10 @@ namespace MicroM.Database
                     await ec.ExecuteSQLNonQuery(sb_create_schemas.ToString(), ct);
                 }
 
-                return created_schemas;
             }
             finally
             {
-                inexistent_schemas.Clear();
+                processed_schemas.Clear();
                 if (should_close) await ec.Disconnect();
             }
         }

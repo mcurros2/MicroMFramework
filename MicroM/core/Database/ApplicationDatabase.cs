@@ -52,6 +52,13 @@ public class ApplicationDatabase
                                 if (migration_result == DatabaseMigrationResult.NoMigrationNeeded)
                                 {
                                     await instance.CreateDBSchemaAndProcs(app_ec, entities, app_config.SchemaConfiguration, ct);
+
+                                    await MicromEntitiesTypes.FillEntitiesTypes(app_ec, app_config.SchemaConfiguration.DDSchema, entities, ct);
+
+                                    if (app_config.EnableSeedTestData)
+                                    {
+                                        await instance.SeedTestData(app_ec, app_config.SchemaConfiguration, ct);
+                                    }
                                 }
 
                                 await instance.GrantPermissions(app_ec, entities, grant_user, app_config.SchemaConfiguration, ct);

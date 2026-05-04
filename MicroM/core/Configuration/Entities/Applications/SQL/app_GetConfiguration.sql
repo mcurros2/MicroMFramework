@@ -24,6 +24,8 @@ select	ApplicationID = rtrim(a.c_application_id)
 		, FrontendURLS=e.frontend_urls
 		, APPSchema = a.vc_app_schema
 		, DDSchema = a.vc_datadictionary_schema
+		, EnableSeedTestData = a.b_enable_seed_test_data
+		, EnableDeveloperTools = a.b_enable_developer_tools
 from	[dbo].applications a
 		left join [dbo].applications_cat b
 		on(b.c_application_id=a.c_application_id and b.c_category_id='AuthenticationTypes')

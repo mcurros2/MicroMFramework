@@ -20,7 +20,6 @@ namespace MicroM.Web.Services;
 
 public sealed record MicroMConfigurationReloaded { }
 
-
 public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfiguration
 {
     private static readonly Dictionary<string, ApplicationOption> _ApplicationsCache = new(StringComparer.OrdinalIgnoreCase);
@@ -352,11 +351,10 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
 
     public List<Assembly> GetAllAPPAssemblies(string app_id)
     {
-        return _EntityTypesCache
+        return [.. _EntityTypesCache
             .Where(kvp => kvp.Key.StartsWith(app_id + ".", StringComparison.OrdinalIgnoreCase))
             .Select(kvp => kvp.Value.Assembly)
-            .Distinct()
-            .ToList();
+            .Distinct()];
     }
 
     private async Task<bool> LoadAppsConfiguration(CancellationToken ct)

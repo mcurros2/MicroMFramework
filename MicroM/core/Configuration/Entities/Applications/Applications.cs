@@ -39,6 +39,9 @@ public class ApplicationsDef : EntityDefinition
     public readonly Column<string?> vc_app_schema = Column<string?>.Text(size: 50, nullable: true);
     public readonly Column<string?> vc_datadictionary_schema = Column<string?>.Text(size: 50, nullable: true);
 
+    public readonly Column<bool?> b_enable_seed_test_data = new(nullable: true);
+    public readonly Column<bool?> b_enable_developer_tools = new(nullable: true);
+
     public readonly Column<string> c_authenticationtype_id = Column<string>.EmbedCategory(nameof(AuthenticationTypes));
 
     // application assemblies embedded columns
@@ -298,6 +301,8 @@ public class Applications : Entity<ApplicationsDef>
                     OIDCCertificateBlob = await fv.GetFieldValueAsync<byte[]?>(nameof(app_result.OIDCCertificateBlob), ct),
                     OIDCCertificatePassword = await fv.GetFieldValueAsync<string>(nameof(app_result.OIDCCertificatePassword), ct),
                     OIDCIdPSubjectPepper = await fv.GetFieldValueAsync<string?>(nameof(app_result.OIDCIdPSubjectPepper), ct),
+                    EnableDeveloperTools = await fv.GetFieldValueAsync<bool?>(nameof(app_result.EnableDeveloperTools), ct) ?? false,
+                    EnableSeedTestData = await fv.GetFieldValueAsync<bool?>(nameof(app_result.EnableSeedTestData), ct) ?? false,
                     SchemaConfiguration = new AppDBSchemaConfiguration
                     (
                         APPSchema: await fv.GetFieldValueAsync<string?>(nameof(AppDBSchemaConfiguration.APPSchema), ct) ?? "dbo",
