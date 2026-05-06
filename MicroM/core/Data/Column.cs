@@ -49,11 +49,12 @@ namespace MicroM.Data
         // Columns creation factories
 
         public static Column<T> PK(string name = "", SqlDbType? sql_type = null, int size = 20, byte precision = 0, byte scale = 0,
-            T value = default!, bool autonum = false, bool fake = false, string? override_with = null)
+            T value = default!, bool autonum = false, bool fake = false, string? override_with = null, bool api_readonly = false)
         {
             ColumnFlags col_flags = ColumnFlags.Insert | ColumnFlags.Update | ColumnFlags.Delete | ColumnFlags.Get | ColumnFlags.PK;
             if (autonum) col_flags |= ColumnFlags.Autonum;
             if (fake) col_flags |= ColumnFlags.Fake;
+            if (api_readonly) col_flags |= ColumnFlags.APIReadOnly;
 
             if (sql_type == null)
             {
@@ -73,10 +74,11 @@ namespace MicroM.Data
         }
 
         public static Column<T> FK(string name = "", SqlDbType? sql_type = null, int size = 20, byte precision = 0, byte scale = 0, T value = default!, bool fake = false
-            , bool? nullable = null, string? override_with = null)
+            , bool? nullable = null, string? override_with = null, bool api_readonly = false)
         {
             ColumnFlags flags = ColumnFlags.Insert | ColumnFlags.Update | ColumnFlags.FK;
             if (fake) flags |= ColumnFlags.Fake;
+            if (api_readonly) flags |= ColumnFlags.APIReadOnly;
 
             if (sql_type == null)
             {
@@ -95,7 +97,7 @@ namespace MicroM.Data
         }
 
         public static Column<T> Text(T value = default!, int size = 255, bool fake = false, bool? nullable = null, bool isArray = false, bool encrypted = false
-            , ColumnFlags column_flags = ColumnFlags.Insert | ColumnFlags.Update, string? override_with = null, string name = "")
+            , ColumnFlags column_flags = ColumnFlags.Insert | ColumnFlags.Update, string? override_with = null, string name = "", bool api_readonly = false)
         {
             if (typeof(T) != typeof(string) && typeof(T) != typeof(string[]) && Nullable.GetUnderlyingType(typeof(T)) != typeof(string[]))
             {
@@ -103,6 +105,7 @@ namespace MicroM.Data
             }
 
             if (fake) column_flags |= ColumnFlags.Fake;
+            if (api_readonly) column_flags |= ColumnFlags.APIReadOnly;
             return new Column<T>(name, value: value, sql_type: SqlDbType.VarChar, size: size, column_flags: column_flags, nullable: nullable, isArray: isArray, encrypted: encrypted, override_with: override_with);
         }
 
@@ -137,9 +140,7 @@ namespace MicroM.Data
             return new Column<T>(this);
         }
 
-
-
-        public static Column<T> EmbedCategory(object category_id, bool nullable = false, bool isArray = false, T value = default!)
+        public static Column<T> EmbedCategory(object category_id, bool nullable = false, bool isArray = false, T value = default!, bool api_readonly = false)
         {
             if (typeof(T) != typeof(string) && typeof(T) != typeof(string[]) && Nullable.GetUnderlyingType(typeof(T)) != typeof(string[]))
             {
@@ -149,6 +150,8 @@ namespace MicroM.Data
             isArray = (typeof(T) == typeof(string[]) || Nullable.GetUnderlyingType(typeof(T)) == typeof(string[]));
 
             ColumnFlags column_flags = ColumnFlags.Insert | ColumnFlags.Update | ColumnFlags.Fake;
+            if (api_readonly) column_flags |= ColumnFlags.APIReadOnly;
+
             if (isArray)
             {
                 return new Column<T>("", value: (T)(object)value!, sql_type: SqlDbType.VarChar, size: 0, column_flags: column_flags, nullable: nullable, isArray: isArray) { RelatedCategoryID = (string)category_id };
@@ -159,7 +162,7 @@ namespace MicroM.Data
             }
         }
 
-        public static Column<string> EmbedStatus(string status_id, string value = default!)
+        public static Column<string> EmbedStatus(string status_id, string value = default!, bool api_readonly = false)
         {
             if (typeof(T) != typeof(string))
             {
@@ -167,6 +170,8 @@ namespace MicroM.Data
             }
 
             ColumnFlags column_flags = ColumnFlags.Insert | ColumnFlags.Update | ColumnFlags.Fake;
+            if (api_readonly) column_flags |= ColumnFlags.APIReadOnly;
+
             return new Column<string>("", value: value, sql_type: SqlDbType.Char, size: 20, column_flags: column_flags) { RelatedStatusID = status_id };
         }
 

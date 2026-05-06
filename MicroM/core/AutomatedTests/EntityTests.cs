@@ -35,7 +35,7 @@ public static class EntityTests
         ColumnBase? change_column = null;
         foreach (var column in entity.Def.Columns.Values)
         {
-            if (!column.ColumnMetadata.HasFlag(ColumnFlags.PK) && column.SystemType == typeof(string) && column.SQLMetadata.Size > 80)
+            if (!column.ColumnMetadata.HasFlag(ColumnFlags.PK) && column.SystemType == typeof(string) && column.SQLMetadata.Size >= 80)
             {
                 change_column = column;
                 break;

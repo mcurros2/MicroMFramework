@@ -11,7 +11,7 @@ public static class ProcedureExtensions
         {
             if (proc.Parms.TryGetValue(key, out ColumnBase? col))
             {
-                col.ValueObject = values[key];
+                if (!col.ColumnMetadata.HasFlag(ColumnFlags.APIReadOnly)) col.ValueObject = values[key];
             }
         }
     }
@@ -21,7 +21,7 @@ public static class ProcedureExtensions
         {
             if (proc.Parms.TryGetValue(key, out ColumnBase? col))
             {
-                col.ValueObject = cols[key]!.ValueObject;
+                if (!col.ColumnMetadata.HasFlag(ColumnFlags.APIReadOnly)) col.ValueObject = cols[key]!.ValueObject;
             }
         }
     }

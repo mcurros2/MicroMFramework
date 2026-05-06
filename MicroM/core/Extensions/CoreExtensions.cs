@@ -47,7 +47,7 @@ public static class CoreExtensions
         {
             if (entity.Def.Columns.TryGetValue(key, out ColumnBase? col))
             {
-                if (col != null && col.ColumnMetadata.HasAnyFlag(ColumnFlags.FK | ColumnFlags.PK))
+                if (col != null && col.ColumnMetadata.HasAnyFlag(ColumnFlags.FK | ColumnFlags.PK) && !col.ColumnMetadata.HasFlag(ColumnFlags.APIReadOnly))
                 {
                     col.ValueObject = values[key];
                 }
@@ -61,7 +61,7 @@ public static class CoreExtensions
         {
             if (entity.Def.Columns.TryGetValue(key, out ColumnBase? col))
             {
-                if (col != null) col.ValueObject = values[key];
+                if (col != null && !col.ColumnMetadata.HasFlag(ColumnFlags.APIReadOnly)) col.ValueObject = values[key];
             }
         }
     }
@@ -70,7 +70,7 @@ public static class CoreExtensions
     {
         if (entity.Def.Columns.TryGetValue(col_name, out ColumnBase? col))
         {
-            if (col != null) col.ValueObject = values[col_name];
+            if (col != null && !col.ColumnMetadata.HasFlag(ColumnFlags.APIReadOnly)) col.ValueObject = values[col_name];
         }
     }
 
