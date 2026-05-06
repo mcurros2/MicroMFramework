@@ -44,4 +44,19 @@ public static class EntityExtensions
         return ret;
     }
 
+    public static async Task<bool> HasDataInTable(this EntityBase entity, CancellationToken ct)
+    {
+        if (entity.Def.Fake) return false;
+        var data_exists = false;
+        try
+        {
+            var ec = entity.Client;
+            var result = await ec.ExecuteSQLSingleColumn<int>($"SELECT TOP 1 1 FROM {entity.Def.FullTableName}", ct);
+            return result == 1;
+        }
+        catch { }
+
+        return data_exists;
+    }
+
 }

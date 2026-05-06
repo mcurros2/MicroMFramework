@@ -138,21 +138,32 @@ public static class EntityTests
         }
     }
 
-    public static async Task<string?> SeedTestData(EntityBase entity, string test_data_file, CancellationToken ct)
+    public static async Task<string?> SeedTestData(EntityBase entity, string test_data_file, CancellationToken ct, bool ignore_errors = true)
     {
         var testData = await entity.LoadJsonEntityTestData(test_data_file);
         int record_count = 0;
         foreach (var record in testData.records)
         {
             if (ct.IsCancellationRequested) break;
-            testData.ApplyRecordToColumns(record, entity.Def.Columns);
-            await entity.UpdateData(ct, throw_dbstat_exception: false);
-            record_count++;
+            try
+            {
+                testData.ApplyRecordToColumns(record, entity.Def.Columns);
+                await entity.UpdateData(ct, throw_dbstat_exception: false);
+            }
+            catch (Exception ex)
+            {
+                if (!ignore_errors)
+                {
+                    throw;
+                }
+                return $"Error inserting/updating record for entity {entity.Def.Name} from file {test_data_file}: {ex.Message}";
+            }
         }
+        record_count++;
         return $"Inserted/Updated {record_count} records for entity {entity.Def.Name} from file {test_data_file}";
     }
 
-    public static async Task<string?> SeedTestData(this CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>> entities, string test_data_folder, CancellationToken ct)
+    public static async Task<string?> SeedTestData(this CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>> entities, string test_data_folder, CancellationToken ct, bool ignore_errors = true)
     {
         if (entities == null || entities.Count == 0) return null;
 
@@ -169,10 +180,26 @@ public static class EntityTests
             var data_file_path = entity.GetTestDataFilePath(test_data_folder);
             if (File.Exists(data_file_path))
             {
-                var result = await SeedTestData(entity, data_file_path, ct);
-                if (result != null)
+                try
                 {
-                    sb.AppendLine(result);
+                    if (await entity.HasDataInTable(ct))
+                    {
+                        sb.AppendLine($"Data already exists for entity {entity.Def.Name} - skipping seeding data from file {data_file_path}");
+                        continue;
+                    }
+                    var result = await SeedTestData(entity, data_file_path, ct);
+                    if (result != null)
+                    {
+                        sb.AppendLine(result);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    if (!ignore_errors)
+                    {
+                        throw;
+                    }
+                    sb.AppendLine($"Error seeding data for entity {entity.Def.Name} from file {data_file_path}: {ex.Message}");
                 }
             }
             else

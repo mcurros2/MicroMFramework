@@ -14,7 +14,7 @@ namespace MicroM.Database;
 
 public class ApplicationDatabase
 {
-    private static async Task InitializeDatabase(IEntityClient admin_dbc, Applications app, ApplicationOption app_config, string grant_user, IWebAPIServices api, CancellationToken ct)
+    private static async Task InitializeDatabase(IEntityClient admin_dbc, Applications app, ApplicationOption app_config, string grant_user, IWebAPIServices api, bool seed_test_data, CancellationToken ct)
     {
         // MMC: Clone here is used to create a connection to the same server with the app database name
         using var app_ec = admin_dbc.Clone(new_db: app.Def.vc_database.Value);
@@ -55,7 +55,7 @@ public class ApplicationDatabase
 
                                     await MicromEntitiesTypes.FillEntitiesTypes(app_ec, app_config.SchemaConfiguration.DDSchema, entities, ct);
 
-                                    if (app_config.EnableSeedTestData)
+                                    if (app_config.EnableSeedTestData && seed_test_data)
                                     {
                                         await instance.SeedTestData(app_ec, app_config.SchemaConfiguration, ct);
                                     }
@@ -224,7 +224,7 @@ public class ApplicationDatabase
             await CreateLoginAndDatabaseUser(admin_dbc, app.Def.vc_database.Value, app.Def.vc_user.Value, app.Def.vc_password.Value ?? "", ct);
 
             // Create tables and procs
-            await InitializeDatabase(admin_dbc, app, app_config, app.Def.vc_user.Value, api, ct);
+            await InitializeDatabase(admin_dbc, app, app_config, app.Def.vc_user.Value, api, seed_test_data: true, ct);
 
             // Create a MicroM Admin User
             if (app.Def.c_authenticationtype_id.Value.Equals(nameof(AuthenticationTypes.MicroMAuthentication), StringComparison.OrdinalIgnoreCase)
@@ -285,7 +285,7 @@ public class ApplicationDatabase
         }
 
         // Create tables and procs
-        await InitializeDatabase(admin_dbc, app, app_config, app.Def.vc_user.Value, api, ct);
+        await InitializeDatabase(admin_dbc, app, app_config, app.Def.vc_user.Value, api, seed_test_data: false, ct);
 
         // try to recreate user if for any reason has been deleted
         try
