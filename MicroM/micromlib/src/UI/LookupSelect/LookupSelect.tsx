@@ -67,10 +67,13 @@ export const LookupSelect = forwardRef<HTMLInputElement, LookupSelectOptions>(fu
 
     const [showDescription,] = entityForm.showDescriptionState;
 
-    selectProps!.label = selectProps?.label ?? column.prompt;
-    selectProps!.description = showDescription ? (selectProps?.description ?? column.description) : '';
+    const resolvedSelectProps: CustomSelectProps = {
+        ...(selectProps ?? {}),
+        label: selectProps?.label ?? column.prompt,
+        description: showDescription ? (selectProps?.description ?? column.description) : '',
+    };
 
-    useFieldConfiguration({ entityForm, column, required: selectProps?.required, requiredMessage: requiredLabel });
+    useFieldConfiguration({ entityForm, column, required: resolvedSelectProps?.required, requiredMessage: requiredLabel });
 
     // MMC: Effect for setting the column valueDescription
     useEffect(() => {
@@ -92,13 +95,13 @@ export const LookupSelect = forwardRef<HTMLInputElement, LookupSelectOptions>(fu
 
     return (
         <Select
-            {...selectProps}
-            withAsterisk={selectProps!.withAsterisk ?? (!selectProps!.readOnly && !(entityForm.formMode === 'view') && (selectProps!.required ?? !column.hasFlag(EntityColumnFlags.nullable)))}
+            {...resolvedSelectProps}
+            withAsterisk={resolvedSelectProps.withAsterisk ?? (!resolvedSelectProps.readOnly && !(entityForm.formMode === 'view') && (resolvedSelectProps.required ?? !column.hasFlag(EntityColumnFlags.nullable)))}
             withinPortal={withinPortal}
             zIndex={zIndex}
-            icon={lookupSelectAPI.status.loading ? <Loader size="xs" /> : selectProps?.icon}
+            icon={lookupSelectAPI.status.loading ? <Loader size="xs" /> : resolvedSelectProps.icon}
             data={selectData}
-            readOnly={selectProps?.readOnly || entityForm.formMode === 'view' || lookupSelectAPI.status.loading || formStatus?.loading ? true : false}
+            readOnly={resolvedSelectProps?.readOnly || entityForm.formMode === 'view' || lookupSelectAPI.status.loading || formStatus?.loading ? true : false}
             error={lookupSelectAPI.status.error ? lookupSelectAPI.status.error.message : null}
             // MMC: this is how we hack the styles let the chevron work showing the list and the edit button be clickable
             styles={() => ({
