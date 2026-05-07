@@ -15,6 +15,8 @@ public class MicromDeveloperToolsCodeGenDef : EntityDefinition
 {
     public MicromDeveloperToolsCodeGenDef() : base("mcg", nameof(MicromDeveloperToolsCodeGen)) { Fake = true; }
 
+    public string CategoriesFolder { get; set; } = "../Categories";
+
     public readonly Column<string> vc_classname = Column<string>.Text(column_flags: ColumnFlags.Get | ColumnFlags.PK);
 
     public readonly Column<string> vc_table = Column<string>.Text(size: 0);
@@ -97,8 +99,8 @@ public class MicromDeveloperToolsCodeGen : Entity<MicromDeveloperToolsCodeGenDef
         Def.vc_custom_procs.Value = string.Join("\nGO\n\n", await ent.GetAllCustomProcs(ent.Def.Mneo, ct)) ?? "";
 
         Def.vc_react_entity.Value = ent.AsTypeScriptEntity();
-        Def.vc_react_definition.Value = ent.AsTypeScriptEntityDefinition();
-        Def.vc_react_categories.Value = ent.Def.Columns.AsCategoriesEntities(category_types);
+        Def.vc_react_definition.Value = ent.AsTypeScriptEntityDefinition(app_config.TypeScriptCategoriesFolder);
+        Def.vc_react_categories.Value = ent.Def.Columns.AsCategoriesEntities(category_types, app_config.TypeScriptDDCategoriesValuesClassName, app_config.TypeScriptDDCategoriesValuesClassImport);
         Def.vc_react_form.Value = ent.AsTypeScriptEntityForm();
 
         return true;

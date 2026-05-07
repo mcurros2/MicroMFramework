@@ -1,4 +1,5 @@
 ﻿using MicroM.DataDictionary.CategoriesDefinitions;
+using MicroM.Generators.ReactGenerator;
 using MicroM.Web.Authentication.SSO;
 
 namespace MicroM.Configuration;
@@ -62,4 +63,8 @@ public class ApplicationOption
 
     public bool EnableSeedTestData { get; set; } = false;
 
+    // Developer tools configuration
+    public string TypeScriptCategoriesFolder { get; set; } = "../Categories";
+    public string TypeScriptDDCategoriesValuesClassName { get; set; } = "CategoriesValues";
+    public string TypeScriptDDCategoriesValuesClassImport { get; set; } = TemplateValues.CONST_MICROM_LIB_PACKAGE;
 }

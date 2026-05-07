@@ -2,6 +2,7 @@
 using MicroM.Data;
 using MicroM.DataDictionary.CategoriesDefinitions;
 using MicroM.Extensions;
+using MicroM.Generators.ReactGenerator;
 using MicroM.Web.Services;
 using System.Data;
 using System.Text.Json;
@@ -41,6 +42,10 @@ public class ApplicationsDef : EntityDefinition
 
     public readonly Column<bool?> b_enable_seed_test_data = new(nullable: true);
     public readonly Column<bool?> b_enable_developer_tools = new(nullable: true);
+
+    public readonly Column<string?> vc_ts_categories_folder = Column<string?>.Text(nullable: true);
+    public readonly Column<string?> vc_ts_dd_categories_values_class_name = Column<string?>.Text(nullable: true);
+    public readonly Column<string?> vc_ts_dd_categories_values_class_import = Column<string?>.Text(nullable: true);
 
     public readonly Column<string> c_authenticationtype_id = Column<string>.EmbedCategory(nameof(AuthenticationTypes));
 
@@ -303,6 +308,10 @@ public class Applications : Entity<ApplicationsDef>
                     OIDCIdPSubjectPepper = await fv.GetFieldValueAsync<string?>(nameof(app_result.OIDCIdPSubjectPepper), ct),
                     EnableDeveloperTools = await fv.GetFieldValueAsync<bool?>(nameof(app_result.EnableDeveloperTools), ct) ?? false,
                     EnableSeedTestData = await fv.GetFieldValueAsync<bool?>(nameof(app_result.EnableSeedTestData), ct) ?? false,
+                    TypeScriptCategoriesFolder = await fv.GetFieldValueAsync<string?>(nameof(app_result.TypeScriptCategoriesFolder), ct) ?? TemplateValues.CONST_EMBEDDED_CATEGORIES_FOLDER,
+                    TypeScriptDDCategoriesValuesClassName = await fv.GetFieldValueAsync<string?>(nameof(app_result.TypeScriptDDCategoriesValuesClassName), ct) ?? TemplateValues.CONST_CATEGORIES_VALUES_CLASS,
+                    TypeScriptDDCategoriesValuesClassImport = await fv.GetFieldValueAsync<string?>(nameof(app_result.TypeScriptDDCategoriesValuesClassImport), ct) ?? TemplateValues.CONST_MICROM_LIB_PACKAGE,
+
                     SchemaConfiguration = new AppDBSchemaConfiguration
                     (
                         APPSchema: await fv.GetFieldValueAsync<string?>(nameof(AppDBSchemaConfiguration.APPSchema), ct) ?? "dbo",

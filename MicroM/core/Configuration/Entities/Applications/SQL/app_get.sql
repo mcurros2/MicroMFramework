@@ -40,6 +40,9 @@ select  [c_application_id] = rtrim(a.c_application_id)
 		, a.vc_datadictionary_schema
 		, a.b_enable_seed_test_data
 		, a.b_enable_developer_tools
+		, a.vc_ts_categories_folder
+		, a.vc_ts_dd_categories_values_class_name
+		, a.vc_ts_dd_categories_values_class_import
 		, [c_authenticationtype_id] = rtrim(b.c_categoryvalue_id)
 		, vc_assembly1 = (select x.vc_assemblypath from asm x where x.c_application_id=a.c_application_id and x.i_order=1)
 		, vc_assembly2 = (select x.vc_assemblypath from asm x where x.c_application_id=a.c_application_id and x.i_order=2)

@@ -21,6 +21,9 @@
         , @datadictionary_schema VarChar(50)
         , @enable_seed_test_data bit
         , @enable_developer_tools bit
+        , @ts_categories_folder varchar(255)
+        , @ts_categories_values_class_name varchar(255)
+        , @ts_categories_values_class_import varchar(255)
 		, @authenticationtype_id Char(20)
 		, @assembly1 VarChar(2048)
 		, @assembly2 VarChar(2048)
@@ -102,6 +105,9 @@ begin try
             , @datadictionary_schema
             , @enable_seed_test_data
             , @enable_developer_tools
+            , @ts_categories_folder
+            , @ts_categories_values_class_name
+            , @ts_categories_values_class_import
             , @now
             , @now
             , @webusr
@@ -228,6 +234,9 @@ begin try
             , vc_datadictionary_schema = @datadictionary_schema
             , b_enable_seed_test_data = @enable_seed_test_data
             , b_enable_developer_tools = @enable_developer_tools
+            , vc_ts_categories_folder = @ts_categories_folder
+            , vc_ts_dd_categories_values_class_name = @ts_categories_values_class_name
+            , vc_ts_dd_categories_values_class_import = @ts_categories_values_class_import
             , vc_webluuser = @webusr
             , vc_luuser = @login
             , dt_lu = @now
