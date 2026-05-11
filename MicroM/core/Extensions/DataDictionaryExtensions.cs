@@ -107,23 +107,28 @@ public static class DataDictionaryExtensions
     /// <summary>
     /// Add a category record to the categories and categories_values data dictionary table
     /// </summary>
-    public async static Task<Categories> AddCategory(this CategoryDefinition cac, IEntityClient ec, CancellationToken ct, string? schema_name = null)
+    public async static Task<Categories> AddCategory(this CategoryDefinition cad, IEntityClient ec, CancellationToken ct, string? schema_name = null)
     {
         bool should_close = !(ec.ConnectionState == System.Data.ConnectionState.Open);
 
         var cat = new Categories(ec, schema_name: schema_name);
-        cat.Def.c_category_id.Value = cac.CategoryID;
-        cat.Def.vc_description.Value = cac.Description;
+        cat.Def.c_category_id.Value = cad.CategoryID;
+        cat.Def.vc_description.Value = cad.Description;
 
         try
         {
             await cat.InsertData(ct);
             await cat.GetData(ct);
 
-            var cat_values = cac.GetPropertiesOrFields<CategoryValuesDefinition, CategoryDefinition>();
+            var cat_values = cad.GetPropertiesOrFields<CategoryValuesDefinition, CategoryDefinition>();
             foreach (var cav in cat_values)
             {
-                await cat.AddCategoryValue(ec, cav.CategoryValueID, cav.Description, ct, schema_name);
+                string cav_id = cav.CategoryValueID;
+                if (cad.NumericIDS)
+                {
+                    if (cav_id.StartsWith('_')) cav_id = cav_id[1..];
+                }
+                await cat.AddCategoryValue(ec, cav_id, cav.Description, ct, schema_name);
             }
 
         }
