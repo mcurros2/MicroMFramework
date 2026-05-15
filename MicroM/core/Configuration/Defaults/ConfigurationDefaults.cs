@@ -35,4 +35,6 @@ public class ConfigurationDefaults
     public static AppDBSchemaConfiguration SchemaConfiguration { get; set; } = new(APPSchema: "dbo", DDSchema: "dbo");
 
     public static string TestDataRootFolderName { get; set; } = "test_data";
+
+    public static string EntitiesDLLStoragePath { get; set; } = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), MicroMCommonID, "microm_entities_dlls");
 }

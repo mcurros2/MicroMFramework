@@ -5,6 +5,7 @@ using MicroM.DataDictionary.Configuration;
 using System.Collections.Concurrent;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Runtime.Loader;
 
 namespace MicroM.Extensions;
 
@@ -219,25 +220,27 @@ public static class ReflectionExtensions
     }
 
 
-    private static readonly ConcurrentDictionary<string, IOrderedEnumerable<MemberInfo>> _classMembers = new();
+    private static readonly ConcurrentDictionary<Type, IOrderedEnumerable<MemberInfo>> _classMembers = new();
 
     public static IOrderedEnumerable<MemberInfo> GetAndCacheInstanceMembers(this Type instance_type)
     {
-        string instance_typename = instance_type.ToString();
-        IOrderedEnumerable<MemberInfo> instance_members;
-        if (!_classMembers.TryGetValue(instance_typename, out IOrderedEnumerable<MemberInfo>? value))
+        // Do not cache collectible-load-context types (hot-reload/plugin assemblies),
+        // otherwise stale MemberInfo can be reused across generations and/or pin old context.
+        var alc = AssemblyLoadContext.GetLoadContext(instance_type.Assembly);
+        var isCollectible = alc?.IsCollectible == true;
+
+        if (isCollectible)
         {
-            // MMC: ordering by metadataToken is the trick to add the columns ordered as they are defined
-            // for backward compatibility we still depend that the _get stored procedure return the columns in the order that are defined
-            instance_members = instance_type.GetMembersInDeclarationOrder();
-            _classMembers.TryAdd(instance_typename, instance_members);
-        }
-        else
-        {
-            instance_members = value;
+            return instance_type.GetMembersInDeclarationOrder();
         }
 
-        return instance_members;
+        if (!_classMembers.TryGetValue(instance_type, out var members))
+        {
+            members = instance_type.GetMembersInDeclarationOrder();
+            _classMembers.TryAdd(instance_type, members);
+        }
+
+        return members;
     }
 
     public static string ToPropertiesValuesString(this object? obj, string[]? properties_filter = null)

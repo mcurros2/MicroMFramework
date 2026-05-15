@@ -45,7 +45,7 @@ public class QueueItem
 {
     public Guid TaskID { get; init; }
     public string Name { get; init; } = null!;
-    public Func<CancellationToken, Task<string>> WorkItem { get; init; } = null!;
+    public Func<CancellationToken, Task<string>>? WorkItem { get; set; } // changed
     public CancellationTokenSource? CTS { get; set; }
     public TaskStatusInfo TaskStatus { get; set; } = null!;
     public TimeSpan? RecurrenceInterval { get; set; }
@@ -178,70 +178,92 @@ public class BackgroundTaskQueue(
 
                     logger.LogInformation("Task {name} with ID {id} changed status to Running", item.Name, item.TaskID);
 
-                    var task = Task.Run(async () =>
+                    var workItem = item.WorkItem;
+                    if (workItem == null)
+                    {
+                        queuedItem.TaskStatus.Status = QueueTaskStatus.Failed;
+                        queuedItem.TaskStatus.StatusMessage = $"Task {item.TaskID} has no work item.";
+                        queuedItem.TaskStatus.Finished = DateTime.Now;
+
+                        Interlocked.Decrement(ref _runningCount);
+                        ReleaseRetainedReferences(item);
+                        MaxConcurrencyRelease();
+
+                        if (item.SingleInstance)
+                            _singleInstanceNames.TryRemove(item.Name, out _);
+
+                        continue;
+                    }
+
+                    _ = Task.Run(async () =>
                     {
                         try
                         {
-                            queuedItem.TaskStatus.StatusMessage = await item.WorkItem(item.CTS.Token);
+                            queuedItem.TaskStatus.StatusMessage = await workItem(item.CTS!.Token);
                             queuedItem.TaskStatus.Status = QueueTaskStatus.Completed;
                             queuedItem.TaskStatus.Finished = DateTime.Now;
+
                             var duration = queuedItem.TaskStatus.Finished - queuedItem.TaskStatus.Started;
                             var waited = queuedItem.TaskStatus.Started - queuedItem.TaskStatus.Queued;
+
                             logger.LogInformation("Task {name} with ID {id} changed status to Completed. Waited: {waited} Duration {duration}, result: {result}, recurrence: {recurrence}",
                                 item.Name, item.TaskID, waited?.ToHumanDuration(), duration?.ToHumanDuration(), item.TaskStatus.StatusMessage, item.RecurrenceInterval?.ToHumanDuration());
 
-                            Interlocked.Decrement(ref _runningCount);
-                            item.CTS?.Dispose();
-                            item.CTS = null;
-                            MaxConcurrencyRelease();
-
-                            if (item.SingleInstance)
-                                _singleInstanceNames.TryRemove(item.Name, out _);
-
-
+                            // recurrence first (uses local workItem, not item.WorkItem)
                             if (item.RecurrenceInterval.HasValue)
                             {
                                 try
                                 {
                                     await Task.Delay(item.RecurrenceInterval.Value, queueCT);
                                     logger.LogInformation("Task {name} re-queued by recurring interval every {recurrence}.", item.Name, item.RecurrenceInterval?.ToHumanDuration());
-                                    Enqueue(item.Name, item.WorkItem, item.SingleInstance, recurrenceInterval: item.RecurrenceInterval);
+                                    Enqueue(item.Name, workItem, item.SingleInstance, recurrenceInterval: item.RecurrenceInterval);
                                 }
                                 catch (OperationCanceledException)
                                 {
                                     logger.LogInformation("Task {name} recurrence skipped due to queue cancellation.", item.Name);
                                 }
                             }
+
+                            Interlocked.Decrement(ref _runningCount);
+                            ReleaseRetainedReferences(item);
+                            MaxConcurrencyRelease();
+
+                            if (item.SingleInstance)
+                                _singleInstanceNames.TryRemove(item.Name, out _);
+
+                            TrimOldestStatus();
                         }
                         catch (OperationCanceledException)
                         {
-                            Interlocked.Decrement(ref _runningCount);
-                            item.CTS?.Dispose();
-                            item.CTS = null;
-                            MaxConcurrencyRelease();
-
-                            if (item.SingleInstance)
-                                _singleInstanceNames.TryRemove(item.Name, out _);
-
                             queuedItem.TaskStatus.Status = QueueTaskStatus.Cancelled;
                             queuedItem.TaskStatus.StatusMessage = $"Task {item.TaskID} was cancelled.";
                             queuedItem.TaskStatus.Finished = DateTime.Now;
-                            logger.LogInformation("Task {name} with ID {id} was cancelled", item.Name, item.TaskID);
-                        }
-                        catch (Exception ex)
-                        {
+
                             Interlocked.Decrement(ref _runningCount);
-                            item.CTS?.Dispose();
-                            item.CTS = null;
+                            ReleaseRetainedReferences(item);
                             MaxConcurrencyRelease();
 
                             if (item.SingleInstance)
                                 _singleInstanceNames.TryRemove(item.Name, out _);
 
+                            logger.LogInformation("Task {name} with ID {id} was cancelled", item.Name, item.TaskID);
+                            TrimOldestStatus();
+                        }
+                        catch (Exception ex)
+                        {
                             queuedItem.TaskStatus.Status = QueueTaskStatus.Failed;
                             queuedItem.TaskStatus.StatusMessage = $"Task {item.TaskID} Error: {ex.Message}";
                             queuedItem.TaskStatus.Finished = DateTime.Now;
+
+                            Interlocked.Decrement(ref _runningCount);
+                            ReleaseRetainedReferences(item);
+                            MaxConcurrencyRelease();
+
+                            if (item.SingleInstance)
+                                _singleInstanceNames.TryRemove(item.Name, out _);
+
                             logger.LogError("ERROR: Task {name} with ID {id}\n. Error {}", item.Name, item.TaskID, ex.ToString());
+                            TrimOldestStatus();
                         }
                     }, queueCT);
 
@@ -334,6 +356,13 @@ public class BackgroundTaskQueue(
         {
             logger.LogInformation("Trimming old terminal status. Oldest key {key}", terminal);
         }
+    }
+
+    private void ReleaseRetainedReferences(QueueItem item)
+    {
+        item.CTS?.Dispose();
+        item.CTS = null;
+        item.WorkItem = null; // critical: release delegate closure
     }
 
     protected virtual void Dispose(bool disposing)

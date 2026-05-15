@@ -14,6 +14,8 @@ public class MicromEntitiesTypesDef : EntityDefinition
 
     public readonly ViewDefinition mty_brwStandard = new(nameof(vc_entity_name));
 
+    public readonly ProcedureDefinition mty_deleteAll = new();
+
 }
 
 public class MicromEntitiesTypes : Entity<MicromEntitiesTypesDef>
@@ -30,7 +32,7 @@ public class MicromEntitiesTypes : Entity<MicromEntitiesTypesDef>
 
             var etyp = new MicromEntitiesTypes(ec, null, app_schema);
 
-            await ec.ExecuteSQL($"DELETE {etyp.Def.FullTableName}", ct);
+            await etyp.ExecuteProcessDBStatus(etyp.Def.mty_deleteAll, ct);
 
             foreach (var entry in entities)
             {

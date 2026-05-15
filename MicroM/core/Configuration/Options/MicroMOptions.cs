@@ -28,6 +28,12 @@
 
         public bool EnableDropDatabases { get; set; } = false;
 
+        public string? EntitiesDLLStoragePath { get; set; } = null;
+
+        public bool? EnableHotReloadForEntitiesAssemblies { get; set; } = false;
+
+        public bool? UpdateDatabaseOnConfigurationRefresh { get; set; } = false;
+
     }
 
 }

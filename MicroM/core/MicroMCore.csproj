@@ -82,6 +82,7 @@
     <None Remove="Configuration\Entities\MicromApplicationAPIKeys\SQL\MicromApplicationApiKeys\mak_get.sql" />
     <None Remove="Configuration\Entities\MicromApplicationAPIKeys\SQL\MicromApplicationApiKeys\mak_getByAPIKey.sql" />
     <None Remove="Configuration\Entities\MicromApplicationAPIKeys\SQL\MicromApplicationApiKeys\mak_iupdate.sql" />
+    <None Remove="DataDictionary\Entities\MicromEntitiesTypes\SQL\mty_deleteAll.sql" />
     <None Remove="DataDictionary\Entities\MicromMenus\SQL\MicromMenusItems\mmi_update.sql" />
     <None Remove="DataDictionary\Entities\MicromRoutes\SQL\mro_deleteAllRoutes.sql" />
     <None Remove="DataDictionary\Entities\MicromRoutes\SQL\mro_iupdate.sql" />
@@ -134,6 +135,7 @@
     <EmbeddedResource Include="Configuration\Entities\MicromApplicationAPIKeys\SQL\MicromApplicationApiKeys\mak_get.sql" />
     <EmbeddedResource Include="Configuration\Entities\MicromApplicationAPIKeys\SQL\MicromApplicationApiKeys\mak_getByAPIKey.sql" />
     <EmbeddedResource Include="Configuration\Entities\MicromApplicationAPIKeys\SQL\MicromApplicationApiKeys\mak_iupdate.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\MicromEntitiesTypes\SQL\mty_deleteAll.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\MicromMenus\SQL\MicromMenusItemsAllowedRoutes\mir_drop.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\MicromMenus\SQL\MicromMenusItemsAllowedRoutes\mir_get.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\MicromMenus\SQL\MicromMenusItemsAllowedRoutes\mir_update.sql" />
