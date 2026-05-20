@@ -3,10 +3,7 @@ using MicroM.Data;
 using MicroM.DataDictionary.CategoriesDefinitions;
 using MicroM.Extensions;
 using MicroM.Web.Authentication;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using System.Collections.Concurrent;
 
 namespace MicroM.Web.Services;
 
@@ -62,45 +59,23 @@ public static class MicroMAPPConfigurationExtensions
         return adConfig;
     }
 
-    public static IServiceCollection AddMicroMApplicationServices(this IServiceCollection services, IMicroMAppConfiguration appConfig, IConfiguration configuration)
+    public static async Task<List<IMicroMApplicationServices>> CreateApplicationServices(this ApplicationOption app, IBackgroundTaskQueue queue, IMicroMAppConfiguration app_config, ILogger<MicroMAppConfigurationProvider> log)
     {
+        List<IMicroMApplicationServices> services = [];
 
-        // Block once at startup to ensure caches are ready
-        var refreshed = appConfig.RefreshConfiguration(null, CancellationToken.None)
-                                 .ConfigureAwait(false)
-                                 .GetAwaiter()
-                                 .GetResult();
-
-        if (!refreshed)
+        foreach (var assembly in app_config.GetAllAPPAssemblies(app.ApplicationID))
         {
-            // get logger and log the error, but do not throw as we want the application to start even if the configuration service is not available at the moment. It will be retried in the background.
-            var serviceProvider = services.BuildServiceProvider();
-            var logger = serviceProvider.GetService<ILogger<MicroMAppConfigurationProvider>>();
-            logger?.LogError("Failed to refresh application configuration at startup. The application will start with default configuration, but may not function correctly until the configuration service is available.");
-            return services;
-        }
-
-        var discovered = new ConcurrentDictionary<Type, byte>();
-
-        foreach (var appId in appConfig.GetAppIDs())
-        {
-            foreach (var assembly in appConfig.GetAllAPPAssemblies(appId))
+            foreach (var registrarType in assembly.GetInterfaceTypes<IMicroMApplicationServices>())
             {
-                foreach (var registrarType in assembly.GetInterfaceTypes<IMicroMApplicationServices>())
+                if (Activator.CreateInstance(registrarType) is IMicroMApplicationServices registrar)
                 {
-                    if (registrarType.IsAbstract || !discovered.TryAdd(registrarType, 0))
-                    {
-                        continue;
-                    }
-
-                    if (Activator.CreateInstance(registrarType) is IMicroMApplicationServices registrar)
-                    {
-                        registrar.RegisterServices(services, configuration);
-                    }
+                    services.Add(registrar);
                 }
             }
         }
 
         return services;
     }
+
+
 }

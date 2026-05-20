@@ -42,6 +42,7 @@ public class ApplicationsDef : EntityDefinition
 
     public readonly Column<bool?> b_enable_seed_test_data = new(nullable: true);
     public readonly Column<bool?> b_enable_developer_tools = new(nullable: true);
+    public readonly Column<bool?> b_enable_update_on_hotreload = new(nullable: true);
 
     public readonly Column<string?> vc_ts_categories_folder = Column<string?>.Text(nullable: true);
     public readonly Column<string?> vc_ts_dd_categories_values_class_name = Column<string?>.Text(nullable: true);
@@ -131,7 +132,7 @@ public class Applications : Entity<ApplicationsDef>
         if (Def.b_createdatabase.Value)
         {
             var app_cfg = GetAppConfig(api);
-            var result = await CreateAppDatabase(this, false, app_cfg, ct, options, server_claims, api);
+            var result = await CreateAppDatabase(this, drop_and_recreate: false, app_cfg, ct, options, server_claims, api);
             if (result.Failed) return result;
         }
 
@@ -180,7 +181,12 @@ public class Applications : Entity<ApplicationsDef>
             var result = await base.InsertData(ct, throw_dbstat_exception, options, server_claims, api);
             if (!result.Failed && api != null)
             {
-                await api.app_config.RefreshConfiguration(Def.c_application_id.Value.Trim(), ct);
+                var refreshed = await api.app_config.RefreshConfiguration(Def.c_application_id.Value.Trim(), ct);
+                if (!refreshed)
+                {
+                    return new() { Failed = true, Results = [new() { Status = DBStatusCodes.Error, Message = "Failed to refresh application configuration after insert." }] };
+                }
+
                 result = await PerformCreateOrDropDatabase(ct, options, server_claims, api);
                 if (!result.Failed)
                 {
@@ -234,11 +240,16 @@ public class Applications : Entity<ApplicationsDef>
 
             if (!result.Failed && api != null)
             {
-                await api.app_config.RefreshConfiguration(Def.c_application_id.Value.Trim(), ct);
+                var refreshed = await api.app_config.RefreshConfiguration(Def.c_application_id.Value, ct);
+                if (!refreshed)
+                {
+                    return new() { Failed = true, Results = [new() { Status = DBStatusCodes.Error, Message = "Failed to refresh application configuration after update." }] };
+                }
+
                 result = await PerformCreateOrDropDatabase(ct, options, server_claims, api);
                 if (!result.Failed)
                 {
-                    await api.securityService.RefreshGroupsSecurityRecords(Def.c_application_id.Value.Trim(), ct);
+                    await api.securityService.RefreshGroupsSecurityRecords(Def.c_application_id.Value, ct);
                 }
             }
             return result;
@@ -308,6 +319,7 @@ public class Applications : Entity<ApplicationsDef>
                     OIDCIdPSubjectPepper = await fv.GetFieldValueAsync<string?>(nameof(app_result.OIDCIdPSubjectPepper), ct),
                     EnableDeveloperTools = await fv.GetFieldValueAsync<bool?>(nameof(app_result.EnableDeveloperTools), ct) ?? false,
                     EnableSeedTestData = await fv.GetFieldValueAsync<bool?>(nameof(app_result.EnableSeedTestData), ct) ?? false,
+                    EnableUpdateOnHotReload = await fv.GetFieldValueAsync<bool?>(nameof(app_result.EnableUpdateOnHotReload), ct) ?? false,
                     TypeScriptCategoriesFolder = await fv.GetFieldValueAsync<string?>(nameof(app_result.TypeScriptCategoriesFolder), ct) ?? TemplateValues.CONST_EMBEDDED_CATEGORIES_FOLDER,
                     TypeScriptDDCategoriesValuesClassName = await fv.GetFieldValueAsync<string?>(nameof(app_result.TypeScriptDDCategoriesValuesClassName), ct) ?? TemplateValues.CONST_CATEGORIES_VALUES_CLASS,
                     TypeScriptDDCategoriesValuesClassImport = await fv.GetFieldValueAsync<string?>(nameof(app_result.TypeScriptDDCategoriesValuesClassImport), ct) ?? TemplateValues.CONST_MICROM_LIB_PACKAGE,

@@ -23,10 +23,7 @@ public record GetAllGroupsAllowedRoutesResult
 /// It will cache groups defined in <see cref="MicromUsersGroups"/> and their allowed menu items in <see cref="MicromMenus"/> and <see cref="MicromMenusItems"/>"
 /// Allowed routes are defined by <see cref="MicroM.DataDictionary.Configuration.MenuDefinition"/>
 /// </summary>
-/// <param name="app_config"></param>
-/// <param name="logger"></param>
-/// <param name="options"></param>
-public class SecurityService(IMicroMAppConfiguration app_config, ILogger<SecurityService> logger, IOptions<MicroMOptions> options) : ISecurityService, IHostedService
+public class SecurityService(IMicroMAppConfiguration app_config, ILogger<SecurityService> logger, IOptions<MicroMOptions> options, IMemoryEventsService bus) : ISecurityService, IHostedService
 {
 
     private ConcurrentDictionary<string, GroupSecurityRecord> _groupsSecurityRecords = new(StringComparer.OrdinalIgnoreCase);
@@ -160,16 +157,35 @@ public class SecurityService(IMicroMAppConfiguration app_config, ILogger<Securit
         return false;
     }
 
+    private Action<AppDatabaseUpdatedOnHotReload>? _onHotReloadUpdated;
+
     public async Task StartAsync(CancellationToken cancellationToken)
     {
+        _onHotReloadUpdated = e =>
+        {
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await RefreshGroupsSecurityRecords(e.ApplicationID, CancellationToken.None);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Failed to refresh security groups after hot reload for {app_id}", e.ApplicationID);
+                }
+            });
+        };
+
+        bus.Subscribe(_onHotReloadUpdated);
+
         foreach (var app_id in app_config.GetAppIDs())
         {
             await RefreshGroupsSecurityRecords(app_id, cancellationToken);
         }
     }
 
-    public Task StopAsync(CancellationToken cancellationToken)
+    public async Task StopAsync(CancellationToken cancellationToken)
     {
-        return Task.CompletedTask;
+        if (_onHotReloadUpdated != null) bus.Unsubscribe(_onHotReloadUpdated);
     }
 }

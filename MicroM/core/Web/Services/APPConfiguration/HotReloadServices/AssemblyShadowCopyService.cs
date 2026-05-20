@@ -29,19 +29,37 @@ public sealed class AssemblyShadowCopyService : IAssemblyShadowCopyService
 
             var sourcePath = Path.GetFullPath(request.source_assembly_path);
             var sourceFolder = Path.GetDirectoryName(sourcePath);
+
             if (!string.IsNullOrWhiteSpace(sourceFolder))
             {
                 watchFolders.Add(sourceFolder);
+
+                var destFolder = Path.Combine(_storageRoot, request.app_id, generationId);
+                Directory.CreateDirectory(destFolder);
+
+                var destPath = Path.Combine(destFolder, Path.GetFileName(sourcePath));
+                File.Copy(sourcePath, destPath, overwrite: true);
+
+                // copy test data if exists. Copy the complete folder and subfolders in ConfigurationDefaults.TestDataRootFolderName
+                var testDataFolder = Path.Combine(sourceFolder, ConfigurationDefaults.TestDataRootFolderName);
+                if (Directory.Exists(testDataFolder))
+                {
+                    var destTestDataFolder = Path.Combine(destFolder, ConfigurationDefaults.TestDataRootFolderName);
+                    Directory.CreateDirectory(destTestDataFolder);
+                    foreach (var file in Directory.EnumerateFiles(testDataFolder, "*.json", SearchOption.AllDirectories))
+                    {
+                        var relativePath = Path.GetRelativePath(testDataFolder, Path.GetDirectoryName(file) + "/");
+                        var destFileDir = Path.Combine(destTestDataFolder, relativePath);
+                        Directory.CreateDirectory(destFileDir);
+                        var destFile = Path.Combine(destFileDir, Path.GetFileName(file));
+                        File.Copy(file, destFile, overwrite: true);
+                    }
+                }
+
+                copied.Add(new AssemblyCopiedFile(request.app_id, sourcePath, destPath));
+                _log.LogInformation("Copied assembly {source} => {dest}", sourcePath, destPath);
             }
 
-            var destFolder = Path.Combine(_storageRoot, request.app_id, generationId);
-            Directory.CreateDirectory(destFolder);
-
-            var destPath = Path.Combine(destFolder, Path.GetFileName(sourcePath));
-            File.Copy(sourcePath, destPath, overwrite: true);
-
-            copied.Add(new AssemblyCopiedFile(request.app_id, sourcePath, destPath));
-            _log.LogInformation("Copied assembly {source} => {dest}", sourcePath, destPath);
         }
 
         return Task.FromResult(new AssemblyShadowCopyGeneration(generationId, copied, watchFolders));

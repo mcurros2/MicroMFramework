@@ -40,6 +40,7 @@ select  [c_application_id] = rtrim(a.c_application_id)
 		, a.vc_datadictionary_schema
 		, a.b_enable_seed_test_data
 		, a.b_enable_developer_tools
+		, a.b_enable_update_on_hotreload
 		, a.vc_ts_categories_folder
 		, a.vc_ts_dd_categories_values_class_name
 		, a.vc_ts_dd_categories_values_class_import

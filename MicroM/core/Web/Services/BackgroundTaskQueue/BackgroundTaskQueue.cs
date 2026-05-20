@@ -4,7 +4,6 @@ using static MicroM.Extensions.TimeExtensions;
 
 namespace MicroM.Web.Services;
 
-
 public enum QueueTaskStatus
 {
     NotFound,
@@ -28,17 +27,6 @@ public class QueueStatusInfo
 {
     public int QueuedCount { get; set; }
     public int RunningCount { get; set; }
-}
-
-public interface IBackgroundTaskQueue
-{
-    public Guid Enqueue(string TaskName, Func<CancellationToken, Task<string>> workItem, bool singleInstance, TimeSpan? recurrence = null);
-    public QueueStatusInfo GetQueueStatus();
-    public IDictionary<Guid, TaskStatusInfo> GetTasksStatus();
-    public TaskStatusInfo GetTaskStatus(Guid taskId);
-    public void CancelTask(Guid taskId);
-    public CancellationToken QueueCT { get; }
-    public void CancelAllTasks();
 }
 
 public class QueueItem
@@ -209,6 +197,16 @@ public class BackgroundTaskQueue(
                             logger.LogInformation("Task {name} with ID {id} changed status to Completed. Waited: {waited} Duration {duration}, result: {result}, recurrence: {recurrence}",
                                 item.Name, item.TaskID, waited?.ToHumanDuration(), duration?.ToHumanDuration(), item.TaskStatus.StatusMessage, item.RecurrenceInterval?.ToHumanDuration());
 
+
+                            Interlocked.Decrement(ref _runningCount);
+                            ReleaseRetainedReferences(item);
+                            MaxConcurrencyRelease();
+
+                            if (item.SingleInstance)
+                                _singleInstanceNames.TryRemove(item.Name, out _);
+
+                            TrimOldestStatus();
+
                             // recurrence first (uses local workItem, not item.WorkItem)
                             if (item.RecurrenceInterval.HasValue)
                             {
@@ -224,14 +222,6 @@ public class BackgroundTaskQueue(
                                 }
                             }
 
-                            Interlocked.Decrement(ref _runningCount);
-                            ReleaseRetainedReferences(item);
-                            MaxConcurrencyRelease();
-
-                            if (item.SingleInstance)
-                                _singleInstanceNames.TryRemove(item.Name, out _);
-
-                            TrimOldestStatus();
                         }
                         catch (OperationCanceledException)
                         {
@@ -358,7 +348,7 @@ public class BackgroundTaskQueue(
         }
     }
 
-    private void ReleaseRetainedReferences(QueueItem item)
+    private static void ReleaseRetainedReferences(QueueItem item)
     {
         item.CTS?.Dispose();
         item.CTS = null;

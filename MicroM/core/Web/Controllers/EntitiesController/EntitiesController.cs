@@ -316,7 +316,7 @@ public class EntitiesController() : ControllerBase, IEntitiesController
         }
     }
 
-    private async IAsyncEnumerable<object?[]> StreamRows(ChannelReader<object?[]> rows, [EnumeratorCancellation] CancellationToken ct)
+    private static async IAsyncEnumerable<object?[]> StreamRows(ChannelReader<object?[]> rows, [EnumeratorCancellation] CancellationToken ct)
     {
         await foreach (var row in rows.ReadAllAsync(ct))
         {

@@ -276,7 +276,7 @@ public class PublicController : ControllerBase, IPublicController
         }
     }
 
-    private async IAsyncEnumerable<object?[]> StreamRows(ChannelReader<object?[]> rows, [EnumeratorCancellation] CancellationToken ct)
+    private static async IAsyncEnumerable<object?[]> StreamRows(ChannelReader<object?[]> rows, [EnumeratorCancellation] CancellationToken ct)
     {
         await foreach (var row in rows.ReadAllAsync(ct))
         {

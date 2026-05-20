@@ -21,6 +21,7 @@
         , @datadictionary_schema VarChar(50)
         , @enable_seed_test_data bit
         , @enable_developer_tools bit
+        , @enable_update_on_hotreload bit
         , @ts_categories_folder varchar(255)
         , @ts_categories_values_class_name varchar(255)
         , @ts_categories_values_class_import varchar(255)
@@ -51,6 +52,7 @@ set @apiurl = isnull(@apiurl, '')
 
 set @enable_seed_test_data = isnull(@enable_seed_test_data, 0)
 set @enable_developer_tools = isnull(@enable_developer_tools, 0)
+set @enable_update_on_hotreload = isnull(@enable_update_on_hotreload, 0)
 
 create table [#TempAppUrls] (c_application_url_id char(20) null, vc_application_url varchar(max))
 
@@ -105,6 +107,7 @@ begin try
             , @datadictionary_schema
             , @enable_seed_test_data
             , @enable_developer_tools
+            , @enable_update_on_hotreload
             , @ts_categories_folder
             , @ts_categories_values_class_name
             , @ts_categories_values_class_import
@@ -234,6 +237,7 @@ begin try
             , vc_datadictionary_schema = @datadictionary_schema
             , b_enable_seed_test_data = @enable_seed_test_data
             , b_enable_developer_tools = @enable_developer_tools
+            , b_enable_update_on_hotreload = @enable_update_on_hotreload
             , vc_ts_categories_folder = @ts_categories_folder
             , vc_ts_dd_categories_values_class_name = @ts_categories_values_class_name
             , vc_ts_dd_categories_values_class_import = @ts_categories_values_class_import

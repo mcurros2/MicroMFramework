@@ -10,9 +10,7 @@ public sealed record EntityTypeRecord
 {
     public required string EntityName { get; set; }
     public required string Type { get; set; }
-
 }
-
 
 public interface IMicroMAppConfiguration
 {
@@ -35,5 +33,9 @@ public interface IMicroMAppConfiguration
     public string? GetTenantPath(HttpContext context);
 
     public bool IsDDType(string type_name);
+
+    public Task StartApplicationServices();
+
+    public Task StopApplicationServices();
 
 }

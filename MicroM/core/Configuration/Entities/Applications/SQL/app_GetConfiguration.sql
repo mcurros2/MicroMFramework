@@ -26,6 +26,7 @@ select	ApplicationID = rtrim(a.c_application_id)
 		, DDSchema = a.vc_datadictionary_schema
 		, EnableSeedTestData = a.b_enable_seed_test_data
 		, EnableDeveloperTools = a.b_enable_developer_tools
+		, EnableUpdateOnHotReload = a.b_enable_update_on_hotreload
 		, TypeScriptCategoriesFolder = a.vc_ts_categories_folder
 		, TypeScriptDDCategoriesValuesClassName = a.vc_ts_dd_categories_values_class_name
 		, TypeScriptDDCategoriesValuesClassImport = a.vc_ts_dd_categories_values_class_import

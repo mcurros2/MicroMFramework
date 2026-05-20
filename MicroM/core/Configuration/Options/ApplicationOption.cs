@@ -63,6 +63,8 @@ public class ApplicationOption
 
     public bool EnableSeedTestData { get; set; } = false;
 
+    public bool EnableUpdateOnHotReload { get; set; } = false;
+
     // Developer tools configuration
     public string TypeScriptCategoriesFolder { get; set; } = "../Categories";
     public string TypeScriptDDCategoriesValuesClassName { get; set; } = "CategoriesValues";

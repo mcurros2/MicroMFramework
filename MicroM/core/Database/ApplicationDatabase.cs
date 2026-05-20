@@ -6,7 +6,7 @@ using MicroM.DataDictionary.Entities;
 using MicroM.Extensions;
 using MicroM.Web.Authentication;
 using MicroM.Web.Services;
-using System.Reflection;
+using Microsoft.Extensions.Logging;
 using static MicroM.Database.DatabaseManagement;
 using static MicroM.Validators.Expressions;
 
@@ -14,21 +14,54 @@ namespace MicroM.Database;
 
 public class ApplicationDatabase
 {
-    private static async Task InitializeDatabase(IEntityClient admin_dbc, Applications app, ApplicationOption app_config, string grant_user, IWebAPIServices api, bool seed_test_data, CancellationToken ct)
+    private static string? GetConfigSqlUser(IWebAPIServices api)
+    {
+        var controlPanelCfg = api.app_config.GetAppConfiguration(ConfigurationDefaults.ControlPanelAppID);
+        return controlPanelCfg?.SQLUser;
+    }
+
+    private static DBStatusResult ConfigUserMissingError()
+    {
+        return new()
+        {
+            Failed = true,
+            Results = [new() { Status = DBStatusCodes.Error, Message = "Configuration SQL user was not found in control panel configuration." }]
+        };
+    }
+
+    private static async Task<DBStatusResult?> EnsureConfigUserDbOwnerOnAppDb(
+        IEntityClient admin_dbc,
+        string appDbName,
+        IWebAPIServices api,
+        CancellationToken ct)
+    {
+        var configSqlUser = GetConfigSqlUser(api);
+        if (string.IsNullOrWhiteSpace(configSqlUser))
+        {
+            return ConfigUserMissingError();
+        }
+
+        await EnsureDbOwnerMembership(admin_dbc, appDbName, configSqlUser, ct);
+        return null;
+    }
+
+    private static async Task InitializeApplication(
+        IEntityClient ec, ApplicationOption app_config, string grant_user, bool seed_test_data, IMicroMAppConfiguration config,
+        ILogger log,
+        CancellationToken ct)
     {
         // MMC: Clone here is used to create a connection to the same server with the app database name
-        using var app_ec = admin_dbc.Clone(new_db: app.Def.vc_database.Value);
+        using var app_ec = ec.Clone(new_db: app_config.SQLDB);
 
         try
         {
             await app_ec.Connect(ct);
 
-            List<string?> assemblies = [app.Def.vc_assembly1.Value, app.Def.vc_assembly2.Value, app.Def.vc_assembly3.Value, app.Def.vc_assembly4.Value, app.Def.vc_assembly5.Value];
+            var assemblies = config.GetAllAPPAssemblies(app_config.ApplicationID);
 
             foreach (var assembly in assemblies)
             {
-                if (string.IsNullOrEmpty(assembly)) continue;
-                var inits = Assembly.LoadFrom(assembly).GetInterfaceTypes<IDatabaseSchema>();
+                var inits = assembly.GetInterfaceTypes<IDatabaseSchema>();
 
                 foreach (var init_type in inits)
                 {
@@ -57,6 +90,7 @@ public class ApplicationDatabase
 
                                     if (app_config.EnableSeedTestData && seed_test_data)
                                     {
+                                        log.LogInformation("Seeding test data for app {AppID} using assembly {Assembly}", app_config.ApplicationID, assembly.FullName);
                                         await instance.SeedTestData(app_ec, app_config.SchemaConfiguration, ct);
                                     }
                                 }
@@ -90,6 +124,29 @@ public class ApplicationDatabase
         }
     }
 
+    private static async Task InitializeDatabase(IEntityClient admin_dbc, Applications app, ApplicationOption app_config, string grant_user, IWebAPIServices api, bool seed_test_data, ILogger log, CancellationToken ct)
+    {
+        // MMC: Clone here is used to create a connection to the same server with the app database name
+        using var app_ec = admin_dbc.Clone(new_db: app.Def.vc_database.Value);
+
+        try
+        {
+            await app_ec.Connect(ct);
+
+            var assemblies = api.app_config.GetAllAPPAssemblies(app.Def.c_application_id.Value);
+            bool hasAssemblies = new string?[] { app.Def.vc_assembly1.Value, app.Def.vc_assembly2.Value, app.Def.vc_assembly3.Value, app.Def.vc_assembly4.Value, app.Def.vc_assembly5.Value }.Any(s => !string.IsNullOrEmpty(s));
+            if (assemblies.Count == 0 && hasAssemblies)
+            {
+                throw new InvalidOperationException($"No runtime assemblies loaded for app '{app.Def.c_application_id.Value}' and there are assemblies defined.");
+            }
+
+            await InitializeApplication(app_ec, app_config, grant_user, seed_test_data, api.app_config, log, ct);
+        }
+        finally
+        {
+            await app_ec.Disconnect();
+        }
+    }
 
     public static async Task GetAppDatabaseStatus(Applications app, CancellationToken ct, MicroMOptions? options = null, Dictionary<string, object>? server_claims = null, IWebAPIServices? api = null)
     {
@@ -111,11 +168,12 @@ public class ApplicationDatabase
         app.Def.b_serverup.Value = await admin_dbc.Connect(ct);
         if (app.Def.b_serverup.Value)
         {
+            app.Def.b_appdbexists.Value = await DatabaseExists(admin_dbc, app.Def.vc_database.Value, ct);
+
             // Verify we have admin rights
             app.Def.b_adminuserhasrights.Value = await LoggedInUserHasAdminRights(admin_dbc, ct);
             if (app.Def.b_adminuserhasrights.Value)
             {
-                app.Def.b_appdbexists.Value = await DatabaseExists(admin_dbc, app.Def.vc_database.Value, ct);
                 app.Def.b_appuserexists.Value = await UserExists(admin_dbc, app.Def.vc_user.Value, ct);
             }
         }
@@ -223,8 +281,11 @@ public class ApplicationDatabase
             }
             await CreateLoginAndDatabaseUser(admin_dbc, app.Def.vc_database.Value, app.Def.vc_user.Value, app.Def.vc_password.Value ?? "", ct);
 
+            var configGrantResult = await EnsureConfigUserDbOwnerOnAppDb(admin_dbc, app.Def.vc_database.Value, api, ct);
+            if (configGrantResult != null) return configGrantResult;
+
             // Create tables and procs
-            await InitializeDatabase(admin_dbc, app, app_config, app.Def.vc_user.Value, api, seed_test_data: true, ct);
+            await InitializeDatabase(admin_dbc, app, app_config, app.Def.vc_user.Value, api, seed_test_data: app_config.EnableSeedTestData, api.log, ct);
 
             // Create a MicroM Admin User
             if (app.Def.c_authenticationtype_id.Value.Equals(nameof(AuthenticationTypes.MicroMAuthentication), StringComparison.OrdinalIgnoreCase)
@@ -284,8 +345,11 @@ public class ApplicationDatabase
 
         }
 
+        var configGrantResult = await EnsureConfigUserDbOwnerOnAppDb(admin_dbc, app.Def.vc_database.Value, api, ct);
+        if (configGrantResult != null) return configGrantResult;
+
         // Create tables and procs
-        await InitializeDatabase(admin_dbc, app, app_config, app.Def.vc_user.Value, api, seed_test_data: false, ct);
+        await InitializeDatabase(admin_dbc, app, app_config, app.Def.vc_user.Value, api, seed_test_data: app_config.EnableSeedTestData, api.log, ct);
 
         // try to recreate user if for any reason has been deleted
         try
@@ -320,4 +384,66 @@ public class ApplicationDatabase
         return new() { Results = [new() { Status = DBStatusCodes.OK }] };
     }
 
+    public static async Task<DBStatusResult> UpdateAppDatabaseOnHotReload(ApplicationOption app_config, IMicroMAppConfiguration config, ILogger log, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(app_config);
+
+        var controlPanelCfg = config.GetAppConfiguration(ConfigurationDefaults.ControlPanelAppID);
+        if (controlPanelCfg == null || string.IsNullOrWhiteSpace(controlPanelCfg.SQLUser) || string.IsNullOrWhiteSpace(controlPanelCfg.SQLPassword))
+        {
+            return new()
+            {
+                Failed = true,
+                Results = [new() { Status = DBStatusCodes.Error, Message = "Configuration SQL user credentials were not found." }]
+            };
+        }
+
+        if (string.IsNullOrWhiteSpace(app_config.SQLServer) || string.IsNullOrWhiteSpace(app_config.SQLDB))
+        {
+            return new()
+            {
+                Failed = true,
+                Results = [new() { Status = DBStatusCodes.Error, Message = $"Invalid SQL configuration for app '{app_config.ApplicationID}'." }]
+            };
+        }
+
+        using var config_dbc = new DatabaseClient(app_config.SQLServer, app_config.SQLDB, controlPanelCfg.SQLUser, controlPanelCfg.SQLPassword, logger: log);
+
+        if (await config_dbc.Connect(ct, throw_exception: false) == false)
+        {
+            return new()
+            {
+                Failed = true,
+                Results = [new() { Status = DBStatusCodes.Error, Message = $"Can't connect to APP DB '{app_config.SQLDB}' in server '{app_config.SQLServer}' using configuration SQL user." }]
+            };
+        }
+
+        try
+        {
+            if (!await DatabaseExists(config_dbc, app_config.SQLDB, ct))
+            {
+                return new()
+                {
+                    Failed = true,
+                    Results = [new() { Status = DBStatusCodes.Error, Message = $"APP Database '{app_config.SQLDB}' does not exist." }]
+                };
+            }
+
+            await InitializeApplication(config_dbc, app_config, app_config.SQLUser, app_config.EnableSeedTestData, config, log, ct);
+
+            return new() { Results = [new() { Status = DBStatusCodes.OK }] };
+        }
+        catch (Exception ex)
+        {
+            return new()
+            {
+                Failed = true,
+                Results = [new() { Status = DBStatusCodes.Error, Message = $"Hot reload update failed for app '{app_config.ApplicationID}'. {ex.Message}" }]
+            };
+        }
+        finally
+        {
+            await config_dbc.Disconnect();
+        }
+    }
 }

@@ -1,9 +1,10 @@
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.Logging;
 
 namespace MicroM.Web.Services;
 
 public interface IMicroMApplicationServices
 {
-    void RegisterServices(IServiceCollection services, IConfiguration configuration);
+    public Task InitiateStartupServices(IBackgroundTaskQueue queue, IMicroMAppConfiguration app_config, ILogger<MicroMAppConfigurationProvider> log);
+
+    public Task StopStartupServices(IBackgroundTaskQueue queue, IMicroMAppConfiguration app_config, ILogger<MicroMAppConfigurationProvider> log);
 }

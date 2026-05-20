@@ -74,9 +74,9 @@ public class Column<T> : ColumnBase
     }
 
     public static Column<T> FK(string name = "", SqlDbType? sql_type = null, int size = 20, byte precision = 0, byte scale = 0, T value = default!, bool fake = false
-        , bool? nullable = null, string? override_with = null, bool api_readonly = false)
+        , bool? nullable = null, string? override_with = null, ColumnFlags column_flags = ColumnFlags.Insert | ColumnFlags.Update | ColumnFlags.FK, bool api_readonly = false)
     {
-        ColumnFlags flags = ColumnFlags.Insert | ColumnFlags.Update | ColumnFlags.FK;
+        ColumnFlags flags = column_flags;
         if (fake) flags |= ColumnFlags.Fake;
         if (api_readonly) flags |= ColumnFlags.APIReadOnly;
 
@@ -109,14 +109,14 @@ public class Column<T> : ColumnBase
         return new Column<T>(name, value: value, sql_type: SqlDbType.VarChar, size: size, column_flags: column_flags, nullable: nullable, isArray: isArray, encrypted: encrypted, override_with: override_with);
     }
 
-    public static Column<T> Char(T value = default!, int size = 255, bool fake = false, bool? nullable = null, bool isArray = false, string? override_with = null, string name = "")
+    public static Column<T> Char(T value = default!, int size = 255, bool fake = false, bool? nullable = null, bool isArray = false, string? override_with = null, ColumnFlags column_flags = ColumnFlags.Insert | ColumnFlags.Update, string name = "")
     {
         if (typeof(T) != typeof(string) && typeof(T) != typeof(string[]) && Nullable.GetUnderlyingType(typeof(T)) != typeof(string[]))
         {
             throw new ArgumentException($"Invalid type {typeof(T)}. Only string, string[], or nullable string[] are allowed.");
         }
 
-        ColumnFlags flags = ColumnFlags.Insert | ColumnFlags.Update;
+        ColumnFlags flags = column_flags;
         if (fake) flags |= ColumnFlags.Fake;
         return new Column<T>(name, value: value, sql_type: SqlDbType.Char, size: size, column_flags: flags, nullable: nullable, isArray: isArray, override_with: override_with);
     }
