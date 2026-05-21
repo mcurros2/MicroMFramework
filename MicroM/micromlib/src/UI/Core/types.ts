@@ -27,3 +27,12 @@ export type ActionIconVariant = 'transparent' | 'subtle' | 'default' | 'outline'
 export type ButtonVariant = 'gradient' | 'subtle' | 'default' | 'outline' | 'filled' | 'light' | 'white';
 
 export type latLng = { lat: number, lng: number };
+
+export const MicroMWidthSizes = {
+    xs: "10rem",
+    sm: "20rem",
+    md: "30rem",
+    lg: "40rem",
+    xl: "50rem",
+    auto: 'auto',
+}

@@ -4,6 +4,7 @@ import { Value } from "../../client";
 import { EntityColumn, EntityColumnFlags } from "../../Entity";
 import { ValidatorConfiguration } from "../../Validation";
 import { UseEntityFormReturnType, useFieldConfiguration } from "../Form";
+import { MicroMWidthSizes } from "./types";
 
 
 export interface NumberFieldProps extends Omit<NumberInputProps, 'autoFocus'> {
@@ -14,7 +15,9 @@ export interface NumberFieldProps extends Omit<NumberInputProps, 'autoFocus'> {
     validate?: ValidatorConfiguration,
     requiredMessage?: ReactNode,
     validationContainer?: React.ComponentType<{ children: ReactNode }>
-    autoFocus?: 'autoFocusOnAdd' | 'autoFocusOnEdit' | boolean
+    autoFocus?: 'autoFocusOnAdd' | 'autoFocusOnEdit' | boolean,
+    maxWidth?: keyof typeof MicroMWidthSizes,
+    minWidth?: keyof typeof MicroMWidthSizes,
 }
 
 const defaultProps: Partial<NumberFieldProps> = {
@@ -27,7 +30,7 @@ export const NumberField = forwardRef<HTMLInputElement, NumberFieldProps>(functi
 
     const {
         column, entityForm, validate, validationContainer, required, requiredMessage, readOnly, label,
-        placeholder, description, withAsterisk, autoFocus, ...others
+        placeholder, description, withAsterisk, autoFocus, maxWidth, minWidth, maw, miw, ...others
     } = useComponentDefaultProps('NumberField', defaultProps, props);
 
     useFieldConfiguration({ entityForm, column, validationContainer, validate, required, requiredMessage, readOnly });
@@ -37,6 +40,9 @@ export const NumberField = forwardRef<HTMLInputElement, NumberFieldProps>(functi
     const { formMode, status } = entityForm;
     const add_autofocus = formMode === 'add' ? true : undefined;
     const edit_autofocus = status.loading === false && formMode !== 'add' ? true : undefined;
+    
+    const resolved_maxWidth = maxWidth !== 'auto' && maxWidth !== undefined ? MicroMWidthSizes[maxWidth!] : undefined;
+    const resolved_minWidth = minWidth !== 'auto' && minWidth !== undefined ? MicroMWidthSizes[minWidth!] : undefined;
 
     return (
         <NumberInput
@@ -49,9 +55,11 @@ export const NumberField = forwardRef<HTMLInputElement, NumberFieldProps>(functi
             data-autofocus={autoFocus === 'autoFocusOnAdd' ? add_autofocus : autoFocus === 'autoFocusOnEdit' ? edit_autofocus : autoFocus}
             autoFocus={autoFocus === 'autoFocusOnAdd' ? add_autofocus : autoFocus === 'autoFocusOnEdit' ? edit_autofocus : autoFocus}
             precision={column.scale}
+            maw={maw ?? resolved_maxWidth}
+            miw={miw ?? resolved_minWidth}
             {...entityForm.form.getInputProps(column.name)}
 
-            // FIX for maintine NumberInput not supporting null
+            // FIX for mantine NumberInput not supporting null
             value={entityForm.form.values[column.name] === null ? '' : entityForm.form.values[column.name] as number}
 
             ref={ref}

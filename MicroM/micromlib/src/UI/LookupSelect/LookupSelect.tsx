@@ -3,7 +3,7 @@ import { IconSelector } from "@tabler/icons-react"
 import { forwardRef, ReactNode, useEffect, useState } from "react"
 import { DataResult, DBStatusResult, OperationStatus, Value, ValuesObject } from "../../client"
 import { Entity, EntityColumn, EntityColumnFlags, EntityDefinition } from "../../Entity"
-import { ActionIconVariant, ButtonVariant } from "../Core"
+import { ActionIconVariant, ButtonVariant, MicroMWidthSizes } from "../Core"
 import { UseEntityFormReturnType, useFieldConfiguration } from "../Form"
 import { useLookupSelect } from "./useLookupSelect"
 
@@ -29,6 +29,8 @@ export interface LookupSelectOptions {
     zIndex?: number,
     editButtonVariant?: ButtonVariant,
     breadCrumbs?: ReactNode,
+    maxWidth?: keyof typeof MicroMWidthSizes,
+    minWidth?: keyof typeof MicroMWidthSizes,
 }
 
 export const LookupSelectDefaultProps: Partial<LookupSelectOptions> = {
@@ -41,6 +43,7 @@ export const LookupSelectDefaultProps: Partial<LookupSelectOptions> = {
     zIndex: 100000,
     editButtonVariant: "light",
     editIconVariant: "light",
+    minWidth: "sm",
     selectProps: {
         searchable: true,
         maxDropdownHeight: 260,
@@ -54,7 +57,7 @@ export const LookupSelect = forwardRef<HTMLInputElement, LookupSelectOptions>(fu
         entityForm, entity, lookupDefName, enableEdit,
         editIcon, editIconVariant, selectProps, maxItems,
         requiredLabel, editLabel, includeKeyInDescription,
-        withinPortal, zIndex, breadCrumbs
+        withinPortal, zIndex, breadCrumbs, maxWidth, minWidth
     } = useComponentDefaultProps('LookupSelect', LookupSelectDefaultProps, props);
 
     const theme = useMantineTheme();
@@ -69,6 +72,8 @@ export const LookupSelect = forwardRef<HTMLInputElement, LookupSelectOptions>(fu
 
     const resolvedSelectProps: CustomSelectProps = {
         ...(selectProps ?? {}),
+        miw: selectProps?.miw ?? (minWidth !== 'auto' && minWidth !== undefined) ? MicroMWidthSizes[minWidth!] : undefined,
+        maw: selectProps?.maw ?? (maxWidth !== 'auto' && maxWidth !== undefined) ? MicroMWidthSizes[maxWidth!] : undefined,
         label: selectProps?.label ?? column.prompt,
         description: showDescription ? (selectProps?.description ?? column.description) : '',
     };
