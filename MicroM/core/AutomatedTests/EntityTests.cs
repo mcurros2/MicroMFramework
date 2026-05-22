@@ -24,13 +24,15 @@ public static class EntityTests
         await FullTest(entity, test_data_folder, seed_test_data, ct);
     }
 
-    public static async Task FullTest(EntityBase entity, string test_data_folder, bool seed_test_data, CancellationToken ct)
+    public static async Task FullTest(EntityBase entity, string test_data_folder, bool seed_test_data, CancellationToken ct, Action<string>? log = null)
     {
         var test_data_file = entity.GetTestDataFilePath(test_data_folder);
         var testData = await entity.LoadJsonEntityTestData(test_data_file);
 
         var pk_cols = entity.Def.Columns.GetWithFlags(ColumnFlags.PK);
         var pk_cols_names_array = pk_cols.GetColNamesArray();
+
+        log?.Invoke($"*** {entity.Def.Name}: Running tests with test data from file {test_data_file}.");
 
         ColumnBase? change_column = null;
         foreach (var column in entity.Def.Columns.Values)
@@ -42,6 +44,8 @@ public static class EntityTests
             }
         }
 
+        log?.Invoke($"{entity.Def.Name}: Change column used {change_column?.Name}.");
+
         foreach (var record in testData.records)
         {
             if (ct.IsCancellationRequested) break;
@@ -51,6 +55,8 @@ public static class EntityTests
             // get a high precision DateTime value to check how many milliseconds are needed to ensure that dt_lu value will be different after update, this can change when moving to DateTime2 with higher precision
             var time_at_insert = DateTime.Now;
 
+            log?.Invoke($"{entity.Def.Name}: Inserting data for record with PK values {testData.ToRecordValuesString(record, pk_cols_names_array)} at time {time_at_insert:O}.");
+
             await entity.InsertData(ct, throw_dbstat_exception: true);
 
             var get_result = await entity.GetData(ct);
@@ -59,8 +65,12 @@ public static class EntityTests
                 throw new Exception($"INSERT: Can't read record after insertion. ID {testData.ToRecordValuesString(record, pk_cols_names_array)}");
             }
 
+            log?.Invoke($"{entity.Def.Name}: Data inserted lu {entity.Def.dt_lu.Value:O}.");
+
             // save dt_lu value for later comparison after update
             var dt_lu_value = entity.Def.dt_lu.Value;
+
+            log?.Invoke($"{entity.Def.Name}: Looking up data for record with PK values {testData.ToRecordValuesString(record, pk_cols_names_array)}.");
 
             var lookup_result = await entity.LookupData(ct);
             bool lookup_success = !lookup_result.IsNullOrEmpty();
@@ -79,6 +89,8 @@ public static class EntityTests
                 int delay_ms = 4 - (int)elapsed_ms;
                 await Task.Delay(delay_ms, ct);
             }
+
+            log?.Invoke($"{entity.Def.Name}: Updating data for record with PK values {testData.ToRecordValuesString(record, pk_cols_names_array)} at time {DateTime.Now:O}, elapsed ms since insert {elapsed_ms}.");
 
             await entity.UpdateData(ct, throw_dbstat_exception: true);
 
@@ -102,6 +114,8 @@ public static class EntityTests
                 throw new Exception($"UPDATE: The column dt_lu was not updated after the update. ID in data {testData.ToRecordValuesString(record, pk_cols_names_array)}. Time elapsed between insert and update: {elapsed_ms} ms. Insert LU: {dt_lu_value:O}, before update: {entity.Def.dt_lu.Value:O}");
             }
 
+            log?.Invoke($"{entity.Def.Name}: Deleting data for record with PK values {testData.ToRecordValuesString(record, pk_cols_names_array)} at time {DateTime.Now:O}.");
+
             await entity.DeleteData(ct, throw_dbstat_exception: true);
 
             var delete_result = await entity.GetData(ct);
@@ -112,6 +126,7 @@ public static class EntityTests
 
             if (seed_test_data)
             {
+                log?.Invoke($"{entity.Def.Name}: Re-inserting data for record with PK values {testData.ToRecordValuesString(record, pk_cols_names_array)} for seeding test data.");
                 // re-insert the record for seeding test data
                 await entity.InsertData(ct, throw_dbstat_exception: true);
             }
@@ -120,8 +135,7 @@ public static class EntityTests
 
     public static async Task RunTestsOnEntities(
         this List<IEntityType> entities, string server, string database, string user, string password, IMicroMEncryption enc, string schema_name, string test_data_folder,
-        bool seed_test_data,
-        CancellationToken ct)
+        bool seed_test_data, CancellationToken ct, Action<string>? log = null)
     {
         using var ec = new DatabaseClient(server, database, user, password);
         await ec.Connect(ct);
@@ -134,7 +148,7 @@ public static class EntityTests
 
             entity.Init(ec, enc, schema_name);
 
-            await FullTest(entity, test_data_folder, seed_test_data, ct);
+            await FullTest(entity, test_data_folder, seed_test_data, ct, log);
         }
     }
 
