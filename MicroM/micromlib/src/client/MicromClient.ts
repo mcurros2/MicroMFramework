@@ -940,9 +940,16 @@ export class MicroMClient {
                 case "delete": return (endpoint.AllowedAccess & 1 << 2) !== 0;
                 case "lookup": return (endpoint.AllowedAccess & 1 << 4) !== 0;
                 case "action": return (endpoint.AllowedActions && action_name && endpoint.AllowedActions.has(action_name)) || false;
+
                 case "view": return (endpoint.AllowedProcs && proc_name && endpoint.AllowedProcs.has(proc_name)) || false;
+                case "viewstream": return (endpoint.AllowedProcs && proc_name && endpoint.AllowedProcs.has(proc_name)) || false;
+                case "viewtoexcel": return (endpoint.AllowedProcs && proc_name && endpoint.AllowedProcs.has(proc_name)) || false;
+
                 case "proc": return (endpoint.AllowedProcs && proc_name && endpoint.AllowedProcs.has(proc_name)) || false;
                 case "process": return (endpoint.AllowedProcs && proc_name && endpoint.AllowedProcs.has(proc_name)) || false;
+                case "procstream": return (endpoint.AllowedProcs && proc_name && endpoint.AllowedProcs.has(proc_name)) || false;
+                case "proctoexcel": return (endpoint.AllowedProcs && proc_name && endpoint.AllowedProcs.has(proc_name)) || false;
+
                 default: return false;
             }
         }

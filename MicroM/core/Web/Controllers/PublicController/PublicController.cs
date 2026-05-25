@@ -284,8 +284,10 @@ public class PublicController : ControllerBase, IPublicController
         }
     }
 
-    [Authorize(policy: nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy))]
+    [AllowAnonymous]
+    [PublicEndpoint]
     [HttpPost("{app_id}/public/{entityName}/viewstream/{viewName}")]
+    [EnableRateLimiting(MicroMServicesConstants.RateLimitingPublicGetPolicy)]
     public async IAsyncEnumerable<object> PublicViewStream([FromServices] IAuthenticationProvider auth, [FromServices] IMicroMAppConfiguration app_config, [FromServices] IEntitiesService ents, string app_id, string entityName, string viewName, [FromBody] DataWebAPIRequest parms, [EnumeratorCancellation] CancellationToken ct)
     {
         var app = auth.GetAppAndUnencryptClaims(app_config, app_id, parms, User.Claims.ToClaimsDictionary());
@@ -315,8 +317,10 @@ public class PublicController : ControllerBase, IPublicController
         await producerTask;
     }
 
-    [Authorize(policy: nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy))]
+    [AllowAnonymous]
+    [PublicEndpoint]
     [HttpPost("{app_id}/public/{entityName}/procstream/{procName}")]
+    [EnableRateLimiting(MicroMServicesConstants.RateLimitingPublicGetPolicy)]
     public async IAsyncEnumerable<object> PublicProcStream([FromServices] IAuthenticationProvider auth, [FromServices] IMicroMAppConfiguration app_config, [FromServices] IEntitiesService ents, string app_id, string entityName, string procName, [FromBody] DataWebAPIRequest parms, [EnumeratorCancellation] CancellationToken ct)
     {
         var app = auth.GetAppAndUnencryptClaims(app_config, app_id, parms, User.Claims.ToClaimsDictionary());

@@ -46,6 +46,13 @@ public static class EntityTests
 
         log?.Invoke($"{entity.Def.Name}: Change column used {change_column?.Name}.");
 
+        if (entity.Def.AutonumColumn != null)
+        {
+            log?.Invoke($"{entity.Def.Name}: Autonum column {entity.Def.AutonumColumn.Name} will preserve first record.");
+
+        }
+
+        bool first_record = true;
         foreach (var record in testData.records)
         {
             if (ct.IsCancellationRequested) break;
@@ -116,12 +123,20 @@ public static class EntityTests
 
             log?.Invoke($"{entity.Def.Name}: Deleting data for record with PK values {testData.ToRecordValuesString(record, pk_cols_names_array)} at time {DateTime.Now:O}.");
 
-            await entity.DeleteData(ct, throw_dbstat_exception: true);
-
-            var delete_result = await entity.GetData(ct);
-            if (delete_result)
+            if (entity.Def.AutonumColumn != null && first_record)
             {
-                throw new Exception($"DELETE: record still exists after deletion. ID in data {testData.ToRecordValuesString(record, pk_cols_names_array)}");
+                log?.Invoke($"{entity.Def.Name}: Skipping deletion of first record with PK values {testData.ToRecordValuesString(record, pk_cols_names_array)} because of autonum column {entity.Def.AutonumColumn.Name}.");
+                first_record = false;
+            }
+            else
+            {
+                await entity.DeleteData(ct, throw_dbstat_exception: true);
+
+                var delete_result = await entity.GetData(ct);
+                if (delete_result)
+                {
+                    throw new Exception($"DELETE: record still exists after deletion. ID in data {testData.ToRecordValuesString(record, pk_cols_names_array)}");
+                }
             }
 
             if (seed_test_data)
