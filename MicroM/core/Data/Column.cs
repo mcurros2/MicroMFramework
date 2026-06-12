@@ -121,6 +121,18 @@ public class Column<T> : ColumnBase
         return new Column<T>(name, value: value, sql_type: SqlDbType.Char, size: size, column_flags: flags, nullable: nullable, isArray: isArray, override_with: override_with);
     }
 
+    public static Column<Stream> BinaryStream(Stream? value = null, bool fake = false, bool? nullable = null, string? override_with = null, ColumnFlags column_flags = ColumnFlags.Insert | ColumnFlags.Update, string name = "")
+    {
+        if (typeof(T) != typeof(Stream))
+        {
+            throw new ArgumentException($"Invalid type {typeof(T)}. Only Stream is allowed.");
+        }
+
+        ColumnFlags flags = column_flags;
+        if (fake) flags |= ColumnFlags.Fake;
+        return new Column<Stream>(name, value: value ?? Stream.Null, sql_type: SqlDbType.VarBinary, size: 0, column_flags: flags, nullable: nullable, override_with: override_with);
+    }
+
     // MMC: Decide about datetime offset, datetime2, etc.
 
     //

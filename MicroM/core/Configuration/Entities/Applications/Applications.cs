@@ -1,6 +1,6 @@
-﻿using MicroM.Core;
+﻿using MicroM.Configuration.CategoriesDefinitions;
+using MicroM.Core;
 using MicroM.Data;
-using MicroM.DataDictionary.CategoriesDefinitions;
 using MicroM.Extensions;
 using MicroM.Generators.ReactGenerator;
 using MicroM.Web.Services;
@@ -48,6 +48,9 @@ public class ApplicationsDef : EntityDefinition
     public readonly Column<string?> vc_ts_dd_categories_values_class_name = Column<string?>.Text(nullable: true);
     public readonly Column<string?> vc_ts_dd_categories_values_class_import = Column<string?>.Text(nullable: true);
 
+    public readonly Column<string?> vc_ts_dd_category_column_name = Column<string?>.Text(nullable: true);
+    public readonly Column<string?> vc_ts_dd_category_value_column_name = Column<string?>.Text(nullable: true);
+
     public readonly Column<string> c_authenticationtype_id = Column<string>.EmbedCategory(nameof(AuthenticationTypes));
 
     // application assemblies embedded columns
@@ -56,6 +59,10 @@ public class ApplicationsDef : EntityDefinition
     public readonly Column<string?> vc_assembly3 = Column<string?>.Text(size: 2048, nullable: true, fake: true);
     public readonly Column<string?> vc_assembly4 = Column<string?>.Text(size: 2048, nullable: true, fake: true);
     public readonly Column<string?> vc_assembly5 = Column<string?>.Text(size: 2048, nullable: true, fake: true);
+
+    // FileStorage
+    public readonly Column<long?> bi_upload_limit_bytes = new();
+    public readonly Column<string> c_filestorage_type_id = Column<string>.EmbedCategory(nameof(FileStorageTypes));
 
     // Fakes for actions and status
     public readonly Column<bool> b_createdatabase = new(fake: true, column_flags: ColumnFlags.None, value: false);
@@ -323,6 +330,10 @@ public class Applications : Entity<ApplicationsDef>
                     TypeScriptCategoriesFolder = await fv.GetFieldValueAsync<string?>(nameof(app_result.TypeScriptCategoriesFolder), ct) ?? TemplateValues.CONST_EMBEDDED_CATEGORIES_FOLDER,
                     TypeScriptDDCategoriesValuesClassName = await fv.GetFieldValueAsync<string?>(nameof(app_result.TypeScriptDDCategoriesValuesClassName), ct) ?? TemplateValues.CONST_CATEGORIES_VALUES_CLASS,
                     TypeScriptDDCategoriesValuesClassImport = await fv.GetFieldValueAsync<string?>(nameof(app_result.TypeScriptDDCategoriesValuesClassImport), ct) ?? TemplateValues.CONST_MICROM_LIB_PACKAGE,
+                    TypeScriptDDCategoriesColumnName = await fv.GetFieldValueAsync<string?>(nameof(app_result.TypeScriptDDCategoriesColumnName), ct) ?? TemplateValues.CONST_CATEGORIES_ID_COLUMN_NAME,
+                    TypeScriptDDCategoriesValueColumnName = await fv.GetFieldValueAsync<string?>(nameof(app_result.TypeScriptDDCategoriesValueColumnName), ct) ?? TemplateValues.CONST_CATEGORIES_VALUES_ID_COLUMN_NAME,
+                    UploadLimitBytes = await fv.GetFieldValueAsync<long?>(nameof(app_result.UploadLimitBytes), ct) ?? DataDefaults.DefaultUploadFileSizeLimitBytes,
+                    FileStorageType = await fv.GetFieldValueAsync<string?>(nameof(app_result.FileStorageType), ct) ?? nameof(FileStorageTypes.LocalFileStorage),
 
                     SchemaConfiguration = new AppDBSchemaConfiguration
                     (

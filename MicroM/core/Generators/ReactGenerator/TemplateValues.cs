@@ -8,6 +8,8 @@
         public const string CONST_PROCS_ASSIGNMENT = "procs = procs();";
         public const string CONST_CATEGORIES_VALUES_CLASS = "CategoriesValues";
         public const string CONST_EMBEDDED_CATEGORIES_FOLDER = "../Categories";
+        public const string CONST_CATEGORIES_ID_COLUMN_NAME = "c_category_id";
+        public const string CONST_CATEGORIES_VALUES_ID_COLUMN_NAME = "c_categoryvalue_id";
 
         public string MNEO { get => tokens[nameof(MNEO)]; init => tokens[nameof(MNEO)] = value; }
         public string COLUMNS_DEFINITION { get => tokens[nameof(COLUMNS_DEFINITION)]; init => tokens[nameof(COLUMNS_DEFINITION)] = value; }

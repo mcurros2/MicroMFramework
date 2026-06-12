@@ -1,5 +1,5 @@
+using MicroM.Configuration.CategoriesDefinitions;
 using MicroM.Core;
-using MicroM.DataDictionary.CategoriesDefinitions;
 using MicroM.Diagnostics;
 
 namespace MicroM.Web.Authentication.OIDCDiagnostics;

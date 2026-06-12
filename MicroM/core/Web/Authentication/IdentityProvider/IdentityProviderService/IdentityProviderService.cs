@@ -1,6 +1,6 @@
 ﻿using MicroM.Configuration;
+using MicroM.Configuration.CategoriesDefinitions;
 using MicroM.Core;
-using MicroM.DataDictionary.CategoriesDefinitions;
 using MicroM.DataDictionary.Entities;
 using MicroM.Web.Services;
 using Microsoft.AspNetCore.Http;

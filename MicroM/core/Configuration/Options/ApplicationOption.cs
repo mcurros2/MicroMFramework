@@ -1,4 +1,4 @@
-﻿using MicroM.DataDictionary.CategoriesDefinitions;
+﻿using MicroM.Configuration.CategoriesDefinitions;
 using MicroM.Generators.ReactGenerator;
 using MicroM.Web.Authentication.SSO;
 
@@ -65,8 +65,14 @@ public class ApplicationOption
 
     public bool EnableUpdateOnHotReload { get; set; } = false;
 
+    // upload limit for file uploads in bytes, default 30MB
+    public long UploadLimitBytes { get; set; } = DataDefaults.DefaultUploadFileSizeLimitBytes;
+    public string? FileStorageType { get; set; } = nameof(FileStorageTypes.LocalFileStorage);
+
     // Developer tools configuration
     public string TypeScriptCategoriesFolder { get; set; } = "../Categories";
     public string TypeScriptDDCategoriesValuesClassName { get; set; } = "CategoriesValues";
     public string TypeScriptDDCategoriesValuesClassImport { get; set; } = TemplateValues.CONST_MICROM_LIB_PACKAGE;
+    public string TypeScriptDDCategoriesColumnName { get; set; } = "c_category_id";
+    public string TypeScriptDDCategoriesValueColumnName { get; set; } = "c_categoryvalue_id";
 }

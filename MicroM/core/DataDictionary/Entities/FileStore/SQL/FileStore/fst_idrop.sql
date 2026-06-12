@@ -22,6 +22,9 @@ begin try
     delete  [dbo].file_store_status
     where   c_file_id = @file_id
 
+    delete  [dbo].file_store_cat
+    where   c_file_id = @file_id
+
     delete  [dbo].[file_store]
     where   c_file_id = @file_id
 

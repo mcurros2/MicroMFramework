@@ -1,8 +1,8 @@
 ﻿namespace MicroM.Web.Services
 {
-    public class ServeFileResult
+    public class GetFileStreamResult
     {
-        public FileStream FileStream { get; set; } = null!;
+        public Stream Stream { get; set; } = null!;
         public string ContentType { get; set; } = null!;
     }
 }

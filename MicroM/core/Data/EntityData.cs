@@ -276,11 +276,12 @@ public class EntityData(IEntityClient ec, EntityDefinition def, IMicroMEncryptio
         //if (webusr != null) webusr.ValueObject = EntityClient.WebUser;
 
         bool should_close = (EntityClient.ConnectionState != ConnectionState.Open);
-        await EntityClient.Connect(ct);
 
         DBStatusResult? result;
         try
         {
+            await EntityClient.Connect(ct);
+
             if (proc.ReadonlyLocks)
             {
                 if (EntityClient.isTransactionOpen) throw new InvalidOperationException($"The stored procedure {proc.QualifiedName} has {nameof(proc.ReadonlyLocks)} true and is not supported inside transactions.");
@@ -296,9 +297,9 @@ public class EntityData(IEntityClient ec, EntityDefinition def, IMicroMEncryptio
             {
                 await EntityClient.ExecuteSQLNonQuery($"set transaction isolation level read committed;", ct);
             }
-        }
 
-        if (should_close) await EntityClient.Disconnect();
+            if (should_close) await EntityClient.Disconnect();
+        }
 
         return result;
     }
@@ -401,7 +402,24 @@ public class EntityData(IEntityClient ec, EntityDefinition def, IMicroMEncryptio
         if (should_close) await EntityClient.Disconnect();
     }
 
+    public async Task ExecuteProcNonQuery(ProcedureDefinition proc, CancellationToken ct, bool set_parms_from_columns = true)
+    {
+        if (proc.ReadonlyLocks) throw new ArgumentException($"Procedure {proc.QualifiedName} is defined with {nameof(proc.ReadonlyLocks)} true, because of this cannot be run without returning a result");
 
+        proc.Parms.TryGetValue(SystemColumnNames.webusr, out ColumnBase? webusr);
+        webusr?.ValueObject = EntityClient.WebUser;
+
+        bool should_close = (EntityClient.ConnectionState != ConnectionState.Open);
+        await EntityClient.Connect(ct);
+
+
+        if (set_parms_from_columns) proc.SetParmsValues(def.Columns);
+
+        await EntityClient.ExecuteSPNonQuery(proc.QualifiedName, proc.Parms.Values, ct);
+
+        if (should_close) await EntityClient.Disconnect();
+
+    }
 
     public virtual async Task<T?> ExecuteProcSingleRow<T>(ProcedureDefinition proc, CancellationToken ct, bool set_parms_from_columns = true, AutoMapperMode mode = AutoMapperMode.ByName, MapResult<T>? mapper = null) where T : class, new()
     {
@@ -418,7 +436,7 @@ public class EntityData(IEntityClient ec, EntityDefinition def, IMicroMEncryptio
         if (row_limit != 0 && proc.ReadonlyLocks == false) throw new ArgumentException($"Procedure {proc.QualifiedName} is defined with {nameof(proc.ReadonlyLocks)} false and cannot specify a {nameof(row_limit)} at execution");
 
         proc.Parms.TryGetValue(SystemColumnNames.webusr, out ColumnBase? webusr);
-        if (webusr != null) webusr.ValueObject = EntityClient.WebUser;
+        webusr?.ValueObject = EntityClient.WebUser;
 
         List<T> result = [];
 
@@ -455,7 +473,7 @@ public class EntityData(IEntityClient ec, EntityDefinition def, IMicroMEncryptio
         if (row_limit != 0 && proc.ReadonlyLocks == false) throw new ArgumentException($"Procedure {proc.QualifiedName} is defined with {nameof(proc.ReadonlyLocks)} false and cannot specify a {nameof(row_limit)} at execution");
 
         proc.Parms.TryGetValue(SystemColumnNames.webusr, out ColumnBase? webusr);
-        if (webusr != null) webusr.ValueObject = EntityClient.WebUser;
+        webusr?.ValueObject = EntityClient.WebUser;
 
         T? result;
 

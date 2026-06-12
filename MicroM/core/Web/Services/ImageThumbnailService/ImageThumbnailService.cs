@@ -4,14 +4,15 @@ namespace MicroM.Web.Services;
 
 public class ImageThumbnailService : IThumbnailService
 {
+
     public static (int width, int height) CalculateThumbnailSize(int originalWidth, int originalHeight, int maxSize)
     {
         double ratioX = (double)maxSize / originalWidth;
         double ratioY = (double)maxSize / originalHeight;
         double ratio = Math.Min(ratioX, ratioY);
 
-        int newWidth = (int)(originalWidth * ratio);
-        int newHeight = (int)(originalHeight * ratio);
+        var newWidth = Math.Max(1, (int)Math.Round(originalWidth * ratio));
+        var newHeight = Math.Max(1, (int)Math.Round(originalHeight * ratio));
 
         return (newWidth, newHeight);
     }
@@ -34,113 +35,171 @@ public class ImageThumbnailService : IThumbnailService
         };
     }
 
-    public (string directory, string thumbnailFileName, string thumbnailFilePath, string extension)
-        GetThumbnailFilename(string sourceFilePath, int maxSize = 150, int quality = 75)
+    public (string thumbnailFileName, string extension, string fullDestinationPath) GetThumbnailFilename(string sourceFilePath, int maxSize = 150, int quality = 75)
     {
-        if (string.IsNullOrWhiteSpace(sourceFilePath))
-            throw new ArgumentException("Source file path cannot be null or empty.", nameof(sourceFilePath));
+        if (string.IsNullOrWhiteSpace(sourceFilePath)) throw new ArgumentException("Source file path cannot be null or empty.", nameof(sourceFilePath));
 
-        string directory = Path.GetDirectoryName(sourceFilePath)
-                           ?? throw new ArgumentException("Invalid source file path.", nameof(sourceFilePath));
         string fileNameWithoutExt = Path.GetFileNameWithoutExtension(sourceFilePath);
         string extension = Path.GetExtension(sourceFilePath);
 
-        if (string.IsNullOrWhiteSpace(extension))
-            throw new ArgumentException("Source file must have a valid extension.", nameof(sourceFilePath));
+        if (string.IsNullOrWhiteSpace(extension)) throw new ArgumentException("Source file must have a valid extension.", nameof(sourceFilePath));
 
         string thumbnailFileName = $"{fileNameWithoutExt}-thmb-{maxSize}-{quality}{extension}";
-        string thumbnailFilePath = Path.Combine(directory, thumbnailFileName);
 
-        return (directory, thumbnailFileName, thumbnailFilePath, extension);
+        string fullDestinationPath = Path.Combine(Path.GetDirectoryName(sourceFilePath) ?? string.Empty, thumbnailFileName);
+
+        return (thumbnailFileName, extension, fullDestinationPath);
     }
 
-    public string CreateThumbnail(string sourceFilePath, int maxSize = 150, int quality = 75)
+    public string CreateThumbnail(string originalFileName, Stream sourceStream, int maxSize = 150, int quality = 75)
     {
-        if (string.IsNullOrWhiteSpace(sourceFilePath))
-            throw new ArgumentException("Source file path cannot be null or empty.", nameof(sourceFilePath));
+        ArgumentNullException.ThrowIfNull(sourceStream, nameof(sourceStream));
 
-        if (maxSize < 50 || maxSize > 800)
-            throw new ArgumentOutOfRangeException(nameof(maxSize), "Max size must be between 50 and 800.");
+        if (maxSize < 50 || maxSize > 800) throw new ArgumentOutOfRangeException(nameof(maxSize), "Max size must be between 50 and 800.");
+        if (quality < 10 || quality > 100) throw new ArgumentOutOfRangeException(nameof(quality), "Quality must be between 10 and 100.");
 
-        if (quality < 10 || quality > 100)
-            throw new ArgumentOutOfRangeException(nameof(quality), "Quality must be between 10 and 100.");
+        var (thumbnailFileName, extension, fullDestinationPath) = GetThumbnailFilename(originalFileName, maxSize, quality);
 
-        var (directory, thumbnailFileName, thumbnailFilePath, extension) = GetThumbnailFilename(sourceFilePath);
+        var imageFormat = GetImageFormat(extension) ?? throw new NotSupportedException("Image format not supported.");
 
-        SKEncodedImageFormat? imageFormat = GetImageFormat(extension)
-            ?? throw new NotSupportedException("Image format not supported.");
 
-        using var sourceStream = File.OpenRead(sourceFilePath);
-        using SKManagedStream skiaStream = new(sourceStream);
+        using var skiaStream = new SKManagedStream(sourceStream, disposeManagedStream: false);
 
-        using SKCodec codec = SKCodec.Create(skiaStream);
-        var originalBitmap = SKBitmap.Decode(codec);
-        if (originalBitmap == null)
+        using var codec = SKCodec.Create(skiaStream) ?? throw new InvalidOperationException("Failed to create source image codec.");
+
+        var origin = codec.EncodedOrigin;
+
+        if (!ShouldCreateThumbnail(codec.Info.Width, codec.Info.Height, origin, maxSize))
         {
-            throw new InvalidOperationException("Failed to decode the source image.");
+            return string.Empty;
         }
 
-        SKMatrix matrix = GetExifMatrix(codec.EncodedOrigin);
+        var decodeInfo = GetScaledDecodeInfo(codec, maxSize);
 
-        var orientedBitmap = new SKBitmap(originalBitmap.Width, originalBitmap.Height);
+        using var decodedBitmap = new SKBitmap(decodeInfo);
 
-        using (var canvas = new SKCanvas(orientedBitmap))
+        var decodeResult = codec.GetPixels(decodeInfo, decodedBitmap.GetPixels());
+        if (decodeResult != SKCodecResult.Success && decodeResult != SKCodecResult.IncompleteInput)
+            throw new InvalidOperationException($"Failed to decode image. Codec result: {decodeResult}");
+
+
+        var (orientedWidth, orientedHeight) = GetOrientedSize(decodedBitmap.Width, decodedBitmap.Height, origin);
+
+        var (finalWidth, finalHeight) = CalculateThumbnailSize(orientedWidth, orientedHeight, maxSize);
+
+        using var finalBitmap = new SKBitmap(new SKImageInfo(finalWidth, finalHeight, SKColorType.Bgra8888, SKAlphaType.Premul));
+
+        using (var canvas = new SKCanvas(finalBitmap))
         {
             canvas.Clear(SKColors.Transparent);
-            canvas.SetMatrix(matrix);
-            canvas.DrawBitmap(originalBitmap, 0, 0);
+
+            var scaleX = (float)finalWidth / orientedWidth;
+            var scaleY = (float)finalHeight / orientedHeight;
+
+            canvas.Scale(scaleX, scaleY);
+
+            ApplyExifOrientation(
+                canvas,
+                origin,
+                decodedBitmap.Width,
+                decodedBitmap.Height);
+
+            canvas.DrawBitmap(decodedBitmap, 0, 0);
         }
 
-        (int newWidth, int newHeight) = CalculateThumbnailSize(orientedBitmap.Width, orientedBitmap.Height, maxSize);
+        using var thumbnailImage = SKImage.FromBitmap(finalBitmap) ?? throw new InvalidOperationException("Failed to create thumbnail image.");
 
-        using var resizedBitmap = originalBitmap.Resize(new SKImageInfo(newWidth, newHeight), new SKSamplingOptions(SKFilterMode.Linear, SKMipmapMode.None));
-        using SKImage thumbnailImage = SKImage.FromBitmap(resizedBitmap);
+        using var encodedData = thumbnailImage.Encode(imageFormat, quality) ?? throw new InvalidOperationException("Failed to encode thumbnail image.");
 
-        SKData encodedData = thumbnailImage.Encode(imageFormat.Value, quality);
-
-        using FileStream thumbnailStream = File.OpenWrite(thumbnailFilePath);
+        using FileStream thumbnailStream = File.OpenWrite(fullDestinationPath);
 
         encodedData.SaveTo(thumbnailStream);
 
-        // Disponer los recursos
-        orientedBitmap.Dispose();
-        originalBitmap.Dispose();
-
-        return thumbnailFilePath;
+        return thumbnailFileName;
     }
 
-    // Método auxiliar para obtener la matriz de transformación
-    private static SKMatrix GetExifMatrix(SKEncodedOrigin origin)
+    private static (int Width, int Height) GetOrientedSize(int width, int height, SKEncodedOrigin origin)
     {
-        SKMatrix matrix = SKMatrix.CreateIdentity();
+        return origin is SKEncodedOrigin.LeftTop or SKEncodedOrigin.RightTop or SKEncodedOrigin.RightBottom or SKEncodedOrigin.LeftBottom
+                ? (height, width)
+                : (width, height);
+    }
+
+
+    private static void ApplyExifOrientation(SKCanvas canvas, SKEncodedOrigin origin, int width, int height)
+    {
         switch (origin)
         {
+            // Normal
             case SKEncodedOrigin.TopLeft:
                 break;
+
+            // Mirror horizontal
             case SKEncodedOrigin.TopRight:
-                matrix = SKMatrix.CreateScale(-1, 1, 0.5f, 0);
+                canvas.Translate(width, 0);
+                canvas.Scale(-1, 1);
                 break;
+
+            // Rotate 180
             case SKEncodedOrigin.BottomRight:
-                matrix = SKMatrix.CreateRotation(180, 0.5f, 0.5f);
+                canvas.Translate(width, height);
+                canvas.RotateDegrees(180);
                 break;
+
+            // Mirror vertical
             case SKEncodedOrigin.BottomLeft:
-                matrix = SKMatrix.CreateScale(1, -1, 0, 0.5f);
+                canvas.Translate(0, height);
+                canvas.Scale(1, -1);
                 break;
+
+            // Transpose
             case SKEncodedOrigin.LeftTop:
-                matrix = SKMatrix.CreateRotation(90, 0.5f, 0.5f);
+                canvas.RotateDegrees(90);
+                canvas.Scale(1, -1);
                 break;
+
+            // Rotate 90 CW
             case SKEncodedOrigin.RightTop:
-                matrix = SKMatrix.CreateRotation(270, 0.5f, 0.5f);
+                canvas.Translate(height, 0);
+                canvas.RotateDegrees(90);
                 break;
+
+            // Transverse
             case SKEncodedOrigin.RightBottom:
-                matrix = SKMatrix.CreateRotation(270, 0.5f, 0.5f);
+                canvas.Translate(height, width);
+                canvas.RotateDegrees(90);
+                canvas.Scale(-1, 1);
                 break;
+
+            // Rotate 270 CW
             case SKEncodedOrigin.LeftBottom:
-                matrix = SKMatrix.CreateRotation(90, 0.5f, 0.5f);
+                canvas.Translate(0, width);
+                canvas.RotateDegrees(-90);
                 break;
         }
-        return matrix;
     }
 
+    private static SKImageInfo GetScaledDecodeInfo(SKCodec codec, int maxSize)
+    {
+        var info = codec.Info;
 
+        if (info.Width <= 0 || info.Height <= 0) throw new InvalidOperationException("Invalid source image dimensions.");
+
+        var scale = Math.Min((float)maxSize / info.Width, (float)maxSize / info.Height);
+
+        scale = Math.Min(scale, 1f);
+
+        var scaledSize = codec.GetScaledDimensions(scale);
+
+        if (scaledSize.Width <= 0 || scaledSize.Height <= 0) scaledSize = new SKSizeI(info.Width, info.Height);
+
+        return new SKImageInfo(scaledSize.Width, scaledSize.Height, SKColorType.Bgra8888, SKAlphaType.Premul);
+    }
+
+    private static bool ShouldCreateThumbnail(int originalWidth, int originalHeight, SKEncodedOrigin origin, int maxSize)
+    {
+        var (orientedWidth, orientedHeight) = GetOrientedSize(originalWidth, originalHeight, origin);
+
+        return orientedWidth > maxSize || orientedHeight > maxSize;
+    }
 }

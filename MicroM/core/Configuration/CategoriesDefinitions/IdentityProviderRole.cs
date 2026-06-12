@@ -1,6 +1,6 @@
 ﻿using MicroM.DataDictionary.Configuration;
 
-namespace MicroM.DataDictionary.CategoriesDefinitions;
+namespace MicroM.Configuration.CategoriesDefinitions;
 
 public class IdentityProviderRole : CategoryDefinition
 {

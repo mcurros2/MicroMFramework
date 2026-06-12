@@ -1,6 +1,6 @@
 ﻿using MicroM.Configuration;
+using MicroM.Configuration.CategoriesDefinitions;
 using MicroM.Core;
-using MicroM.DataDictionary.CategoriesDefinitions;
 using MicroM.Extensions;
 using MicroM.Web.Authentication.SSO;
 using MicroM.Web.Services;

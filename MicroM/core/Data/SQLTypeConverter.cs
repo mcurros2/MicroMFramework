@@ -114,6 +114,8 @@ namespace MicroM.Data
             { typeof(char[]), new[] { SqlDbType.Char } },
             { typeof(char?[]), new[] { SqlDbType.Char } },
             { typeof(string[]), new[] { SqlDbType.NVarChar, SqlDbType.VarChar } },
+            { typeof(Stream), new[] { SqlDbType.VarBinary, SqlDbType.Binary, SqlDbType.Image } },
+            { Stream.Null.GetType(), new[] { SqlDbType.VarBinary, SqlDbType.Binary, SqlDbType.Image } }
         };
 
         private static readonly Dictionary<SqlDbType, string> SqlDbTypeToPrefix = new()
@@ -177,6 +179,11 @@ namespace MicroM.Data
 
         public static bool IsTypeAccepted(this SqlDbType sql_type, Type type)
         {
+            if (typeof(Stream).IsAssignableFrom(type) || (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Nullable<>) && typeof(Stream).IsAssignableFrom(type.GetGenericArguments()[0])))
+            {
+                type = typeof(Stream);
+            }
+
             if (TypeToSQLDbType.TryGetValue(type, out SqlDbType[]? sql_types)) return sql_type.IsIn(sql_types);
             return false;
         }

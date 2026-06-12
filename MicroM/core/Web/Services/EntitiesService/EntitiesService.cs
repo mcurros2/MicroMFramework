@@ -649,8 +649,9 @@ public class EntitiesService : IEntitiesService
                             return null;
                         }
 
-                        var file_path = await _api.upload.GetFilePath(app, import_process.Def.vc_fileguid.Value, ec, ct);
-                        if (string.IsNullOrEmpty(file_path))
+                        var file_details = await _api.upload.GetFileDetails(app, import_process.Def.vc_fileguid.Value, ec, ct);
+                        var file_path = file_details?.fullPath;
+                        if (file_details == null || string.IsNullOrEmpty(file_path))
                         {
                             await import_process.UpdateStatus(nameof(ImportStatus.Error), ct);
                             _api.log.LogError("ImportData ERROR: {entity_name} {import_proc} no file path found.", entity_name, import_proc);
@@ -672,13 +673,24 @@ public class EntitiesService : IEntitiesService
                             EnsureApplicationKeys(app_id, parms.ParentKeys);
                         }
 
+
                         try
                         {
                             await import_process.UpdateStatus(nameof(ImportStatus.Importing), ct);
 
+
+                            await using var file_stream = await _api.upload.GetFileStream(ec, app, file_details, ct);
+
+                            if (file_stream == null)
+                            {
+                                await import_process.UpdateStatus(nameof(ImportStatus.Error), ct);
+                                _api.log.LogError("ImportData ERROR: {entity_name} {import_proc} no file stream found.", entity_name, import_proc);
+                                return null;
+                            }
+
                             if (ext == ".csv")
                             {
-                                var csv = await CSVParser.ParseFile(file_path, ct);
+                                var csv = await CSVParser.ParseFile(file_stream, ct);
 
                                 if (csv != null)
                                 {
@@ -703,8 +715,7 @@ public class EntitiesService : IEntitiesService
                             }
                             else
                             {
-                                using var stream = new FileStream(file_path, FileMode.Open, FileAccess.Read);
-                                var result = await entity.ImportDataFromExcel(stream, null, null, _options, parms.ServerClaims, _api, app_id, parms.ParentKeys, ct);
+                                var result = await entity.ImportDataFromExcel(file_stream, null, null, _options, parms.ServerClaims, _api, app_id, parms.ParentKeys, ct);
                                 if (result != null)
                                 {
                                     await import_process.UpdateStatus(nameof(ImportStatus.Completed), ct);

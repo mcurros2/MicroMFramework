@@ -1,4 +1,5 @@
 ﻿using MicroM.Configuration;
+using MicroM.Configuration.CategoriesDefinitions;
 using MicroM.Core;
 using MicroM.Data;
 using MicroM.DataDictionary.CategoriesDefinitions;
@@ -74,6 +75,8 @@ public static class DataDictionarySchema
         result.TryAddType<FileStoreProcess>();
         result.TryAddType<FileStore>();
         result.TryAddType<FileStoreStatus>();
+        result.TryAddType<FileStoreCat>();
+        result.TryAddType<FileStoreContent>();
         result.TryAddType<EmailServiceConfiguration>();
         result.TryAddType<EmailServiceQueue>();
         result.TryAddType<EmailServiceQueueStatus>();
@@ -107,7 +110,9 @@ public static class DataDictionarySchema
             ec == null ? new ObjectsStatus(schema_name) : new ObjectsStatus(ec, schema_name: schema_name),
             ec == null ? new FileStoreProcess(schema_name) : new FileStoreProcess(ec, schema_name: schema_name),
             ec == null ? new FileStore(schema_name) : new FileStore(ec, schema_name: schema_name),
+            ec == null ? new FileStoreCat(schema_name) : new FileStoreCat(ec, schema_name: schema_name),
             ec == null ? new FileStoreStatus(schema_name) : new FileStoreStatus(ec, schema_name: schema_name),
+            ec == null ? new FileStoreContent(schema_name) : new FileStoreContent(ec, schema_name: schema_name),
             ec == null ? new MicromRoutes(schema_name) : new MicromRoutes(ec, schema_name: schema_name),
             ec == null ? new MicromUsers(schema_name) : new MicromUsers(ec, schema_name: schema_name),
             ec == null ? new MicromUsersCat(schema_name) : new MicromUsersCat(ec, schema_name: schema_name),
@@ -153,6 +158,7 @@ public static class DataDictionarySchema
             await entities.CreateSchemaAndProcs(ec, schema_config, ct, create_or_alter, filtered_custom_procs);
 
             await CreateCategory<UserTypes>(ec, ct, schema_config.DDSchema);
+            await CreateCategory<FileStorageTypes>(ec, ct, schema_config.DDSchema);
 
             await CreateStatus<FileUpload>(ec, ct, schema_config.DDSchema);
             await CreateStatus<ProcessStatus>(ec, ct, schema_config.DDSchema);

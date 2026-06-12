@@ -5,7 +5,9 @@
         , @filefolder Char(6)
         , @fileguid VarChar(255)
         , @filesize bigint
+        , @file_tag VarChar(255)
         , @fileuploadstatus_id Char(20)
+        , @filestoragetype_id Char(20)
         , @lu DateTime
         , @webusr VarChar(80)
         , @result int output
@@ -55,6 +57,21 @@ begin try
             , @filefolder
             , @fileguid
             , @filesize
+            , @file_tag
+            , @now
+            , @now
+            , @webusr
+            , @webusr
+            , @login
+            , @login
+            )
+
+        insert  [dbo].[file_store_cat]
+        values  
+            (
+            @file_id
+            , 'FileStorageTypes'
+            , @filestoragetype_id
             , @now
             , @now
             , @webusr
@@ -98,7 +115,6 @@ begin try
             , vc_luuser = @login
             , dt_lu = @now
     where   c_file_id = @file_id
-    
 
     select @result = 0, @msg = 'OK'
     

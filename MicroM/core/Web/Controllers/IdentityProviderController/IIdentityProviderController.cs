@@ -19,7 +19,7 @@ public interface IIdentityProviderController
     Task<ActionResult> EndSession(IIdentityProviderService idp, IMicroMAppConfiguration app_config, string app_id, string userId, CancellationToken ct);
 
 
-    // userinfo, revocation and introspection are not mandatoiry. Not implemented
+    // userinfo, revocation and introspection are not mandatory. Not implemented
 
     //Task<Dictionary<string, object?>> UserInfo(IAuthenticationProvider auth, IMicroMAppConfiguration app_config, string app_id, string userId, CancellationToken ct);
     //Task<bool> Revoke(IAuthenticationProvider auth, IMicroMAppConfiguration app_config, string app_id, string token, CancellationToken ct);

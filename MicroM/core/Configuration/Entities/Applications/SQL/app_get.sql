@@ -44,12 +44,16 @@ select  [c_application_id] = rtrim(a.c_application_id)
 		, a.vc_ts_categories_folder
 		, a.vc_ts_dd_categories_values_class_name
 		, a.vc_ts_dd_categories_values_class_import
+		, a.vc_ts_dd_category_column_name
+		, a.vc_ts_dd_category_value_column_name
 		, [c_authenticationtype_id] = rtrim(b.c_categoryvalue_id)
 		, vc_assembly1 = (select x.vc_assemblypath from asm x where x.c_application_id=a.c_application_id and x.i_order=1)
 		, vc_assembly2 = (select x.vc_assemblypath from asm x where x.c_application_id=a.c_application_id and x.i_order=2)
 		, vc_assembly3 = (select x.vc_assemblypath from asm x where x.c_application_id=a.c_application_id and x.i_order=3)
 		, vc_assembly4 = (select x.vc_assemblypath from asm x where x.c_application_id=a.c_application_id and x.i_order=4)
 		, vc_assembly5 = (select x.vc_assemblypath from asm x where x.c_application_id=a.c_application_id and x.i_order=5)
+		, a.bi_upload_limit_bytes
+		, c_filestorage_type_id = rtrim(f.c_categoryvalue_id)
 		, b_createdatabase = convert(bit,0)
         , b_dropdatabase = convert(bit,0)
 		, b_updatedatabase = convert(bit,0)
@@ -79,4 +83,6 @@ from    [dbo].[applications] a
 		on(d.c_application_id = a.c_application_id)
 		left join [dbo].microm_application_certificates e
 		on(e.c_application_id = d.c_application_id and e.c_certificate_id = d.c_certificate_id)
+		left join [dbo].applications_cat f
+		on(a.c_application_id = f.c_application_id and f.c_category_id = 'FileStorageTypes')
 where   a.c_application_id = @application_id

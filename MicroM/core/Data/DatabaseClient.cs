@@ -392,7 +392,7 @@ public class DatabaseClient : IDisposable, IAsyncDisposable, IEntityClient
                 }
                 catch (SqlException ex)
                 {
-                    _logger?.LogTrace("Exception while cancelling {Exception}\n{SQLText\n}Server: {Server}, DB {DB}, User {User}, Integrated Security {IntegratedSecurity}, Web User {WebUsr}", ex, cmd.TraceSQL(), Server, DB, User, IntegratedSecurity, WebUser);
+                    _logger?.LogTrace("Exception while cancelling {Exception}\n{SQLText\n}Server: {Server}, DB {DB}, User {User}, IntegratedSecurity {IntegratedSecurity}, Web User {WebUsr}", ex, cmd.TraceSQL(), Server, DB, User, IntegratedSecurity, WebUser);
                     Debug.Print($"cmd.Cancel: {ex}");
                 }
             });
@@ -465,7 +465,7 @@ public class DatabaseClient : IDisposable, IAsyncDisposable, IEntityClient
                 }
                 catch (SqlException ex)
                 {
-                    _logger?.LogTrace("Exception while cancelling {Exception}\n{SQLText\n}Server: {Server}, DB {DB}, User {User}, Integrated Security {IntegratedSecurity}, Web User {WebUsr}", ex, cmd.TraceSQL(), Server, DB, User, IntegratedSecurity, WebUser);
+                    _logger?.LogTrace("Exception while cancelling {Exception}\n{SQLText\n}Server: {Server}, DB {DB}, User {User}, IntegratedSecurity {IntegratedSecurity}, Web User {WebUsr}", ex, cmd.TraceSQL(), Server, DB, User, IntegratedSecurity, WebUser);
                     Debug.Print($"cmd.Cancel: {ex}");
                 }
             });
@@ -474,11 +474,18 @@ public class DatabaseClient : IDisposable, IAsyncDisposable, IEntityClient
 
             _logger?.LogTrace("Executing SingleColumn {SQLText}\nServer: {Server}, DB {DB}, User {User}, Integrated Security {IntegratedSecurity}, Web User {WebUsr}", cmd.TraceSQL(), Server, DB, User, IntegratedSecurity, WebUser);
             using SqlDataReader reader = await cmd.ExecuteReaderAsync(CommandBehavior.SingleRow, ct);
+
             if (await reader.ReadAsync())
             {
-                bool isNull = await reader.IsDBNullAsync(0, ct);
-
-                ret = isNull ? default : await reader.GetFieldValueAsync<T>(0, ct);
+                if (typeof(T) == typeof(Stream))
+                {
+                    ret = (T)(object)reader.GetStream(0);
+                }
+                else
+                {
+                    bool isNull = await reader.IsDBNullAsync(0, ct);
+                    ret = isNull ? default : await reader.GetFieldValueAsync<T>(0, ct);
+                }
             }
 
         }
@@ -537,7 +544,7 @@ public class DatabaseClient : IDisposable, IAsyncDisposable, IEntityClient
                 }
                 catch (SqlException ex)
                 {
-                    _logger?.LogTrace("Exception while cancelling {Exception}\n{SQLText\n}Server: {Server}, DB {DB}, User {User}, Integrated Security {IntegratedSecurity}, Web User {WebUsr}", ex, cmd.TraceSQL(), Server, DB, User, IntegratedSecurity, WebUser);
+                    _logger?.LogTrace("Exception while cancelling {Exception}\n{SQLText\n}Server: {Server}, DB {DB}, User {User}, IntegratedSecurity {IntegratedSecurity}, Web User {WebUsr}", ex, cmd.TraceSQL(), Server, DB, User, IntegratedSecurity, WebUser);
                     Debug.Print($"cmd.Cancel: {ex}");
                 }
             });
@@ -719,7 +726,7 @@ public class DatabaseClient : IDisposable, IAsyncDisposable, IEntityClient
                 }
                 catch (SqlException ex)
                 {
-                    _logger?.LogTrace("Exception while cancelling {Exception}\n{SQLText\n}Server: {Server}, DB {DB}, User {User}, Integrated Security {IntegratedSecurity}, Web User {WebUsr}", ex, cmd.TraceSQL(), Server, DB, User, IntegratedSecurity, WebUser);
+                    _logger?.LogTrace("Exception while cancelling {Exception}\n{SQLText\n}Server: {Server}, DB {DB}, User {User}, IntegratedSecurity {IntegratedSecurity}, Web User {WebUsr}", ex, cmd.TraceSQL(), Server, DB, User, IntegratedSecurity, WebUser);
                     Debug.Print($"cmd.Cancel: {ex}");
                 }
             });
@@ -862,7 +869,7 @@ public class DatabaseClient : IDisposable, IAsyncDisposable, IEntityClient
                 }
                 catch (SqlException ex)
                 {
-                    _logger?.LogTrace("Exception while cancelling {Exception}\n{SQLText\n}Server: {Server}, DB {DB}, User {User}, Integrated Security {IntegratedSecurity}, Web User {WebUsr}", ex, cmd.TraceSQL(), Server, DB, User, IntegratedSecurity, WebUser);
+                    _logger?.LogTrace("Exception while cancelling {Exception}\n{SQLText\n}Server: {Server}, DB {DB}, User {User}, IntegratedSecurity {IntegratedSecurity}, Web User {WebUsr}", ex, cmd.TraceSQL(), Server, DB, User, IntegratedSecurity, WebUser);
                     Debug.Print($"cmd.Cancel: {ex}");
                 }
             });
@@ -927,6 +934,7 @@ public class DatabaseClient : IDisposable, IAsyncDisposable, IEntityClient
     {
         return await ExecuteSingleColumn<T?>(CommandType.StoredProcedure, sp_name, ct, parms);
     }
+
 
     /// <summary>
     /// Executes a SQL Query and returns a DataResult.

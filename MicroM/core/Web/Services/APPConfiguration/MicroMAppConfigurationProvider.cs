@@ -1,9 +1,9 @@
 ﻿using MicroM.Configuration;
+using MicroM.Configuration.CategoriesDefinitions;
 using MicroM.Configuration.Entities;
 using MicroM.Core;
 using MicroM.Data;
 using MicroM.Database;
-using MicroM.DataDictionary.CategoriesDefinitions;
 using MicroM.DataDictionary.Entities;
 using MicroM.Extensions;
 using MicroM.Web.Services.Security;

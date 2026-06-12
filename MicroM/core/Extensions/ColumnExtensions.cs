@@ -157,7 +157,7 @@ public static class ColumnExtensions
         {
             ParameterName = sql_col.SQLParameterName,
             SqlDbType = sql_col.SQLMetadata.SQLType,
-            Size = sql_col.SQLMetadata.Size,
+            Size = (sql_col.SQLMetadata.SQLType.IsIn(SqlDbType.VarChar, SqlDbType.NVarChar, SqlDbType.VarBinary) && sql_col.SQLMetadata.Size == 0) ? -1 : sql_col.SQLMetadata.Size,
             Precision = sql_col.SQLMetadata.Precision,
             IsNullable = true
         };

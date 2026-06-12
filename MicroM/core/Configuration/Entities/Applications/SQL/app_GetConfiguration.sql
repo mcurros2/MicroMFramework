@@ -30,11 +30,17 @@ select	ApplicationID = rtrim(a.c_application_id)
 		, TypeScriptCategoriesFolder = a.vc_ts_categories_folder
 		, TypeScriptDDCategoriesValuesClassName = a.vc_ts_dd_categories_values_class_name
 		, TypeScriptDDCategoriesValuesClassImport = a.vc_ts_dd_categories_values_class_import
+		, TypeScriptDDCategoryColumnName = a.vc_ts_dd_category_column_name
+		, TypeScriptDDCategoryValueColumnName = a.vc_ts_dd_category_value_column_name
+		, UploadLimitBytes = a.bi_upload_limit_bytes
+		, FileStorageType = rtrim(g.c_categoryvalue_id)
 from	[dbo].applications a
 		left join [dbo].applications_cat b
 		on(b.c_application_id=a.c_application_id and b.c_category_id='AuthenticationTypes')
 		left join [dbo].applications_cat c
 		on(c.c_application_id=a.c_application_id and c.c_category_id='IdentityProviderRole')
+		left join [dbo].applications_cat g
+		on(g.c_application_id=a.c_application_id and g.c_category_id='FileStorageTypes')
 		left join [dbo].application_oidc_configuration d
 		on(d.c_application_id=a.c_application_id)
 		left join [dbo].microm_application_certificates f

@@ -36,21 +36,22 @@ begin try
             )
         
         
-        
         select    @result = 0, @msg = 'OK'
         return
     end
     
-    -- MMC: no concurrency, this is designed to be called from the backend
+    -- MMC: no @cu concurrenty, this is designed to be called from the backend
+    begin tran
 
-    update  [dbo].[file_store_status]
-    set     c_statusvalue_id = @statusvalue_id
-            , vc_webluuser = @webusr
-            , vc_luuser = @login
-            , dt_lu = @now
-    where   c_file_id = @file_id
-            and c_status_id = @status_id
+        update  [dbo].[file_store_status]
+        set     c_statusvalue_id = @statusvalue_id
+                , vc_webluuser = @webusr
+                , vc_luuser = @login
+                , dt_lu = @now
+        where   c_file_id = @file_id
+                and c_status_id = @status_id
     
+    commit tran
 
     select @result = 0, @msg = 'OK'
     

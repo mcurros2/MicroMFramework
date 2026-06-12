@@ -15,6 +15,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Reflection;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using static LibraryTest.A_DatabaseClientTests;
@@ -55,6 +56,9 @@ public class C_EntityTests
         await Queue_Delete();
         await Queue_Test_Action();
 
+        await File_Stream_RoundTrip();
+
+        await FileStoreTests.FileStore_And_FileStoreContent_RoundTrip_3MbXlsx();
     }
 
     public Task CheckProcsDefinitionFromClass()
@@ -414,5 +418,33 @@ public class C_EntityTests
         Assert.AreEqual("OK", result.TestResult);
 
 
+    }
+
+    public async Task File_Stream_RoundTrip()
+    {
+        AppDBSchemaConfiguration schema_config = new("microm", "dbo");
+
+        using var client = new DatabaseClient(DatabaseConfiguration.Server, DatabaseConfiguration.TestDatabase, DatabaseConfiguration.user, DatabaseConfiguration.password);
+        var cts = new CancellationTokenSource();
+
+        await client.Connect(cts.Token);
+
+        await CreateSchemaAndDictionary<TestFile>(client, schema_config, cts.Token);
+
+        byte[] expected = Encoding.UTF8.GetBytes("Hello from stream test");
+        await using var input = new MemoryStream(expected);
+
+        var file = new TestFile(client, schema_name: schema_config.APPSchema);
+        file.Def.c_testfile_id.Value = "file-1";
+        file.Def.vc_filename.Value = "test.txt";
+        file.Def.vb_content.Value = input;
+
+        await file.InsertData(cts.Token);
+
+        var read = await TestFile.CreateAndGet(client, "file-1", cts.Token, schema_name: schema_config.APPSchema);
+
+        var actual = read.Def.vb_content.ValueObject as byte[];
+        Assert.IsNotNull(actual);
+        CollectionAssert.AreEqual(expected, actual);
     }
 }

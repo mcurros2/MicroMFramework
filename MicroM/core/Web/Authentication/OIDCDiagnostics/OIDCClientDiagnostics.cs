@@ -1,4 +1,4 @@
-﻿using MicroM.DataDictionary.CategoriesDefinitions;
+﻿using MicroM.Configuration.CategoriesDefinitions;
 using MicroM.Diagnostics;
 using MicroM.Web.Authentication.OIDCDiagnostics;
 using MicroM.Web.Extensions;

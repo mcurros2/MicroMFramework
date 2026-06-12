@@ -32,4 +32,10 @@
     <ProjectReference Include="..\core\MicroMCore.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="TestData\1mb.xlsx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>

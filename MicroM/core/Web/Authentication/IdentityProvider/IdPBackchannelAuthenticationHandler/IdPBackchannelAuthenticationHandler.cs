@@ -1,5 +1,5 @@
 ﻿using MicroM.Configuration;
-using MicroM.DataDictionary.CategoriesDefinitions;
+using MicroM.Configuration.CategoriesDefinitions;
 using MicroM.Web.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;

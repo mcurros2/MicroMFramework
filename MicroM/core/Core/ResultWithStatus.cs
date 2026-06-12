@@ -1,7 +1,7 @@
 ﻿namespace MicroM.Core;
 
-public record ResultWithStatus<T, E>
+public record ResultWithStatus<TResult, TStatus>
 (
-    T? Result,
-    E? Status
+    TResult? Result,
+    TStatus? Status
 );

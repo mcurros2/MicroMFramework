@@ -119,6 +119,11 @@ public abstract class EntityBase : InitBase
         return await Data.ExecuteProcSingleRow<T>(proc, ct, set_parms_from_columns, mode, mapper);
     }
 
+    public virtual async Task ExecuteProcNonQuery(ProcedureDefinition proc, CancellationToken ct, bool set_parms_from_columns = true, MicroMOptions? options = null, Dictionary<string, object>? server_claims = null, IWebAPIServices? api = null, string? app_id = null)
+    {
+        await Data.ExecuteProcNonQuery(proc, ct, set_parms_from_columns);
+    }
+
     #endregion
 
 }

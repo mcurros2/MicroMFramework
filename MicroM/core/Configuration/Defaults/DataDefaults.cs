@@ -63,6 +63,10 @@
         /// Parameter name for row_limit for use in executing views, sent along with values. This is a reserved word that can't be used as a column name for an entity
         /// </summary>
         public static string RowLimitParameterName { get; set; } = "@row_limit";
+        /// <summary>
+        /// The default file size limit for uploads in bytes. Default = 30MB
+        /// </summary>
+        public static long DefaultUploadFileSizeLimitBytes { get; set; } = 30 * 1024 * 1024;
 
     }
 }

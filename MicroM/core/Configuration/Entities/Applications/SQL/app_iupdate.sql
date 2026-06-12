@@ -25,12 +25,16 @@
         , @ts_categories_folder varchar(255)
         , @ts_categories_values_class_name varchar(255)
         , @ts_categories_values_class_import varchar(255)
+        , @ts_dd_category_column_name varchar(255)
+        , @ts_dd_category_value_column_name varchar(255)
 		, @authenticationtype_id Char(20)
 		, @assembly1 VarChar(2048)
 		, @assembly2 VarChar(2048)
 		, @assembly3 VarChar(2048)
 		, @assembly4 VarChar(2048)
 		, @assembly5 VarChar(2048)
+        , @upload_limit_bytes bigint
+        , @filestorage_type_id char(20)
 		, @identity_provider_role_id char(20)
 		, @oidc_url_wellknown VarChar(2048)
         , @oidc_idp_subject_pepper varchar(2048)
@@ -111,6 +115,9 @@ begin try
             , @ts_categories_folder
             , @ts_categories_values_class_name
             , @ts_categories_values_class_import
+            , @ts_dd_category_column_name
+            , @ts_dd_category_value_column_name
+            , @upload_limit_bytes
             , @now
             , @now
             , @webusr
@@ -139,6 +146,20 @@ begin try
             @application_id
 			, 'IdentityProviderRole'
 			, @identity_provider_role_id
+            , @now
+            , @now
+            , @webusr
+            , @webusr
+            , @login
+            , @login
+            )
+
+        insert  [dbo].[applications_cat]
+        values  
+            (
+            @application_id
+			, 'FileStorageTypes'
+			, @filestorage_type_id
             , @now
             , @now
             , @webusr
@@ -241,6 +262,9 @@ begin try
             , vc_ts_categories_folder = @ts_categories_folder
             , vc_ts_dd_categories_values_class_name = @ts_categories_values_class_name
             , vc_ts_dd_categories_values_class_import = @ts_categories_values_class_import
+            , vc_ts_dd_category_column_name = @ts_dd_category_column_name
+            , vc_ts_dd_category_value_column_name = @ts_dd_category_value_column_name
+            , bi_upload_limit_bytes = @upload_limit_bytes
             , vc_webluuser = @webusr
             , vc_luuser = @login
             , dt_lu = @now
@@ -286,6 +310,39 @@ begin try
                 , dt_lu = @now
         where   c_application_id = @application_id
 			    and c_category_id = 'IdentityProviderRole'
+    end
+
+    if not exists
+        (
+            select  1
+            from    [dbo].[applications_cat] x
+            where   x.c_application_id = @application_id
+                    and x.c_category_id = 'FileStorageTypes'
+        )
+    begin
+        insert  [dbo].[applications_cat]
+        values  
+            (
+            @application_id
+			, 'FileStorageTypes'
+			, @filestorage_type_id
+            , @now
+            , @now
+            , @webusr
+            , @webusr
+            , @login
+            , @login
+            )
+    end
+    else
+    begin
+        update  [dbo].[applications_cat]
+        set     c_categoryvalue_id = @filestorage_type_id
+                , vc_webluuser = @webusr
+                , vc_luuser = @login
+                , dt_lu = @now
+        where   c_application_id = @application_id
+			    and c_category_id = 'FileStorageTypes'
     end
 
     delete  [dbo].[applications_urls]
