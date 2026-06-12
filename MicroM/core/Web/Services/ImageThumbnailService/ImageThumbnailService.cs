@@ -1,4 +1,5 @@
-﻿using SkiaSharp;
+﻿using MicroM.Configuration;
+using SkiaSharp;
 
 namespace MicroM.Web.Services;
 
@@ -111,7 +112,10 @@ public class ImageThumbnailService : IThumbnailService
 
         using var encodedData = thumbnailImage.Encode(imageFormat, quality) ?? throw new InvalidOperationException("Failed to encode thumbnail image.");
 
-        using FileStream thumbnailStream = File.OpenWrite(fullDestinationPath);
+        using FileStream thumbnailStream = new(
+            fullDestinationPath, FileMode.Create, FileAccess.Write, FileShare.None, bufferSize: DataDefaults.DefaultExportToExcelFileStreamCapacity,
+            options: FileOptions.Asynchronous | FileOptions.SequentialScan
+            );
 
         encodedData.SaveTo(thumbnailStream);
 

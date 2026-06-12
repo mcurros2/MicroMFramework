@@ -38,8 +38,9 @@ public class FileStorageService(IOptions<MicroMOptions> options, ILogger<FileSto
         return new ResultWithStatus<NewFileNameResult, ErrorResult>(Status: null, Result: new NewFileNameResult(newFileName, extension, folder, uploadsPath, fullPath));
     }
 
-    public async Task<ResultWithStatus<long, ErrorResult>> StoreFile(IEntityClient ec, ApplicationOption app, string fullPath, Stream filestream, CancellationToken ct)
+    public async Task<ResultWithStatus<long, ErrorResult>> StoreFile(IEntityClient ec, ApplicationOption app, FileDetails fileDetails, Stream filestream, CancellationToken ct)
     {
+        string fullPath = fileDetails.fullPath;
         if (string.IsNullOrEmpty(fullPath))
         {
             return new ResultWithStatus<long, ErrorResult>(Status: new ErrorResult(Error: "invalid_fullpath", ErrorDescription: "The full path is null or empty."), Result: -1);
@@ -53,7 +54,8 @@ public class FileStorageService(IOptions<MicroMOptions> options, ILogger<FileSto
                 Directory.CreateDirectory(directory);
             }
 
-            using var fileStream = new FileStream(fullPath, FileMode.Create, FileAccess.Write, FileShare.None);
+            using var fileStream = new FileStream(fullPath, FileMode.Create, FileAccess.Write, FileShare.None, bufferSize: DataDefaults.DefaultExportToExcelFileStreamCapacity,
+                   options: FileOptions.Asynchronous | FileOptions.SequentialScan);
             await filestream.CopyToAsync(fileStream, ct);
 
             await fileStream.FlushAsync(ct);
@@ -83,7 +85,14 @@ public class FileStorageService(IOptions<MicroMOptions> options, ILogger<FileSto
                     contentType = "application/octet-stream"; // Default MIME type
                 }
 
-                result = new() { ContentType = contentType, Stream = new FileStream(fileDetails.fullPath, FileMode.Open, FileAccess.Read, FileShare.Read) };
+                result = new()
+                {
+                    ContentType = contentType,
+                    Stream = new FileStream(
+                        fileDetails.fullPath, FileMode.Open, FileAccess.Read, FileShare.Read, bufferSize: DataDefaults.DefaultExportToExcelFileStreamCapacity,
+                        options: FileOptions.Asynchronous | FileOptions.SequentialScan
+                        )
+                };
             }
 
         }

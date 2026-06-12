@@ -103,7 +103,8 @@ public class FileUploadService(
 
             await FileStore.UpdateStatus(ec, app.SchemaConfiguration.DDSchema, file_details.c_file_id, nameof(FileUpload.Uploading), ct);
 
-            var store_result = await fileStorage.StoreFile(ec, app, fullPath, fileData, ct);
+            // This stream is the Request body stream, which is not seekable and can only be read once.
+            var store_result = await fileStorage.StoreFile(ec, app, file_details, fileData, ct);
 
             if (store_result.Status != null)
             {
@@ -114,17 +115,23 @@ public class FileUploadService(
             var should_create_thumbnail = !string.IsNullOrWhiteSpace(new_file_result.extension) && _thumbnailService.IsImageSupported(new_file_result.extension);
             var is_sql_storage = app.FileStorageType == nameof(FileStorageTypes.SQLFileStorage);
 
-
-            if (app.FileStorageType == nameof(FileStorageTypes.SQLFileStorage))
+            if (is_sql_storage)
             {
-                await using FileStream? uploaded_file_stream = (should_create_thumbnail || is_sql_storage) ? new FileStream(fullPath, FileMode.Open, FileAccess.Read, FileShare.Read) : null;
+                await using FileStream? uploaded_file_stream = (should_create_thumbnail || is_sql_storage)
+                    ? new FileStream(
+                        fullPath,
+                        FileMode.Open, FileAccess.Read, FileShare.Read,
+                        bufferSize: DataDefaults.DefaultExportToExcelFileStreamCapacity, options: FileOptions.SequentialScan | FileOptions.Asynchronous
+                        )
+                    : null;
+
                 if (uploaded_file_stream == null)
                 {
                     log.LogError("Uploaded file stream is null for SQL storage when processing file {fileName}", fullPath);
                     return new() { ErrorMessage = "Error processing uploaded file for SQL storage" };
                 }
 
-                var sql_result = await sqlStorage.StoreFile(ec, app, fullPath, uploaded_file_stream, ct);
+                var sql_result = await sqlStorage.StoreFile(ec, app, file_details, uploaded_file_stream, ct);
 
                 if (sql_result.Status != null)
                 {
@@ -154,7 +161,15 @@ public class FileUploadService(
                     {
                         await using FileStream thumbnail_file_stream = new(fullPath, FileMode.Open, FileAccess.Read, FileShare.Read);
 
-                        return _thumbnailService.CreateThumbnail(fullPath, thumbnail_file_stream, maxSize ?? default, quality ?? default);
+                        var thumb = _thumbnailService.CreateThumbnail(fullPath, thumbnail_file_stream, maxSize ?? default, quality ?? default);
+
+                        if (is_sql_storage)
+                        {
+                            await thumbnail_file_stream.DisposeAsync();
+                            File.Delete(fullPath);
+                        }
+
+                        return thumb;
                     });
 
                     log.LogDebug("Thumbnail created at {ThumbnailPath} for file {FullPath}", thumbnailPath, fullPath);
@@ -162,6 +177,13 @@ public class FileUploadService(
                 catch (Exception ex)
                 {
                     log.LogError(ex, "Failed to create thumbnail for file {FullPath}", fullPath);
+                }
+            }
+            else
+            {
+                if (is_sql_storage)
+                {
+                    File.Delete(fullPath);
                 }
             }
 
@@ -236,7 +258,8 @@ public class FileUploadService(
                         Size = 1
                     };
 
-                    _cache.Set(cacheKey, fileDetails, cacheEntryOptions);
+                    cacheEntry = fileDetails;
+                    _cache.Set(cacheKey, cacheEntry, cacheEntryOptions);
                 }
                 else
                 {
@@ -294,7 +317,15 @@ public class FileUploadService(
                     contentType = "application/octet-stream"; // Default MIME type
                 }
 
-                result = new() { ContentType = contentType, Stream = new FileStream(thumb.fullDestinationPath, FileMode.Open, FileAccess.Read, FileShare.Read) };
+                result = new()
+                {
+                    ContentType = contentType,
+                    Stream = new FileStream(
+                        thumb.fullDestinationPath, FileMode.Open, FileAccess.Read, FileShare.Read
+                        , bufferSize: DataDefaults.DefaultExportToExcelFileStreamCapacity
+                        , options: FileOptions.SequentialScan | FileOptions.Asynchronous
+                    )
+                };
             }
             else if (File.Exists(file_details.fullPath))
             {
@@ -303,7 +334,15 @@ public class FileUploadService(
                     contentType = "application/octet-stream"; // Default MIME type
                 }
 
-                result = new() { ContentType = contentType, Stream = new FileStream(file_details.fullPath, FileMode.Open, FileAccess.Read, FileShare.Read) };
+                result = new()
+                {
+                    ContentType = contentType,
+                    Stream = new FileStream(
+                        file_details.fullPath, FileMode.Open, FileAccess.Read, FileShare.Read
+                        , bufferSize: DataDefaults.DefaultExportToExcelFileStreamCapacity
+                        , options: FileOptions.SequentialScan | FileOptions.Asynchronous
+                    )
+                };
             }
 
         }

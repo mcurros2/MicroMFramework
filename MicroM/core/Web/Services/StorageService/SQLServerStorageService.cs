@@ -35,17 +35,17 @@ public class SQLServerStorageService(IOptions<MicroMOptions> options, ILogger<SQ
         return result;
     }
 
-    public async Task<ResultWithStatus<long, ErrorResult>> StoreFile(IEntityClient ec, ApplicationOption app, string fullPath, Stream filestream, CancellationToken ct)
+    public async Task<ResultWithStatus<long, ErrorResult>> StoreFile(IEntityClient ec, ApplicationOption app, FileDetails fileDetails, Stream filestream, CancellationToken ct)
     {
         try
         {
-            await FileStoreContent.StoreFile(ec, app, fullPath, filestream, ct);
+            await FileStoreContent.StoreFile(ec, app, fileDetails.c_file_id, filestream, ct);
 
             return new ResultWithStatus<long, ErrorResult>(Result: filestream.Length, Status: null);
         }
         catch (Exception ex)
         {
-            log.LogError("Error storing file {fullPath}: {ex}", fullPath, ex);
+            log.LogError("Error storing file {fullPath}: {ex}", fileDetails.fullPath, ex);
             return new ResultWithStatus<long, ErrorResult>(Result: 0, Status: new(Error: "FileStorageError", ErrorDescription: $"An error occurred while storing the file: {ex.Message}"));
         }
     }
