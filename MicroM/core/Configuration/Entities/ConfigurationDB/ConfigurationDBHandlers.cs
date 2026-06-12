@@ -218,10 +218,6 @@ public static class ConfigurationDBHandlers
             if (!string.IsNullOrEmpty(secrets?.ConfigSQLUser)) cfg.Def.vc_configsqluser.Value = secrets.ConfigSQLUser;
         }
 
-        // MMC: create uploads folder
-        string uploads_path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, options.UploadsFolder ?? ConfigurationDefaults.UploadsFolder);
-        if (!Path.Exists(uploads_path)) Directory.CreateDirectory(uploads_path);
-
         using IEntityClient dbc = cfg.Client.Clone(options.ConfigSQLServer ?? "", cfg.Client.MasterDatabase, admin_user, admin_password ?? "");
 
         try

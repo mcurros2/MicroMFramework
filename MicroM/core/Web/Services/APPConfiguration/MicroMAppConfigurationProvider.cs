@@ -82,10 +82,12 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
 
         _jwtkey = CryptClass.GenerateRandomBase64String(32);
 
-        var raw = options?.Value.MicroMAPIBaseRootPath ?? string.Empty;
+        var raw = _options.MicroMAPIBaseRootPath ?? string.Empty;
         var trimmed = raw.Trim().Trim('/');
 
         _basePathString = string.IsNullOrEmpty(trimmed) ? PathString.Empty : new PathString("/" + trimmed);
+
+        _options.UploadsFolder ??= Path.Combine(ConfigurationDefaults.UploadsFolder, _options.ConfigSQLServerDB ?? ConfigurationDefaults.SQLConfigDatabaseName, "uploads");
 
         _log.LogTrace("initialized");
     }
@@ -101,6 +103,7 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
         }
 
         await ReloadConfiguration(cancellationToken);
+
     }
 
     public async Task StopAsync(CancellationToken cancellationToken)
@@ -562,7 +565,7 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
                     foreach (var app in apps)
                     {
                         // MMC: create uploads folder for each app
-                        string uploads_path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, _options.UploadsFolder ?? ConfigurationDefaults.UploadsFolder, app.ApplicationID);
+                        string uploads_path = Path.Combine(_options.UploadsFolder!, app.ApplicationID);
                         if (!Path.Exists(uploads_path)) Directory.CreateDirectory(uploads_path);
 
                         _ApplicationsCache.TryAdd(app.ApplicationID, app);

@@ -47,6 +47,7 @@ public class FileUploadService(
             fileStore.Def.vc_filename.Value = Path.GetFileName(file_name);
             fileStore.Def.vc_fileguid.Value = newFileNameResult.Result.newFileName;
             fileStore.Def.vc_filefolder.Value = newFileNameResult.Result.folder;
+            fileStore.Def.c_filestoragetype_id.Value = app.FileStorageType ?? nameof(FileStorageTypes.LocalFileStorage);
             fileStore.Def.vc_file_tag.Value = file_tag;
             fileStore.Def.bi_filesize.Value = 0;
             await fileStore.InsertData(ct, true, _options);
@@ -214,7 +215,8 @@ public class FileUploadService(
                 if (fileDetails.c_fileuploadstatus_id == nameof(FileUpload.Uploaded))
                 {
 
-                    var uploadsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, app.ApplicationID, _options.UploadsFolder ?? ConfigurationDefaults.UploadsFolder, fileDetails.vc_filefolder);
+
+                    var uploadsPath = Path.Combine(_options.UploadsFolder!, app.ApplicationID, fileDetails.vc_filefolder);
 
                     var filePath = Path.Combine(uploadsPath, fileDetails.vc_fileguid);
 

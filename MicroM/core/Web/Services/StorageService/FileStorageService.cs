@@ -25,7 +25,7 @@ public class FileStorageService(IOptions<MicroMOptions> options, ILogger<FileSto
 
         string newFileName = $"{Guid.NewGuid()}{extension}";
         string folder = DateTime.Now.ToString("yyyyMM", CultureInfo.InvariantCulture);
-        var uploadsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, app.ApplicationID, _options.UploadsFolder ?? ConfigurationDefaults.UploadsFolder, folder);
+        var uploadsPath = Path.Combine(_options.UploadsFolder!, app.ApplicationID, folder);
 
         string fullPath = Path.Combine(uploadsPath, newFileName);
 

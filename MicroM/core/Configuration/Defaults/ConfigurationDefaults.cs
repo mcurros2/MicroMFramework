@@ -11,7 +11,7 @@ public class ConfigurationDefaults
     public static string SecretsFilename { get; set; } = "microm_config.cry";
     public static string MicroMCommonID { get; set; } = "MicroM";
     public static string SecretsFilePath { get; set; } = Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData);
-    public const string UploadsFolder = "uploads";
+    public static string UploadsFolder { get; set; } = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), MicroMCommonID);
 
     public const string HTTPClientOidcName = "oidc";
     public const string HTTPClientOidcUserAgent = "MicroM.OIDC/1.0";

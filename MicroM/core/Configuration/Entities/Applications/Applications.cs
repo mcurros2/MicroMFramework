@@ -330,8 +330,8 @@ public class Applications : Entity<ApplicationsDef>
                     TypeScriptCategoriesFolder = await fv.GetFieldValueAsync<string?>(nameof(app_result.TypeScriptCategoriesFolder), ct) ?? TemplateValues.CONST_EMBEDDED_CATEGORIES_FOLDER,
                     TypeScriptDDCategoriesValuesClassName = await fv.GetFieldValueAsync<string?>(nameof(app_result.TypeScriptDDCategoriesValuesClassName), ct) ?? TemplateValues.CONST_CATEGORIES_VALUES_CLASS,
                     TypeScriptDDCategoriesValuesClassImport = await fv.GetFieldValueAsync<string?>(nameof(app_result.TypeScriptDDCategoriesValuesClassImport), ct) ?? TemplateValues.CONST_MICROM_LIB_PACKAGE,
-                    TypeScriptDDCategoriesColumnName = await fv.GetFieldValueAsync<string?>(nameof(app_result.TypeScriptDDCategoriesColumnName), ct) ?? TemplateValues.CONST_CATEGORIES_ID_COLUMN_NAME,
-                    TypeScriptDDCategoriesValueColumnName = await fv.GetFieldValueAsync<string?>(nameof(app_result.TypeScriptDDCategoriesValueColumnName), ct) ?? TemplateValues.CONST_CATEGORIES_VALUES_ID_COLUMN_NAME,
+                    TypeScriptDDCategoryColumnName = await fv.GetFieldValueAsync<string?>(nameof(app_result.TypeScriptDDCategoryColumnName), ct) ?? TemplateValues.CONST_CATEGORIES_ID_COLUMN_NAME,
+                    TypeScriptDDCategoryValueColumnName = await fv.GetFieldValueAsync<string?>(nameof(app_result.TypeScriptDDCategoryValueColumnName), ct) ?? TemplateValues.CONST_CATEGORIES_VALUES_ID_COLUMN_NAME,
                     UploadLimitBytes = await fv.GetFieldValueAsync<long?>(nameof(app_result.UploadLimitBytes), ct) ?? DataDefaults.DefaultUploadFileSizeLimitBytes,
                     FileStorageType = await fv.GetFieldValueAsync<string?>(nameof(app_result.FileStorageType), ct) ?? nameof(FileStorageTypes.LocalFileStorage),
 

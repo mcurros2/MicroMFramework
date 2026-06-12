@@ -73,6 +73,6 @@ public class ApplicationOption
     public string TypeScriptCategoriesFolder { get; set; } = "../Categories";
     public string TypeScriptDDCategoriesValuesClassName { get; set; } = "CategoriesValues";
     public string TypeScriptDDCategoriesValuesClassImport { get; set; } = TemplateValues.CONST_MICROM_LIB_PACKAGE;
-    public string TypeScriptDDCategoriesColumnName { get; set; } = "c_category_id";
-    public string TypeScriptDDCategoriesValueColumnName { get; set; } = "c_categoryvalue_id";
+    public string TypeScriptDDCategoryColumnName { get; set; } = "c_category_id";
+    public string TypeScriptDDCategoryValueColumnName { get; set; } = "c_categoryvalue_id";
 }

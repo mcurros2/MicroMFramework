@@ -31,6 +31,18 @@ public static class WebAPIBaseExtensions
         return services;
     }
 
+    public static IServiceCollection AddFileStorageService(this IServiceCollection services)
+    {
+        services.AddSingleton<IStorageService<FileStorageService>, FileStorageService>();
+        return services;
+    }
+
+    public static IServiceCollection AddSQLServerStorageService(this IServiceCollection services)
+    {
+        services.AddSingleton<IStorageService<SQLServerStorageService>, SQLServerStorageService>();
+        return services;
+    }
+
     public static IServiceCollection AddFileUploadService(this IServiceCollection services)
     {
         services.AddSingleton<IFileUploadService, FileUploadService>();
@@ -450,6 +462,8 @@ public static class WebAPIBaseExtensions
         services.AddSQLServerAuthenticator();
         services.AddMicroMAuthenticationProvider();
         services.AddThumbnailService();
+        services.AddFileStorageService();
+        services.AddSQLServerStorageService();
         services.AddFileUploadService();
         services.AddEmailService();
         services.AddSecurityService();
