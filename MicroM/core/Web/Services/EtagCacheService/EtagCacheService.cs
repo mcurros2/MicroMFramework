@@ -19,7 +19,7 @@ public class EtagCacheService<T> : IEtagCacheService<T> where T : class?
 
     public EtagCacheService(IMemoryEventsService bus, ILogger<EtagCacheService<T>> log)
     {
-        bus.Subscribe<MicroMConfigurationReloaded>(_ =>
+        bus.Subscribe<MicroMConfigurationReloadedEvent>(_ =>
         {
             log.LogInformation("Clearing ETag cache due to MicroMConfigurationReloaded");
             ClearCache();

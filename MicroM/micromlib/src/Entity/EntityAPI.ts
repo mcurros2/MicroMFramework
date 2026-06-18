@@ -98,9 +98,9 @@ export class EntityAPI {
     /**
      * Lookup the description for an entity.
      */
-    async lookupData(abort_signal: AbortSignal | null = null): Promise<string> {
+    async lookupData(abort_signal: AbortSignal | null = null, parentKeys: ValuesObject | null = null, proc_name: string | null = null): Promise<string> {
         const values = cf.getValues(this.#columns, { flags: EntityColumnFlags.pk | EntityColumnFlags.fk, ignoreDefaults: false });
-        const result = await this.client.lookup(this.#name, null, values, null, abort_signal);
+        const result = await this.client.lookup(this.#name, parentKeys, values, proc_name, abort_signal);
         return result.Description;
     }
 

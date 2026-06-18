@@ -113,7 +113,7 @@ public class CryptClass
 
     public static async Task ExportCertificate(X509Certificate2 cert, string certificate_full_path, string export_password, CancellationToken ct)
     {
-        if (!Directory.Exists(certificate_full_path)) Directory.CreateDirectory(certificate_full_path);
+        Directory.CreateDirectory(certificate_full_path);
         await File.WriteAllBytesAsync(certificate_full_path, cert.Export(X509ContentType.Pkcs12, export_password), ct);
     }
 

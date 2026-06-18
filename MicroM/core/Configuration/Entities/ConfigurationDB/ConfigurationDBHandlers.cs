@@ -38,10 +38,7 @@ public static class ConfigurationDBHandlers
 
         string config_path = Path.Combine(ConfigurationDefaults.SecretsFilePath, ConfigurationDefaults.MicroMCommonID);
 
-        if (!Directory.Exists(config_path))
-        {
-            Directory.CreateDirectory(config_path);
-        }
+        Directory.CreateDirectory(config_path);
 
         string config_file = Path.Combine(config_path, ConfigurationDefaults.SecretsFilename);
 

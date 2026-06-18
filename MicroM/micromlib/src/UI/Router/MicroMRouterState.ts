@@ -12,9 +12,9 @@ export interface MicroMRouterState {
 // MMC: normalize the path to always start with '/#/', the recieved path can start with '/#/', with '/' or without any of them
 export const normalizeRoutePath = (path: string) => {
     if (path.startsWith('#/')) {
-        return path.slice(1);
+        return decodeURIComponent(path.slice(1));
     }
-    return path;
+    return decodeURIComponent(path);
 }
 
 export const navigateToRoute = (newPath: string) => {

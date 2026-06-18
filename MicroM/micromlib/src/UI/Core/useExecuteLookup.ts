@@ -12,6 +12,8 @@ export function useExecuteLookup({ entity, lookupDefName, parentKeys }: UseLooku
     const done = useRef<boolean>(false);
     const prevValues = useRef<ValuesObject | undefined>();
 
+    const lookupProc = entity.def.lookups[lookupDefName].proc;
+
     useEffect(() => {
         return () => {
             if (!done.current) {
@@ -42,7 +44,7 @@ export function useExecuteLookup({ entity, lookupDefName, parentKeys }: UseLooku
                 if (entity && lookupEntity) {
                     setStatus({ loading: true, operationType: 'lookup' });
 
-                    const data = await lookupEntity.API.lookupData(cancellation.current.signal);
+                    const data = await lookupEntity.API.lookupData(cancellation.current.signal, null, lookupProc);
                     done.current = true;
                     const status_result: OperationStatus<string> = { data: data, operationType: 'lookup' };
                     setStatus(status_result);

@@ -27,7 +27,7 @@ public class FileStorageService(IOptions<MicroMOptions> options, ILogger<FileSto
         string folder = DateTime.Now.ToString("yyyyMM", CultureInfo.InvariantCulture);
         var uploadsPath = Path.Combine(_options.UploadsFolder!, app.ApplicationID, folder);
 
-        string fullPath = Path.Combine(uploadsPath, newFileName);
+        string fullPath = Path.GetFullPath(Path.Combine(uploadsPath, newFileName));
 
         // MMC: check for directory traversal attacks
         if (!fullPath.StartsWith(uploadsPath, StringComparison.OrdinalIgnoreCase))
@@ -49,7 +49,7 @@ public class FileStorageService(IOptions<MicroMOptions> options, ILogger<FileSto
         try
         {
             var directory = Path.GetDirectoryName(fullPath);
-            if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
+            if (!string.IsNullOrEmpty(directory))
             {
                 Directory.CreateDirectory(directory);
             }

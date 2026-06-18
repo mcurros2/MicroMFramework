@@ -13,6 +13,8 @@ public class ConfigurationDefaults
     public static string SecretsFilePath { get; set; } = Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData);
     public static string UploadsFolder { get; set; } = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), MicroMCommonID);
 
+    public static string DiskFileCacheFolder { get; set; } = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), MicroMCommonID);
+
     public const string HTTPClientOidcName = "oidc";
     public const string HTTPClientOidcUserAgent = "MicroM.OIDC/1.0";
     public const string HTTPClientJwksName = "jwks";

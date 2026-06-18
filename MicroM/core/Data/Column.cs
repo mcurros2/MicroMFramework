@@ -141,7 +141,7 @@ public class Column<T> : ColumnBase
         return new Column<T>(this);
     }
 
-    public static Column<T> EmbedCategory(object category_id, bool nullable = false, bool isArray = false, T value = default!, bool api_readonly = false)
+    public static Column<T> EmbedCategory(object category_id, bool nullable = false, bool isArray = false, T value = default!, ColumnFlags column_flags = ColumnFlags.Insert | ColumnFlags.Update | ColumnFlags.Fake, bool api_readonly = false)
     {
         if (typeof(T) != typeof(string) && typeof(T) != typeof(string[]) && Nullable.GetUnderlyingType(typeof(T)) != typeof(string[]))
         {
@@ -150,7 +150,6 @@ public class Column<T> : ColumnBase
 
         isArray = (typeof(T) == typeof(string[]) || Nullable.GetUnderlyingType(typeof(T)) == typeof(string[]));
 
-        ColumnFlags column_flags = ColumnFlags.Insert | ColumnFlags.Update | ColumnFlags.Fake;
         if (api_readonly) column_flags |= ColumnFlags.APIReadOnly;
 
         if (isArray)

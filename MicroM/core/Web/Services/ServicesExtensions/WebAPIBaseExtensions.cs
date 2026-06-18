@@ -43,6 +43,14 @@ public static class WebAPIBaseExtensions
         return services;
     }
 
+    public static IServiceCollection AddDiskFileCacheService(this IServiceCollection services)
+    {
+        services.AddSingleton<IDiskFileCacheService, DiskFileCacheService>();
+        services.AddSingleton<DiskFileCacheMaintenanceService>();
+        services.AddHostedService(provider => provider.GetRequiredService<DiskFileCacheMaintenanceService>());
+        return services;
+    }
+
     public static IServiceCollection AddFileUploadService(this IServiceCollection services)
     {
         services.AddSingleton<IFileUploadService, FileUploadService>();
@@ -462,6 +470,7 @@ public static class WebAPIBaseExtensions
         services.AddSQLServerAuthenticator();
         services.AddMicroMAuthenticationProvider();
         services.AddThumbnailService();
+        services.AddDiskFileCacheService();
         services.AddFileStorageService();
         services.AddSQLServerStorageService();
         services.AddFileUploadService();

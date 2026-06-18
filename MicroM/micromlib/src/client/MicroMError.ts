@@ -32,5 +32,5 @@ export const toDBStatusMicroMError = (dbstat: DBStatus[], form_mode: FormMode = 
 }
 
 export function isMicroMError(e: any): e is MicroMError {
-    return e
+    return e && typeof e.status === "number" && typeof e.message === "string";
 }

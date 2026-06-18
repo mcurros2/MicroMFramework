@@ -18,9 +18,6 @@ using static System.ArgumentNullException;
 
 namespace MicroM.Web.Services;
 
-public sealed record MicroMConfigurationReloaded { }
-public sealed record AppDatabaseUpdatedOnHotReload(string ApplicationID);
-
 public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfiguration
 {
     private static readonly Dictionary<string, ApplicationOption> _ApplicationsCache = new(StringComparer.OrdinalIgnoreCase);
@@ -88,6 +85,13 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
         _basePathString = string.IsNullOrEmpty(trimmed) ? PathString.Empty : new PathString("/" + trimmed);
 
         _options.UploadsFolder ??= Path.Combine(ConfigurationDefaults.UploadsFolder, _options.ConfigSQLServerDB ?? ConfigurationDefaults.SQLConfigDatabaseName, "uploads");
+
+        _options.DiskFileCacheOptions ??= new DiskFileCacheOptions();
+
+        if (string.IsNullOrEmpty(_options.DiskFileCacheOptions.RootPath))
+        {
+            _options.DiskFileCacheOptions.RootPath = Path.Combine(ConfigurationDefaults.DiskFileCacheFolder, _options.ConfigSQLServerDB ?? ConfigurationDefaults.SQLConfigDatabaseName, "disk_cache");
+        }
 
         _log.LogTrace("initialized");
     }
@@ -566,7 +570,7 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
                     {
                         // MMC: create uploads folder for each app
                         string uploads_path = Path.Combine(_options.UploadsFolder!, app.ApplicationID);
-                        if (!Path.Exists(uploads_path)) Directory.CreateDirectory(uploads_path);
+                        Directory.CreateDirectory(uploads_path);
 
                         _ApplicationsCache.TryAdd(app.ApplicationID, app);
                     }
@@ -582,7 +586,7 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
             }
             finally
             {
-                _bus.Publish(new MicroMConfigurationReloaded());
+                _bus.Publish(new MicroMConfigurationReloadedEvent());
             }
         }
 
@@ -720,7 +724,7 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
                 return null;
             }
 
-            // remainingPath starts with "/APP_ID/..." o "/APP_ID"
+            // remainingPath starts with "/APP_ID/..." or "/APP_ID"
             var remaining = remainingPath.Value.TrimStart('/');
 
             // Get APP_ID, from first segment in remainingPath
@@ -829,6 +833,7 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
         _ApplicationServicesCache.Clear();
     }
 
+
     private sealed record AssemblyDbRow(string AppId, string AssemblyPath, string AssemblyId);
 
     private async Task<List<AssemblyCopyRequest>> GetAssembliesToCopy(DatabaseClient client, CancellationToken ct)
@@ -863,7 +868,7 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
             var result = await ApplicationDatabase.UpdateAppDatabaseOnHotReload(app, this, _log, ct);
             if (!result.Failed)
             {
-                _bus.Publish(new AppDatabaseUpdatedOnHotReload(app.ApplicationID));
+                _bus.Publish(new AppDatabaseUpdatedOnHotReloadEvent(app.ApplicationID));
             }
         }
     }

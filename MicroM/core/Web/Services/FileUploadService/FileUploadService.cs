@@ -13,17 +13,19 @@ namespace MicroM.Web.Services;
 
 public class FileUploadService(
     IOptions<MicroMOptions> options, ILogger<FileUploadService> log, ILoggerFactory loggerFactory, IThumbnailService thumbnailService, IStorageService<FileStorageService> fileStorage,
-    IStorageService<SQLServerStorageService> sqlStorage
+    IStorageService<SQLServerStorageService> sqlStorage, IOptions<DiskFileCacheOptions> cacheOptions
     ) : IFileUploadService, IDisposable
 {
     private readonly MicroMOptions _options = options.Value;
+    private readonly DiskFileCacheOptions _cacheOptions = cacheOptions.Value;
     private readonly FileExtensionContentTypeProvider _contentTypeProvider = new();
-    private readonly MemoryCache _cache = new MemoryCache(new MemoryCacheOptions() { SizeLimit = 100000 }, loggerFactory);
+
+    private readonly MemoryCache _fileDetailsCache = new(new MemoryCacheOptions() { SizeLimit = 100000 }, loggerFactory);
+
     private readonly IThumbnailService _thumbnailService = thumbnailService;
     private bool disposedValue;
 
-    private async Task<ResultWithStatus<(FileDetails details, NewFileNameResult new_file_result, FileStore file_store)?, ErrorResult>>
-        QueueFile(ApplicationOption app, string fileprocess_id, string file_name, string? file_tag, IEntityClient ec, CancellationToken ct)
+    private async Task<ResultWithStatus<FileUploadQueueFileResult?, ErrorResult>> QueueFile(ApplicationOption app, string fileprocess_id, string file_name, string? file_tag, IEntityClient ec, CancellationToken ct)
     {
         var newFileNameResult = fileStorage.GetNewFileName(ec, app, file_name);
 
@@ -52,8 +54,6 @@ public class FileUploadService(
             fileStore.Def.bi_filesize.Value = 0;
             await fileStore.InsertData(ct, true, _options);
             await fileStore.GetData(ct);
-
-
         }
         catch (Exception ex)
         {
@@ -65,7 +65,7 @@ public class FileUploadService(
             await ec.Disconnect();
         }
 
-        return new(Result: (new FileDetails
+        return new(Result: new(new FileDetails
         {
             c_file_id = fileStore.Def.c_file_id.Value,
             c_fileprocess_id = fileStore.Def.c_fileprocess_id.Value,
@@ -80,6 +80,15 @@ public class FileUploadService(
         }, newFileNameResult.Result, fileStore), Status: null);
     }
 
+    private FileStream OpenReadFileStream(string path)
+    {
+        return new FileStream(
+            path,
+            FileMode.Open, FileAccess.Read, FileShare.Read,
+            bufferSize: _cacheOptions.ReadBufferSize,
+            options: FileOptions.SequentialScan | FileOptions.Asynchronous
+            );
+    }
 
 
     public async Task<UploadFileResult> UploadFile(ApplicationOption app, string fileprocess_id, string fileName, Stream fileData, string? file_tag, int? maxSize, int? quality, IEntityClient ec, CancellationToken ct)
@@ -87,27 +96,29 @@ public class FileUploadService(
         string fullPath = string.Empty;
         try
         {
-
+            // Queue the upload, upload status is pending
             var queue_result = await QueueFile(app, fileprocess_id, fileName, file_tag, ec, ct);
 
             if (queue_result.Status != null) return new() { ErrorMessage = queue_result.Status.ErrorDescription };
             if (queue_result.Result == null) return new() { ErrorMessage = "Error queuing file" };
 
-            var file_details = queue_result.Result.Value.details;
-            var new_file_result = queue_result.Result.Value.new_file_result;
-            var fileStore = queue_result.Result.Value.file_store;
+            var file_details = queue_result.Result.details;
+            var new_file_result = queue_result.Result.new_file_result;
+            var fileStore = queue_result.Result.file_store;
 
             if (string.IsNullOrEmpty(file_details.fullPath)) return new() { ErrorMessage = "Error queuing file upload path" };
 
             fullPath = file_details.fullPath;
 
+            // Change upload status to Uploading
             await FileStore.UpdateStatus(ec, app.SchemaConfiguration.DDSchema, file_details.c_file_id, nameof(FileUpload.Uploading), ct);
 
-            // This stream is the Request body stream, which is not seekable and can only be read once.
+            // fileData stream is the Request body stream, which is not seekable and can only be read once.
             var store_result = await fileStorage.StoreFile(ec, app, file_details, fileData, ct);
 
             if (store_result.Status != null)
             {
+                await FileStore.UpdateStatus(ec, app.SchemaConfiguration.DDSchema, file_details.c_file_id, nameof(FileUpload.Failed), ct);
                 log.LogError("Error storing file {fileName} in storage service: {errorMessage}", fileName, store_result.Status);
                 return new() { ErrorMessage = $"Error storing file: {store_result.Status}" };
             }
@@ -117,38 +128,27 @@ public class FileUploadService(
 
             if (is_sql_storage)
             {
-                await using FileStream? uploaded_file_stream = (should_create_thumbnail || is_sql_storage)
-                    ? new FileStream(
-                        fullPath,
-                        FileMode.Open, FileAccess.Read, FileShare.Read,
-                        bufferSize: DataDefaults.DefaultExportToExcelFileStreamCapacity, options: FileOptions.SequentialScan | FileOptions.Asynchronous
-                        )
-                    : null;
-
-                if (uploaded_file_stream == null)
-                {
-                    log.LogError("Uploaded file stream is null for SQL storage when processing file {fileName}", fullPath);
-                    return new() { ErrorMessage = "Error processing uploaded file for SQL storage" };
-                }
+                // SQL Storage needs a stream to the uploaded file
+                await using FileStream uploaded_file_stream = OpenReadFileStream(fullPath);
 
                 var sql_result = await sqlStorage.StoreFile(ec, app, file_details, uploaded_file_stream, ct);
 
                 if (sql_result.Status != null)
                 {
+                    await FileStore.UpdateStatus(ec, app.SchemaConfiguration.DDSchema, file_details.c_file_id, nameof(FileUpload.Failed), ct);
                     log.LogError("Error storing file {fileName} in SQL storage service: {errorMessage}", fullPath, sql_result.Status);
                     return new() { ErrorMessage = "Error uploading file to SQL storage" };
                 }
 
             }
 
-            // MMC: connect again to update the status
             await ec.Connect(ct);
-
-            await FileStore.UpdateStatus(ec, app.SchemaConfiguration.DDSchema, fileStore.Def.c_file_id.Value, nameof(FileUpload.Uploaded), ct);
 
             // MMC: update file size
             fileStore.Def.bi_filesize.Value = store_result.Result;
             await fileStore.UpdateData(ct, true);
+
+            await FileStore.UpdateStatus(ec, app.SchemaConfiguration.DDSchema, fileStore.Def.c_file_id.Value, nameof(FileUpload.Uploaded), ct);
 
             await ec.Disconnect();
 
@@ -220,7 +220,7 @@ public class FileUploadService(
     {
         string cacheKey = $"FileStore_{fileguid}";
 
-        if (_cache.TryGetValue(cacheKey, out FileDetails? cacheEntry))
+        if (_fileDetailsCache.TryGetValue(cacheKey, out FileDetails? cacheEntry))
         {
             return cacheEntry;
         }
@@ -236,11 +236,9 @@ public class FileUploadService(
             {
                 if (fileDetails.c_fileuploadstatus_id == nameof(FileUpload.Uploaded))
                 {
-
-
                     var uploadsPath = Path.Combine(_options.UploadsFolder!, app.ApplicationID, fileDetails.vc_filefolder);
 
-                    var filePath = Path.Combine(uploadsPath, fileDetails.vc_fileguid);
+                    var filePath = Path.GetFullPath(Path.Combine(uploadsPath, fileDetails.vc_fileguid));
 
                     // MMC: check for directory traversal attacks
                     if (!filePath.StartsWith(uploadsPath, StringComparison.OrdinalIgnoreCase))
@@ -250,16 +248,14 @@ public class FileUploadService(
 
                     fileDetails.fullPath = filePath;
 
-                    // MMC: The cache should have as SizeLimit. When the limit is reached, the cache will remove the least recently used item as per default behavior.
-                    // The removal is triggered when add/get/remove are called.
                     var cacheEntryOptions = new MemoryCacheEntryOptions
                     {
                         Priority = CacheItemPriority.Normal,
-                        Size = 1
+                        Size = 1 // Each cache entry is counted as 1 unit towards the size limit
                     };
 
                     cacheEntry = fileDetails;
-                    _cache.Set(cacheKey, cacheEntry, cacheEntryOptions);
+                    _fileDetailsCache.Set(cacheKey, cacheEntry, cacheEntryOptions);
                 }
                 else
                 {
@@ -270,7 +266,7 @@ public class FileUploadService(
         }
         catch (Exception ex)
         {
-            log.LogError("Error serving file {fileguid}, {ex}", fileguid, ex);
+            log.LogError(ex, "Error serving file {fileguid}", fileguid);
         }
         finally
         {
@@ -320,29 +316,19 @@ public class FileUploadService(
                 result = new()
                 {
                     ContentType = contentType,
-                    Stream = new FileStream(
-                        thumb.fullDestinationPath, FileMode.Open, FileAccess.Read, FileShare.Read
-                        , bufferSize: DataDefaults.DefaultExportToExcelFileStreamCapacity
-                        , options: FileOptions.SequentialScan | FileOptions.Asynchronous
-                    )
+                    Stream = OpenReadFileStream(thumb.fullDestinationPath)
                 };
             }
-            else if (File.Exists(file_details.fullPath))
+            else
             {
-                if (!_contentTypeProvider.TryGetContentType(file_details.fullPath, out var contentType))
+                if (file_details.c_filestoragetype_id == nameof(FileStorageTypes.SQLFileStorage))
                 {
-                    contentType = "application/octet-stream"; // Default MIME type
+                    result = await sqlStorage.GetFileStream(ec, app, file_details, ct);
                 }
-
-                result = new()
+                else
                 {
-                    ContentType = contentType,
-                    Stream = new FileStream(
-                        file_details.fullPath, FileMode.Open, FileAccess.Read, FileShare.Read
-                        , bufferSize: DataDefaults.DefaultExportToExcelFileStreamCapacity
-                        , options: FileOptions.SequentialScan | FileOptions.Asynchronous
-                    )
-                };
+                    result = await fileStorage.GetFileStream(ec, app, file_details, ct);
+                }
             }
 
         }
@@ -372,7 +358,7 @@ public class FileUploadService(
         {
             if (disposing)
             {
-                _cache.Dispose();
+                _fileDetailsCache.Dispose();
             }
 
             // TODO: free unmanaged resources (unmanaged objects) and override finalizer

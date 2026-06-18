@@ -5,11 +5,11 @@ public class FileDetails
     public string c_file_id { get; set; } = "";
     public string c_fileprocess_id { get; set; } = "";
     public string vc_filename { get; set; } = "";
-    public string vc_filefolder { get; init; } = "";
-    public string vc_fileguid { get; set; } = "";
+    public string vc_filefolder { get; set; } = "";
+    public string vc_fileguid { get; set; } = ""; // {GUID}.{extension}
     public long bi_filesize { get; set; }
     public string vc_file_tag { get; set; } = "";
-    public string c_filestoragetype_id { get; set; } = "";
+    public string c_filestoragetype_id { get; set; } = ""; // LocalFileStorage or SQLFileStorage
     public string c_fileuploadstatus_id { get; set; } = "";
     public string fullPath { get; set; } = "";
 }

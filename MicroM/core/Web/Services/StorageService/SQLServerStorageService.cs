@@ -8,7 +8,7 @@ using Microsoft.Extensions.Options;
 
 namespace MicroM.Web.Services;
 
-public class SQLServerStorageService(IOptions<MicroMOptions> options, ILogger<SQLServerStorageService> log) : IStorageService<SQLServerStorageService>
+public class SQLServerStorageService(IOptions<MicroMOptions> options, ILogger<SQLServerStorageService> log, IDiskFileCacheService disk_cache) : IStorageService<SQLServerStorageService>
 {
     private readonly MicroMOptions _options = options.Value;
     private readonly FileExtensionContentTypeProvider _contentTypeProvider = new();
@@ -29,7 +29,28 @@ public class SQLServerStorageService(IOptions<MicroMOptions> options, ILogger<SQ
                 contentType = "application/octet-stream"; // Default MIME type
             }
 
-            result = new() { ContentType = contentType, Stream = await FileStoreContent.GetFileStream(ec, app, fileDetails.c_file_id, ct) };
+            Stream result_stream;
+            var cache_result = disk_cache.GetEntry(app.ApplicationID, fileDetails);
+            if (cache_result != null)
+            {
+                result_stream = cache_result.fileStream;
+            }
+            else
+            {
+                var source_stream = await FileStoreContent.GetFileStream(ec, app, fileDetails.c_file_id, ct);
+                var cached_stream = await disk_cache.AddEntry(app.ApplicationID, fileDetails, source_stream, ct);
+                if (cached_stream != null)
+                {
+                    result_stream = cached_stream;
+                }
+                else
+                {
+                    log.LogError("Failed to cache file {fullPath} after retrieving from database. Returning stream directly.", fileDetails.fullPath);
+                    result_stream = source_stream;
+                }
+            }
+
+            result = new() { ContentType = contentType, Stream = result_stream };
         }
 
         return result;

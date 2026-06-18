@@ -75,7 +75,7 @@ export const LookupSelect = forwardRef<HTMLInputElement, LookupSelectOptions>(fu
         miw: selectProps?.miw ?? (minWidth !== 'auto' && minWidth !== undefined) ? MicroMWidthSizes[minWidth!] : undefined,
         maw: selectProps?.maw ?? (maxWidth !== 'auto' && maxWidth !== undefined) ? MicroMWidthSizes[maxWidth!] : undefined,
         label: selectProps?.label ?? column.prompt,
-        description: showDescription ? (selectProps?.description ?? column.description) : '',
+        description: showDescription ? (selectProps?.description ?? column.description) : ''
     };
 
     useFieldConfiguration({ entityForm, column, required: resolvedSelectProps?.required, requiredMessage: requiredLabel });
@@ -97,6 +97,7 @@ export const LookupSelect = forwardRef<HTMLInputElement, LookupSelectOptions>(fu
         }
     }, [column, entityForm.form.values, selectData]);
 
+    const readoOnlyResult = resolvedSelectProps?.readOnly || entityForm.formMode === 'view' || lookupSelectAPI.status.loading || formStatus?.loading || (column.hasFlag(EntityColumnFlags.pk) && entityForm.formMode !== 'add') ? true : false;
 
     return (
         <Select
@@ -106,7 +107,7 @@ export const LookupSelect = forwardRef<HTMLInputElement, LookupSelectOptions>(fu
             zIndex={zIndex}
             icon={lookupSelectAPI.status.loading ? <Loader size="xs" /> : resolvedSelectProps.icon}
             data={selectData}
-            readOnly={resolvedSelectProps?.readOnly || entityForm.formMode === 'view' || lookupSelectAPI.status.loading || formStatus?.loading ? true : false}
+            readOnly={readoOnlyResult}
             error={lookupSelectAPI.status.error ? lookupSelectAPI.status.error.message : null}
             // MMC: this is how we hack the styles let the chevron work showing the list and the edit button be clickable
             styles={() => ({

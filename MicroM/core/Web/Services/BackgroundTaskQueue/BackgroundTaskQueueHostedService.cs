@@ -39,11 +39,11 @@ public class BackgroundTaskQueueHostedService : IBackgroundTaskQueueHostedServic
         return Task.CompletedTask;
     }
 
-    public Guid Enqueue(string TaskName, Func<CancellationToken, Task<string>> workItem, bool singleInstance, TimeSpan? recurrenceInterval = null)
+    public Guid Enqueue(string TaskName, Func<CancellationToken, Task<string>> workItem, bool singleInstance, TimeSpan? recurrenceInterval = null, TimeSpan? delayedStart = null)
     {
         try
         {
-            return _taskQueue.Enqueue(TaskName, workItem, singleInstance, recurrenceInterval);
+            return _taskQueue.Enqueue(TaskName, workItem, singleInstance, recurrenceInterval, delayedStart);
         }
         catch (Exception ex)
         {

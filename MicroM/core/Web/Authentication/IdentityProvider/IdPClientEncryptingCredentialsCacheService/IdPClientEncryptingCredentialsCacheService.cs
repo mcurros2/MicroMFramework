@@ -34,7 +34,7 @@ public class IdPClientEncryptingCredentialsCacheService : IIdPClientEncryptingCr
         this.log = log;
         this.bus = bus;
 
-        bus.Subscribe<MicroMConfigurationReloaded>(_ =>
+        bus.Subscribe<MicroMConfigurationReloadedEvent>(_ =>
         {
             log.LogInformation("Clearing IDP client encrypting credentials cache due to MicroMConfigurationReloaded");
             Clear();

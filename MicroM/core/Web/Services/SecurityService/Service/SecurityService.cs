@@ -157,7 +157,7 @@ public class SecurityService(IMicroMAppConfiguration app_config, ILogger<Securit
         return false;
     }
 
-    private Action<AppDatabaseUpdatedOnHotReload>? _onHotReloadUpdated;
+    private Action<AppDatabaseUpdatedOnHotReloadEvent>? _onHotReloadUpdated;
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {

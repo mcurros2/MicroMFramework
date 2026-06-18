@@ -12,11 +12,11 @@ public class ApplicationCertificateCacheService : IApplicationCertificateCacheSe
     private readonly ILogger<ApplicationCertificateCacheService> log;
     private readonly IMemoryEventsService bus;
 
-    public ApplicationCertificateCacheService(ILogger<ApplicationCertificateCacheService> log, IMemoryEventsService bus)
+    public ApplicationCertificateCacheService(ILogger<ApplicationCertificateCacheService> logger, IMemoryEventsService event_bus)
     {
-        this.log = log;
-        this.bus = bus;
-        bus.Subscribe<MicroMConfigurationReloaded>(_ =>
+        log = logger;
+        bus = event_bus;
+        bus.Subscribe<MicroMConfigurationReloadedEvent>(_ =>
         {
             log.LogInformation("Clearing application certificate cache due to MicroMConfigurationReloaded");
             ClearCache();
