@@ -1,7 +1,7 @@
 ﻿namespace MicroM.Data;
 
 [Flags]
-public enum ColumnFlags : byte
+public enum ColumnFlags : ushort
 {
     None = 0,
     Get = 1,
@@ -12,5 +12,6 @@ public enum ColumnFlags : byte
     FK = 32,
     Autonum = 64,
     Fake = 128,
-    All = 255
+    APIReadOnly = 256,
+    All = 512,
 }

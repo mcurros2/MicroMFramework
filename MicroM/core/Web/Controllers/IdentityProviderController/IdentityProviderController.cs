@@ -1,60 +1,293 @@
-﻿using MicroM.Web.Authentication;
+﻿using MicroM.Configuration;
+using MicroM.Configuration.CategoriesDefinitions;
+using MicroM.Web.Authentication.SSO;
 using MicroM.Web.Services;
 using MicroM.Web.Services.Security;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using System.Net.Mime;
+using static MicroM.Web.Controllers.MicroMControllersMessages;
 
 namespace MicroM.Web.Controllers;
 
 [ApiController]
 public class IdentityProviderController : ControllerBase, IIdentityProviderController
 {
-    [AllowAnonymous]
-    [HttpPost("{app_id}/oidc/.well-known/openid-configuration")]
-    public Task<Dictionary<string, string>> WellKnown([FromServices] IAuthenticationProvider auth, [FromServices] IMicroMAppConfiguration app_config, string app_id, CancellationToken ct)
+    private readonly MicroMOptions _microm_options;
+    private readonly PathString _api_path;
+    private readonly ILogger<IdentityProviderController> _log;
+
+    public IdentityProviderController(IOptions<MicroMOptions> microm_options, ILogger<IdentityProviderController> log)
     {
-        throw new NotImplementedException();
+        _microm_options = microm_options.Value;
+        _api_path = new PathString($"/{_microm_options.MicroMAPIBaseRootPath?.Trim('/')}");
+        _log = log;
+    }
+
+    [AllowAnonymous]
+    [HttpGet("{app_id}/oidc/.well-known/openid-configuration")]
+    [EnableRateLimiting(MicroMServicesConstants.RateLimitingOidcMetadataPolicy)]
+    public ActionResult WellKnown([FromServices] IMicroMAppConfiguration app_config, [FromServices] IIdentityProviderService idp, string app_id, CancellationToken ct)
+    {
+        try
+        {
+            var app = app_config.GetAppConfiguration(app_id);
+            if (app == null) return NotFound(APPLICATION_NOT_FOUND);
+
+            if (app.IdentityProviderRoleType != nameof(IdentityProviderRole.IDPServer))
+            {
+                _log.LogWarning("Application {app_id} is not configured as an Identity Provider", app_id);
+                return BadRequest("Application is not configured as an Identity Provider");
+            }
+
+            var request_headers = Request.GetTypedHeaders();
+            var response_headers = Response.GetTypedHeaders();
+
+            string requestBase = $"{Request.Scheme}://{Request.Host.Value}{_api_path}/{app_id}";
+
+            var result = idp.HandleWellKnown(app, requestBase, request_headers, response_headers.Headers);
+
+            if (result.not_modified)
+            {
+                return StatusCode(StatusCodes.Status304NotModified);
+            }
+
+            return Content(result.etag_content.Content, MediaTypeNames.Application.Json);
+        }
+        catch (Exception ex) when (ex is TaskCanceledException || ex is OperationCanceledException || (ex.InnerException is TaskCanceledException || ex.InnerException is OperationCanceledException))
+        {
+            return Conflict(OPERATION_CANCELLED);
+        }
+
     }
 
     [AllowAnonymous]
     [HttpGet("{app_id}/oidc/jwks")]
-    public Task<string> Jwks([FromServices] IAuthenticationProvider auth, [FromServices] IMicroMAppConfiguration app_config, string app_id, CancellationToken ct)
+    [EnableRateLimiting(MicroMServicesConstants.RateLimitingOidcMetadataPolicy)]
+    public ActionResult Jwks([FromServices] IMicroMAppConfiguration app_config, [FromServices] IIdentityProviderService idp, string app_id, CancellationToken ct)
     {
-        throw new NotImplementedException();
+        try
+        {
+            var app = app_config.GetAppConfiguration(app_id);
+            if (app == null) return NotFound(APPLICATION_NOT_FOUND);
+
+            if (app.IdentityProviderRoleType != nameof(IdentityProviderRole.IDPServer))
+            {
+                _log.LogWarning("Application {app_id} is not configured as an Identity Provider", app_id);
+                return BadRequest("Application is not configured as an Identity Provider");
+            }
+
+            var request_headers = Request.GetTypedHeaders();
+            var response_headers = Response.GetTypedHeaders();
+
+            string requestBase = $"{Request.Scheme}://{Request.Host.Value}{_api_path}/{app_id}";
+
+            var result = idp.HandleJwks(app, requestBase, request_headers, response_headers.Headers);
+
+            if (result == null)
+            {
+                return NotFound();
+            }
+
+            if (result.not_modified)
+            {
+                return StatusCode(StatusCodes.Status304NotModified);
+            }
+
+            return Content(result.etag_content.Content, MediaTypeNames.Application.Json);
+
+        }
+        catch (Exception ex) when (ex is TaskCanceledException || ex is OperationCanceledException || (ex.InnerException is TaskCanceledException || ex.InnerException is OperationCanceledException))
+        {
+            return Conflict(OPERATION_CANCELLED);
+        }
     }
 
-    [Authorize(policy: nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy))]
-    [HttpGet("{app_id}/oauth2/authorize")]
-    public Task<string> Authorize([FromServices] IAuthenticationProvider auth, [FromServices] IMicroMAppConfiguration app_config, string app_id, string userId, CancellationToken ct)
-    {
-        throw new NotImplementedException();
-    }
-
-    [Authorize(policy: nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy))]
+    [Authorize(Policy = nameof(MicroMPermissionsConstants.IdPClientPolicy))]
     [HttpPost("{app_id}/oauth2/token")]
-    public Task<string> Token([FromServices] IAuthenticationProvider auth, [FromServices] IMicroMAppConfiguration app_config, string app_id, string userId, CancellationToken ct)
+    [EnableRateLimiting(MicroMServicesConstants.RateLimitingOidcTokenPolicy)]
+    public async Task<ActionResult> Token([FromServices] IMicroMAppConfiguration app_config, [FromServices] IIdentityProviderService idp, string app_id, CancellationToken ct)
     {
-        throw new NotImplementedException();
+        try
+        {
+            var app = app_config.GetAppConfiguration(app_id);
+            if (app == null) return NotFound(APPLICATION_NOT_FOUND);
+
+            if (app.IdentityProviderRoleType != nameof(IdentityProviderRole.IDPServer))
+            {
+                _log.LogWarning("Application {app_id} is not configured as an Identity Provider", app_id);
+                return BadRequest("Application is not configured as an Identity Provider");
+            }
+
+            if (!Request.HasFormContentType)
+            {
+                return BadRequest(new { error = "invalid_request", error_description = "Request must be application/x-www-form-urlencoded" });
+            }
+
+            var form = await Request.ReadFormAsync(ct);
+
+            var (response, error) = await idp.HandleToken(app, form, User, ct);
+
+            if (error != null || response == null)
+            {
+                return BadRequest(error);
+            }
+
+            return Ok(response);
+        }
+        catch (Exception ex) when (ex is TaskCanceledException || ex is OperationCanceledException)
+        {
+            return Conflict(OPERATION_CANCELLED);
+        }
     }
 
-    [Authorize(policy: nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy))]
-    [HttpPost("{app_id}/oauth2/userinfo")]
-    public Task<Dictionary<string, object?>> UserInfo([FromServices] IAuthenticationProvider auth, [FromServices] IMicroMAppConfiguration app_config, string app_id, string userId, CancellationToken ct)
-    {
-        throw new NotImplementedException();
-    }
-
-    [Authorize(policy: nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy))]
+    [Authorize(Policy = nameof(MicroMPermissionsConstants.IdPClientPolicy))]
     [HttpPost("{app_id}/oauth2/par")]
-    public Task<Dictionary<string, object?>> PAR([FromServices] IAuthenticationProvider auth, [FromServices] IMicroMAppConfiguration app_config, string app_id, string token, CancellationToken ct)
+    [EnableRateLimiting(MicroMServicesConstants.RateLimitingOidcPARPolicy)]
+    public async Task<ActionResult> PAR([FromServices] IMicroMAppConfiguration app_config, [FromServices] IIdentityProviderService idp, string app_id, CancellationToken ct)
     {
-        throw new NotImplementedException();
+        try
+        {
+            var app = app_config.GetAppConfiguration(app_id);
+            if (app == null) return NotFound(APPLICATION_NOT_FOUND);
+
+            if (app.IdentityProviderRoleType != nameof(IdentityProviderRole.IDPServer))
+            {
+                _log.LogWarning("Application {app_id} is not configured as an Identity Provider", app_id);
+                return BadRequest("Application is not configured as an Identity Provider");
+            }
+
+            if (!Request.HasFormContentType)
+            {
+                return BadRequest(new { error = "invalid_request", error_description = "Request must be application/x-www-form-urlencoded" });
+            }
+
+            var form = await Request.ReadFormAsync(ct);
+
+            var (response, error) = idp.HandlePAR(app, form, User);
+
+            if (error != null || response == null)
+            {
+                return BadRequest(error);
+            }
+
+            return Ok(response);
+        }
+        catch (Exception ex) when (ex is TaskCanceledException || ex is OperationCanceledException)
+        {
+            return Conflict(OPERATION_CANCELLED);
+        }
     }
 
-    [Authorize(policy: nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy))]
-    [HttpPost("{app_id}/oauth2/endsession")]
-    public Task<bool> EndSession([FromServices] IAuthenticationProvider auth, [FromServices] IMicroMAppConfiguration app_config, string app_id, string userId, CancellationToken ct)
+    [AllowAnonymous]
+    [HttpGet("{app_id}/oauth2/authorize")]
+    [EnableRateLimiting(MicroMServicesConstants.RateLimitingOidcAuthorizePolicy)]
+    public async Task<ActionResult> Authorize([FromServices] IMicroMAppConfiguration app_config, [FromServices] IIdentityProviderService idp, string app_id, CancellationToken ct)
     {
-        throw new NotImplementedException();
+        try
+        {
+            var app = app_config.GetAppConfiguration(app_id);
+            if (app == null) return NotFound(APPLICATION_NOT_FOUND);
+
+            if (app.IdentityProviderRoleType != nameof(IdentityProviderRole.IDPServer))
+            {
+                _log.LogWarning("Application {app_id} is not configured as an Identity Provider", app_id);
+                return BadRequest("Application is not configured as an Identity Provider");
+            }
+
+            string requestBase = $"{Request.Scheme}://{Request.Host.Value}{_api_path}/{app_id}";
+
+            var (result, error) = await idp.HandleAuthorize(app, Request.Query, User, requestBase, ct);
+
+
+            if (error != null)
+            {
+                return BadRequest(error);
+            }
+
+            if (result == null)
+            {
+                return BadRequest(new { error = "server_error", error_description = "No result produced by authorize flow" });
+            }
+
+            var (redirectUrl, loginUrl) = result;
+
+            if (!string.IsNullOrEmpty(loginUrl))
+            {
+                return Redirect(loginUrl);
+            }
+
+            if (!string.IsNullOrEmpty(redirectUrl))
+            {
+                return Redirect(redirectUrl);
+            }
+
+            return BadRequest(new { error = "server_error", error_description = "No action produced by authorize flow" });
+        }
+        catch (Exception ex) when (ex is TaskCanceledException || ex is OperationCanceledException)
+        {
+            return Conflict(OPERATION_CANCELLED);
+        }
     }
+
+    [Authorize(Policy = nameof(MicroMPermissionsConstants.IdPClientPolicy))]
+    [HttpPost("{app_id}/oauth2/endsession")]
+    [EnableRateLimiting(MicroMServicesConstants.RateLimitingOidcEndSessionPolicy)]
+    public async Task<ActionResult> EndSession(
+        [FromServices] IIdentityProviderService idp,
+        [FromServices] IMicroMAppConfiguration app_config,
+        string app_id,
+        [FromBody] string userId,
+        CancellationToken ct)
+    {
+        try
+        {
+            var app = app_config.GetAppConfiguration(app_id);
+            if (app == null) return NotFound(APPLICATION_NOT_FOUND);
+
+            if (app.IdentityProviderRoleType != nameof(IdentityProviderRole.IDPServer))
+            {
+                _log.LogWarning("Application {app_id} is not configured as an Identity Provider", app_id);
+                return BadRequest("Application is not configured as an Identity Provider");
+            }
+
+            string requestBase = $"{Request.Scheme}://{Request.Host.Value}{_api_path}/{app_id}";
+            string issuer = $"{requestBase}/oidc";
+
+            var ok = await idp.HandleEndSession(app, issuer, userId, ct);
+
+            if (!ok) return BadRequest(new { error = "logout_failed" });
+
+            return Ok(true);
+        }
+        catch (Exception ex) when (ex is TaskCanceledException || ex is OperationCanceledException)
+        {
+            return Conflict(OPERATION_CANCELLED);
+        }
+    }
+
+    //[Authorize(Policy = nameof(MicroMPermissionsConstants.IdPClientPolicy))]
+    //[HttpPost("{app_id}/oauth2/userinfo")]
+    //public Task<Dictionary<string, object?>> UserInfo([FromServices] IAuthenticationProvider auth, [FromServices] IMicroMAppConfiguration app_config, string app_id, [FromBody] string userId, CancellationToken ct)
+    //{
+    //    throw new NotImplementedException();
+    //}
+
+    //[Authorize(Policy = nameof(MicroMPermissionsConstants.IdPClientPolicy))]
+    //[HttpPost("{app_id}/oauth2/revoke")]
+    //public Task<bool> Revoke([FromServices] IAuthenticationProvider auth, [FromServices] IMicroMAppConfiguration app_config, string app_id, [FromBody] string token, CancellationToken ct)
+    //{
+    //    throw new NotImplementedException();
+    //}
+
+    //[Authorize(Policy = nameof(MicroMPermissionsConstants.IdPClientPolicy))]
+    //[HttpPost("{app_id}/oauth2/introspect")]
+    //public Task<Dictionary<string, object?>> Introspect([FromServices] IAuthenticationProvider auth, [FromServices] IMicroMAppConfiguration app_config, string app_id, [FromBody] string token, CancellationToken ct)
+    //{
+    //    throw new NotImplementedException();
+    //}
 }

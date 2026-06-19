@@ -1,6 +1,6 @@
 import { MicroMClient } from "../../client";
-import { CategoriesValuesDef } from "../Categories";
 import { Entity } from "../../Entity";
+import { CategoriesValuesDef } from "../Categories";
 
 export class catIdentityProviderRoles extends Entity<CategoriesValuesDef> {
 

@@ -1,5 +1,5 @@
-import { Entity } from "../../Entity";
 import { MicroMClient } from "../../client";
+import { Entity } from "../../Entity";
 import { StatusDef } from "./StatusDef";
 
 

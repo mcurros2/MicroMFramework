@@ -1,11 +1,10 @@
+using MicroM.Data;
+using MicroM.Excel;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using MicroM.Data;
-using MicroM.Excel;
 
 namespace LibraryTest
 {
@@ -21,7 +20,7 @@ namespace LibraryTest
 
             using var memoryStream = new MemoryStream();
 
-            await dataResult.SaveAsExcelToStreamAsync(memoryStream, "Sheet1");
+            await dataResult.SaveAsExcelToStreamAsync(memoryStream, "Sheet1", false);
 
             Assert.IsTrue(memoryStream.Length > 0);
 
@@ -79,5 +78,6 @@ namespace LibraryTest
             }
 
         }
+
     }
 }

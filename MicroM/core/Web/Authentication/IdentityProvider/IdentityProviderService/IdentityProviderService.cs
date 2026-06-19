@@ -1,0 +1,303 @@
+﻿using MicroM.Configuration;
+using MicroM.Configuration.CategoriesDefinitions;
+using MicroM.Core;
+using MicroM.DataDictionary.Entities;
+using MicroM.Web.Services;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Headers;
+using Microsoft.Extensions.Logging;
+using Microsoft.IdentityModel.JsonWebTokens;
+using Microsoft.IdentityModel.Tokens;
+using System.Security.Claims;
+using System.Security.Cryptography.X509Certificates;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+
+namespace MicroM.Web.Authentication.SSO;
+
+public class IdentityProviderService(
+    IOauthTokenService oauth_token_service,
+    IPushedAuthorizationService par_service,
+    IAuthorizationCodeService code_service,
+    IEtagCacheService<OIDCWellKnownResponse> wk_cache,
+    IApplicationCertificateCacheService certificate_cache,
+    IJwksService jwks_service,
+    IOIDCHttpClient oidcHttpClient,
+    IIdPClientSigningKeysCacheService idpClientSigningKeysCacheService,
+    ILogger<IdentityProviderService> log
+    ) : IIdentityProviderService
+{
+    private static JsonSerializerOptions _jsonSerializationOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+        Converters =
+        {
+            new JsonStringEnumConverter()
+        }
+    };
+
+    private static string BuildWkCacheKey(string request_base)
+    {
+        return $"idp:{request_base}/oidc/.well-known/openid-configuration";
+    }
+
+    private OIDCWellKnownResponse? GetOrCreateWellKnown(ApplicationOption app, string request_base, X509Certificate2 cert)
+    {
+        var key = BuildWkCacheKey(request_base);
+
+        var result = wk_cache.GetOrAdd(key, (existing) =>
+        {
+            var wk = WellKnownProvider.CreateWellKnown(app, request_base, cert);
+            var json = JsonSerializer.Serialize(wk, _jsonSerializationOptions);
+            return (json, wk, etag: null);
+        },
+        ttl: TimeSpan.FromSeconds(ConfigurationDefaults.EtagCacheDurationSeconds)
+        );
+
+        return result.Parsed;
+    }
+
+    public EtagCacheServiceCacheCheckResult<OIDCWellKnownResponse> HandleWellKnown(ApplicationOption app, string request_base, RequestHeaders request_headers, IHeaderDictionary response_headers)
+    {
+        var key = BuildWkCacheKey(request_base);
+
+        var result = wk_cache.GetOrAddResponseWithCacheCheck(
+            key,
+            request_headers,
+            response_headers,
+            cache_duration_seconds: ConfigurationDefaults.EtagCacheDurationSeconds,
+            (existing) =>
+            {
+                X509Certificate2? cert = certificate_cache.GetCertificate(app);
+                var wellKnown = WellKnownProvider.CreateWellKnown(app, request_base, cert!);
+                return (json: JsonSerializer.Serialize(wellKnown, _jsonSerializationOptions), parsed: wellKnown, etag: null);
+            });
+
+        return result;
+    }
+
+    public EtagCacheServiceCacheCheckResult<OIDCJwksResponse>? HandleJwks(ApplicationOption app, string request_base, RequestHeaders request_headers, IHeaderDictionary response_headers)
+    {
+        return jwks_service.HandleJwks(app, request_base, request_headers, response_headers);
+    }
+
+    public async Task<ResultWithStatus<OIDCTokenResponse, ErrorResult>> HandleToken(ApplicationOption app, IFormCollection form, ClaimsPrincipal client, CancellationToken ct)
+    {
+        var authenticated_client = client.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        if (string.IsNullOrEmpty(authenticated_client))
+        {
+            return new(null, new("invalid_client", "Client authentication required"));
+        }
+
+        return await oauth_token_service.HandleTokenRequest(app, form, authenticated_client, ct);
+    }
+
+    public ResultWithStatus<OIDCPARResponse, ErrorResult> HandlePAR(ApplicationOption app, IFormCollection form, ClaimsPrincipal client)
+    {
+        var clientId = client.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        if (string.IsNullOrEmpty(clientId))
+        {
+            return new(null, new("invalid_client", "Client authentication required"));
+        }
+
+        return par_service.CreatePushedRequest(app, form, clientId);
+    }
+
+    public async Task<ResultWithStatus<OIDCAuthorizeRecord, ErrorResult>> HandleAuthorize(ApplicationOption app, IQueryCollection query, ClaimsPrincipal user, string request_base, CancellationToken ct)
+    {
+        X509Certificate2? cert = certificate_cache.GetCertificate(app);
+        if (cert == null)
+        {
+            log.LogWarning("Authorize: No certificate configured for IdP app {app}", app.ApplicationID);
+            return new(null, new("server_error", "Identity Provider misconfiguration"));
+        }
+
+        var wk = GetOrCreateWellKnown(app, request_base, cert);
+
+        // Accept either a request_uri (PAR) or inline params.
+        // Build an authoritative parameter set to use.
+        var (authorize_request, error) = await AuthorizeEndpointProvider.ValidateAndOverrideWithPARAuthorizationRequest(app, cert, wk!, idpClientSigningKeysCacheService, par_service, query, ct);
+
+        if (authorize_request == null || error != null)
+        {
+            return new(null, error);
+        }
+
+        // If user is not authenticated, redirect to interactive login SPA.
+        if (user?.Identity == null || !user.Identity.IsAuthenticated)
+        {
+            string login_url = AuthorizeEndpointProvider.BuildLoginURL(app, query, request_base);
+            return new(new(null, login_url), null);
+        }
+
+        // User is authenticated -> issue authorization code and redirect to redirect_uri with code and state
+        var userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value ??
+                     user.FindFirst(WellknownIdentityConstants.SubjectIdentifier)?.Value ??
+                     user.Identity.Name ?? Guid.NewGuid().ToString("N");
+
+        // Extract IdP session ID (sid) from the authenticated user's claims if present
+        var sid = user.FindFirst(WellknownIdentityConstants.SessionIdentifier)?.Value
+                  ?? user.FindFirst(MicroMServerClaimTypes.MicroMOidcSessionID)?.Value;
+
+        // build authorization code record
+        var record = new AuthorizationCodeRecord(
+            Code: string.Empty,
+            ClientId: authorize_request.client_id,
+            UserId: userId,
+            RedirectUri: authorize_request.redirect_uri!,
+            Sid: sid,
+            Nonce: string.IsNullOrWhiteSpace(authorize_request.nonce) ? null : authorize_request.nonce,
+            ExpiresAt: DateTimeOffset.UtcNow.AddMinutes(5),
+            CodeChallenge: string.IsNullOrEmpty(authorize_request.code_challenge) ? null : authorize_request.code_challenge,
+            CodeChallengeMethod: string.IsNullOrEmpty(authorize_request.code_challenge_method) ? null : authorize_request.code_challenge_method
+        );
+
+        // store per-client
+        var created_record = code_service.CreateAndStoreAuthorizationCode(app, authorize_request.client_id, record);
+
+        // build redirect URI with code and state
+        string redirect_uri = AuthorizeEndpointProvider.BuildRedirectURI(authorize_request.redirect_uri!, authorize_request.state, created_record.Code);
+        return new(new(redirect_uri, null), null);
+    }
+
+    public async Task<bool> HandleEndSession(ApplicationOption app, string issuer, string user_id, CancellationToken ct)
+    {
+        // Only IdP servers may initiate SLO fan-out
+        if (app.IdentityProviderRoleType != nameof(IdentityProviderRole.IDPServer))
+        {
+            return false;
+        }
+
+        // Load signing certificate
+        X509Certificate2? cert = certificate_cache.GetCertificate(app);
+        if (cert == null)
+        {
+            log.LogWarning("EndSession: No certificate configured for IdP app {app}", app.ApplicationID);
+            return false;
+        }
+
+        // Enumerate registered clients from configuration (server-side registry)
+        var clients = app.OIDCClientConfiguration;
+        if (clients == null || clients.Count == 0)
+        {
+            log.LogInformation("EndSession: No OIDC clients registered for app {app}", app.ApplicationID);
+            return true;
+        }
+
+        var signingCreds = new X509SigningCredentials(cert);
+        var handler = new JsonWebTokenHandler();
+
+        // Fan-out logout_token to each client and purge IdP sessions by pairwise sub
+        foreach (var kv in clients)
+        {
+            if (ct.IsCancellationRequested) break;
+
+            var cfg = kv.Value;
+            var clientAppId = cfg.ClientAPPID;
+            var backUrl = cfg.URLBackchannelLogout;
+            var pepper = cfg.OIDCSubjectPepper;
+
+            if (string.IsNullOrWhiteSpace(backUrl))
+            {
+                log.LogWarning("EndSession: No backchannel logout URL for client {client} in app {app}", clientAppId, app.ApplicationID);
+                continue;
+            }
+
+            if (string.IsNullOrWhiteSpace(pepper))
+            {
+                log.LogWarning("EndSession: Missing OIDCSubjectPepper for client {client} in app {app}", clientAppId, app.ApplicationID);
+                continue;
+            }
+
+            // Derive pairwise sub for this client
+            string sub = ApplicationOidcActiveSessions.GetDerivedSub(clientAppId, user_id, pepper);
+
+            // Lookup existing session(s) by pairwise sub BEFORE purge to obtain a sid to include in logout_token if available.
+            string? existingSid = null;
+            try
+            {
+                using var lookupDbc = app.CreateDatabaseClient(log, null, null);
+                var sessions = await ApplicationOidcActiveSessions.GetSessionsBySubject(app, lookupDbc, sub, ct);
+                if (sessions != null && sessions.Count == 1)
+                {
+                    existingSid = sessions[0].vc_oidc_session_id;
+                }
+                else
+                {
+                    log.LogWarning("EndSession: No active sessions found for sub {sub} in client {client}", sub, clientAppId);
+                }
+            }
+            catch (Exception ex)
+            {
+                // Non-fatal; continue without sid
+                log.LogDebug(ex, "EndSession: sid lookup failed for client {client}", clientAppId);
+            }
+
+            // Build logout_token JWT
+            var now = DateTimeOffset.UtcNow;
+
+            var claims = new List<Claim>
+            {
+                new(WellknownIdentityConstants.SubjectIdentifier, sub),
+                new(WellknownIdentityConstants.Events, WellknownIdentityConstants.BackchannelLogoutEventJson, JsonClaimValueTypes.Json),
+                new(WellknownIdentityConstants.JWTID, Guid.NewGuid().ToString("N"))
+            };
+
+            // Include sid claim when an existing session id was found
+            if (!string.IsNullOrWhiteSpace(existingSid))
+            {
+                claims.Add(new Claim(WellknownIdentityConstants.SessionIdentifier, existingSid));
+            }
+
+            var desc = new SecurityTokenDescriptor
+            {
+                Issuer = issuer, // must match IdP discovery issuer
+                Audience = clientAppId,
+                Subject = new ClaimsIdentity(claims),
+                NotBefore = now.UtcDateTime,
+                IssuedAt = now.UtcDateTime,
+                Expires = now.AddMinutes(5).UtcDateTime,
+                SigningCredentials = signingCreds
+            };
+
+            string logoutToken = handler.CreateToken(desc);
+
+            // POST to client back-channel endpoint
+            try
+            {
+                var form = new[] { new KeyValuePair<string, string>("logout_token", logoutToken) };
+                var res = await oidcHttpClient.PostFormUrlEncodedAsync(backUrl, form, ct);
+                if (!res.IsSuccessStatusCode)
+                {
+                    log.LogWarning("EndSession: Backchannel POST failed for client {client} status {status} body: {body} error: {error}", clientAppId, res.StatusCode, res.Body, res.Error);
+                }
+            }
+            catch (Exception ex)
+            {
+                log.LogWarning(ex, "EndSession: Backchannel POST exception for client {client}", clientAppId);
+            }
+
+            // Purge IdP sessions by sub for this client
+            using var dbc = app.CreateDatabaseClient(log, null, null);
+            try
+            {
+                await dbc.Connect(ct);
+                await ApplicationOidcActiveSessions.DeleteSessionsBySUB(app, dbc, sub, ct);
+            }
+            catch (Exception ex)
+            {
+                log.LogWarning(ex, "EndSession: Failed to purge sessions for client {client}", clientAppId);
+            }
+            finally
+            {
+                await dbc.Disconnect();
+            }
+        }
+
+        return true;
+    }
+
+}

@@ -1,12 +1,12 @@
 ﻿using MicroM.Configuration;
 using MicroM.Core;
 using MicroM.Data;
-using MicroM.DataDictionary;
-using MicroM.DataDictionary.CategoriesDefinitions;
-using MicroM.DataDictionary.StatusDefs;
+using MicroM.DataDictionary.Entities;
+using MicroM.DataDictionary.StatusDefinitions;
 using MicroM.Extensions;
 using MicroM.ImportData;
 using MicroM.Web.Authentication;
+using MicroM.Web.Authentication.SSO;
 using MicroM.Web.Services.Security;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -32,10 +32,11 @@ public class EntitiesService : IEntitiesService
             IEmailService emailService,
             ISecurityService securityService,
             IDeviceIdService deviceIdService,
-            IAuthenticationService authenticationService
+            IAuthenticationService authenticationService,
+            IOIDCHttpClient oidcHttpClient
             )
     {
-        _api = new(logger, encryptor, app_config, queue, upload, emailService, securityService, deviceIdService, this, authenticationService);
+        _api = new(logger, encryptor, app_config, queue, upload, emailService, securityService, deviceIdService, this, authenticationService, oidcHttpClient);
 
         ArgumentNullException.ThrowIfNull(options);
 
@@ -48,31 +49,7 @@ public class EntitiesService : IEntitiesService
 
     public IEntityClient CreateDbConnection(ApplicationOption app, Dictionary<string, object>? server_claims)
     {
-        string user = app.AuthenticationType == nameof(AuthenticationTypes.SQLServerAuthentication) && string.IsNullOrEmpty(app.SQLUser) ? (string?)server_claims?[MicroMServerClaimTypes.MicroMUsername] ?? "" : app.SQLUser;
-        string pass = app.AuthenticationType == nameof(AuthenticationTypes.SQLServerAuthentication) && string.IsNullOrEmpty(app.SQLUser) ? (string?)server_claims?[MicroMServerClaimTypes.MicroMPassword] ?? "" : app.SQLPassword;
-
-        string local_device_id = "";
-        if (server_claims != null)
-        {
-            server_claims.TryGetValue(MicroMServerClaimTypes.MicroMUserDeviceID, out var local_device_claim);
-
-            local_device_id = local_device_claim?.ToString() ?? "";
-        }
-
-        var (device_id, ipaddress, user_agent) = _api.deviceIdService.GetDeviceID(local_device_id);
-        string workstation_id = $"{ipaddress} {device_id} {user_agent}".Truncate(128);
-
-        DatabaseClient dbc = new(server: app.SQLServer, user: user, password: pass, db: app.SQLDB, logger: _api.log, server_claims: server_claims)
-        {
-            // TODO: add to application option pooling options
-            Pooling = true,
-            MinPoolSize = 0,
-            MaxPoolSize = 500,
-            ApplicationName = $"MicroM - {app.ApplicationName}",
-            WorkstationID = workstation_id,
-        };
-
-        return dbc;
+        return app.CreateDatabaseClient(_api.log, _api.deviceIdService, server_claims);
     }
 
     public Task<IEntityClient> CreateDbConnection(ApplicationOption app, Dictionary<string, object>? server_claims, CancellationToken ct)
@@ -81,27 +58,35 @@ public class EntitiesService : IEntitiesService
     }
 
     /// <summary>
-    /// Creates an Entity if exists in the configured assembly <see cref="LoadEntityTypes(Assembly)"/>.
+    /// Creates an Entity if exists in the configured assembly />.
     /// </summary>
-    /// <param name="entity_name"></param>
-    /// <param name="ec"></param>
-    /// <returns></returns>
     public EntityBase? CreateEntity(ApplicationOption app, string entity_name, Dictionary<string, object>? server_claims, IEntityClient? ec = null)
     {
         EntityBase? entity = null;
         ec ??= CreateDbConnection(app, server_claims);
         Type? ent_type = _api.app_config.GetEntityType(app.ApplicationID, entity_name);
-        if (ent_type != null) entity = (EntityBase?)Activator.CreateInstance(ent_type, ec, _api.encryptor);
+        if (ent_type != null)
+        {
+            var schema = _api.app_config.IsDDType(ent_type.Name) ? app.SchemaConfiguration.DDSchema : app.SchemaConfiguration.APPSchema;
+            entity = (EntityBase?)Activator.CreateInstance(ent_type);
+            entity?.Init(ec, _api.encryptor, schema);
+        }
 
         return entity;
     }
 
-    public EntityBase? CreateEntity(ApplicationOption app, string entity_name, Dictionary<string, object>? server_claims, CancellationToken ct)
+    public async Task<EntityBase?> CreateEntity(ApplicationOption app, string entity_name, Dictionary<string, object>? server_claims, CancellationToken ct)
     {
         EntityBase? entity = null;
-        var ec = CreateDbConnection(app, server_claims, ct);
+        var ec = await CreateDbConnection(app, server_claims, ct);
         Type? ent_type = _api.app_config.GetEntityType(app.ApplicationID, entity_name);
-        if (ent_type != null) entity = (EntityBase?)Activator.CreateInstance(ent_type, ec, _api.encryptor);
+
+        if (ent_type != null)
+        {
+            var schema = _api.app_config.IsDDType(ent_type.Name) ? app.SchemaConfiguration.DDSchema : app.SchemaConfiguration.APPSchema;
+            entity = (EntityBase?)Activator.CreateInstance(ent_type);
+            entity?.Init(ec, _api.encryptor, schema);
+        }
 
         return entity;
     }
@@ -257,7 +242,7 @@ public class EntitiesService : IEntitiesService
                         {
                             entity.SetKeyValues(parms.ParentKeys);
                         }
-                        result = await entity.ExecuteProc(ct, proc, options: _options, server_claims: parms.ServerClaims, api: _api, set_parms_from_columns: false, app_id: app_id);
+                        result = await entity.ExecuteProc(proc, ct, options: _options, server_claims: parms.ServerClaims, api: _api, set_parms_from_columns: false, app_id: app_id);
                     }
                     else
                     {
@@ -272,7 +257,7 @@ public class EntitiesService : IEntitiesService
                                 entity.SetKeyValues(parms.ParentKeys);
                             }
 
-                            var record_result = await entity.ExecuteProc(ct, proc, options: _options, server_claims: parms.ServerClaims, api: _api, set_parms_from_columns: false, app_id: app_id);
+                            var record_result = await entity.ExecuteProc(proc, ct, options: _options, server_claims: parms.ServerClaims, api: _api, set_parms_from_columns: false, app_id: app_id);
                             if (record_result != null)
                             {
                                 results.AddRange(record_result);
@@ -298,7 +283,69 @@ public class EntitiesService : IEntitiesService
 
         return result;
 
+    }
 
+    public async Task HandleExecuteProcChannel(ApplicationOption app, string entity_name, string proc_name, DataWebAPIRequest parms, IEntityClient ec, DataResultSetChannel result_channel, CancellationToken ct, int? records_channel_capacity = null, bool complete_channel = true, int? max_allowed_rows = null)
+    {
+        try
+        {
+            string app_id = app.ApplicationID;
+
+            var entity = CreateEntity(app, entity_name, parms.ServerClaims, ec);
+            if (entity != null)
+            {
+                if (entity.Def.Procs.ContainsKey(proc_name))
+                {
+                    var proc = entity.Def.Procs[proc_name];
+
+                    EnsureApplicationKeys(app_id, parms.Values);
+                    if (parms.ParentKeys != null && parms.ParentKeys.Count > 0) EnsureApplicationKeys(app_id, parms.ParentKeys);
+
+                    if (parms.RecordsSelection == null || parms.RecordsSelection.Count == 0)
+                    {
+                        proc.SetParmsValues(parms.Values);
+                        if (parms.ParentKeys != null && parms.ParentKeys.Count > 0)
+                        {
+                            entity.SetKeyValues(parms.ParentKeys);
+                        }
+                        await entity.ExecuteProcChannel(proc, result_channel, ct, options: _options, server_claims: parms.ServerClaims, api: _api, set_parms_from_columns: false, app_id: app_id, records_channel_capacity: records_channel_capacity, complete_channel: complete_channel, max_allowed_rows: max_allowed_rows);
+                    }
+                    else
+                    {
+                        foreach (var keys in parms.RecordsSelection)
+                        {
+                            EnsureApplicationKeys(app_id, keys);
+                            proc.SetParmsValues(parms.Values);
+                            proc.SetParmsValues(keys);
+                            if (parms.ParentKeys != null && parms.ParentKeys.Count > 0)
+                            {
+                                entity.SetKeyValues(parms.ParentKeys);
+                            }
+
+                            await entity.ExecuteProcChannel(proc, result_channel, ct, options: _options, server_claims: parms.ServerClaims, api: _api, set_parms_from_columns: false, app_id: app_id, records_channel_capacity: records_channel_capacity, complete_channel: complete_channel, max_allowed_rows: max_allowed_rows);
+                        }
+                    }
+                }
+                else
+                {
+                    _api.log.LogError("ExecuteProcChannel ERROR: Entity: {entity_name} Mneo: {entity_def} Proc: {proc_name} not found in entity definition.", entity_name, entity.Def.Mneo, proc_name);
+                }
+            }
+            else
+            {
+                _api.log.LogError("ExecuteProcChannel ERROR: {entity_name} not found in entities type cache.", entity_name);
+            }
+        }
+        catch (Exception ex)
+        {
+            result_channel.Results.Writer.TryComplete(ex);
+            throw;
+        }
+        finally
+        {
+            result_channel.Results.Writer.TryComplete();
+            await ec.Disconnect();
+        }
     }
 
     public async Task<DBStatusResult?> HandleExecuteProcDBStatus(ApplicationOption app, string entity_name, string proc_name, DataWebAPIRequest parms, IEntityClient ec, CancellationToken ct)
@@ -326,7 +373,7 @@ public class EntitiesService : IEntitiesService
                         {
                             entity.SetKeyValues(parms.ParentKeys);
                         }
-                        result = await entity.ExecuteProcessDBStatus(ct, proc, options: _options, server_claims: parms.ServerClaims, api: _api, set_parms_from_columns: false, app_id: app_id);
+                        result = await entity.ExecuteProcessDBStatus(proc, ct, options: _options, server_claims: parms.ServerClaims, api: _api, set_parms_from_columns: false, app_id: app_id);
                     }
                     else
                     {
@@ -342,7 +389,7 @@ public class EntitiesService : IEntitiesService
                                 entity.SetKeyValues(parms.ParentKeys);
                             }
 
-                            var record_result = await entity.ExecuteProcessDBStatus(ct, proc, options: _options, server_claims: parms.ServerClaims, api: _api, set_parms_from_columns: false, app_id: app_id);
+                            var record_result = await entity.ExecuteProcessDBStatus(proc, ct, options: _options, server_claims: parms.ServerClaims, api: _api, set_parms_from_columns: false, app_id: app_id);
                             if (record_result != null)
                             {
                                 if (record_result.Failed) failed = true;
@@ -402,7 +449,7 @@ public class EntitiesService : IEntitiesService
                         EnsureApplicationKeys(app_id, parms.ParentKeys);
                         entity.SetKeyValues(parms.ParentKeys);
                     }
-                    result = await entity.ExecuteView(ct, view, row_limit, options: _options, server_claims: parms.ServerClaims, api: _api, app_id: app_id);
+                    result = await entity.ExecuteView(view, ct, row_limit, options: _options, server_claims: parms.ServerClaims, api: _api, app_id: app_id);
                 }
                 else
                 {
@@ -421,6 +468,60 @@ public class EntitiesService : IEntitiesService
 
         return result;
 
+    }
+
+    public async Task HandleExecuteViewChannel(ApplicationOption app, string entity_name, string view_name, DataWebAPIRequest parms, IEntityClient ec, DataResultSetChannel result_channel, CancellationToken ct, int? records_channel_capacity = null, bool complete_channel = true, int? max_allowed_rows = null)
+    {
+        try
+        {
+            string app_id = app.ApplicationID;
+            var entity = CreateEntity(app, entity_name, parms.ServerClaims, ec);
+
+            if (entity != null)
+            {
+                if (entity.Def.Views.ContainsKey(view_name))
+                {
+                    int row_limit = DataDefaults.DefaultRowLimitForViews;
+                    // MMC: Extract special parameter @row_limit
+                    if (parms.Values.TryGetValue(DataDefaults.RowLimitParameterName, out object? value))
+                    {
+                        if (value is JsonElement element) element.TryConvertFromJsonElement<int>(out row_limit);
+                        else int.TryParse((string)value, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out row_limit);
+
+                        parms.Values.Remove(DataDefaults.RowLimitParameterName);
+                    }
+
+                    var view = entity.Def.Views[view_name];
+                    EnsureApplicationKeys(app_id, parms.Values);
+                    view.Proc.SetParmsValues(parms.Values);
+                    if (parms.ParentKeys != null && parms.ParentKeys.Count > 0)
+                    {
+                        EnsureApplicationKeys(app_id, parms.ParentKeys);
+                        entity.SetKeyValues(parms.ParentKeys);
+                    }
+
+                    await entity.ExecuteViewChannel(view, result_channel, ct, row_limit, options: _options, server_claims: parms.ServerClaims, api: _api, app_id: app_id, records_channel_capacity: records_channel_capacity, complete_channel, max_allowed_rows);
+                }
+                else
+                {
+                    _api.log.LogError("ExecuteViewChannel ERROR: Entity: {entity_name} Mneo: {entity_def} View: {view_name} not found in entity definition.", entity_name, entity.Def.Mneo, view_name);
+                }
+            }
+            else
+            {
+                _api.log.LogError("ExecuteView ERROR: {entity_name} not found in entities type cache.", entity_name);
+            }
+        }
+        catch (Exception ex)
+        {
+            result_channel.Results.Writer.TryComplete(ex);
+            throw;
+        }
+        finally
+        {
+            result_channel.Results.Writer.TryComplete();
+            await ec.Disconnect();
+        }
     }
 
     public async Task<Dictionary<string, object?>?> HandleGetEntity(ApplicationOption app, string entity_name, DataWebAPIRequest parms, IEntityClient ec, CancellationToken ct)
@@ -466,12 +567,13 @@ public class EntitiesService : IEntitiesService
         Type? ent_type = _api.app_config.GetEntityType(app.ApplicationID, entity_name);
         if (ent_type != null)
         {
+            var schema = _api.app_config.IsDDType(ent_type.Name) ? app.SchemaConfiguration.DDSchema : app.SchemaConfiguration.APPSchema;
             EntityBase? obj = (EntityBase?)Activator.CreateInstance(ent_type);
             if (obj != null)
             {
+                obj.Init(null, _api.encryptor, schema);
                 result = obj.Def;
             }
-
         }
         else
         {
@@ -494,7 +596,7 @@ public class EntitiesService : IEntitiesService
             else
             {
                 var sys = new SystemProcs(ec);
-                var new_offset = await sys.ExecuteProcSingleColumn<int>(ct, sys.Def.sys_GetTimeZoneOffset);
+                var new_offset = await sys.ExecuteProcSingleColumn<int>(sys.Def.sys_GetTimeZoneOffset, ct);
                 _ApplicationsTimeZoneOffset.TryAdd(app_id, new_offset);
                 return new_offset;
             }
@@ -547,8 +649,9 @@ public class EntitiesService : IEntitiesService
                             return null;
                         }
 
-                        var file_path = await _api.upload.GetFilePath(app_id, import_process.Def.vc_fileguid.Value, ec, ct);
-                        if (string.IsNullOrEmpty(file_path))
+                        var file_details = await _api.upload.GetFileDetails(app, import_process.Def.vc_fileguid.Value, ec, ct);
+                        var file_path = file_details?.fullPath;
+                        if (file_details == null || string.IsNullOrEmpty(file_path))
                         {
                             await import_process.UpdateStatus(nameof(ImportStatus.Error), ct);
                             _api.log.LogError("ImportData ERROR: {entity_name} {import_proc} no file path found.", entity_name, import_proc);
@@ -570,13 +673,24 @@ public class EntitiesService : IEntitiesService
                             EnsureApplicationKeys(app_id, parms.ParentKeys);
                         }
 
+
                         try
                         {
                             await import_process.UpdateStatus(nameof(ImportStatus.Importing), ct);
 
+
+                            await using var file_stream = await _api.upload.GetFileStream(ec, app, file_details, ct);
+
+                            if (file_stream == null)
+                            {
+                                await import_process.UpdateStatus(nameof(ImportStatus.Error), ct);
+                                _api.log.LogError("ImportData ERROR: {entity_name} {import_proc} no file stream found.", entity_name, import_proc);
+                                return null;
+                            }
+
                             if (ext == ".csv")
                             {
-                                var csv = await CSVParser.ParseFile(file_path, ct);
+                                var csv = await CSVParser.ParseFile(file_stream, ct);
 
                                 if (csv != null)
                                 {
@@ -601,8 +715,7 @@ public class EntitiesService : IEntitiesService
                             }
                             else
                             {
-                                using var stream = new FileStream(file_path, FileMode.Open, FileAccess.Read);
-                                var result = await entity.ImportDataFromExcel(stream, null, null, _options, parms.ServerClaims, _api, app_id, parms.ParentKeys, ct);
+                                var result = await entity.ImportDataFromExcel(file_stream, null, null, _options, parms.ServerClaims, _api, app_id, parms.ParentKeys, ct);
                                 if (result != null)
                                 {
                                     await import_process.UpdateStatus(nameof(ImportStatus.Completed), ct);

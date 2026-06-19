@@ -2,125 +2,124 @@
 using MicroM.Data;
 using MicroM.Generators.SQLGenerator;
 
-namespace MicroM.Extensions
+namespace MicroM.Extensions;
+
+public static class CoreExtensions
 {
-    public static class CoreExtensions
+    public static ProcedureDefinition AddProc(this Dictionary<string, ProcedureDefinition> collection, string name, bool readonly_locks = false, params ColumnBase[] parms)
     {
-        public static ProcedureDefinition AddProc(this Dictionary<string, ProcedureDefinition> collection, string name, bool readonly_locks = false, params ColumnBase[] parms)
+        var proc = new ProcedureDefinition(name: name, readonly_locks: readonly_locks);
+        foreach (var col in parms)
         {
-            var proc = new ProcedureDefinition(name, readonly_locks);
-            foreach (var col in parms)
+            proc.AddParmFromCol(col);
+        }
+        collection.Add(proc.Name, proc);
+        return proc;
+    }
+
+    public static EntityForeignKey<TParent, TChild> AddFK<TParent, TChild>(this Dictionary<string, EntityForeignKeyBase> collection, string name, bool fake = false, bool do_not_create_index = false, List<BaseColumnMapping>? key_mappings = null) where TParent : EntityBase where TChild : EntityBase
+    {
+        var fk = new EntityForeignKey<TParent, TChild>(name, fake, do_not_create_index, key_mappings);
+        collection.Add(name, fk);
+        return fk;
+    }
+
+
+    public static ViewDefinition AddView(this Dictionary<string, ViewDefinition> collection, string name, bool add_default_parms = true, IReadonlyOrderedDictionary<ColumnBase>? parms_columns = null)
+    {
+        ViewDefinition view = new(name, add_default_parms);
+        collection.Add(view.Proc.Name, view);
+
+        if (parms_columns != null)
+        {
+            foreach (var col in parms_columns.GetWithFlags(ColumnFlags.PK))
             {
-                proc.AddParmFromCol(col);
+                view.Proc.AddParmFromCol(col);
             }
-            collection.Add(proc.Name, proc);
-            return proc;
         }
 
-        public static EntityForeignKey<TParent, TChild> AddFK<TParent, TChild>(this Dictionary<string, EntityForeignKeyBase> collection, string name, bool fake = false, bool do_not_create_index = false, List<BaseColumnMapping>? key_mappings = null) where TParent : EntityBase where TChild : EntityBase
+        return view;
+    }
+
+    public static void SetKeyValues(this EntityBase entity, Dictionary<string, object> values)
+    {
+        foreach (string key in values.Keys)
         {
-            var fk = new EntityForeignKey<TParent, TChild>(name, fake, do_not_create_index, key_mappings);
-            collection.Add(name, fk);
-            return fk;
-        }
-
-
-        public static ViewDefinition AddView(this Dictionary<string, ViewDefinition> collection, string name, bool add_default_parms = true, IReadonlyOrderedDictionary<ColumnBase>? parms_columns = null)
-        {
-            ViewDefinition view = new(name, add_default_parms);
-            collection.Add(view.Proc.Name, view);
-
-            if (parms_columns != null)
+            if (entity.Def.Columns.TryGetValue(key, out ColumnBase? col))
             {
-                foreach (var col in parms_columns.GetWithFlags(ColumnFlags.PK))
+                if (col != null && col.ColumnMetadata.HasAnyFlag(ColumnFlags.FK | ColumnFlags.PK) && !col.ColumnMetadata.HasFlag(ColumnFlags.APIReadOnly))
                 {
-                    view.Proc.AddParmFromCol(col);
-                }
-            }
-
-            return view;
-        }
-
-        public static void SetKeyValues(this EntityBase entity, Dictionary<string, object> values)
-        {
-            foreach (string key in values.Keys)
-            {
-                if (entity.Def.Columns.TryGetValue(key, out ColumnBase? col))
-                {
-                    if (col != null && col.ColumnMetadata.HasAnyFlag(ColumnFlags.FK | ColumnFlags.PK))
-                    {
-                        col.ValueObject = values[key];
-                    }
+                    col.ValueObject = values[key];
                 }
             }
         }
+    }
 
-        public static void SetColumnValues(this EntityBase entity, Dictionary<string, object> values)
+    public static void SetColumnValues(this EntityBase entity, Dictionary<string, object> values)
+    {
+        foreach (string key in values.Keys)
         {
-            foreach (string key in values.Keys)
+            if (entity.Def.Columns.TryGetValue(key, out ColumnBase? col))
             {
-                if (entity.Def.Columns.TryGetValue(key, out ColumnBase? col))
-                {
-                    if (col != null) col.ValueObject = values[key];
-                }
+                if (col != null && !col.ColumnMetadata.HasFlag(ColumnFlags.APIReadOnly)) col.ValueObject = values[key];
             }
         }
+    }
 
-        public static void SetColumnValue(this EntityBase entity, string col_name, Dictionary<string, object> values)
+    public static void SetColumnValue(this EntityBase entity, string col_name, Dictionary<string, object> values)
+    {
+        if (entity.Def.Columns.TryGetValue(col_name, out ColumnBase? col))
         {
-            if (entity.Def.Columns.TryGetValue(col_name, out ColumnBase? col))
-            {
-                if (col != null) col.ValueObject = values[col_name];
-            }
+            if (col != null && !col.ColumnMetadata.HasFlag(ColumnFlags.APIReadOnly)) col.ValueObject = values[col_name];
+        }
+    }
+
+    public static ProcedureDefinition DefineProc<T>(this T def, bool readonly_locks = false, params string[] column_names) where T : EntityDefinition
+    {
+        if (column_names.Length == 0)
+        {
+            return new ProcedureDefinition(readonly_locks: readonly_locks);
         }
 
-        public static ProcedureDefinition DefineProc<T>(this T def, bool readonly_locks = false, params string[] column_names) where T : EntityDefinition
+        ColumnBase[] parms = new ColumnBase[column_names.Length];
+
+        int x = 0;
+        foreach (string colname in column_names)
         {
-            if (column_names.Length == 0)
-            {
-                return new ProcedureDefinition("", readonly_locks);
-            }
-
-            ColumnBase[] parms = new ColumnBase[column_names.Length];
-
-            int x = 0;
-            foreach (string colname in column_names)
-            {
-                parms[x] = def.Columns[colname] ?? throw new ArgumentException($"Cannot find the column with the name {colname}");
-            }
-
-            return new ProcedureDefinition("", readonly_locks, default, parms);
+            parms[x] = def.Columns[colname] ?? throw new ArgumentException($"Cannot find the column with the name {colname}");
         }
 
-        public static string ToTableName<T>()
-        {
-            return typeof(T).Name.ToSQLName();
-        }
+        return new ProcedureDefinition(readonly_locks: readonly_locks, parms: parms);
+    }
 
-        public static T Clone<T>(this T original, bool clone_connection) where T : EntityBase, new()
-        {
-            IEntityClient ec = clone_connection ? original.Client.Clone() : original.Client;
-            T result = new();
-            result.Init(ec);
-            result.CopyFrom(original);
-            return result;
-        }
+    public static string ToTableName<T>()
+    {
+        return typeof(T).Name.ToSQLName();
+    }
 
-        /// <summary>
-        /// Copy column values from source if names matches
-        /// </summary>
-        /// <param name="entity"></param>
-        /// <param name="source"></param>
-        public static void CopyFrom(this EntityBase entity, EntityBase source)
-        {
-            if (entity == null) return;
-            entity.Def.Columns.CopyColumnValuesByName(source.Def.Columns);
-        }
+    public static T Clone<T>(this T original, bool clone_connection) where T : EntityBase, new()
+    {
+        IEntityClient ec = clone_connection ? original.Client.Clone() : original.Client;
+        T result = new();
+        result.Init(ec, schema_name: original.Def.SchemaName);
+        result.CopyFrom(original);
+        return result;
+    }
 
-        public static (bool allowed, string extension) IsFileExtensionAllowed(this string fileName, string[] allowedExtensions)
-        {
-            var fileExtension = Path.GetExtension(fileName);
-            return (allowed: fileExtension.IsIn(allowedExtensions), extension: fileExtension);
-        }
+    /// <summary>
+    /// Copy column values from source if names matches
+    /// </summary>
+    /// <param name="entity"></param>
+    /// <param name="source"></param>
+    public static void CopyFrom(this EntityBase entity, EntityBase source)
+    {
+        if (entity == null) return;
+        entity.Def.Columns.CopyColumnValuesByName(source.Def.Columns);
+    }
+
+    public static (bool allowed, string extension) IsFileExtensionAllowed(this string fileName, string[] allowedExtensions)
+    {
+        var fileExtension = Path.GetExtension(fileName);
+        return (allowed: fileExtension.IsIn(allowedExtensions), extension: fileExtension);
     }
 }

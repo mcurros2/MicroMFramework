@@ -1,4 +1,5 @@
-﻿using MicroM.Core;
+﻿using MicroM.Configuration;
+using MicroM.Core;
 using MicroM.Data;
 using MicroM.Generators.SQLGenerator;
 using System.Text;
@@ -17,8 +18,8 @@ namespace MicroM.Database
                 await ec.Connect(ct);
                 foreach (var options in entities.Values)
                 {
-                    bool table_exists = await TableExists(ec, options.EntityInstance.Def.TableName, "dbo", ct);
-                    if (!table_exists) inexisting_tables.Add(options.EntityInstance.Def.TableName);
+                    bool table_exists = await TableExists(ec, options.EntityInstance.Def.TableName, options.EntityInstance.Def.SchemaName ?? "dbo", ct);
+                    if (!table_exists) inexisting_tables.Add(options.EntityInstance.Def.FullTableName);
                 }
             }
             finally
@@ -28,7 +29,47 @@ namespace MicroM.Database
             return inexisting_tables;
         }
 
-        public static async Task<CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>>> CreateEntitiesInexistentTables(IEntityClient ec, CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>> entities, CancellationToken ct)
+        public static async Task CreateAllInexistingSchemas(IEntityClient ec, CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>> entities, CancellationToken ct)
+        {
+            bool should_close = !(ec.ConnectionState == System.Data.ConnectionState.Open);
+            HashSet<string> processed_schemas = new(StringComparer.OrdinalIgnoreCase);
+
+            try
+            {
+                await ec.Connect(ct);
+
+                StringBuilder sb_create_schemas = new();
+                foreach (var options in entities.Values)
+                {
+                    var entity = options.EntityInstance;
+                    if (!string.IsNullOrEmpty(entity.Def.SchemaName))
+                    {
+                        if (!processed_schemas.Contains(entity.Def.SchemaName))
+                        {
+                            bool schema_exists = await SchemaExists(ec, entity.Def.SchemaName, ct);
+                            if (!schema_exists)
+                            {
+                                sb_create_schemas.Append($"create schema {entity.Def.QualifiedSchemaName};");
+                            }
+                            processed_schemas.Add(entity.Def.SchemaName);
+                        }
+                    }
+                }
+
+                if (sb_create_schemas.Length > 0)
+                {
+                    await ec.ExecuteSQLNonQuery(sb_create_schemas.ToString(), ct);
+                }
+
+            }
+            finally
+            {
+                processed_schemas.Clear();
+                if (should_close) await ec.Disconnect();
+            }
+        }
+
+        public static async Task<CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>>> CreateEntitiesInexistentTables(IEntityClient ec, CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>> entities, AppDBSchemaConfiguration schema_config, CancellationToken ct)
         {
             bool should_close = !(ec.ConnectionState == System.Data.ConnectionState.Open);
             CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>> created_tables = new();
@@ -43,9 +84,9 @@ namespace MicroM.Database
                 foreach (var options in entities.Values)
                 {
                     // if the table does not exist, create it
-                    if (inexisting_tables.Contains(options.EntityInstance.Def.TableName))
+                    if (inexisting_tables.Contains(options.EntityInstance.Def.FullTableName))
                     {
-                        var scripts = options.EntityInstance.AsCreateTable(table_and_primary_key_only: true);
+                        var scripts = options.EntityInstance.AsCreateTable(schema_config, table_and_primary_key_only: true);
                         if (scripts?.Count > 0)
                         {
                             sb_create_tables.Append(scripts[0]);
@@ -141,21 +182,20 @@ namespace MicroM.Database
             }
         }
 
-        public static async Task DropEntitiesIndexes(IEntityClient ec, Dictionary<string, Type> entities, CancellationToken ct)
+        public static async Task DropEntitiesIndexes(IEntityClient ec, CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>> entities, CancellationToken ct)
         {
             bool should_close = !(ec.ConnectionState == System.Data.ConnectionState.Open);
             try
             {
                 await ec.Connect(ct);
                 StringBuilder sb_drop_IDXs = new();
-                foreach (var entity_type in entities.Values)
+                foreach (var entity_option in entities.Values)
                 {
-                    if (entity_type != null)
+                    if (entity_option != null)
                     {
-                        var ent = (EntityBase?)Activator.CreateInstance(entity_type) ?? throw new InvalidOperationException($"Can't create entity instance. {entity_type.Name}");
+                        var ent = entity_option.EntityInstance;
                         if (ent != null)
                         {
-                            ent.Init(ec);
                             sb_drop_IDXs.Append(ent.AsDropIndexes());
                         }
                     }
@@ -169,21 +209,20 @@ namespace MicroM.Database
             }
         }
 
-        public static async Task CreateEntitiesIndexes(IEntityClient ec, Dictionary<string, Type> entities, CancellationToken ct)
+        public static async Task CreateEntitiesIndexes(IEntityClient ec, CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>> entities, CancellationToken ct)
         {
             bool should_close = !(ec.ConnectionState == System.Data.ConnectionState.Open);
             try
             {
                 await ec.Connect(ct);
                 StringBuilder sb_create_IDXs = new();
-                foreach (var entity_type in entities.Values)
+                foreach (var entity_option in entities.Values)
                 {
-                    if (entity_type != null)
+                    if (entity_option != null)
                     {
-                        var ent = (EntityBase?)Activator.CreateInstance(entity_type) ?? throw new InvalidOperationException($"Can't create entity instance. {entity_type.Name}");
+                        var ent = entity_option.EntityInstance;
                         if (ent != null)
                         {
-                            ent.Init(ec);
                             sb_create_IDXs.Append(ent.AsCreateIndexes());
                         }
                     }
@@ -197,7 +236,7 @@ namespace MicroM.Database
             }
         }
 
-        public static async Task DropEntitiesConstraintsAndIndexes(IEntityClient ec, Dictionary<string, Type> entities, CancellationToken ct, bool drop_primary_keys = false)
+        public static async Task DropEntitiesConstraintsAndIndexes(IEntityClient ec, CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>> entities, CancellationToken ct, bool drop_primary_keys = false)
         {
             bool should_close = !(ec.ConnectionState == System.Data.ConnectionState.Open);
             try
@@ -207,14 +246,13 @@ namespace MicroM.Database
                 StringBuilder sb_drop_PKs = new();
                 StringBuilder sb_drop_UNs = new();
                 StringBuilder sb_drop_IDXs = new();
-                foreach (var entity_type in entities.Values)
+                foreach (var entity_option in entities.Values)
                 {
-                    if (entity_type != null)
+                    if (entity_option != null)
                     {
-                        var ent = (EntityBase?)Activator.CreateInstance(entity_type) ?? throw new InvalidOperationException($"Can't create entity instance. {entity_type.Name}");
+                        var ent = entity_option.EntityInstance;
                         if (ent != null)
                         {
-                            ent.Init(ec);
                             if (drop_primary_keys) sb_drop_PKs.Append(ent.AsDropPrimaryKey());
                             sb_drop_FKs.Append(ent.AsDropForeignKeys());
                             sb_drop_UNs.Append(ent.AsDropUniqueConstraints());
@@ -234,7 +272,7 @@ namespace MicroM.Database
             }
         }
 
-        public static async Task CreateEntitiesConstraintsAndIndexes(IEntityClient ec, CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>> entities, CancellationToken ct)
+        public static async Task CreateEntitiesConstraintsAndIndexes(IEntityClient ec, CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>> entities, AppDBSchemaConfiguration schema_config, CancellationToken ct)
         {
             bool should_close = !(ec.ConnectionState == System.Data.ConnectionState.Open);
             try
@@ -249,7 +287,7 @@ namespace MicroM.Database
                 {
                     sb_create_PKs.Append(options.EntityInstance.AsAlterPrimaryKey());
                     sb_create_UNs.Append(options.EntityInstance.AsAlterUniqueConstraints());
-                    sb_create_FKs.Append(options.EntityInstance.AsAlterForeignKeys());
+                    sb_create_FKs.Append(options.EntityInstance.AsAlterForeignKeys(schema_config));
                     sb_create_IDXs.Append(options.EntityInstance.AsCreateIndexes());
                 }
                 // create constraints and indexes

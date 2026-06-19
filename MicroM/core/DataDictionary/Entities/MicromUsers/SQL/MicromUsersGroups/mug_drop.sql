@@ -1,4 +1,4 @@
-﻿create or alter proc mug_drop
+﻿create or alter proc [dbo].mug_drop
         @user_group_id Char(20)
         as
 
@@ -6,13 +6,13 @@ begin try
 
     begin tran
 
-    delete  [microm_users_groups_members]
+    delete  [dbo].[microm_users_groups_members]
     where   c_user_group_id = @user_group_id
 
-    delete  [microm_users_groups_menus]
+    delete  [dbo].[microm_users_groups_menus]
     where   c_user_group_id = @user_group_id
 
-    delete  [microm_users_groups]
+    delete  [dbo].[microm_users_groups]
     where   c_user_group_id = @user_group_id
 
     commit tran

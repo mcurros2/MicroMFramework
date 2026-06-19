@@ -45,9 +45,10 @@ namespace MicroM.ImportData
             return result;
         }
 
-        public static async Task<List<Dictionary<string, string>>> ParseFile(string file_path, CancellationToken ct)
+        public static async Task<List<Dictionary<string, string>>> ParseFile(Stream file_stream, CancellationToken ct)
         {
-            var data = await File.ReadAllTextAsync(file_path, System.Text.Encoding.UTF8, ct);
+            using var reader = new StreamReader(file_stream, System.Text.Encoding.UTF8);
+            var data = await reader.ReadToEndAsync(ct);
             return Parse(data, ct);
         }
     }

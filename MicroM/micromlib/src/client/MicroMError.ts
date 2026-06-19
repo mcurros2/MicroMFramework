@@ -6,6 +6,7 @@ export interface MicroMError extends Error {
     message: string,
     statusMessage?: string;
     url?: string;
+    errorBody?: string
 }
 
 export const toMicroMError = (e: any) => {
@@ -13,7 +14,8 @@ export const toMicroMError = (e: any) => {
         status: e.status,
         statusMessage: e.statusMessage ?? e.cause,
         message: e.message,
-        url: e.url
+        url: e.url,
+        errorBody: e.errorBody
     } as MicroMError
 }
 
@@ -27,4 +29,8 @@ export const toDBStatusMicroMError = (dbstat: DBStatus[], form_mode: FormMode = 
         status: dbstat[0].Status,
         statusMessage: result
     } as MicroMError
+}
+
+export function isMicroMError(e: any): e is MicroMError {
+    return e && typeof e.status === "number" && typeof e.message === "string";
 }

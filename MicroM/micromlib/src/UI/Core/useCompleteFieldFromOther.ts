@@ -1,7 +1,7 @@
 import { UseFormReturnType } from "@mantine/form";
+import { useEffect, useState } from "react";
 import { Value, ValuesObject } from "../../client";
 import { EntityColumn } from "../../Entity";
-import { useEffect, useState } from "react";
 
 export interface UseCompleteFieldFromOtherProps {
     form: UseFormReturnType<ValuesObject>,

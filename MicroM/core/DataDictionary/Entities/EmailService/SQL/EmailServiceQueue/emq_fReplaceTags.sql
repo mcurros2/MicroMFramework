@@ -1,4 +1,4 @@
-﻿create or alter function emq_fReplaceTags(@template varchar(max), @tags varchar(max)) returns nvarchar(max) as
+﻿create or alter function [dbo].emq_fReplaceTags(@template varchar(max), @tags varchar(max)) returns nvarchar(max) as
 begin
     declare @FinalResult varchar(max) = @template;
 

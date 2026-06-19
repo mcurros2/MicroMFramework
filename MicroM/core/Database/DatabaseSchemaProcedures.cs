@@ -10,7 +10,7 @@ namespace MicroM.Database;
 
 public static class DatabaseSchemaProcedures
 {
-    public static async Task CreateCustomProcs<T>(T? ent, IEntityClient ec, CancellationToken ct) where T : EntityBase, new()
+    public static async Task CreateCustomProcs<T>(T? ent, IEntityClient ec, CancellationToken ct, string? schema_name = null) where T : EntityBase, new()
     {
         bool should_close = !(ec.ConnectionState == System.Data.ConnectionState.Open);
         try
@@ -20,7 +20,7 @@ public static class DatabaseSchemaProcedures
             if (ent == null)
             {
                 new_ent = new();
-                new_ent.Init(ec);
+                new_ent.Init(ec, schema_name: schema_name);
             }
             else
             {
@@ -41,10 +41,10 @@ public static class DatabaseSchemaProcedures
     public static async Task CreateGeneratedProcs<T>(
         T ent,
         IEntityClient ec,
-        CancellationToken ct,
         CustomOrderedDictionary<CustomScript>? classified_custom_procs,
-        bool create_or_alter
-
+        bool create_or_alter,
+        string dd_schema,
+        CancellationToken ct
         ) where T : EntityBase
     {
         bool should_close = !(ec.ConnectionState == System.Data.ConnectionState.Open);
@@ -63,7 +63,7 @@ public static class DatabaseSchemaProcedures
 
             CustomOrderedDictionary<string> generated_scripts = new();
 
-            var generated_update_scripts = ent.AsCreateUpdateProc(create_or_alter, with_iupdate);
+            var generated_update_scripts = ent.AsCreateUpdateProc(dd_schema, create_or_alter, with_iupdate);
             if (generated_update_scripts?.Count > 0)
             {
                 if (with_iupdate)
@@ -120,8 +120,9 @@ public static class DatabaseSchemaProcedures
     public static async Task CreateProcs<T>(
         T ent,
         IEntityClient ec,
-        CancellationToken ct,
         bool create_or_alter,
+        string dd_schema,
+        CancellationToken ct,
         bool create_custom_procs = true
         ) where T : EntityBase
     {
@@ -145,7 +146,7 @@ public static class DatabaseSchemaProcedures
 
             CustomOrderedDictionary<string> generated_scripts = new();
 
-            var generated_update_scripts = ent.AsCreateUpdateProc(create_or_alter, with_iupdate);
+            var generated_update_scripts = ent.AsCreateUpdateProc(dd_schema, create_or_alter, with_iupdate);
             if (generated_update_scripts?.Count > 0)
             {
                 if (with_iupdate)
@@ -184,7 +185,7 @@ public static class DatabaseSchemaProcedures
 
             if (custom_procs != null)
             {
-                var custom_proc_scripts = ClassifyCustomSQLScripts(custom_procs);
+                CustomOrderedDictionary<CustomScript> custom_proc_scripts = ClassifyCustomSQLScripts(custom_procs);
 
                 // We don't use a foreach here as there may be update and iupdate / drop and idrop custom procs but the flag with_iupdate and with_idrop
                 // can be false. Custom procs should alwayes be created no matter what.
@@ -192,69 +193,69 @@ public static class DatabaseSchemaProcedures
                 // update
                 if (custom_proc_scripts.Contains(iupdate_proc_name))
                 {
-                    await ec.ExecuteSQLNonQuery(custom_proc_scripts[iupdate_proc_name].SQLText, ct);
+                    await ec.ExecuteSQLNonQuery(custom_proc_scripts[iupdate_proc_name]!.SQLText, ct);
                 }
                 else if (with_iupdate)
                 {
-                    await ec.ExecuteSQLNonQuery(generated_scripts[iupdate_proc_name], ct);
+                    await ec.ExecuteSQLNonQuery(generated_scripts[iupdate_proc_name]!, ct);
                 }
 
                 if (custom_proc_scripts.Contains(update_proc_name))
                 {
-                    await ec.ExecuteSQLNonQuery(custom_proc_scripts[update_proc_name].SQLText, ct);
+                    await ec.ExecuteSQLNonQuery(custom_proc_scripts[update_proc_name]!.SQLText, ct);
                 }
                 else
                 {
-                    await ec.ExecuteSQLNonQuery(generated_scripts[update_proc_name], ct);
+                    await ec.ExecuteSQLNonQuery(generated_scripts[update_proc_name]!, ct);
                 }
 
                 // get
                 if (custom_proc_scripts.Contains(get_proc_name))
                 {
-                    await ec.ExecuteSQLNonQuery(custom_proc_scripts[get_proc_name].SQLText, ct);
+                    await ec.ExecuteSQLNonQuery(custom_proc_scripts[get_proc_name]!.SQLText, ct);
                 }
                 else
                 {
-                    await ec.ExecuteSQLNonQuery(generated_scripts[get_proc_name], ct);
+                    await ec.ExecuteSQLNonQuery(generated_scripts[get_proc_name]!, ct);
                 }
 
                 // drop
                 if (custom_proc_scripts.Contains(idrop_proc_name))
                 {
-                    await ec.ExecuteSQLNonQuery(custom_proc_scripts[idrop_proc_name].SQLText, ct);
+                    await ec.ExecuteSQLNonQuery(custom_proc_scripts[idrop_proc_name]!.SQLText, ct);
                 }
                 else if (with_idrop)
                 {
-                    await ec.ExecuteSQLNonQuery(generated_scripts[idrop_proc_name], ct);
+                    await ec.ExecuteSQLNonQuery(generated_scripts[idrop_proc_name]!, ct);
                 }
 
                 if (custom_proc_scripts.Contains(drop_proc_name))
                 {
-                    await ec.ExecuteSQLNonQuery(custom_proc_scripts[drop_proc_name].SQLText, ct);
+                    await ec.ExecuteSQLNonQuery(custom_proc_scripts[drop_proc_name]!.SQLText, ct);
                 }
                 else
                 {
-                    await ec.ExecuteSQLNonQuery(generated_scripts[drop_proc_name], ct);
+                    await ec.ExecuteSQLNonQuery(generated_scripts[drop_proc_name]!, ct);
                 }
 
                 // lookup
                 if (custom_proc_scripts.Contains(lookup_proc_name))
                 {
-                    await ec.ExecuteSQLNonQuery(custom_proc_scripts[lookup_proc_name].SQLText, ct);
+                    await ec.ExecuteSQLNonQuery(custom_proc_scripts[lookup_proc_name]!.SQLText, ct);
                 }
                 else
                 {
-                    await ec.ExecuteSQLNonQuery(generated_scripts[lookup_proc_name], ct);
+                    await ec.ExecuteSQLNonQuery(generated_scripts[lookup_proc_name]!, ct);
                 }
 
                 // view
                 if (custom_proc_scripts.Contains(view_proc_name))
                 {
-                    await ec.ExecuteSQLNonQuery(custom_proc_scripts[view_proc_name].SQLText, ct);
+                    await ec.ExecuteSQLNonQuery(custom_proc_scripts[view_proc_name]!.SQLText, ct);
                 }
                 else
                 {
-                    await ec.ExecuteSQLNonQuery(generated_scripts[view_proc_name], ct);
+                    await ec.ExecuteSQLNonQuery(generated_scripts[view_proc_name]!, ct);
                 }
 
                 // create the rest of custom procs if requested
@@ -264,7 +265,7 @@ public static class DatabaseSchemaProcedures
                     {
                         if (!generated_scripts.Contains(key))
                         {
-                            await ec.ExecuteSQLNonQuery(custom_proc_scripts[key].SQLText, ct);
+                            await ec.ExecuteSQLNonQuery(custom_proc_scripts[key]!.SQLText, ct);
                         }
                     }
                 }
@@ -289,8 +290,9 @@ public static class DatabaseSchemaProcedures
     public static async Task<T> CreateEntityAndProcs<T>(
     T? ent,
     IEntityClient ec,
-    CancellationToken ct,
     bool create_or_alter,
+    string dd_schema,
+    CancellationToken ct,
     bool create_custom_procs = true
     ) where T : EntityBase, new()
     {
@@ -309,7 +311,7 @@ public static class DatabaseSchemaProcedures
                 new_ent = ent;
             }
 
-            await CreateProcs(new_ent, ec, ct, create_or_alter, create_custom_procs);
+            await CreateProcs(new_ent, ec, create_or_alter, dd_schema, ct, create_custom_procs);
 
             return new_ent;
         }

@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { DBStatus, DataOperationType, OperationStatus, isDBStatusResult, toDBStatusMicroMError, toMicroMError } from "../../client";
+import { DataOperationType, DBStatus, isDBStatusResult, isMicroMError, OperationStatus, toDBStatusMicroMError, toMicroMError } from "../../client";
 import { FormMode } from "./types";
 
 export interface UseOperationStatusCallback<T> {
@@ -25,13 +25,15 @@ export function useOperationStatusCallback<T>(props: UseOperationStatusCallback<
             const new_status: OperationStatus<T> = { loading: false, data: data, operationType: operation };
             if (isDBStatusResult(data) && data.Failed) {
                 new_status.error = toDBStatusMicroMError(data.Results as DBStatus[]);
+            } else if (isMicroMError(data)) {
+                new_status.error = data;
             }
             setStatus(new_status);
             return new_status;
         }
         catch (e: any) {
             if (e.name !== 'AbortError') {
-                const new_status: OperationStatus<T> = { error: e.Errors ? toDBStatusMicroMError(e.Errors as DBStatus[], operation as FormMode) :  toMicroMError(e), operationType: operation };
+                const new_status: OperationStatus<T> = { error: e.Errors ? toDBStatusMicroMError(e.Errors as DBStatus[], operation as FormMode) : toMicroMError(e), operationType: operation };
                 setStatus(new_status);
                 return new_status;
             }

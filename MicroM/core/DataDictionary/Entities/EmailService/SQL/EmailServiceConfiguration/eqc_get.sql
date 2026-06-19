@@ -1,4 +1,4 @@
-﻿create or alter proc eqc_get
+﻿create or alter proc [dbo].eqc_get
         @email_configuration_id Char(20)
         as
 
@@ -18,7 +18,7 @@ select  [c_email_configuration_id] = rtrim(a.c_email_configuration_id)
         , a.vc_webluuser
         , a.vc_insuser
         , a.vc_luuser
-from    [email_service_configuration] a
-        left join email_service_templates b
+from    [dbo].[email_service_configuration] a
+        left join [dbo].email_service_templates b
 		on(b.c_email_template_id='RECOVERY')
 where   a.c_email_configuration_id = @email_configuration_id

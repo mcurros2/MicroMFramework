@@ -1,6 +1,6 @@
 ﻿using MicroM.Configuration;
+using MicroM.Configuration.CategoriesDefinitions;
 using MicroM.Data;
-using MicroM.DataDictionary.CategoriesDefinitions;
 using MicroM.Web.Services;
 using Microsoft.Extensions.Logging;
 
@@ -21,6 +21,9 @@ public class MicroMAuthenticationProvider(ILogger<MicroMAuthenticationProvider> 
 
             case nameof(AuthenticationTypes.SQLServerAuthentication):
                 return GetService<SQLServerAuthenticator>();
+
+            case nameof(AuthenticationTypes.SecretsAuthentication):
+                return GetService<SecretsAuthenticator>();
 
             default:
                 return null;

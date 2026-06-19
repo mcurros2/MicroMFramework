@@ -1,27 +1,41 @@
 ﻿using MicroM.Configuration;
 using MicroM.Data;
 using MicroM.Web.Services.Security;
+using Microsoft.AspNetCore.Http;
 using System.Reflection;
 
-namespace MicroM.Web.Services
+namespace MicroM.Web.Services;
+
+public sealed record EntityTypeRecord
 {
-    public interface IMicroMAppConfiguration
-    {
-        public ApplicationOption? GetAppConfiguration(string app_id);
+    public required string EntityName { get; set; }
+    public required string Type { get; set; }
+}
 
-        public Type? GetEntityType(string app_id, string entity_name);
+public interface IMicroMAppConfiguration
+{
+    public ApplicationOption? GetAppConfiguration(string app_id);
 
-        public List<Assembly> GetAllAPPAssemblies(string app_id);
+    public Type? GetEntityType(string app_id, string entity_name);
 
-        public Task<bool> RefreshConfiguration(string? app_id, CancellationToken ct);
+    public List<Assembly> GetAllAPPAssemblies(string app_id);
 
-        public DatabaseClient? GetDatabaseClient(string app_id, int? connection_tiemout_secs = 15);
+    public Task<bool> RefreshConfiguration(string? app_id, CancellationToken ct);
 
-        public List<string> GetAppIDs();
+    public DatabaseClient? GetDatabaseClient(string app_id, int connection_tiemout_secs = 5);
 
-        public PublicEndpointSecurityRecord? GetPublicAccessAllowedRoutes(string app_id);
+    public List<string> GetAppIDs();
 
-        public bool IsCORSOriginAllowed(string? app_id, string origin);
+    public PublicEndpointSecurityRecord? GetPublicAccessAllowedRoutes(string app_id);
 
-    }
+    public bool IsCORSOriginAllowed(string? app_id, string origin);
+
+    public string? GetTenantPath(HttpContext context);
+
+    public bool IsDDType(string type_name);
+
+    public Task StartApplicationServices();
+
+    public Task StopApplicationServices();
+
 }

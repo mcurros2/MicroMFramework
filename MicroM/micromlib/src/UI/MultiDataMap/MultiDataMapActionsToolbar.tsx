@@ -1,11 +1,11 @@
 import { ActionIcon, Box, Button, Group, Menu, useComponentDefaultProps, useMantineTheme } from "@mantine/core";
 import { IconEye, IconEyeOff, IconSettingsPin } from "@tabler/icons-react";
+import { useRef } from "react";
 import { EntityClientAction } from "../../Entity";
 import { ActionIconVariant, ButtonVariant, FormMode } from "../Core";
 import { DataGridToolbarSizes } from "../DataGrid";
 import { getToolbarSizes } from "../DataGrid/ToolBarFunctions";
 import { useMultiDataMapGrid } from "./useMultiDataMapGrid";
-import { useRef } from "react";
 
 export interface MultiDataMapActionsToolbarProps {
     showMapConfig?: boolean,

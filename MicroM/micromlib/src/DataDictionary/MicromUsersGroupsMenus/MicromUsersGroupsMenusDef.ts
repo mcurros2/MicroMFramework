@@ -1,5 +1,5 @@
-import { DefaultColumns, EntityColumn, EntityDefinition, EntityView, CommonFlags as c } from "../../Entity";
 import { MicroMClient, ValuesObject } from "../../client";
+import { CommonFlags as c, DefaultColumns, EntityColumn, EntityDefinition, EntityView } from "../../Entity";
 import { MicromUsersGroups } from "../MicromUsersGroups";
 import { ACTDisableMenus } from "./ACTDisableMenus";
 import { ACTEnableMenus } from "./ACTEnableMenus";

@@ -2,7 +2,7 @@ import { ActionIcon, Group, MantineNumberSize, Modal, ModalBaseOverlayProps, Ske
 import { randomId, useViewportSize } from '@mantine/hooks';
 import { ModalSettings } from '@mantine/modals/lib/context';
 import { IconArrowsDiagonal, IconArrowsDiagonalMinimize2 } from '@tabler/icons-react';
-import { PropsWithChildren, ReactNode, createContext, useCallback, useContext, useState } from 'react';
+import { createContext, PropsWithChildren, ReactNode, useCallback, useContext, useState } from 'react';
 import { isPromise } from '../../Entity';
 
 export const ModalsManagerDefaultProps = {

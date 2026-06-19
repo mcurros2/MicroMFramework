@@ -1,9 +1,9 @@
 import { Text } from "@mantine/core";
 import { useCallback } from "react";
-import { Entity, EntityDefinition } from "../../Entity";
 import { DBStatusResult, OperationStatus } from "../../client";
-import { MicroMModalSize, useModal } from "./ModalsManager";
+import { Entity, EntityDefinition } from "../../Entity";
 import { createEntityForm } from "./createEntityForm";
+import { MicroMModalSize, useModal } from "./ModalsManager";
 import { FormMode } from "./types";
 
 export interface OpenFormProps {

@@ -1,4 +1,4 @@
-﻿create or alter proc mro_iupdate
+﻿create or alter proc [dbo].mro_iupdate
         @route_id Char(20)
         , @route_path VarChar(2048)
         , @lu DateTime
@@ -14,17 +14,17 @@ begin try
 
     select  @cu=dt_lu
             , @route_id = c_route_id
-    from    [microm_routes] with (rowlock, holdlock, updlock)
+    from    [dbo].[microm_routes] with (rowlock, holdlock, updlock)
     where   c_route_id = @route_id
             or vc_route_path = @route_path
 
     if @cu is null
     begin
         declare @id bigint
-        exec num_iGetNewNumber 'mro', @nextnumber = @id out
+        exec [dbo].num_iGetNewNumber 'mro', @nextnumber = @id out
         select @route_id = right('0000000000'+rtrim(@id),10)
 
-        insert  [microm_routes]
+        insert  [dbo].[microm_routes]
         values
             (
             @route_id
@@ -47,7 +47,7 @@ begin try
         return
     end
 
-    update  [microm_routes]
+    update  [dbo].[microm_routes]
     set     vc_route_path = @route_path
             , vc_webluuser = @webusr
             , vc_luuser = @login

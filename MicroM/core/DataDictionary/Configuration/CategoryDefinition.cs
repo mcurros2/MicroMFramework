@@ -13,13 +13,16 @@ namespace MicroM.DataDictionary.Configuration
 
         public bool Multivalue { get; init; } = false;
 
+        public bool NumericIDS { get; init; } = false;
+
         public Dictionary<string, CategoryValuesDefinition> Values { get; } = new(StringComparer.OrdinalIgnoreCase);
 
-        public CategoryDefinition(string description, bool multivalue = false)
+        public CategoryDefinition(string description, bool multivalue = false, bool numeric_ids = false)
         {
             CategoryID = this.GetType().Name;
             Description = description;
             Multivalue = multivalue;
+            NumericIDS = numeric_ids;
 
             FillValuesDictionary();
         }

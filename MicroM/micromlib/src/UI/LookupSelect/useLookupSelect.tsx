@@ -1,7 +1,7 @@
 import { SelectItem } from "@mantine/core";
-import { useEffect } from "react";
-import { Entity, EntityColumn, EntityDefinition } from "../../Entity";
+import { ReactNode, useEffect } from "react";
 import { Value, ValuesObject } from "../../client";
+import { Entity, EntityColumn, EntityDefinition } from "../../Entity";
 import { useExecuteView, useLocaleFormat, useStateReturnType } from "../Core";
 import { UseEntityFormReturnType } from "../Form";
 import { useLookupEntity, useLookupForm } from "../Lookup";
@@ -15,11 +15,12 @@ export interface UseLookupSelectOptions {
     entity: Entity<EntityDefinition>,
     lookupDefName: string,
     maxItems?: number,
-    includeKeyInDescription?: boolean
+    includeKeyInDescription?: boolean,
+    breadCrumbs?: ReactNode,
 }
 export const useLookupSelect = (props: UseLookupSelectOptions) => {
     const { parentKeys, selectDataState, triggerRefreshState, column, entityForm,
-        entity, lookupDefName, maxItems, includeKeyInDescription
+        entity, lookupDefName, maxItems, includeKeyInDescription, breadCrumbs
     } = props;
 
     const [triggerRefresh, setTriggerRefresh] = triggerRefreshState;
@@ -46,7 +47,11 @@ export const useLookupSelect = (props: UseLookupSelectOptions) => {
     };
 
     const handleEditClick = () => {
-        openEditModal({ entity: lookupEntity!, parentKeys, viewName: lookupViewName, onClosed: handleEditOnClosed, onOK: handleOnOK, selectionMode: 'single' })
+        openEditModal({
+            entity: lookupEntity!,
+            enableAdd: true, enableEdit: true, enableDelete: true, enableView: true,
+            parentKeys, viewName: lookupViewName, onClosed: handleEditOnClosed, onOK: handleOnOK, selectionMode: 'single', breadCrumbs: breadCrumbs
+        })
     }
 
     const status = useExecuteView(lookupEntity, parentKeys, lookupViewName, undefined, maxItems?.toString(), triggerRefresh);

@@ -1,4 +1,4 @@
-﻿create or alter proc usr_GetClientClaims @username varchar(255) as
+﻿create or alter proc [dbo].usr_GetClientClaims @username varchar(255) as
 
 -- This query is a place holder for adding the claims that are needed for the client
 -- this is application specific and should be customized for the client

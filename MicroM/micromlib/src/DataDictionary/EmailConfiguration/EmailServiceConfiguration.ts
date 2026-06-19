@@ -1,6 +1,6 @@
 import { IconMailCog } from "@tabler/icons-react";
-import { Entity } from "../../Entity";
 import { MicroMClient } from "../../client";
+import { Entity } from "../../Entity";
 import { EmailServiceConfigurationDef } from "./EmailServiceConfigurationDef";
 
 export const EmailServiceConfigurationIcon = IconMailCog;

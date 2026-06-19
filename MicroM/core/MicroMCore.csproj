@@ -13,7 +13,7 @@
   </PropertyGroup>
   
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <RootNamespace>MicroM</RootNamespace>
     <AssemblyName>MicroM.Core</AssemblyName>
     <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
@@ -61,7 +61,14 @@
   
   
   <ItemGroup>
-    <None Remove="DataDictionary\Entities\ApplicationOIDCServer\SQL\ApplicationOidcServer\aois_iupdate.sql" />
+    <None Remove="DataDictionary\Entities\ApplicationOidcActiveSessions\SQL\ApplicationOidcActiveSessions\aos_deleteAllSessions.sql" />
+    <None Remove="DataDictionary\Entities\ApplicationOidcActiveSessions\SQL\ApplicationOidcActiveSessions\aos_deleteSessionsBySUB.sql" />
+    <None Remove="DataDictionary\Entities\ApplicationOidcActiveSessions\SQL\ApplicationOidcActiveSessions\aos_GetSessionByRefreshToken.sql" />
+    <None Remove="DataDictionary\Entities\ApplicationOidcActiveSessions\SQL\ApplicationOidcActiveSessions\aos_getSessionBySID.sql" />
+    <None Remove="DataDictionary\Entities\ApplicationOidcActiveSessions\SQL\ApplicationOidcActiveSessions\aos_getUsernameFromSIDorSUB.sql" />
+    <None Remove="Configuration\Entities\ApplicationOIDCConfiguration\SQL\ApplicationOidcClients\aoi_drop.sql" />
+    <None Remove="Configuration\Entities\Applications\app_GetADConfiguration.sql" />
+    <None Remove="Configuration\Entities\Applications\app_GetOIDCClients.sql" />
     <None Remove="DataDictionary\Entities\EmailService\SQL\EmailServiceConfiguration\eqc_get.sql" />
     <None Remove="DataDictionary\Entities\EmailService\SQL\EmailServiceConfiguration\eqc_iupdate.sql" />
     <None Remove="DataDictionary\Entities\EmailService\SQL\EmailServiceQueue\emq_EmailTagsTableType.sql" />
@@ -69,10 +76,16 @@
     <None Remove="DataDictionary\Entities\EmailService\SQL\EmailServiceQueue\emq_fGetTags.sql" />
     <None Remove="DataDictionary\Entities\EmailService\SQL\EmailServiceQueue\emq_SubmitEmailTemplate.sql" />
     <None Remove="DataDictionary\Entities\EmailService\SQL\EmailServiceQueue\emq_SubmitToQueueProcess.sql" />
+    <None Remove="DataDictionary\Entities\FileStore\SQL\FileStoreContent\fsc_InsertFileContent.sql" />
     <None Remove="DataDictionary\Entities\ImportProcess\SQL\ipr_get.sql" />
     <None Remove="DataDictionary\Entities\ImportProcess\SQL\ipr_update.sql" />
     <None Remove="DataDictionary\Entities\ImportProcess\SQL\ipr_UpdateStatus.sql" />
+    <None Remove="Configuration\Entities\MicromApplicationAPIKeys\SQL\MicromApplicationApiKeys\mak_get.sql" />
+    <None Remove="Configuration\Entities\MicromApplicationAPIKeys\SQL\MicromApplicationApiKeys\mak_getByAPIKey.sql" />
+    <None Remove="Configuration\Entities\MicromApplicationAPIKeys\SQL\MicromApplicationApiKeys\mak_iupdate.sql" />
+    <None Remove="DataDictionary\Entities\MicromEntitiesTypes\SQL\mty_deleteAll.sql" />
     <None Remove="DataDictionary\Entities\MicromMenus\SQL\MicromMenusItems\mmi_update.sql" />
+    <None Remove="DataDictionary\Entities\MicromRoutes\SQL\mro_deleteAllRoutes.sql" />
     <None Remove="DataDictionary\Entities\MicromRoutes\SQL\mro_iupdate.sql" />
     <None Remove="DataDictionary\Entities\MicromUsers\SQL\MicromUsersGroups\mug_iupdate.sql" />
     <None Remove="DataDictionary\Entities\MicromUsers\SQL\MicromUsers\usr_GetRecoveryCode.sql" />
@@ -80,10 +93,25 @@
     <None Remove="DataDictionary\Entities\MicromUsers\SQL\MicromUsers\usr_RecoverPassword.sql" />
     <None Remove="DataDictionary\Entities\MicromUsers\SQL\MicromUsers\usr_tfGetUserEmails.sql" />
     <None Remove="DataDictionary\Entities\sys\sys_GetDropDuplicateIndexes.sql" />
+    <None Remove="DataDictionary\Entities\sys\sys_tfMicroMColumns.sql" />
   </ItemGroup>
    
   <ItemGroup>
-    <EmbeddedResource Include="DataDictionary\Entities\ApplicationOIDCServer\SQL\ApplicationOidcServer\aois_iupdate.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\ApplicationOidcActiveSessions\SQL\ApplicationOidcActiveSessions\aos_deleteAllSessions.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\ApplicationOidcActiveSessions\SQL\ApplicationOidcActiveSessions\aos_deleteSessionsBySUB.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\ApplicationOidcActiveSessions\SQL\ApplicationOidcActiveSessions\aos_getSessionByRefreshToken.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\ApplicationOidcActiveSessions\SQL\ApplicationOidcActiveSessions\aos_getSessionBySID.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\ApplicationOidcActiveSessions\SQL\ApplicationOidcActiveSessions\aos_getSessionsBySUB.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\ApplicationOidcActiveSessions\SQL\ApplicationOidcActiveSessions\aos_getUserSessionsBySID.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\ApplicationOidcActiveSessions\SQL\ApplicationOidcActiveSessions\aos_getSessionsByUser.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\ApplicationOidcActiveSessions\SQL\ApplicationOidcActiveSessions\aos_getUsernameFromSIDorSUB.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\ApplicationOidcActiveSessions\SQL\ApplicationOidcActiveSessions\aos_update.sql" />
+    <EmbeddedResource Include="Configuration\Entities\ApplicationOIDCConfiguration\SQL\ApplicationOidcClients\aoi_drop.sql" />
+    <EmbeddedResource Include="Configuration\Entities\ApplicationOIDCConfiguration\SQL\ApplicationOidcClients\aoi_get.sql" />
+    <EmbeddedResource Include="Configuration\Entities\ApplicationOIDCConfiguration\SQL\ApplicationOidcClients\aoi_update.sql" />
+    <EmbeddedResource Include="Configuration\Entities\ApplicationOIDCConfiguration\SQL\ApplicationOidcConfiguration\aoc_iupdate.sql" />
+    <EmbeddedResource Include="Configuration\Entities\Applications\SQL\app_GetADConfiguration.sql" />
+    <EmbeddedResource Include="Configuration\Entities\Applications\SQL\app_GetOIDCClients.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\EmailService\SQL\EmailServiceConfiguration\eqc_get.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\EmailService\SQL\EmailServiceConfiguration\eqc_iupdate.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\EmailService\SQL\EmailServiceQueue\emq_EmailTagsTableType.sql" />
@@ -95,6 +123,8 @@
     <EmbeddedResource Include="DataDictionary\Entities\EmailService\SQL\EmailServiceQueue\emq_SubmitToQueue.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\EmailService\SQL\EmailServiceQueue\emq_SubmitToQueueProcess.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\EmailService\SQL\EmailServiceQueue\emq_update.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\FileStore\SQL\FileStoreContent\fsc_GetFileContent.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\FileStore\SQL\FileStoreContent\fsc_InsertFileContent.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\FileStore\SQL\FileStoreProcess\fsp_idrop.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\FileStore\SQL\FileStoreStatus\fsts_iupdate.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\FileStore\SQL\FileStore\fst_brwFiles.sql" />
@@ -105,10 +135,15 @@
     <EmbeddedResource Include="DataDictionary\Entities\ImportProcess\SQL\ipr_get.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\ImportProcess\SQL\ipr_update.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\ImportProcess\SQL\ipr_UpdateStatus.sql" />
+    <EmbeddedResource Include="Configuration\Entities\MicromApplicationAPIKeys\SQL\MicromApplicationApiKeys\mak_get.sql" />
+    <EmbeddedResource Include="Configuration\Entities\MicromApplicationAPIKeys\SQL\MicromApplicationApiKeys\mak_getByAPIKey.sql" />
+    <EmbeddedResource Include="Configuration\Entities\MicromApplicationAPIKeys\SQL\MicromApplicationApiKeys\mak_iupdate.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\MicromEntitiesTypes\SQL\mty_deleteAll.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\MicromMenus\SQL\MicromMenusItemsAllowedRoutes\mir_drop.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\MicromMenus\SQL\MicromMenusItemsAllowedRoutes\mir_get.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\MicromMenus\SQL\MicromMenusItemsAllowedRoutes\mir_update.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\MicromMenus\SQL\MicromMenusItems\mmi_update.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\MicromRoutes\SQL\mro_deleteAllRoutes.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\MicromRoutes\SQL\mro_iupdate.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\MicromUsers\SQL\MicromUsersDevices\usd_iupdate.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\MicromUsers\SQL\MicromUsersGroupsMenus\mmn_brwMenuItems.sql" />
@@ -123,19 +158,19 @@
   </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="DataDictionary\Entities\ApplicationAssemblyTypes\apt_brwStandard.sql" />
-    <EmbeddedResource Include="DataDictionary\Entities\ApplicationsAssemblies\apa_iupdateAssembly.sql" />
-    <EmbeddedResource Include="DataDictionary\Entities\ApplicationsAssemblies\apa_GetAssemblies.sql" />
-    <EmbeddedResource Include="DataDictionary\Entities\Applications\app_get.sql" />
-    <EmbeddedResource Include="DataDictionary\Entities\Applications\app_drop.sql" />
-    <EmbeddedResource Include="DataDictionary\Entities\Applications\app_iupdate.sql" />
-    <EmbeddedResource Include="DataDictionary\Entities\Applications\app_brwStandard.sql" />
-    <EmbeddedResource Include="DataDictionary\Entities\Applications\app_GetConfiguration.sql" />
-    <EmbeddedResource Include="DataDictionary\Entities\EntitiesAssembliesTypes\eat_deleteAllTypes.sql" />
-    <EmbeddedResource Include="DataDictionary\Entities\EntitiesAssembliesTypes\eat_iupdate.sql" />
-    <EmbeddedResource Include="DataDictionary\Entities\EntitiesAssemblies\eas_dropUnusedAssemblies.sql" />
-    <EmbeddedResource Include="DataDictionary\Entities\EntitiesAssemblies\eas_idropUnusedAssemblies.sql" />
-    <EmbeddedResource Include="DataDictionary\Entities\EntitiesAssemblies\eas_idrop.sql" />
+    <EmbeddedResource Include="Configuration\Entities\ApplicationAssemblyTypes\SQL\apt_brwStandard.sql" />
+    <EmbeddedResource Include="Configuration\Entities\ApplicationsAssemblies\SQL\apa_iupdateAssembly.sql" />
+    <EmbeddedResource Include="Configuration\Entities\ApplicationsAssemblies\SQL\apa_GetAssemblies.sql" />
+    <EmbeddedResource Include="Configuration\Entities\Applications\SQL\app_get.sql" />
+    <EmbeddedResource Include="Configuration\Entities\Applications\SQL\app_drop.sql" />
+    <EmbeddedResource Include="Configuration\Entities\Applications\SQL\app_iupdate.sql" />
+    <EmbeddedResource Include="Configuration\Entities\Applications\SQL\app_brwStandard.sql" />
+    <EmbeddedResource Include="Configuration\Entities\Applications\SQL\app_GetConfiguration.sql" />
+    <EmbeddedResource Include="Configuration\Entities\EntitiesAssembliesTypes\SQL\eat_deleteAllTypes.sql" />
+    <EmbeddedResource Include="Configuration\Entities\EntitiesAssembliesTypes\SQL\eat_iupdate.sql" />
+    <EmbeddedResource Include="Configuration\Entities\EntitiesAssemblies\SQL\eas_dropUnusedAssemblies.sql" />
+    <EmbeddedResource Include="Configuration\Entities\EntitiesAssemblies\SQL\eas_idropUnusedAssemblies.sql" />
+    <EmbeddedResource Include="Configuration\Entities\EntitiesAssemblies\SQL\eas_idrop.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\MicromUsers\SQL\MicromUsers\usr_get.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\MicromUsers\SQL\MicromUsers\usr_GetClientClaims.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\MicromUsers\SQL\MicromUsers\usr_GetEnabledMenus.sql" />
@@ -152,22 +187,25 @@
     <EmbeddedResource Include="DataDictionary\Entities\MicromUsers\SQL\MicromUsers\usr_tfGetUserEmails.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\MicromUsers\SQL\MicromUsers\usr_updateLoginAttempt.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\MicromUsers\SQL\MicromUsers\usr_GetUserData.sql" />
-    <EmbeddedResource Include="DataDictionary\Entities\Numbering\num_iGetNewNumber.sql" />
-    <EmbeddedResource Include="DataDictionary\Entities\sys\sys_GetDropDuplicateIndexes.sql" />
-    <EmbeddedResource Include="DataDictionary\Entities\sys\sys_GetTimeZoneOffset.sql" />
-    <EmbeddedResource Include="DataDictionary\Entities\sys\sys_tfLike.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\Numbering\SQL\num_iGetNewNumber.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\sys\SQL\sys_GetDropDuplicateIndexes.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\sys\SQL\sys_GetTimeZoneOffset.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\sys\SQL\sys_tfLike.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\sys\SQL\sys_tfMicroMColumns.sql" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Azure.Identity" Version="1.14.1" />
-    <PackageReference Include="DocumentFormat.OpenXml" Version="3.3.0" />
-    <PackageReference Include="MailKit" Version="4.13.0" />
-    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.18" />
-    <PackageReference Include="Microsoft.Data.SqlClient" Version="6.0.2" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.3" />
-    <PackageReference Include="Microsoft.Extensions.Options" Version="8.0.2" />
-    <PackageReference Include="SkiaSharp" Version="3.119.0" />
-    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.3.0" />
+    <PackageReference Include="Azure.Identity" Version="1.21.0" />
+    <PackageReference Include="DocumentFormat.OpenXml" Version="3.5.1" />
+    <PackageReference Include="MailKit" Version="4.17.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.9" />
+    <PackageReference Include="Microsoft.Data.SqlClient" Version="7.0.1" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.9" />
+    <PackageReference Include="Microsoft.Extensions.Options" Version="10.0.9" />
+    <PackageReference Include="SkiaSharp" Version="3.119.4" />
+    <PackageReference Include="Sylvan.Data.Excel" Version="0.5.6" />
+    <PackageReference Include="System.DirectoryServices.Protocols" Version="10.0.9" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.19.1" />
   </ItemGroup>
 
   <ItemGroup>
@@ -175,11 +213,21 @@
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>
     </None>
+    <None Include="C:\disco n\Desarrollo\MicroMFramework\MicroM\core\.editorconfig" />
   </ItemGroup>
+	
+  <ItemGroup>
+    <Folder Include="Web\Services\SSOService\" />
+  </ItemGroup>
+
 
   <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
     <Exec Command="del /Q &quot;$(PackageOutputPath)*.nupkg&quot;" />
   </Target>
+
+  <ItemGroup>
+    <EditorConfigFiles Remove="C:\disco n\Desarrollo\MicroMFramework\MicroM\core\.editorconfig" />
+  </ItemGroup>
 
 
 </Project>

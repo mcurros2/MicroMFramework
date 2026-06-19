@@ -1,4 +1,7 @@
-﻿namespace MicroM.Extensions;
+﻿using System.Net.Mail;
+using System.Text;
+
+namespace MicroM.Extensions;
 
 public static class StringExtensions
 {
@@ -30,12 +33,12 @@ public static class StringExtensions
 
     public static IEnumerable<string> Unquote(this IEnumerable<string> value)
     {
-        return value.Select(x => x.Unquote()).ToArray();
+        return [.. value.Select(x => x.Unquote())];
     }
 
     public static IEnumerable<string> Trim(this IEnumerable<string> value)
     {
-        return value.Select(x => x.Trim()).ToArray();
+        return [.. value.Select(x => x.Trim())];
     }
 
     public static string IfNullOrEmpty(this string value, string null_or_empty_value)
@@ -52,6 +55,77 @@ public static class StringExtensions
     public static bool IsNullOrEmpty(this string? value)
     {
         return string.IsNullOrEmpty(value);
+    }
+
+    public static string Mask(this string? value)
+    {
+        return string.IsNullOrEmpty(value) ? "empty" : $"<{value.Length} chars>";
+    }
+
+    public static bool IsContainedIn(this string? value, IEnumerable<string> list, StringComparison comparison = StringComparison.OrdinalIgnoreCase)
+    {
+        if (value == null) return false;
+        foreach (var item in list)
+        {
+            if (string.Equals(value, item, comparison))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static bool StartsWithAny(this string? value, IEnumerable<string> prefixes, StringComparison comparison = StringComparison.OrdinalIgnoreCase)
+    {
+        if (value == null) return false;
+        foreach (var prefix in prefixes)
+        {
+            if (value.StartsWith(prefix, comparison))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static string ToBase64(this string? value)
+    {
+        return string.IsNullOrEmpty(value) ? "" : Convert.ToBase64String(Encoding.UTF8.GetBytes(value));
+    }
+
+    public static MailAddress? ToMailAddress(this string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return null;
+        try
+        {
+            return new MailAddress(value);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    extension(string)
+    {
+        /// <summary>
+        /// This method checks if any of the provided string values are null, empty, or consist only of white-space characters.
+        /// </summary>
+        /// <remarks>
+        /// TO AVOID CS8620 WARNING use like this: string.IsAnyNullOrWhiteSpace([str1, str2, str3]);
+        /// Remove this remark when bug is https://github.com/dotnet/roslyn/issues/81699?utm_source=chatgpt.com is fixed
+        /// </remarks>
+        public static bool IsAnyNullOrWhiteSpace(params string?[] values)
+        {
+            if (values == null || values.Length == 0) return false;
+
+            foreach (var value in values)
+            {
+                if (string.IsNullOrWhiteSpace(value?.ToString()))
+                    return true;
+            }
+            return false;
+        }
     }
 
 }

@@ -25,7 +25,7 @@ export function useGoogleMarkerSVGConvertToURL() {
     }, []);
 
     const convertToURL = useCallback((svgImage: string, fillColor?: string, strokeColor?: string, fillOpacity?: number, styles?: string, selectedStyle?: string): {icon: string, url?: string} => {
-        if (!svgImage) return ({icon: svgImage});
+        if (!svgImage) return ({ icon: svgImage });
 
         // replace image tags
         let icon = svgImage;

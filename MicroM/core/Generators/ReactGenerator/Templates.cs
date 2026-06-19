@@ -4,13 +4,14 @@
     {
         internal const string CATEGORY_ENTITY_TEMPLATE =
 @"
-import { CategoriesValues, MicroMClient } from ""{MICROM_LIB_PACKAGE}"";
+import { MicroMClient } from ""{MICROM_LIB_PACKAGE}"";
 import { IconCategory } from ""@tabler/icons-react"";
+{CATEGORIES_VALUES_CLASS_IMPORT}
 
 export const {CATEGORY_ID}Icon = IconCategory;
 export const {CATEGORY_ID}HelpText = ""* <Your help text>"";
 
-export class cat{CATEGORY_ID} extends CategoriesValues {
+export class cat{CATEGORY_ID} extends {CATEGORIES_VALUES_CLASS} {
 
     constructor(client: MicroMClient, parentKeys = {}) {
         super(client, parentKeys);
@@ -43,7 +44,7 @@ const procs = () =>
         internal const string ENTITY_DEFINITION_TEMPLATE =
 @"
 import { DefaultColumns, EntityColumn, EntityDefinition{ENTITY_LOOKUP_IMPORT}, EntityColumnFlags, CommonFlags as c } from ""{MICROM_LIB_PACKAGE}"";
-import { {EMBEDDED_CATEGORIES_IMPORT} } from ""./Categories"";
+{EMBEDDED_CATEGORIES_IMPORT}
 
 const columns = () =>
 (

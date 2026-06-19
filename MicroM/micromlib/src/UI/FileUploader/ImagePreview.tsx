@@ -1,4 +1,4 @@
-import { Button, Group, Stack, Image } from "@mantine/core"
+import { Button, Group, Image, Stack } from "@mantine/core"
 
 export interface FilePreviewProps {
     documentURL: string,

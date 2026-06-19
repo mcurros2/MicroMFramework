@@ -1,4 +1,4 @@
-﻿create or alter proc emq_SubmitEmailTemplate
+﻿create or alter proc [dbo].emq_SubmitEmailTemplate
 	@email_configuration_id char(20),
 	@email_template_id char(20),
 	@json_destination_and_tags varchar(max),
@@ -11,7 +11,7 @@ declare @subject varchar(1024), @message varchar(max), @sender_name varchar(255)
 
 select  @subject = a.vc_template_subject
         , @message = a.vc_template_body
-from    email_service_templates a
+from    [dbo].email_service_templates a
 where   a.c_email_template_id = @email_template_id        
 
 if @subject is null
@@ -22,7 +22,7 @@ end
 
 select  @sender_email = a.vc_default_sender_email
         , @sender_name = a.vc_default_sender_name
-from    email_service_configuration a
+from    [dbo].email_service_configuration a
 where   a.c_email_configuration_id = @email_configuration_id
 
 if @sender_email is null
@@ -31,7 +31,7 @@ begin
             @sender_email = a.vc_default_sender_email
             , @sender_name = a.vc_default_sender_name
             , @email_configuration_id = a.c_email_configuration_id
-    from    email_service_configuration a
+    from    [dbo].email_service_configuration a
 end
 
 if @sender_email is null
@@ -44,7 +44,7 @@ end
 begin try
 
     declare @email_process_id char(36)
-    exec emq_SubmitToQueueProcess @email_configuration_id,@sender_name,@sender_email,@subject,@message,@json_destination_and_tags,@webusr,@result out,@email_process_id out
+    exec [dbo].emq_SubmitToQueueProcess @email_configuration_id,@sender_name,@sender_email,@subject,@message,@json_destination_and_tags,@webusr,@result out,@email_process_id out
 
     select  @msg = @email_process_id
 

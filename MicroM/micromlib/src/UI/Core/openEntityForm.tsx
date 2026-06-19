@@ -1,8 +1,8 @@
 import { Text } from "@mantine/core";
-import { Entity, EntityDefinition } from "../../Entity";
 import { DBStatusResult, OperationStatus } from "../../client";
-import { MicroMModalSize, ModalContextType } from "./ModalsManager";
+import { Entity, EntityDefinition } from "../../Entity";
 import { createEntityForm } from "./createEntityForm";
+import { MicroMModalSize, ModalContextType } from "./ModalsManager";
 import { FormOptions } from "./types";
 
 export interface openEntityFormProps<T extends FormOptions<Entity<EntityDefinition>>> {

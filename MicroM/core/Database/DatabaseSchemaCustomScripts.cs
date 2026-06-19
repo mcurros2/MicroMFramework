@@ -7,10 +7,12 @@ namespace MicroM.Database;
 
 public static partial class DatabaseSchemaCustomScripts
 {
-    public static CustomScript? ExtractCustomScript(string sql_text)
+    public static CustomScript? ExtractCustomScript(string original_sql_text)
     {
-        if (string.IsNullOrWhiteSpace(sql_text))
+        if (string.IsNullOrWhiteSpace(original_sql_text))
             return null;
+
+        string sql_text = original_sql_text;
 
         // Delete block comments /* ... */
         while (true)
@@ -64,13 +66,19 @@ public static partial class DatabaseSchemaCustomScripts
                     proc_type = SQLScriptType.Unknown;
                 }
 
+                string? schema = null;
                 // remove schema name if present
                 if (proc_name.Contains('.'))
                 {
-                    proc_name = proc_name.Split('.')[1];
+                    var parts = proc_name.Split('.');
+                    proc_name = parts[1];
+                    schema = parts[0];
+                    schema = schema.Trim('[', ']');
                 }
 
                 proc_name = proc_name.Trim('[', ']');
+
+
                 // extract mneo from proc name. Should be the first part of the name [mneo]_[proc_name]
                 string? mneo = null;
                 if (proc_name.Contains('_'))
@@ -78,7 +86,7 @@ public static partial class DatabaseSchemaCustomScripts
                     mneo = proc_name.Split('_')[0];
                 }
 
-                return new(proc_name, mneo, proc_type, GetProcStandardType(proc_name), sql_text);
+                return new(proc_name, mneo, proc_type, GetProcStandardType(proc_name), original_sql_text, schema);
             }
             else if (
                 tokens[0].Equals("create", StringComparison.OrdinalIgnoreCase) ||
@@ -120,23 +128,30 @@ public static partial class DatabaseSchemaCustomScripts
                     proc_type = SQLScriptType.Unknown;
                 }
 
+                string? schema = null;
                 // remove schema name if present
                 if (proc_name.Contains('.'))
                 {
-                    proc_name = proc_name.Split('.')[1];
+                    var parts = proc_name.Split('.');
+                    proc_name = parts[1];
+                    schema = parts[0];
+                    schema = schema.Trim('[', ']');
                 }
+
                 proc_name = proc_name.Trim('[', ']');
+
                 string? mneo = null;
                 if (proc_name.Contains('_'))
                 {
                     mneo = proc_name.Split('_')[0];
                 }
-                return new(proc_name, mneo, proc_type, GetProcStandardType(proc_name), sql_text);
+
+                return new(proc_name, mneo, proc_type, GetProcStandardType(proc_name), sql_text, schema);
             }
 
         }
 
-        return new(null, null, SQLScriptType.Unknown, SQLProcStandardType.Unknown, sql_text);
+        return new(null, null, SQLScriptType.Unknown, SQLProcStandardType.Unknown, sql_text, null);
     }
 
     [GeneratedRegex(@"^\s*GO\s*(?:\r?\n|$)", RegexOptions.Multiline | RegexOptions.IgnoreCase)]

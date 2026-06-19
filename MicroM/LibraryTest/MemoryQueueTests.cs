@@ -1,6 +1,7 @@
 ﻿using MicroM.Web.Services;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -50,7 +51,8 @@ namespace LibraryTest
             Assert.AreEqual(Guid.Empty, id2);
 
             // Wait for the queue to stop processing
-            await Task.Delay(300);
+            _queue.CancelTask(id1);
+            _queue.CancelTask(id2);
         }
 
 
@@ -68,28 +70,36 @@ namespace LibraryTest
             Assert.AreNotEqual(Guid.Empty, id2);
 
             // Wait for the queue to stop processing
-            await Task.Delay(300);
+            _queue.CancelTask(id1);
+            _queue.CancelTask(id2);
         }
 
 
         [TestMethod]
         public async Task GetQueueStatus_ReturnsCorrectStatus()
         {
-            var taskFunc = new Func<CancellationToken, Task<string>>(async ct =>  {
+            var taskFunc = new Func<CancellationToken, Task<string>>(async ct =>
+            {
                 await Task.Delay(200, ct);
-                return "Done"; 
+                return "Done";
             });
 
-            _queue.Enqueue(nameof(GetQueueStatus_ReturnsCorrectStatus), taskFunc, false);
+            var id = _queue.Enqueue(nameof(GetQueueStatus_ReturnsCorrectStatus), taskFunc, false);
+
+            await Task.Delay(100);
 
             var status = _queue.GetQueueStatus();
 
+            var tasks_status = _queue.GetTasksStatus();
+
+            string statusString = tasks_status.Aggregate("", (current, status) => current + $"[{status.Key} {status.Value.Status.ToString()}] ");
+
             // The test will pass if either QueuedCount or RunningCount is 1.
             Assert.IsTrue(status.QueuedCount == 1 || status.RunningCount == 1,
-                $"Expected either QueuedCount or RunningCount to be 1, but found QueuedCount = {status.QueuedCount}, RunningCount = {status.RunningCount}");
+                $"Expected either QueuedCount or RunningCount to be 1, but found QueuedCount = {status.QueuedCount}, RunningCount = {status.RunningCount}. Status: {statusString}");
 
             // Wait for the queue to stop processing
-            await Task.Delay(300);
+            _queue.CancelTask(id);
         }
 
 
@@ -121,7 +131,8 @@ namespace LibraryTest
             Assert.IsTrue(statuses.ContainsKey(id2));
 
             // Wait for the queue to stop processing
-            await Task.Delay(300);
+            _queue.CancelTask(id1);
+            _queue.CancelTask(id2);
 
         }
 
@@ -141,7 +152,7 @@ namespace LibraryTest
             Assert.AreEqual(QueueTaskStatus.Queued, status.Status);
 
             // Wait for the queue to stop processing
-            await Task.Delay(300);
+            _queue.CancelTask(id);
         }
 
 

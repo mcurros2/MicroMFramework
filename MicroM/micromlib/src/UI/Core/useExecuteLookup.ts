@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState } from "react";
-import { EntityColumnFlags, areValuesObjectsEqual } from "../../Entity";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { OperationStatus, toMicroMError, ValuesObject } from "../../client";
+import { areValuesObjectsEqual, EntityColumnFlags } from "../../Entity";
 import * as cf from "../../Entity/ColumnsFunctions";
-import { OperationStatus, ValuesObject, toMicroMError } from "../../client";
-import { UseLookupEntityOptions, useLookupEntity } from "../Lookup";
+import { useLookupEntity, UseLookupEntityOptions } from "../Lookup";
 
 export function useExecuteLookup({ entity, lookupDefName, parentKeys }: UseLookupEntityOptions) {
     const { lookupEntity } = useLookupEntity({ entity, lookupDefName, parentKeys });
@@ -11,6 +11,8 @@ export function useExecuteLookup({ entity, lookupDefName, parentKeys }: UseLooku
     const cancellation = useRef<AbortController>(new AbortController());
     const done = useRef<boolean>(false);
     const prevValues = useRef<ValuesObject | undefined>();
+
+    const lookupProc = entity.def.lookups[lookupDefName].proc;
 
     useEffect(() => {
         return () => {
@@ -42,7 +44,7 @@ export function useExecuteLookup({ entity, lookupDefName, parentKeys }: UseLooku
                 if (entity && lookupEntity) {
                     setStatus({ loading: true, operationType: 'lookup' });
 
-                    const data = await lookupEntity.API.lookupData(cancellation.current.signal);
+                    const data = await lookupEntity.API.lookupData(cancellation.current.signal, null, lookupProc);
                     done.current = true;
                     const status_result: OperationStatus<string> = { data: data, operationType: 'lookup' };
                     setStatus(status_result);
@@ -66,9 +68,12 @@ export function useExecuteLookup({ entity, lookupDefName, parentKeys }: UseLooku
         }
     }
 
+    const abort = useCallback(() => { cancellation.current.abort() }, []);
+
     return {
         execute: execute,
-        status: status
+        status: status,
+        abort: abort
     }
 
 }

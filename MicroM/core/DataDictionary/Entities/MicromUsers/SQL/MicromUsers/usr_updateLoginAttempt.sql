@@ -1,4 +1,4 @@
-﻿create or alter proc usr_updateLoginAttempt 
+﻿create or alter proc [dbo].usr_updateLoginAttempt 
 		@user_id char(20), @new_refresh_token varchar(255), @success bit, @account_lockout_mins int, @refresh_expiration_hours int, @max_bad_logon_attempts int,
 		@device_id varchar(255), @user_agent varchar(4096), @ipaddress varchar(40) as
 
@@ -21,8 +21,8 @@ begin try
 				, @bad_logon_attempts = a.i_badlogonattempts
 				, @locked = a.dt_locked
 				, @disabled = a.bt_disabled
-		from	microm_users a with (holdlock, rowlock, updlock)
-				left join microm_users_devices b with (holdlock, rowlock, updlock)
+		from	[dbo].microm_users a with (holdlock, rowlock, updlock)
+				left join [dbo].microm_users_devices b with (holdlock, rowlock, updlock)
 				on(b.c_user_id=a.c_user_id and b.c_device_id=@device_id)
 		where	a.c_user_id=@user_id
 				
@@ -44,14 +44,14 @@ begin try
 
 		-- MMC: update history
 		set  @errn = -1
-		exec ulh_iupdate null, @user_id, @user_agent, @ipaddress, @success, @now, @now, @login, @errn out, @msg out
+		exec [dbo].ulh_iupdate null, @user_id, @user_agent, @ipaddress, @success, @now, @now, @login, @errn out, @msg out
 
 		-- MMC: password hash verification was successful
 		if @success = 1
 		begin
 				-- MMC: we always unlock the account as the user has logged in providing his password
 				-- and update the refresh token to the new one provided
-				update	microm_users
+				update	[dbo].microm_users
 				set		dt_locked = null
 						, i_badlogonattempts = 0
 						, dt_last_login = @now
@@ -65,7 +65,7 @@ begin try
 					select	@new_refresh_expiration = dateadd(hh,@refresh_expiration_hours,@now)
 		
 					set @errn = -1
-					exec usd_iupdate @user_id, @device_id, @user_agent, @ipaddress, @new_refresh_token, @new_refresh_expiration, 0, null, '', @errn out, @msg out
+					exec [dbo].usd_iupdate @user_id, @device_id, @user_agent, @ipaddress, @new_refresh_token, @new_refresh_expiration, 0, null, '', @errn out, @msg out
 
 					if @errn not in(0,15)
 					begin
@@ -86,7 +86,7 @@ begin try
 			if @bad_logon_attempts+1 >= @max_bad_logon_attempts
 			begin
 				-- MMC: max bad logon attemps has been reached so we lock the account and clear any refresh token, the user will need to logon with their valid password to unlock
-				update	microm_users
+				update	[dbo].microm_users
 				set		dt_locked = dateadd(mi,@account_lockout_mins,@now)
 						, i_badlogonattempts += 1
 						, dt_lu = @now
@@ -94,7 +94,7 @@ begin try
 				where	c_user_id=@user_id
 
 				-- MMC: the account was locked. we invalidate all refresh tokens and devices. This will cause the user to login again after the login token expires
-				delete	microm_users_devices
+				delete	[dbo].microm_users_devices
 				where	c_user_id=@user_id
 
 			end
@@ -104,7 +104,7 @@ begin try
 
 				-- MMC: for bad passwords attemps, we will not invalidate the existing refresh token
 				-- just update the counter
-				update	microm_users
+				update	[dbo].microm_users
 				set		i_badlogonattempts += 1
 						, dt_lu = @now
 						, vc_luuser = @login

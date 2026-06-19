@@ -1,5 +1,5 @@
 ﻿using MicroM.Configuration;
-using MicroM.DataDictionary.Entities.MicromUsers;
+using MicroM.Core;
 
 namespace MicroM.Web.Authentication;
 
@@ -16,7 +16,9 @@ public interface IAuthenticator
 
     public abstract void UnencryptClaims(Dictionary<string, object>? server_claims);
 
-    public abstract Task<(bool failed, string? error_message)> SendPasswordRecoveryEmail(ApplicationOption app_config, string user_name, CancellationToken ct);
+    public abstract Task<ResultWithStatus<bool, string>> SendPasswordRecoveryEmail(ApplicationOption app_config, string user_name, CancellationToken ct);
 
-    public abstract Task<(bool failed, string? error_message)> RecoverPassword(ApplicationOption app_config, string user_name, string new_password, string recovery_code, CancellationToken ct);
+    public abstract Task<ResultWithStatus<bool, string>> RecoverPassword(ApplicationOption app_config, string user_name, string new_password, string recovery_code, CancellationToken ct);
+
+    Task<ExternalSignInResult> HandleExternalSignIn(ApplicationOption app, ExternalIdentity identity, string deviceId, CancellationToken ct);
 }

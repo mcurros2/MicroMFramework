@@ -1,8 +1,8 @@
 import { Text } from "@mantine/core";
 import { ModalSettings } from "@mantine/modals/lib/context";
-import { useRef } from "react";
-import { Entity, EntityDefinition } from "../../Entity";
+import { ReactNode, useRef } from "react";
 import { ValuesObject } from "../../client";
+import { Entity, EntityDefinition } from "../../Entity";
 import { useModal } from "../Core";
 import { GridSelectionMode } from "../Grid";
 import { LookupForm } from "../Lookup";
@@ -27,6 +27,7 @@ export interface ModalLookupOptions {
     enableEdit?: boolean,
     enableDelete?: boolean,
     enableView?: boolean,
+    breadCrumbs?: ReactNode,
 }
 
 export const UseLookupFormDefaultProps: Partial<ModalLookupOptions> = {
@@ -45,7 +46,7 @@ export function useLookupForm() {
     const open = async (props: ModalLookupOptions) => {
         const {
             entity, viewName, onOK, onCancel, modalProps, selectionMode, search, selectLabel, onClosed,
-            parentKeys, showActions, enableAdd, enableEdit, enableDelete, enableView
+            parentKeys, showActions, enableAdd, enableEdit, enableDelete, enableView, breadCrumbs
         } = { ...UseLookupFormDefaultProps, ...props };
 
         buttonResult.current = 'Quit';
@@ -94,6 +95,7 @@ export function useLookupForm() {
                     }}
                     onOK={async (selectedKeys: ValuesObject[]) => await handleOK(selectedKeys)}
                     onCancel={() => handleCancel()}
+                    breadCrumbs={breadCrumbs}
                 />,
                 modalProps: {
                     ...modalProps,

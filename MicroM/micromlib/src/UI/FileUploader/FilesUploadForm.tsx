@@ -2,7 +2,7 @@ import { Button, Card, Group, Text, useComponentDefaultProps, useMantineTheme } 
 import { IconCircleCheck, IconInfoCircle } from "@tabler/icons-react";
 import { EntityColumn } from "../../Entity";
 import { FileUploader, FileUploaderProps } from "./FileUploader";
-import { UploadProgressReport, UseFileUploadProps, ValidateFileReturnType, useFileUpload } from "./useFileUpload";
+import { UploadProgressReport, useFileUpload, UseFileUploadProps, ValidateFileReturnType } from "./useFileUpload";
 
 export interface FilesUploadFormProps extends UseFileUploadProps {
     fileProcessColumn: EntityColumn<string>,

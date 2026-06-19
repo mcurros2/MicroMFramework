@@ -1,6 +1,6 @@
 import { useCallback } from "react";
-import { EntityColumn } from "../../Entity";
 import { Value } from "../../client";
+import { EntityColumn } from "../../Entity";
 import { UseEntityFormReturnType } from "../Form";
 
 export interface useTextTransformProps {

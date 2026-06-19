@@ -1,9 +1,9 @@
 import { useComponentDefaultProps } from "@mantine/core";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useEvent } from "../Core";
+import { panIfRestricted } from "./functions";
 import { ClickedRegionData, GoogleMapRegionSelectorDefaultProps, GoogleMapRegionSelectorProps, GoogleMapZoomFeature, SelectedRegionData } from "./GoogleMapRegionSelectorTypes";
 import { GoogleMapZoomFeatureStyles } from "./GoogleMapRegionsSelectorStyles";
-import { panIfRestricted } from "./functions";
 import { GoogleMapsErrorStatus } from "./Mapping.types";
 import { useGoogleMap } from "./useGoogleMap";
 

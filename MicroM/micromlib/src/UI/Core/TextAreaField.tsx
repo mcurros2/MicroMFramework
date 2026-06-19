@@ -1,21 +1,21 @@
 import { Group, Textarea, TextareaProps, useComponentDefaultProps } from "@mantine/core";
-import { ReactNode, forwardRef, useCallback } from "react";
+import { forwardRef, ReactNode, useCallback } from "react";
+import { Value } from "../../client";
 import { EntityColumn, EntityColumnFlags } from "../../Entity";
 import { ValidatorConfigurationParms } from "../../Validation";
-import { Value } from "../../client";
 import { UseEntityFormReturnType, useFieldConfiguration } from "../Form";
 import { useTextTransform, useTextTransformProps } from "./useTextTransform";
 
 type TextAreaFieldAllowedValidators = 'regex' | 'length' | 'field' | 'required';
 export type TextAreaFieldValidatorConfiguration = Partial<Record<TextAreaFieldAllowedValidators, ValidatorConfigurationParms>>;
 
-export interface TextAreaFieldProps extends TextareaProps, Omit<useTextTransformProps, 'entityForm' | 'column' | 'onBlur' | 'mantineOnBlur'> {
+export interface TextAreaFieldProps extends Omit<TextareaProps, 'autoFocus'>, Omit<useTextTransformProps, 'entityForm' | 'column' | 'onBlur' | 'mantineOnBlur'> {
     column: EntityColumn<Value>,
     entityForm: UseEntityFormReturnType,
     validate?: TextAreaFieldValidatorConfiguration,
     requiredMessage?: ReactNode,
     validationContainer?: React.ComponentType<{ children: ReactNode }>,
-    autofocus?: boolean
+    autoFocus?: 'autoFocusOnAdd' | 'autoFocusOnEdit' | boolean
 }
 
 const defaultProps: Partial<TextAreaFieldProps> = {
@@ -26,7 +26,7 @@ export const TextAreaField = forwardRef<HTMLTextAreaElement, TextAreaFieldProps>
 
     const {
         column, entityForm, required, label, validate, requiredMessage, validationContainer, maxLength,
-        placeholder, description, readOnly, withAsterisk, autofocus, transform, autoTrim, onBlur, onChange, onFocus, ...others
+        placeholder, description, readOnly, withAsterisk, autoFocus, transform, autoTrim, onBlur, onChange, onFocus, ...others
     } = useComponentDefaultProps('TextAreaField', defaultProps, props);
 
     useFieldConfiguration({ entityForm, column, validationContainer, validate, required, requiredMessage });
@@ -57,6 +57,10 @@ export const TextAreaField = forwardRef<HTMLTextAreaElement, TextAreaFieldProps>
 
     const [showDescription,] = entityForm.showDescriptionState;
 
+    const { formMode, status } = entityForm;
+    const add_autofocus = formMode === 'add' ? true : undefined;
+    const edit_autofocus = status.loading === false && formMode !== 'add' ? true : undefined;
+
     return (
         <Textarea
             {...others}
@@ -70,7 +74,8 @@ export const TextAreaField = forwardRef<HTMLTextAreaElement, TextAreaFieldProps>
             onChange={handleOnChange}
             onFocus={handleOnFocus}
             ref={ref}
-            data-autofocus={autofocus}
+            data-autofocus={autoFocus === 'autoFocusOnAdd' ? add_autofocus : autoFocus === 'autoFocusOnEdit' ? edit_autofocus : autoFocus}
+            autoFocus={autoFocus === 'autoFocusOnAdd' ? add_autofocus : autoFocus === 'autoFocusOnEdit' ? edit_autofocus : autoFocus}
             maxLength={maxLength ?? (column.length || undefined)}
         />
 

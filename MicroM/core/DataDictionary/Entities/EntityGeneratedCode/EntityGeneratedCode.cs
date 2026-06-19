@@ -1,4 +1,5 @@
 ﻿using MicroM.Configuration;
+using MicroM.Configuration.Entities;
 using MicroM.Core;
 using MicroM.Data;
 using MicroM.Extensions;
@@ -9,7 +10,7 @@ using MicroM.Web.Services;
 using static MicroM.Database.DatabaseManagement;
 using static System.ArgumentNullException;
 
-namespace MicroM.DataDictionary;
+namespace MicroM.DataDictionary.Entities;
 
 public class EntityGeneratedCodeDef : EntityDefinition
 {
@@ -19,29 +20,30 @@ public class EntityGeneratedCodeDef : EntityDefinition
     public readonly Column<string> c_assembly_id = Column<string>.PK();
     public readonly Column<string> c_assemblytype_id = Column<string>.PK();
 
-    public readonly Column<string> vc_table = new(sql_type: System.Data.SqlDbType.VarChar, size: 0);
-    public readonly Column<string> vc_indexes = new(sql_type: System.Data.SqlDbType.VarChar, size: 0);
-    public readonly Column<string> vc_sp_get = new(sql_type: System.Data.SqlDbType.VarChar, size: 0);
-    public readonly Column<string> vc_sp_update = new(sql_type: System.Data.SqlDbType.VarChar, size: 0);
-    public readonly Column<string> vc_sp_iupdate = new(sql_type: System.Data.SqlDbType.VarChar, size: 0);
-    public readonly Column<string> vc_sp_updatei = new(sql_type: System.Data.SqlDbType.VarChar, size: 0);
-    public readonly Column<string> vc_sp_drop = new(sql_type: System.Data.SqlDbType.VarChar, size: 0);
-    public readonly Column<string> vc_sp_idrop = new(sql_type: System.Data.SqlDbType.VarChar, size: 0);
-    public readonly Column<string> vc_sp_dropi = new(sql_type: System.Data.SqlDbType.VarChar, size: 0);
-    public readonly Column<string> vc_sp_lookup = new(sql_type: System.Data.SqlDbType.VarChar, size: 0);
-    public readonly Column<string> vc_sp_brwStandard = new(sql_type: System.Data.SqlDbType.VarChar, size: 0);
-    public readonly Column<string> vc_custom_procs = new(sql_type: System.Data.SqlDbType.VarChar, size: 0);
+    public readonly Column<string> vc_table = Column<string>.Text(size: 0);
+    public readonly Column<string> vc_indexes = Column<string>.Text(size: 0);
+    public readonly Column<string> vc_sp_get = Column<string>.Text(size: 0);
+    public readonly Column<string> vc_sp_update = Column<string>.Text(size: 0);
+    public readonly Column<string> vc_sp_iupdate = Column<string>.Text(size: 0);
+    public readonly Column<string> vc_sp_updatei = Column<string>.Text(size: 0);
+    public readonly Column<string> vc_sp_drop = Column<string>.Text(size: 0);
+    public readonly Column<string> vc_sp_idrop = Column<string>.Text(size: 0);
+    public readonly Column<string> vc_sp_dropi = Column<string>.Text(size: 0);
+    public readonly Column<string> vc_sp_lookup = Column<string>.Text(size: 0);
+    public readonly Column<string> vc_sp_brwStandard = Column<string>.Text(size: 0);
+    public readonly Column<string> vc_custom_procs = Column<string>.Text(size: 0);
 
-    public readonly Column<string> vc_react_definition = new(sql_type: System.Data.SqlDbType.VarChar, size: 0);
-    public readonly Column<string> vc_react_entity = new(sql_type: System.Data.SqlDbType.VarChar, size: 0);
-    public readonly Column<string> vc_react_categories = new(sql_type: System.Data.SqlDbType.VarChar, size: 0);
-    public readonly Column<string> vc_react_form = new(sql_type: System.Data.SqlDbType.VarChar, size: 0);
+    public readonly Column<string> vc_react_definition = Column<string>.Text(size: 0);
+    public readonly Column<string> vc_react_entity = Column<string>.Text(size: 0);
+    public readonly Column<string> vc_react_categories = Column<string>.Text(size: 0);
+    public readonly Column<string> vc_react_form = Column<string>.Text(size: 0);
 }
 
 public class EntityGeneratedCode : Entity<EntityGeneratedCodeDef>
 {
     public EntityGeneratedCode() : base() { }
-    public EntityGeneratedCode(IEntityClient ec, IMicroMEncryption? encryptor = null) : base(ec, encryptor) { }
+    public EntityGeneratedCode(string? schema_name) : base(schema_name) { }
+    public EntityGeneratedCode(IEntityClient ec, IMicroMEncryption? encryptor = null, string? schema_name = null) : base(ec, encryptor, schema_name) { }
 
     public override async Task<bool> GetData(CancellationToken ct, MicroMOptions? options = null, Dictionary<string, object>? server_claims = null, IWebAPIServices? api = null, string? api_app_id = null)
     {
@@ -56,7 +58,9 @@ public class EntityGeneratedCode : Entity<EntityGeneratedCodeDef>
 
         ThrowIfNull(admin_user);
         ThrowIfNull(admin_password);
+        ArgumentException.ThrowIfNullOrEmpty(api_app_id, nameof(api_app_id));
 
+        ApplicationOption app_config = api?.app_config.GetAppConfiguration(api_app_id) ?? throw new InvalidOperationException($"App configuration not found for AppID {api_app_id}");
 
         string app_id = Def.c_application_id.Value.ThrowIfNullOrEmpty(Def.c_application_id.Name).Trim();
         string assembly_id = Def.c_assembly_id.Value.ThrowIfNullOrEmpty(Def.c_assembly_id.Name);
@@ -69,6 +73,8 @@ public class EntityGeneratedCode : Entity<EntityGeneratedCodeDef>
 
         if (!await LoggedInUserHasAdminRights(admin_dbc, ct)) throw new UnauthorizedAccessException("The logged in user does not have admin permissions");
 
+        var schema_config = app_config.SchemaConfiguration;
+
         var eat = new EntitiesAssembliesTypes(admin_dbc);
         eat.Def.c_assembly_id.Value = assembly_id;
         eat.Def.c_assemblytype_id.Value = assembly_type_id;
@@ -77,8 +83,9 @@ public class EntityGeneratedCode : Entity<EntityGeneratedCodeDef>
 
         var entity_type = api?.app_config.GetEntityType(app_id, entity_name) ?? throw new InvalidOperationException($"Entity not found. {app_id} {entity_name}");
         var ent = (EntityBase?)Activator.CreateInstance(entity_type) ?? throw new InvalidOperationException($"Can't crete entity instance. {app_id} {entity_name}");
+        ent.Init(null, null, schema_config.APPSchema);
 
-        var table = ent.AsCreateTable(true);
+        var table = ent.AsCreateTable(schema_config, true);
         var idrop = ent.AsCreateIDropProc(true, true);
         var drop = ent.AsCreateNormalDropProc(true, force_fake: true);
 
@@ -88,8 +95,8 @@ public class EntityGeneratedCode : Entity<EntityGeneratedCodeDef>
 
         Def.vc_table.Value = table?.Count > 0 ? table[0] : "";
         Def.vc_indexes.Value = table?.Count > 1 ? table[1] : "";
-        Def.vc_sp_update.Value = ent.GetUpdateProc(true, true);
-        Def.vc_sp_iupdate.Value = ent.GetIUpdateProc(true, true);
+        Def.vc_sp_update.Value = ent.GetUpdateProc(schema_config.DDSchema, true, true);
+        Def.vc_sp_iupdate.Value = ent.GetIUpdateProc(schema_config.DDSchema, true, true);
         Def.vc_sp_updatei.Value = ent.GetUpdateForIUpdateProc(true, true);
         Def.vc_sp_drop.Value = drop?.Count > 0 ? drop[0] : "";
         Def.vc_sp_idrop.Value = idrop?.Count > 0 ? idrop[0] : "";

@@ -6,6 +6,10 @@
         public const string CONST_ENTITY_LOOKUP_IMPORT = ", MicroMClient, ValuesObject";
         public const string CONST_LOOKUPS_ASSIGNMENT = "lookups = lookups();";
         public const string CONST_PROCS_ASSIGNMENT = "procs = procs();";
+        public const string CONST_CATEGORIES_VALUES_CLASS = "CategoriesValues";
+        public const string CONST_EMBEDDED_CATEGORIES_FOLDER = "../Categories";
+        public const string CONST_CATEGORIES_ID_COLUMN_NAME = "c_category_id";
+        public const string CONST_CATEGORIES_VALUES_ID_COLUMN_NAME = "c_categoryvalue_id";
 
         public string MNEO { get => tokens[nameof(MNEO)]; init => tokens[nameof(MNEO)] = value; }
         public string COLUMNS_DEFINITION { get => tokens[nameof(COLUMNS_DEFINITION)]; init => tokens[nameof(COLUMNS_DEFINITION)] = value; }
@@ -29,6 +33,8 @@
         public string ENTITY_PROC_DEFINITIONS { get => tokens[nameof(ENTITY_PROC_DEFINITIONS)]; init => tokens[nameof(ENTITY_PROC_DEFINITIONS)] = value; }
         public string PROCS_DEFINITION { get => tokens[nameof(PROCS_DEFINITION)]; init => tokens[nameof(PROCS_DEFINITION)] = value; }
         public string ENTITY_PROCS_ASSIGNMENT { get => tokens[nameof(ENTITY_PROCS_ASSIGNMENT)]; init => tokens[nameof(ENTITY_PROCS_ASSIGNMENT)] = value; }
+        public string CATEGORIES_VALUES_CLASS { get => tokens[nameof(CATEGORIES_VALUES_CLASS)]; init => tokens[nameof(CATEGORIES_VALUES_CLASS)] = value; }
+        public string CATEGORIES_VALUES_CLASS_IMPORT { get => tokens[nameof(CATEGORIES_VALUES_CLASS_IMPORT)]; init => tokens[nameof(CATEGORIES_VALUES_CLASS_IMPORT)] = value; }
 
     }
 }

@@ -1,4 +1,4 @@
-import { ReactPortal, isValidElement, useCallback, useEffect, useRef, useState } from "react";
+import { isValidElement, ReactPortal, useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { w2grid } from "../../../libs/w2ui/w2ui.es6";
 import { Value } from "../../client";
@@ -35,7 +35,7 @@ export function useW2ColumnRender(props: UseW2ColumnRenderProps) {
 
     const isFirstVisible = useFirstVisible(boxRef);
 
-    const emptyLocaleProps = useRef({ timeZoneOffset: timeZoneOffset || 0});
+    const emptyLocaleProps = useRef({ timeZoneOffset: timeZoneOffset || 0 });
 
     const localeFormat = useLocaleFormat(emptyLocaleProps.current);
 

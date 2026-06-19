@@ -69,7 +69,7 @@ export function DataGrid(props: DataGridProps) {
         enableAdd, enableEdit, enableDelete, enableView, enableExport, columnBorders, autoSizeColumnsOnLoad, rowBorders, withBorder,
         labels, columnsOverrides, toolbarSize, viewName, showActions, renderOnlyWhenVisible, filtersFormSize, parentKeys, search,
         limit, parentFormAPI, showToolbar, showActionsToolbar, enableImport, setInitialFiltersFromColumns, visibleFilters, formMode,
-        showColumnsConfigMenu, showSelectRowsButton
+        showColumnsConfigMenu, showSelectRowsButton, maxSearchTerms
     } = props;
 
     const theme = useMantineTheme();
@@ -107,7 +107,7 @@ export function DataGrid(props: DataGridProps) {
             {renderOnlyWhenVisible && isFirstVisible === false ?
                 <div ref={visibilityDivRef} style={{ height: props.gridHeight }}></div>
                 :
-                <section>
+                <section style={{ height: gridHeight === 'flex-grow' ? '100%' : undefined, display: gridHeight === 'flex-grow' ? 'flex' : undefined, flexDirection: gridHeight === 'flex-grow' ? 'column' : undefined }}>
                     {showToolbar &&
                         <DataGridToolbar
                             {...labels!}
@@ -125,6 +125,8 @@ export function DataGrid(props: DataGridProps) {
                             setSearchText={viewState.setSearchText}
                             searchData={searchData}
                             setSearchData={setSearchData}
+
+                            maxSearchTerms={maxSearchTerms}
 
                             client={entity?.API.client}
 
@@ -179,7 +181,7 @@ export function DataGrid(props: DataGridProps) {
                             />
                         </>
                     }
-                    <Box pos={"relative"} mt="sm" mb="sm" >
+                    <Box pos={"relative"} mt="sm" mb="sm" style={{ height: gridHeight === 'flex-grow' ? '100%' : undefined }}>
                         {isLoading &&
                             <FakeProgressBar pos={"absolute"} style={{ top: 0, width: "100%", zIndex: 999 }} size="xs" />
                         }

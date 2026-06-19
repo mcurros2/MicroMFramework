@@ -1,62 +1,66 @@
-﻿namespace MicroM.Data
+﻿namespace MicroM.Data;
+
+public class DataResult
 {
-    public class DataResult
+    public string[] Header { get; private set; }
+
+    public string[] typeInfo { get; private set; }
+
+    public List<object?[]> records { get; private set; }
+
+    public DataResult(int columns)
     {
-        public string[] Header { get; private set; }
+        Header = new string[columns];
+        typeInfo = new string[columns];
+        records = [];
+    }
 
-        public string[] typeInfo { get; private set; }
-
-        public List<object?[]> records { get; private set; }
-
-        public DataResult(int columns)
+    public DataResult(string[] headers, string[] type_info)
+    {
+        if (headers.Length != type_info.Length)
         {
-            Header = new string[columns];
-            typeInfo = new string[columns];
-            records = [];
+            throw new ArgumentException("The headers and type_info arrays must have the same length");
         }
+        Header = headers;
+        typeInfo = type_info;
+        records = [];
+    }
 
-        public DataResult(string[] headers, string[] type_info)
+    public object? this[int record, string key]
+    {
+        get
         {
-            if(headers.Length != type_info.Length)
+            for (int x = 0; x < Header.Length; x++)
             {
-                throw new ArgumentException("The headers and type_info arrays must have the same length");
-            }
-            Header = headers;
-            typeInfo = type_info;
-            records = [];
-        }
-
-        public object? this[int record, string key]
-        {
-            get
-            {
-                for (int x = 0; x < Header.Length; x++)
+                if (Header[x].Equals(key, StringComparison.OrdinalIgnoreCase))
                 {
-                    if (Header[x].Equals(key, StringComparison.OrdinalIgnoreCase))
-                    {
-                        return records[x];
-                    }
+                    return records[record][x];
                 }
-                throw new ArgumentException($"The record has no column with the name {key}");
             }
+            throw new ArgumentException($"The record has no column with the name {key}");
         }
-
-
     }
 
-    public class DataResult<T>
+}
+
+public class DataResult<T>(int columns)
+{
+    public string[] Header { get; private set; } = new string[columns];
+
+    public List<T[]> records { get; private set; } = [];
+
+    public T this[int record, string key]
     {
-        public string[] Header { get; private set; }
-
-        public List<T> records { get; private set; }
-
-        public DataResult(int columns)
+        get
         {
-            Header = new string[columns];
-            records = [];
+            for (int x = 0; x < Header.Length; x++)
+            {
+                if (Header[x].Equals(key, StringComparison.OrdinalIgnoreCase))
+                {
+                    return records[record][x];
+                }
+            }
+            throw new ArgumentException($"The record has no column with the name {key}");
         }
-
-
     }
-
 }

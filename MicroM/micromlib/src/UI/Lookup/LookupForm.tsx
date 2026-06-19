@@ -1,6 +1,6 @@
-﻿import { Button, Card, Group, Text, useComponentDefaultProps, useMantineTheme } from "@mantine/core";
+import { Breadcrumbs, Button, Card, Group, Stack, Text, useComponentDefaultProps, useMantineTheme } from "@mantine/core";
 import { IconCircleCheck, IconCircleX, IconInfoCircle } from "@tabler/icons-react";
-import { useCallback, useRef } from "react";
+import { ReactNode, useCallback, useRef } from "react";
 import { DataGrid, DataGridProps, DataGridSelectionKeys } from "../DataGrid";
 import { GridSelection } from "../Grid";
 
@@ -10,7 +10,8 @@ export interface LookupFormProps {
     onCancel?: () => void,
     helpMessage?: string,
     okLabel?: string,
-    cancelLabel?: string
+    cancelLabel?: string,
+    breadCrumbs?: ReactNode,
 };
 
 //Seleccione los registros que desea y haga clic en el botón OK
@@ -21,7 +22,10 @@ export const LookupFormDefaultProps: Partial<LookupFormProps> = {
 }
 
 export function LookupForm(props: LookupFormProps) {
-    const { dataGridProps, onOK, onCancel, okLabel, cancelLabel, helpMessage } = useComponentDefaultProps('LookupForm', LookupFormDefaultProps, props);
+    const {
+        dataGridProps, onOK, onCancel, okLabel, cancelLabel, helpMessage, breadCrumbs
+    } = useComponentDefaultProps('LookupForm', LookupFormDefaultProps, props);
+
     const theme = useMantineTheme();
     const selectionKeys = useRef<DataGridSelectionKeys>([]);
 
@@ -33,8 +37,11 @@ export function LookupForm(props: LookupFormProps) {
         onOK(selectionKeys.current);
     }, [onOK]);
 
+    const { parentKeys } = dataGridProps;
+
     return (
-        <>
+        <Stack>
+            {breadCrumbs && <Breadcrumbs>{breadCrumbs}</Breadcrumbs>}
             <Card shadow="sm" withBorder={theme.colorScheme === 'dark' ? false : true}>
                 <Card.Section p="xs" bg={theme.colorScheme === 'dark' ? theme.colors.dark[5] : theme.colors[theme.primaryColor][3]} mb="1rem">
                     <Group sx={{ gap: "0.25rem" }}>
@@ -48,6 +55,6 @@ export function LookupForm(props: LookupFormProps) {
                 <Button variant="light" leftIcon={<IconCircleX size="1.5rem" />} onClick={() => (onCancel) ? onCancel() : null}>{cancelLabel}</Button>
                 <Button onClick={handleOK} color={theme.colors.green[5]} leftIcon={<IconCircleCheck size="1.5rem" />}>{okLabel}</Button>
             </Group>
-        </>
+        </Stack>
     );
 }

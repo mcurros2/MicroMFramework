@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Entity, EntityDefinition, EntityProc, areValuesObjectsEqual } from "../../Entity";
-import { DBStatus, DBStatusResult, OperationStatus, ValuesObject, toDBStatusMicroMError, toMicroMError } from "../../client";
+import { DBStatus, DBStatusResult, OperationStatus, toDBStatusMicroMError, toMicroMError, ValuesObject } from "../../client";
+import { areValuesObjectsEqual, Entity, EntityDefinition, EntityProc } from "../../Entity";
 
 export function useExecuteProcess(entity: Entity<EntityDefinition>, proc: EntityProc) {
     const [status, setStatus] = useState<OperationStatus<DBStatusResult>>({ loading: false, operationType: 'proc' });
@@ -57,8 +57,11 @@ export function useExecuteProcess(entity: Entity<EntityDefinition>, proc: Entity
         }
     }, [entity, proc, status]);
 
+    const abort = useCallback(() => { cancellation.current.abort() }, []);
+
     return {
         execute: execute,
-        status: status
+        status: status,
+        abort: abort
     }
 }

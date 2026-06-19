@@ -1,4 +1,4 @@
-﻿create or alter proc usr_get
+﻿create or alter proc [dbo].usr_get
         @user_id Char(20)
         as
 
@@ -6,7 +6,7 @@ declare @now datetime = getdate(), @groups varchar(max)
 
 
 select  @groups = '[' + STRING_AGG('"'+replace(RTRIM(c_user_group_id), '"','\"')+'"', ',') + ']'
-from    microm_users_groups_members
+from    [dbo].microm_users_groups_members
 where   c_user_id = @user_id
 
 select  [c_user_id] = rtrim(a.c_user_id)
@@ -32,8 +32,8 @@ select  [c_user_id] = rtrim(a.c_user_id)
         , a.vc_webluuser
         , a.vc_insuser
         , a.vc_luuser
-from    [microm_users] a
-        join [microm_users_cat] b
+from    [dbo].[microm_users] a
+        join [dbo].[microm_users_cat] b
         on(a.c_user_id = b.c_user_id
         and b.c_category_id = 'UserTypes')
 where   a.c_user_id = @user_id

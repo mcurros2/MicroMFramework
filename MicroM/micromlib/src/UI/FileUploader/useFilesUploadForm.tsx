@@ -1,11 +1,11 @@
 import { Text } from "@mantine/core";
 import { ModalSettings } from "@mantine/modals/lib/context";
 import { useCallback, useRef } from "react";
-import { EntityColumn } from "../../Entity";
 import { MicroMClient } from "../../client";
+import { EntityColumn } from "../../Entity";
 import { useModal } from "../Core";
-import { FileUploaderProps } from "./FileUploader";
 import { FilesUploadForm, FilesUploadFormProps } from "./FilesUploadForm";
+import { FileUploaderProps } from "./FileUploader";
 import { UploadProgressReport } from "./useFileUpload";
 
 export interface ModalFileUploadProps {

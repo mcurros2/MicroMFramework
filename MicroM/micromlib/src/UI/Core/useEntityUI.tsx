@@ -1,9 +1,9 @@
 import { Button, Group, Text } from "@mantine/core";
 import { IconAlertCircle, IconAlertTriangle } from "@tabler/icons-react";
 import { useCallback, useRef } from "react";
+import { DBStatusResult, OperationStatus, ValuesObject } from "../../client";
 import { Entity, EntityClientAction, EntityColumnFlags, EntityDefinition, setValues } from "../../Entity";
 import * as cf from "../../Entity/ColumnsFunctions";
-import { DBStatusResult, OperationStatus, ValuesObject } from "../../client";
 import { UseEntityFormReturnType } from "../Form";
 import { useImportDataForm } from "../ImportData";
 import { ConfirmAndExecutePanel } from "./ConfirmAndExecutePanel";
@@ -131,10 +131,11 @@ export function useEntityUI(props: UseEntityUIProps) {
             const importEntity = Entity.clone(entity);
 
             // Set parentKeys
+            const local_parentkeys = parentKeys ? parentKeys : {};
             const mergedParentKeys = {
                 ...cf.getValues(importEntity.def.columns, { flags: EntityColumnFlags.pk, ignoreDefaults: false }),
                 ...Object.fromEntries(
-                    Object.entries(parentKeys!).filter(([key, value]) => value != null && value !== "")
+                    Object.entries(local_parentkeys).filter(([key, value]) => value != null && value !== "")
                 )
             };
 

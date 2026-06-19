@@ -5,15 +5,15 @@ export interface CodeBlockProps extends Omit<PrismProps, 'children'> {
     codeText: string,
 }
 
-const defaultProps: Partial<CodeBlockProps> = {
-
+export const CodeBlockDefaultProps: Partial<CodeBlockProps> = {
 }
+
 export function CodeBlock(props: CodeBlockProps) {
     const {
-        codeText, language
-    } = useComponentDefaultProps('CodeBlock', defaultProps, props);
+        codeText
+    } = useComponentDefaultProps('CodeBlock', CodeBlockDefaultProps, props);
     return (
-        <Prism styles={{ scrollArea: { flexGrow: 1, minHeight: '60vh'} }} mih="60vh" mah="60vh" sx={{ display: "flex" }} language={language}>
+        <Prism {...props}>
             {codeText ?? ''}
         </Prism>
     )

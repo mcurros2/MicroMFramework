@@ -1,9 +1,9 @@
 import { ActionIcon, Button, Group, Loader, Select, SelectItem, SelectProps, useComponentDefaultProps, useMantineTheme } from "@mantine/core"
 import { IconSelector } from "@tabler/icons-react"
-import { forwardRef, useEffect, useState } from "react"
+import { forwardRef, ReactNode, useEffect, useState } from "react"
+import { DataResult, DBStatusResult, OperationStatus, Value, ValuesObject } from "../../client"
 import { Entity, EntityColumn, EntityColumnFlags, EntityDefinition } from "../../Entity"
-import { DBStatusResult, DataResult, OperationStatus, Value, ValuesObject } from "../../client"
-import { ActionIconVariant, ButtonVariant } from "../Core"
+import { ActionIconVariant, ButtonVariant, MicroMWidthSizes } from "../Core"
 import { UseEntityFormReturnType, useFieldConfiguration } from "../Form"
 import { useLookupSelect } from "./useLookupSelect"
 
@@ -27,15 +27,11 @@ export interface LookupSelectOptions {
     includeKeyInDescription?: boolean,
     withinPortal?: boolean,
     zIndex?: number,
-    editButtonVariant?: ButtonVariant
+    editButtonVariant?: ButtonVariant,
+    breadCrumbs?: ReactNode,
+    maxWidth?: keyof typeof MicroMWidthSizes,
+    minWidth?: keyof typeof MicroMWidthSizes,
 }
-
-/*
-    editIcon: <IconPencil size="1rem" stroke="1.5" />,
-    editIconVariant: "light",
-
-*/
-
 
 export const LookupSelectDefaultProps: Partial<LookupSelectOptions> = {
     enableEdit: false,
@@ -47,11 +43,11 @@ export const LookupSelectDefaultProps: Partial<LookupSelectOptions> = {
     zIndex: 100000,
     editButtonVariant: "light",
     editIconVariant: "light",
+    minWidth: "sm",
     selectProps: {
         searchable: true,
         maxDropdownHeight: 260,
         clearable: true,
-        //w: "40rem",
     }
 }
 
@@ -61,7 +57,7 @@ export const LookupSelect = forwardRef<HTMLInputElement, LookupSelectOptions>(fu
         entityForm, entity, lookupDefName, enableEdit,
         editIcon, editIconVariant, selectProps, maxItems,
         requiredLabel, editLabel, includeKeyInDescription,
-        withinPortal, zIndex
+        withinPortal, zIndex, breadCrumbs, maxWidth, minWidth
     } = useComponentDefaultProps('LookupSelect', LookupSelectDefaultProps, props);
 
     const theme = useMantineTheme();
@@ -70,14 +66,19 @@ export const LookupSelect = forwardRef<HTMLInputElement, LookupSelectOptions>(fu
     const selectDataState = useState<SelectItem[]>([]);
     const [selectData] = selectDataState;
 
-    const lookupSelectAPI = useLookupSelect({ parentKeys, selectDataState, triggerRefreshState, column, entityForm, entity, lookupDefName, maxItems, includeKeyInDescription });
+    const lookupSelectAPI = useLookupSelect({ parentKeys, selectDataState, triggerRefreshState, column, entityForm, entity, lookupDefName, maxItems, includeKeyInDescription, breadCrumbs });
 
     const [showDescription,] = entityForm.showDescriptionState;
 
-    selectProps!.label = selectProps?.label ?? column.prompt;
-    selectProps!.description = showDescription ? (selectProps?.description ?? column.description) : '';
+    const resolvedSelectProps: CustomSelectProps = {
+        ...(selectProps ?? {}),
+        miw: selectProps?.miw ?? (minWidth !== 'auto' && minWidth !== undefined) ? MicroMWidthSizes[minWidth!] : undefined,
+        maw: selectProps?.maw ?? (maxWidth !== 'auto' && maxWidth !== undefined) ? MicroMWidthSizes[maxWidth!] : undefined,
+        label: selectProps?.label ?? column.prompt,
+        description: showDescription ? (selectProps?.description ?? column.description) : ''
+    };
 
-    useFieldConfiguration({ entityForm, column, required: selectProps?.required, requiredMessage: requiredLabel });
+    useFieldConfiguration({ entityForm, column, required: resolvedSelectProps?.required, requiredMessage: requiredLabel });
 
     // MMC: Effect for setting the column valueDescription
     useEffect(() => {
@@ -96,16 +97,17 @@ export const LookupSelect = forwardRef<HTMLInputElement, LookupSelectOptions>(fu
         }
     }, [column, entityForm.form.values, selectData]);
 
+    const readoOnlyResult = resolvedSelectProps?.readOnly || entityForm.formMode === 'view' || lookupSelectAPI.status.loading || formStatus?.loading || (column.hasFlag(EntityColumnFlags.pk) && entityForm.formMode !== 'add') ? true : false;
 
     return (
         <Select
-            {...selectProps}
-            withAsterisk={selectProps!.withAsterisk ?? (!selectProps!.readOnly && !(entityForm.formMode === 'view') && (selectProps!.required ?? !column.hasFlag(EntityColumnFlags.nullable)))}
+            {...resolvedSelectProps}
+            withAsterisk={resolvedSelectProps.withAsterisk ?? (!resolvedSelectProps.readOnly && !(entityForm.formMode === 'view') && (resolvedSelectProps.required ?? !column.hasFlag(EntityColumnFlags.nullable)))}
             withinPortal={withinPortal}
             zIndex={zIndex}
-            icon={lookupSelectAPI.status.loading ? <Loader size="xs" /> : selectProps?.icon}
+            icon={lookupSelectAPI.status.loading ? <Loader size="xs" /> : resolvedSelectProps.icon}
             data={selectData}
-            readOnly={selectProps?.readOnly || entityForm.formMode === 'view' || lookupSelectAPI.status.loading || formStatus?.loading ? true : false}
+            readOnly={readoOnlyResult}
             error={lookupSelectAPI.status.error ? lookupSelectAPI.status.error.message : null}
             // MMC: this is how we hack the styles let the chevron work showing the list and the edit button be clickable
             styles={() => ({

@@ -16,7 +16,7 @@ using MicroM.Web.Services;
  * 
 */
 
-namespace MicroM.DataDictionary;
+namespace MicroM.DataDictionary.Entities;
 
 public class NumberingDef : EntityDefinition
 {
@@ -35,6 +35,8 @@ public class Numbering : Entity<NumberingDef>
 {
     public Numbering() : base() { }
 
-    public Numbering(IEntityClient ec, IMicroMEncryption? encryptor = null) : base(ec, encryptor) { }
+    public Numbering(string? schema_name) : base(schema_name) { }
+
+    public Numbering(IEntityClient ec, IMicroMEncryption? encryptor = null, string? schema_name = null) : base(ec, encryptor, schema_name) { }
 
 }

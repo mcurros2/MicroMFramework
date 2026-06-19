@@ -9,10 +9,10 @@ namespace MicroM.Generators.ReactGenerator
     public static class EntityExtensions
     {
 
-        public static string AsTypeScriptEntityDefinition<T>(this T entity) where T : EntityBase
+        public static string AsTypeScriptEntityDefinition<T>(this T entity, string embeded_categories_folder = TemplateValues.CONST_EMBEDDED_CATEGORIES_FOLDER) where T : EntityBase
         {
             string lookup_definitions = entity.Def.AsLookupDefinition();
-            string categories_import = entity.Def.Columns.AsEmbeddedCategoriesImport();
+            string categories_import = entity.Def.Columns.AsEmbeddedCategoriesImport(embeded_categories_folder);
             string procs_definitions = entity.Def.AsProcsDefinition();
 
             var parms = new TemplateValues()
@@ -28,7 +28,7 @@ namespace MicroM.Generators.ReactGenerator
                 ENTITY_PROC_DEFINITIONS = procs_definitions,
                 ENTITY_PROCS_ASSIGNMENT = !string.IsNullOrEmpty(procs_definitions) ? TemplateValues.CONST_PROCS_ASSIGNMENT : "",
                 EMBEDDED_CATEGORIES_IMPORT = !string.IsNullOrEmpty(categories_import) ? $"{categories_import}" : "",
-                MICROM_LIB_PACKAGE = TemplateValues.CONST_MICROM_LIB_PACKAGE
+                MICROM_LIB_PACKAGE = TemplateValues.CONST_MICROM_LIB_PACKAGE,
             };
             return Templates.ENTITY_DEFINITION_TEMPLATE.ReplaceTemplate(parms).RemoveEmptyLines();
         }

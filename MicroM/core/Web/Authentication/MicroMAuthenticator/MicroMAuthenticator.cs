@@ -1,8 +1,8 @@
 ﻿using MicroM.Configuration;
 using MicroM.Core;
 using MicroM.Data;
-using MicroM.DataDictionary;
-using MicroM.DataDictionary.Entities.MicromUsers;
+using MicroM.DataDictionary.CategoriesDefinitions;
+using MicroM.DataDictionary.Entities;
 using MicroM.Extensions;
 using MicroM.Web.Services;
 using Microsoft.AspNetCore.Http;
@@ -12,22 +12,20 @@ using Microsoft.Extensions.Options;
 
 namespace MicroM.Web.Authentication;
 
-public class MicroMAuthenticator : IAuthenticator
+public class MicroMAuthenticator(
+    ILogger<MicroMAuthenticator> logger,
+    IDeviceIdService deviceIdService,
+    IHttpContextAccessor httpContextAccessor,
+    IOptions<MicroMOptions> microm_config,
+    IEmailService emailService,
+    IMicroMEncryption encryptor) : IAuthenticator
 {
-    private readonly ILogger<MicroMAuthenticator> _log;
-    private readonly IDeviceIdService _deviceIdService;
-    private readonly IHttpContextAccessor _contextAccessor;
-    private readonly IOptions<MicroMOptions> _microm_config;
-    private readonly IEmailService _emailService;
-
-    public MicroMAuthenticator(ILogger<MicroMAuthenticator> logger, IDeviceIdService deviceIdService, IHttpContextAccessor httpContextAccessor, IOptions<MicroMOptions> microm_config, IEmailService emailService)
-    {
-        _log = logger;
-        _deviceIdService = deviceIdService;
-        _contextAccessor = httpContextAccessor;
-        _microm_config = microm_config;
-        _emailService = emailService;
-    }
+    private readonly ILogger<MicroMAuthenticator> _log = logger;
+    private readonly IDeviceIdService _deviceIdService = deviceIdService;
+    private readonly IHttpContextAccessor _contextAccessor = httpContextAccessor;
+    private readonly IOptions<MicroMOptions> _microm_config = microm_config;
+    private readonly IEmailService _emailService = emailService;
+    private readonly IMicroMEncryption _encryptor = encryptor;
 
     private string GetRefreshCookieName(ApplicationOption app_config)
     {
@@ -66,7 +64,7 @@ public class MicroMAuthenticator : IAuthenticator
         AuthenticatorResult result = new();
         if (string.IsNullOrEmpty(user_login.Username)) return result;
 
-        using DatabaseClient ec = new(server: app_config.SQLServer, user: app_config.SQLUser, password: app_config.SQLPassword, db: app_config.SQLDB);
+        using DatabaseClient ec = app_config.CreateDatabaseClient(_log, _deviceIdService, null);
 
         LoginData? login_data = null;
         try
@@ -76,7 +74,7 @@ public class MicroMAuthenticator : IAuthenticator
             var (device_id, ipaddress, user_agent) = _deviceIdService.GetDeviceID(user_login.LocalDeviceID);
 
             // MMC: Get the data needed to perform the login attempt: password hash and account status
-            login_data = await MicromUsers.GetUserData(user_login.Username, null, device_id, ec, ct);
+            login_data = await MicromUsers.GetUserData(app_config, user_login.Username, null, device_id, ec, ct);
 
             if (login_data != null)
             {
@@ -99,6 +97,7 @@ public class MicroMAuthenticator : IAuthenticator
 
                     // MMC: take note that the refresh token will be invalidated (null) if there is a bad login attempt
                     var attempt_result = await MicromUsers.UpdateLoginAttempt(
+                        app: app_config,
                         login_data.user_id,
                         device_id,
                         result.PasswordVerificationResult.IsIn(PasswordVerificationResult.Success, PasswordVerificationResult.SuccessRehashNeeded) ? new_refresh_token : login_data.refresh_token,
@@ -118,11 +117,10 @@ public class MicroMAuthenticator : IAuthenticator
                         if (!string.IsNullOrEmpty(attempt_result.RefreshToken)) WriteRefreshTokenToCookie(app_config, attempt_result.RefreshToken);
 
                         // Get claims
-                        var (server_claims, client_claims) = await MicromUsers.GetClaims(user_login.Username, ec, ct);
+                        var (server_claims, client_claims) = await MicromUsers.GetClaims(app_config, user_login.Username, ec, ct);
 
                         result.ClientClaims = client_claims;
                         result.ServerClaims = server_claims;
-
                     }
 
                     result.ServerClaims[MicroMServerClaimTypes.MicroMUser_id] = login_data.user_id;
@@ -133,6 +131,7 @@ public class MicroMAuthenticator : IAuthenticator
 
                     // Json string array of user groups ids
                     result.ServerClaims[MicroMServerClaimTypes.MicroMUserGroups] = login_data.user_groups ?? "[]";
+
                 }
 
             }
@@ -158,36 +157,36 @@ public class MicroMAuthenticator : IAuthenticator
         {
             if (cookie_token != refresh_token)
             {
-                _log.LogWarning("Refresh token from cookie is different from the one in the request:  cookie [{cookie_token}] request : [{refresh_token}] user_id: {user_id}, device_id: {device_id}, ipaddress: {ipaddress}, user-agent: {user_agent}. Taking cookie_token", cookie_token, refresh_token, user_id, device_id, ipaddress, user_agent);
+                _log.LogWarning("Refresh token from cookie is different from the one in the request:  user_id: {user_id}, device_id: {device_id}, ipaddress: {ipaddress}, user-agent: {user_agent}. Taking cookie_token", user_id, device_id, ipaddress, user_agent);
             }
             refresh_token = cookie_token;
         }
 
         if (string.IsNullOrEmpty(user_id))
         {
-            _log.LogTrace("Refresh token: User id is null {refresh_token} user_id: {user_id}, device_id: {device_id}, ipaddress: {ipaddress}, user-agent: {user_agent}", refresh_token, user_id, device_id, ipaddress, user_agent);
+            _log.LogTrace("Refresh token: User id is null user_id: {user_id}, device_id: {device_id}, ipaddress: {ip}, user-agent: {ua}", user_id, device_id, ipaddress, user_agent);
             result.Status = LoginAttemptStatus.InvalidRefreshToken;
             return result;
         }
 
         if (string.IsNullOrEmpty(refresh_token))
         {
-            _log.LogTrace("Refresh token is null or empty token: {refresh_token} user_id: {user_id}, device_id: {device_id}, ipaddress: {ipaddress}, user-agent: {user_agent}", refresh_token, user_id, device_id, ipaddress, user_agent);
+            _log.LogTrace("Refresh token: User id is null user_id: {user_id}, device_id: {device_id}, ipaddress: {ip}, user-agent: {ua}", user_id, device_id, ipaddress, user_agent);
             result.Status = LoginAttemptStatus.InvalidRefreshToken;
             return result;
         }
 
-        using DatabaseClient ec = new(server: app_config.SQLServer, user: app_config.SQLUser, password: app_config.SQLPassword, db: app_config.SQLDB);
+        using DatabaseClient ec = app_config.CreateDatabaseClient(_log, _deviceIdService, null);
 
         try
         {
             await ec.Connect(ct);
 
-            LoginData? login_data = await MicromUsers.GetUserData(null, user_id, device_id, ec, ct);
+            LoginData? login_data = await MicromUsers.GetUserData(app_config, null, user_id, device_id, ec, ct);
             if (login_data != null && !login_data.disabled && !login_data.refresh_expired && !login_data.locked && string.IsNullOrEmpty(login_data.refresh_token) == false)
             {
                 var new_token = CryptClass.GenerateRandomBase64String();
-                var validated_token = await MicromUsers.RefreshToken(user_id, device_id, refresh_token, new_token, app_config.JWTRefreshExpirationHours, app_config.MaxRefreshTokenAttempts, ec, ct);
+                var validated_token = await MicromUsers.RefreshToken(app_config, user_id, device_id, refresh_token, new_token, app_config.JWTRefreshExpirationHours, app_config.MaxRefreshTokenAttempts, ec, ct);
                 if (validated_token != null)
                 {
                     result = validated_token;
@@ -198,12 +197,12 @@ public class MicroMAuthenticator : IAuthenticator
                 }
                 else
                 {
-                    _log.LogWarning("Refresh token proc returned null: {refresh_token} user_id: {user_id}, device_id: {device_id}, ipaddress: {ipaddress}, user-agent: {user_agent}", refresh_token, user_id, device_id, ipaddress, user_agent);
+                    _log.LogWarning("Refresh token proc returned null: user_id: {user_id}, device_id: {device_id}, ipaddress: {ipaddress}, user-agent: {user_agent}", user_id, device_id, ipaddress, user_agent);
                 }
             }
             else
             {
-                _log.LogTrace("Can't refresh token. User Data: {refresh_token} user_id: {user_id}, device_id: {device_id}, ipaddress: {ipaddress}, user-agent: {user_agent}, disabled: {disabled}, refresh_expired: {expired}, locked: {locked}", refresh_token, user_id, device_id, ipaddress, user_agent, login_data?.disabled, login_data?.refresh_expired, login_data?.locked);
+                _log.LogTrace("Can't refresh token. User Data: user_id: {user_id}, device_id: {device_id}, disabled: {disabled}, refresh_expired: {expired}, locked: {locked}", user_id, device_id, login_data?.disabled, login_data?.refresh_expired, login_data?.locked);
             }
 
         }
@@ -223,18 +222,20 @@ public class MicroMAuthenticator : IAuthenticator
     public async Task Logoff(ApplicationOption app_config, string user_name, CancellationToken ct)
     {
         if (string.IsNullOrEmpty(user_name)) throw new ArgumentException("Username is null or empty");
-        using DatabaseClient ec = new(server: app_config.SQLServer, user: app_config.SQLUser, password: app_config.SQLPassword, db: app_config.SQLDB);
-        var _ = await MicromUsers.Logoff(user_name, ec, ct);
+
+        using DatabaseClient ec = app_config.CreateDatabaseClient(_log, _deviceIdService, null);
+
+        var _ = await MicromUsers.Logoff(app_config, user_name, ec, ct);
         DeleteRefreshCookie(app_config);
     }
 
     public void UnencryptClaims(Dictionary<string, object>? server_claims) { }
 
-    public async Task<(bool failed, string? error_message)> SendPasswordRecoveryEmail(ApplicationOption app_config, string user_name, CancellationToken ct)
+    public async Task<ResultWithStatus<bool, string>> SendPasswordRecoveryEmail(ApplicationOption app_config, string user_name, CancellationToken ct)
     {
         if (string.IsNullOrEmpty(user_name)) throw new ArgumentException("Username is null or empty");
 
-        using DatabaseClient ec = new(server: app_config.SQLServer, user: app_config.SQLUser, password: app_config.SQLPassword, db: app_config.SQLDB);
+        using DatabaseClient ec = app_config.CreateDatabaseClient(_log, _deviceIdService, null);
 
         try
         {
@@ -249,24 +250,24 @@ public class MicroMAuthenticator : IAuthenticator
             if (string.IsNullOrEmpty(templates.Def.vc_template_body.Value) || string.IsNullOrEmpty(templates.Def.vc_template_subject.Value))
             {
                 _log.LogWarning("{app_id} No email template found for recovery email", app_id);
-                return (failed: true, "No email template found for recovery email");
+                return new(true, "No email template found for recovery email");
             }
 
-            var emails = await MicromUsers.GetRecoveryEmails(user_name, ec, ct);
+            var emails = await MicromUsers.GetRecoveryEmails(app_config, user_name, ec, ct);
             if (emails == null || emails.Count == 0)
             {
                 _log.LogWarning("{app_id} No emails found for user: {user_name}", app_id, user_name);
-                return (failed: true, $"No emails found for user: {user_name}");
+                return new(true, $"No emails found for user: {user_name}");
             }
 
-            var get_code = await MicromUsers.GetRecoveryCode(user_name, ec, ct);
-            if (string.IsNullOrEmpty(get_code.recovery_code))
+            var get_code = await MicromUsers.GetRecoveryCode(app_config, user_name, ec, ct);
+            if (string.IsNullOrEmpty(get_code.Result))
             {
-                _log.LogWarning("{app_id} Can't get a recovery code for user: {user_name} {error}", app_id, user_name, get_code.error);
-                return (failed: true, $"Can't get a recovery code for user: {user_name} {get_code.error}");
+                _log.LogWarning("{app_id} Can't get a recovery code for user: {user_name} {error}", app_id, user_name, get_code.Status);
+                return new(true, $"Can't get a recovery code for user: {user_name} {get_code.Status}");
             }
 
-            EmailServiceTags recovery_tag = new() { tag = IAuthenticator.AuthenticatorRecoveryEmailTemplateCodeTAG, value = get_code.recovery_code };
+            EmailServiceTags recovery_tag = new() { tag = IAuthenticator.AuthenticatorRecoveryEmailTemplateCodeTAG, value = get_code.Result };
             EmailServiceDestination[] destinations = emails.Select(e =>
             new EmailServiceDestination
             {
@@ -286,7 +287,7 @@ public class MicroMAuthenticator : IAuthenticator
 
             await _emailService.QueueEmail(app_id, email, ct, true);
 
-            return (failed: false, error_message: null);
+            return new(false, null);
         }
         finally
         {
@@ -294,33 +295,159 @@ public class MicroMAuthenticator : IAuthenticator
         }
     }
 
-    public async Task<(bool failed, string? error_message)> RecoverPassword(ApplicationOption app_config, string user_name, string new_password, string recovery_code, CancellationToken ct)
+    public async Task<ResultWithStatus<bool, string>> RecoverPassword(ApplicationOption app_config, string user_name, string new_password, string recovery_code, CancellationToken ct)
     {
         if (string.IsNullOrEmpty(user_name) || string.IsNullOrEmpty(new_password) || string.IsNullOrEmpty(recovery_code)) throw new ArgumentException("Username, new password or recovery code is null or empty");
 
-        using DatabaseClient ec = new(server: app_config.SQLServer, user: app_config.SQLUser, password: app_config.SQLPassword, db: app_config.SQLDB);
+        using DatabaseClient ec = app_config.CreateDatabaseClient(_log, _deviceIdService, null);
 
         try
         {
-            var result = await MicromUsers.RecoverPassword(user_name, recovery_code, new_password, ec, ct);
+            var result = await MicromUsers.RecoverPassword(app_config, user_name, recovery_code, new_password, ec, ct);
             if (result != null)
             {
                 if (result.Failed)
                 {
                     _log.LogWarning("{app_id} Failed to recover password for user: {user_name} {error}", app_config.ApplicationID, user_name, result.Results?[0].Message);
-                    return (failed: true, result.Results?[0].Message);
+                    return new(true, result.Results?[0].Message);
                 }
-                return (failed: false, error_message: null);
+
+                return new(false, null);
+
             }
             else
             {
                 _log.LogWarning("{app_id} Failed to recover password for user: {user_name} {error}", app_config.ApplicationID, user_name, "No result");
-                return (failed: true, null);
+                return new(true, null);
             }
         }
         finally
         {
             await ec.Disconnect();
         }
+    }
+
+    public async Task<ExternalSignInResult> HandleExternalSignIn(ApplicationOption app, ExternalIdentity identity, string deviceId, CancellationToken ct)
+    {
+        var serverClaims = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+        var clientClaims = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        string? refreshToken = null;
+
+        using DatabaseClient ec = app.CreateDatabaseClient(_log, _deviceIdService, null);
+        var (device_id, ipaddress, user_agent) = _deviceIdService.GetDeviceID(deviceId);
+
+        try
+        {
+            await ec.Connect(ct);
+
+            // Lookup user by username
+            LoginData? login_data = await MicromUsers.GetUserData(app, identity.Username, null, device_id, ec, ct);
+
+            // JIT provision if missing
+            if (login_data == null)
+            {
+                var jitUser = new MicromUsers(ec);
+                jitUser.Def.vc_username.Value = identity.Username;
+                jitUser.Def.vc_email.Value = identity.Email;
+                // Default user type
+                jitUser.Def.c_usertype_id.Value = nameof(UserTypes.USER);
+                // Generate a random password (hashed by InsertData)
+                jitUser.Def.vc_password.Value = CryptClass.GenerateRandomBase64String();
+
+                await jitUser.InsertData(ct);
+
+                // Re-read freshly provisioned user
+                login_data = await MicromUsers.GetUserData(app, identity.Username, null, device_id, ec, ct);
+            }
+
+            if (login_data != null && !login_data.disabled && !login_data.locked)
+            {
+                // Issue per-device refresh token and set cookie
+                var new_refresh_token = CryptClass.GenerateRandomBase64String();
+                var attempt_result = await MicromUsers.UpdateLoginAttempt(
+                    app: app,
+                    login_data.user_id,
+                    device_id,
+                    new_refresh_token,
+                    success: true,
+                    app.AccountLockoutMinutes,
+                    app.JWTRefreshExpirationHours,
+                    app.MaxBadLogonAttempts,
+                    ipaddress ?? "",
+                    user_agent ?? "",
+                    ec,
+                    ct
+                );
+
+                if (!string.IsNullOrEmpty(attempt_result.RefreshToken))
+                {
+                    refreshToken = attempt_result.RefreshToken;
+                    WriteRefreshTokenToCookie(app, attempt_result.RefreshToken);
+                }
+
+                // Load DB-backed claims
+                var (db_server_claims, db_client_claims) = await MicromUsers.GetClaims(app, identity.Username, ec, ct);
+                foreach (var kv in db_server_claims) serverClaims[kv.Key] = kv.Value;
+                foreach (var kv in db_client_claims) clientClaims[kv.Key] = kv.Value;
+
+                // Ensure core MicroM server claims
+                serverClaims[MicroMServerClaimTypes.MicroMUser_id] = login_data.user_id;
+                serverClaims[MicroMServerClaimTypes.MicroMAPP_id] = app.ApplicationID;
+                serverClaims[MicroMServerClaimTypes.MicroMUsername] = identity.Username;
+                serverClaims[MicroMServerClaimTypes.MicroMUserType_id] = login_data.usertype_id ?? "";
+                serverClaims[MicroMServerClaimTypes.MicroMUserDeviceID] = device_id;
+                serverClaims[MicroMServerClaimTypes.MicroMUserGroups] = login_data.user_groups ?? "[]";
+
+                if (!string.IsNullOrEmpty(identity.SessionId))
+                {
+                    serverClaims[MicroMServerClaimTypes.MicroMOidcSessionID] = identity.SessionId;
+                }
+
+                // Persist active OIDC session link (DB upsert) using IdP session GUID
+                if (!string.IsNullOrWhiteSpace(identity.SessionId))
+                {
+                    await ApplicationOidcActiveSessions.CreateOrUpdateExternalSignInSession(
+                        app: app,
+                        app.ApplicationID,
+                        identity.Username,
+                        login_data.user_id,
+                        device_id,
+                        identity.SessionId,
+                        identity.Subject,
+                        identity.IdpRefreshToken,
+                        refresh_expiration_utc: identity.IdpRefreshExpirationUtc?.UtcDateTime,
+                        ec,
+                        _encryptor,
+                        ct
+                    );
+                }
+                else
+                {
+                    _log.LogWarning("External sign-in: missing or invalid IdP session GUID for user {username}. Session linkage not persisted.", identity.Username);
+                }
+            }
+            else
+            {
+                _log.LogWarning("External sign-in: user '{username}' not found or inactive/locked. Skipping refresh issuance.", identity.Username);
+
+                serverClaims[MicroMServerClaimTypes.MicroMAPP_id] = app.ApplicationID;
+                serverClaims[MicroMServerClaimTypes.MicroMUsername] = identity.Username;
+                serverClaims[MicroMServerClaimTypes.MicroMUserDeviceID] = device_id;
+                serverClaims[MicroMServerClaimTypes.MicroMUserType_id] = nameof(UserTypes.USER);
+                serverClaims[MicroMServerClaimTypes.MicroMUserGroups] = "[]";
+
+                if (!string.IsNullOrEmpty(identity.SessionId))
+                {
+                    serverClaims[MicroMServerClaimTypes.MicroMOidcSessionID] = identity.SessionId;
+                }
+            }
+        }
+        finally
+        {
+            await ec.Disconnect();
+        }
+
+        return new ExternalSignInResult(serverClaims, clientClaims, device_id, refreshToken);
+
     }
 }

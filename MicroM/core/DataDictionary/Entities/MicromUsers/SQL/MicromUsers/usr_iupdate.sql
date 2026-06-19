@@ -36,17 +36,17 @@ begin try
     END
 
     select  @cu=dt_lu
-    from    [microm_users] with (rowlock, holdlock, updlock)
+    from    [dbo].[microm_users] with (rowlock, holdlock, updlock)
     where   c_user_id = @user_id
 
     if @cu is null
     begin
         
         declare @id bigint
-		exec num_iGetNewNumber 'usr', @nextnumber = @id out
+		exec [dbo].num_iGetNewNumber 'usr', @nextnumber = @id out
 		select @user_id = right('0000000000'+rtrim(@id),10)
 
-        insert  [microm_users]
+        insert  [dbo].[microm_users]
         values
             (
             @user_id
@@ -69,7 +69,7 @@ begin try
             , @login
             )
         
-        insert  [microm_users_cat]
+        insert  [dbo].[microm_users_cat]
         values  
             (
             @user_id
@@ -83,7 +83,7 @@ begin try
             , @login
             )
 
-        insert  microm_users_groups_members
+        insert  [dbo].microm_users_groups_members
         select  a.user_group_id
                 , @user_id
                 , @now
@@ -110,7 +110,7 @@ begin try
         return
     end
 
-    update  [microm_users]
+    update  [dbo].[microm_users]
     set     vc_email = @email
 			, bt_disabled = @disabled
             , vc_webluuser = @webusr
@@ -118,7 +118,7 @@ begin try
             , dt_lu = @now
     where   c_user_id = @user_id
     
-    update  [microm_users_cat]
+    update  [dbo].[microm_users_cat]
     set     c_categoryvalue_id = @usertype_id
             , vc_webluuser = @webusr
             , vc_luuser = @login
@@ -127,12 +127,12 @@ begin try
             and c_category_id = 'UserTypes'
 
     -- delete groups
-    delete  microm_users_groups_members
+    delete  [dbo].microm_users_groups_members
     WHERE   c_user_id = @user_id
             and c_user_group_id not in(SELECT user_group_id FROM [#TempGroups])
 
     -- insert new groups
-    insert  microm_users_groups_members
+    insert  [dbo].microm_users_groups_members
     select  a.user_group_id
             , @user_id
             , @now
@@ -144,7 +144,7 @@ begin try
     from    [#TempGroups] a
     where   not exists (
 				select  1
-				from    microm_users_groups_members
+				from    [dbo].microm_users_groups_members
 				where   c_user_group_id = a.user_group_id
                         and c_user_id = @user_id
 				)

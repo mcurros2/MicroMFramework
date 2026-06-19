@@ -1,4 +1,4 @@
-﻿create or alter proc ipr_update
+﻿create or alter proc [dbo].ipr_update
         @import_process_id Char(20)
         , @fileprocess_id Char(20)
         , @assemblytypename VarChar(2048)
@@ -20,7 +20,7 @@ begin try
 
     if exists(
 		select	1 
-		from	[file_store] 
+		from	[dbo].[file_store] 
 		where	c_fileprocess_id=@fileprocess_id
 				and vc_fileguid not like '%.csv'
 		)
@@ -31,7 +31,7 @@ begin try
 
     if not exists(
 		select	1 
-		from	[file_store] 
+		from	[dbo].[file_store] 
 		where	c_fileprocess_id=@fileprocess_id
 				and vc_fileguid like '%.csv'
 		)
@@ -44,16 +44,16 @@ begin try
     begin tran
 
     select  @cu=dt_lu
-    from    [import_process] with (rowlock, holdlock, updlock)
+    from    [dbo].[import_process] with (rowlock, holdlock, updlock)
     where   c_import_process_id = @import_process_id
 
     if @cu is null
     begin
         declare @id bigint
-        exec num_iGetNewNumber 'ipr', @nextnumber = @id out
+        exec [dbo].num_iGetNewNumber 'ipr', @nextnumber = @id out
         select @import_process_id = right('0000000000'+rtrim(@id),10)
 
-        insert  [import_process]
+        insert  [dbo].[import_process]
         values
             (
             @import_process_id
@@ -68,7 +68,7 @@ begin try
             , @login
             )
 
-        insert  [import_process_status]
+        insert  [dbo].[import_process_status]
         select  @import_process_id
                 , a.c_status_id
                 , a.c_statusvalue_id
@@ -78,10 +78,10 @@ begin try
                 , @webusr
                 , @login
                 , @login
-        from    status_values a
-                join objects_status b
+        from    [dbo].status_values a
+                join [dbo].objects_status b
                 on(b.c_status_id = a.c_status_id)
-                join [objects] c
+                join [dbo].[objects] c
                 on(c.c_object_id = b.c_object_id)
         where   c.c_mneo_id = 'ipr' and
                 a.bt_initial_value = 1

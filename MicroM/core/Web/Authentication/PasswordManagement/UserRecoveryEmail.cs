@@ -1,7 +1,6 @@
-﻿namespace MicroM.Web.Authentication
+﻿namespace MicroM.Web.Authentication;
+
+public class UserRecoveryEmail
 {
-    public class UserRecoveryEmail
-    {
-        public string Username { get; set; } = "";
-    }
+    public string Username { get; set; } = "";
 }

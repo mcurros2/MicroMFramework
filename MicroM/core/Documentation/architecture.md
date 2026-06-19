@@ -9,6 +9,7 @@ The MicroM framework is designed with a modular architecture to facilitate the d
 - Support CRUD operations through standard methods implemented in [EntityBase](../Core/EntityBase.cs) Data property, [EntityData](../Data/EntityData.cs) and [IIEntityData](../Data/IIEntityData.cs).
 - Data operations are carried executing stored procedures in the database.
 - Are the default storage unit for the framework.
+- Common stored procedures are generated for each entity and don't need to be declared manually.
 
 #### Database conventions
 - Each entity has a short mnemonic code (typically 4 characters) used as a prefix for stored procedures and other database objects.
@@ -35,7 +36,7 @@ The MicroM framework is designed with a modular architecture to facilitate the d
 - Is composed by these entities:
     - SystemProcs
     - Categories
-    - CategoriesValues>
+    - CategoriesValues
     - Status
     - StatusValues
     - MicromRoutes

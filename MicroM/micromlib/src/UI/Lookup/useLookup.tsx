@@ -1,7 +1,8 @@
+import { UseFormReturnType } from "@mantine/form";
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { OperationStatus, toMicroMError, Value, ValuesObject } from "../../client";
 import { Entity, EntityDefinition, EntityLookup } from "../../Entity";
 import * as cf from "../../Entity/ColumnsFunctions";
-import { OperationStatus, Value, ValuesObject, toMicroMError } from "../../client";
 import { UseEntityFormReturnType } from "../Form";
 import { useLookupForm } from "../Lookup";
 
@@ -32,7 +33,7 @@ export interface UseLookupOptions {
 export interface UseLookupReturnType {
     status: OperationStatus<ValuesObject>,
     lookupResult?: LookupResultState,
-    lookupInputProps: any,
+    lookupInputProps: ReturnType<UseFormReturnType<ValuesObject>['getInputProps']>,
     onBlur: (bindingColumn: string, force?: boolean, event?: React.FocusEvent | null) => void;
 }
 
@@ -69,7 +70,7 @@ export const useLookup = ({
                     // Set parentKeys
                     cf.setValues(lookupEntity.current!.def.columns, parentKeys, null, true);
 
-                    const result = await lookupEntity.current!.API.lookupData();
+                    const result = await lookupEntity.current!.API.lookupData(null, null, lookupDef.current?.proc);
                     const new_status = {
                         data: { key: keyValue, description: result }
                     } as OperationStatus<ValuesObject>;
@@ -175,7 +176,7 @@ export const useLookup = ({
         }
     }, [entityForm.form, previousLookupResult?.key]);
 
-    const lookupInputProps = entityForm.form.getInputProps(column);
+    const lookupInputProps: ReturnType<UseFormReturnType<ValuesObject>['getInputProps']> = entityForm.form.getInputProps(column);
     const mantine_onblur = lookupInputProps.onBlur;
 
     const onBlur = useCallback(async (bindingColumn: string, force: boolean = false, event: React.FocusEvent | null = null, new_value: Value | undefined = undefined) => {
@@ -236,10 +237,23 @@ export const useLookup = ({
             if ((entityForm.formMode === 'edit' || entityForm.formMode === 'view') && entityForm.status.operationType === 'get' && !entityForm.status.loading && entity.def.columns[column].value) {
                 const result = await performLookup(column, entity.def.columns[column].value, false);
                 updateLookupType(result);
-            };
+            }
         }
         initialLookup();
     }, [column, entity.def.columns, entityForm.formMode, entityForm.status.loading, entityForm.status.operationType, parentKeys]);
+
+    // MMC: perform initial lookup when add
+    const initialAddLookup = useRef<boolean>(true);
+    useEffect(() => {
+        const initialLookup = async () => {
+            if (entityForm.formMode === 'add' && initialAddLookup.current && entity.def.columns[column].value) {
+                const result = await performLookup(column, entity.def.columns[column].value, false);
+                updateLookupType(result);
+                initialAddLookup.current = false;
+            }
+        }
+        initialLookup();
+    }, [entity.def.columns[column].value, entityForm.formMode]);
 
     return {
         status,

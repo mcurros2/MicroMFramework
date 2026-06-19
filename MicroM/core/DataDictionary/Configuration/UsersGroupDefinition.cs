@@ -1,4 +1,6 @@
-﻿namespace MicroM.DataDictionary.Configuration
+﻿using MicroM.DataDictionary.Entities;
+
+namespace MicroM.DataDictionary.Configuration
 {
     /// <summary>
     /// This class is used to define a user group.
@@ -21,7 +23,7 @@
 
         public void AddMenuItem(MenuItemDefinition menuItem)
         {
-            if(!AllowedMenuItems.TryAdd($"{menuItem.MenuID}.{menuItem.MenuItemID}", menuItem))
+            if (!AllowedMenuItems.TryAdd($"{menuItem.MenuID}.{menuItem.MenuItemID}", menuItem))
             {
                 throw new ArgumentException($"Menu item already exists: {menuItem.MenuItemDescription}");
             }

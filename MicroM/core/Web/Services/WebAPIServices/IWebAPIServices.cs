@@ -1,4 +1,5 @@
 ﻿using MicroM.Web.Authentication;
+using MicroM.Web.Authentication.SSO;
 using MicroM.Web.Services.Security;
 using Microsoft.Extensions.Logging;
 
@@ -16,4 +17,5 @@ public interface IWebAPIServices
     public IDeviceIdService deviceIdService { get; }
     public IEntitiesService entitiesService { get; }
     public IAuthenticationService authenticationService { get; }
+    public IOIDCHttpClient oidcHttpClient { get; }
 }

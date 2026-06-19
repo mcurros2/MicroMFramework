@@ -8,18 +8,14 @@ namespace MicroM.Web.Services;
 public interface IEntitiesService
 {
     /// <summary>
-    /// Creates an Entity if exists in the configured assembly <see cref="LoadEntityTypes(Assembly)"/>.
+    /// Creates an Entity if exists in the configured assembly />.
     /// </summary>
-    /// <param name="entity_name"></param>
-    /// <param name="ec"></param>
-    /// <returns></returns>
     public EntityBase? CreateEntity(ApplicationOption app, string entity_name, Dictionary<string, object>? server_claims, IEntityClient? ec = null);
-    public EntityBase? CreateEntity(ApplicationOption app, string entity_name, Dictionary<string, object>? server_claims, CancellationToken ct);
+    public Task<EntityBase?> CreateEntity(ApplicationOption app, string entity_name, Dictionary<string, object>? server_claims, CancellationToken ct);
 
     /// <summary>
     /// Connection factory for the webAPI.
     /// </summary>
-    /// <returns></returns>
     public IEntityClient CreateDbConnection(ApplicationOption app, Dictionary<string, object>? server_claims);
 
     public Task<IEntityClient> CreateDbConnection(ApplicationOption app, Dictionary<string, object>? server_claims, CancellationToken ct);
@@ -55,4 +51,8 @@ public interface IEntitiesService
     public void EnsureApplicationKeys(string app_id, Dictionary<string, object> values);
 
     public Dictionary<string, object> GetApplicationKeys(string app_id);
+
+    public Task HandleExecuteViewChannel(ApplicationOption app, string entity_name, string view_name, DataWebAPIRequest parms, IEntityClient ec, DataResultSetChannel result_channel, CancellationToken ct, int? records_channel_capacity = null, bool complete_channel = true, int? max_allowed_rows = null);
+
+    public Task HandleExecuteProcChannel(ApplicationOption app, string entity_name, string proc_name, DataWebAPIRequest parms, IEntityClient ec, DataResultSetChannel result_channel, CancellationToken ct, int? records_channel_capacity = null, bool complete_channel = true, int? max_allowed_rows = null);
 }

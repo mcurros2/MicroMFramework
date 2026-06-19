@@ -1,4 +1,4 @@
-﻿create or alter proc emq_update
+﻿create or alter proc [dbo].emq_update
         @email_queue_id Char(20)
         , @email_configuration_id Char(20)
         , @external_reference varchar(255)
@@ -26,7 +26,7 @@ begin try
     begin tran
 
     select  @cu=dt_lu
-    from    [email_service_queue] with (rowlock, holdlock, updlock)
+    from    [dbo].[email_service_queue] with (rowlock, holdlock, updlock)
     where   c_email_queue_id = @email_queue_id
 
     if @cu is null
@@ -40,10 +40,10 @@ begin try
 
 
         declare @id bigint
-        exec num_iGetNewNumber 'emq', @nextnumber = @id out
+        exec [dbo].num_iGetNewNumber 'emq', @nextnumber = @id out
         select @email_queue_id = right('0000000000'+rtrim(@id),10)
 
-        insert  [email_service_queue]
+        insert  [dbo].[email_service_queue]
         values
             (
             @email_queue_id
@@ -66,7 +66,7 @@ begin try
             , @login
             )
 
-        insert  [email_service_queue_status]
+        insert  [dbo].[email_service_queue_status]
         select  @email_queue_id
                 , a.c_status_id
                 , a.c_statusvalue_id
@@ -76,10 +76,10 @@ begin try
                 , @webusr
                 , @login
                 , @login
-        from    status_values a
-                join objects_status b
+        from    [dbo].status_values a
+                join [dbo].objects_status b
                 on(b.c_status_id = a.c_status_id)
-                join [objects] c
+                join [dbo].[objects] c
                 on(c.c_object_id = b.c_object_id)
         where   c.c_mneo_id = 'emq' and
                 a.bt_initial_value = 1
@@ -96,7 +96,7 @@ begin try
         return
     end
 
-    update  [email_service_queue]
+    update  [dbo].[email_service_queue]
     set     vc_last_error = @last_error
             , i_retries = @retries
             , vc_webluuser = @webusr
@@ -104,7 +104,7 @@ begin try
             , dt_lu = @now
     where   c_email_queue_id = @email_queue_id
 
-    update  [email_service_queue_status]
+    update  [dbo].[email_service_queue_status]
     set     c_statusvalue_id = @emailstatus_id
             , vc_webluuser = @webusr
             , vc_luuser = @login

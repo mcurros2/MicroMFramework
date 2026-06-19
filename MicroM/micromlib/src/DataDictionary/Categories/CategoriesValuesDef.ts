@@ -1,5 +1,5 @@
-﻿import { DefaultColumns, EntityColumn, EntityDefinition, CommonFlags as c } from "../../Entity";
-import { MicroMClient, ValuesObject } from "../../client";
+﻿import { MicroMClient, ValuesObject } from "../../client";
+import { CommonFlags as c, DefaultColumns, EntityColumn, EntityDefinition } from "../../Entity";
 import { Categories } from "./Categories";
 
 

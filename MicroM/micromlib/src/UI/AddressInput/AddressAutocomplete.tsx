@@ -1,7 +1,7 @@
 import { ReactNode, useCallback, useEffect } from "react";
+import { Value } from "../../client";
 import { EntityColumn, EntityColumnFlags } from "../../Entity";
 import { ValidatorConfiguration } from "../../Validation";
-import { Value } from "../../client";
 import { latLng } from "../Core";
 import { UseEntityFormReturnType, useFieldConfiguration } from "../Form";
 import { AddressFoundResult, GoogleAddressAutocomplete, GoogleAddressAutocompleteProps, GoogleAddressAutocompleteRestrictions, MappedAddressResult } from "../GoogleMaps";
@@ -60,12 +60,6 @@ export function AddressAutocomplete(props: AddressAutocompleteProps) {
     useEffect(() => {
         form.setFieldValue(column.name, column.value || '');
     }, []);
-
-    //useEffect(() => {
-    //    if (!status.loading && status.operationType === 'get') {
-    //        form.setFieldValue(column.name, column.value);
-    //    }
-    //}, [status.loading, status.operationType]);
 
     return (
         <GoogleAddressAutocomplete

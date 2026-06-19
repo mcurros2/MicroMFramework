@@ -2,7 +2,7 @@
 using MicroM.Data;
 using MicroM.Web.Services;
 
-namespace MicroM.DataDictionary;
+namespace MicroM.DataDictionary.Entities;
 
 public class StatusValuesDef : EntityDefinition
 {
@@ -23,6 +23,7 @@ public class StatusValuesDef : EntityDefinition
 public class StatusValues : Entity<StatusValuesDef>
 {
     public StatusValues() : base() { }
-    public StatusValues(IEntityClient ec, IMicroMEncryption? encryptor = null) : base(ec, encryptor) { }
+    public StatusValues(string? schema_name) : base(schema_name) { }
+    public StatusValues(IEntityClient ec, IMicroMEncryption? encryptor = null, string? schema_name = null) : base(ec, encryptor, schema_name) { }
 
 }

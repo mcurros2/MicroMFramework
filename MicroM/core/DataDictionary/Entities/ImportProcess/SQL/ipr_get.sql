@@ -1,4 +1,4 @@
-﻿create or alter proc ipr_get
+﻿create or alter proc [dbo].ipr_get
         @import_process_id Char(20)
         as
 
@@ -14,10 +14,10 @@ select  [c_import_process_id] = rtrim(a.c_import_process_id)
         , a.vc_webluuser
         , a.vc_insuser
         , a.vc_luuser
-from    [import_process] a
-        join [import_process_status] b
+from    [dbo].[import_process] a
+        join [dbo].[import_process_status] b
         on(a.c_import_process_id = b.c_import_process_id
         and b.c_status_id = 'ImportStatus')
-        join file_store c
+        join [dbo].file_store c
         on(a.c_fileprocess_id = c.c_fileprocess_id)
 where   a.c_import_process_id = @import_process_id

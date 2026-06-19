@@ -1,9 +1,9 @@
 import { Box, Button, Group, useComponentDefaultProps } from "@mantine/core";
-import { EntityClientAction } from "../../Entity";
 import { useRef } from "react";
-import { getToolbarSizes } from "./ToolBarFunctions";
-import { DataGridToolbarSizes } from "./DataGridToolbar";
+import { EntityClientAction } from "../../Entity";
 import { ButtonVariant, FormMode } from "../Core";
+import { DataGridToolbarSizes } from "./DataGridToolbar";
+import { getToolbarSizes } from "./ToolBarFunctions";
 
 export interface DataGridActionsToolbarProps {
     size?: DataGridToolbarSizes,
@@ -55,7 +55,7 @@ export function DataGridActionsToolbar(props: DataGridActionsToolbarProps) {
 
     const actionElements = useRef<(HTMLButtonElement | null)[]>([]);
 
-    const { buttonsSize} = getToolbarSizes(size!);
+    const { buttonsSize } = getToolbarSizes(size!);
 
 
     return (

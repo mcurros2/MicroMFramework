@@ -1,4 +1,4 @@
-﻿create or alter proc mug_update
+﻿create or alter proc [dbo].mug_update
         @user_group_id Char(20)
         , @user_group_name VarChar(255)
         , @group_members VarChar(max)
@@ -14,7 +14,7 @@ begin try
 
     begin tran
 
-    exec    mug_iupdate
+    exec    [dbo].mug_iupdate
             @user_group_id
             , @user_group_name
             , @group_members

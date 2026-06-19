@@ -1,10 +1,10 @@
-import { Paper, useComponentDefaultProps } from "@mantine/core";
-import { ForwardedRef, ReactNode, forwardRef, useImperativeHandle } from "react";
 import "../../../libs/w2ui/w2ui.css";
 import "./W2Grid.css";
+import { Paper, useComponentDefaultProps } from "@mantine/core";
+import { SQLType } from "client";
+import { ForwardedRef, forwardRef, ReactNode, useImperativeHandle } from "react";
 import { useGrid } from "./useGrid";
 import { w2columnField, w2record, w2recordId } from "./W2Grid";
-import { SQLType } from "client";
 
 export type GridSelectionMode = 'multi' | 'single';
 export type GridColumnFormat = 'url'
@@ -43,7 +43,7 @@ export type GridSelectionChangedCallback = (selection: GridSelection) => void
 export type GridOptions = {
     columns?: GridColumn[],
     rows?: GridSourceRecord[],
-    gridHeight?: string | number | 'auto',
+    gridHeight?: string | number | 'auto' | 'flex-grow',
     selectionMode?: GridSelectionMode,
     onDoubleClick?: GridDoubleClickCallback,
     preserveSelection?: boolean,
@@ -98,8 +98,8 @@ export const Grid = forwardRef(function Grid(props: GridOptions, ref: ForwardedR
     useImperativeHandle(ref, () => gridAPI.imperative, [gridAPI.imperative]);
 
     return (
-        <Paper style={{ borderRadius: "unset" }}>
-            <div ref={gridAPI.boxRef} style={{ height: props.gridHeight }}></div>
+        <Paper style={{ borderRadius: "unset", height: props.gridHeight === 'flex-grow' ? '100%' : undefined }}>
+            <div ref={gridAPI.boxRef} style={{ height: props.gridHeight === 'flex-grow' ? '100%' : props.gridHeight }}></div>
             {gridAPI.cellsPortals}
         </Paper>
     );

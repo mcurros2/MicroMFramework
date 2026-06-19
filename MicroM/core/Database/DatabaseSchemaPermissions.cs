@@ -1,4 +1,5 @@
-﻿using MicroM.Core;
+﻿using MicroM.Configuration;
+using MicroM.Core;
 using MicroM.Data;
 using MicroM.Extensions;
 using MicroM.Generators.SQLGenerator;
@@ -8,7 +9,7 @@ namespace MicroM.Database;
 
 public class DatabaseSchemaPermissions
 {
-    public async static Task CreateEntitiesRoutes(IEntityClient ec, CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>> entities, CancellationToken ct)
+    public async static Task CreateEntitiesRoutes(ApplicationOption app, IEntityClient ec, CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>> entities, CancellationToken ct)
     {
         bool should_close = !(ec.ConnectionState == System.Data.ConnectionState.Open);
         try
@@ -17,7 +18,7 @@ public class DatabaseSchemaPermissions
 
             foreach (var options in entities.Values)
             {
-                await options.EntityInstance.CreateEntityRoutes(ec, ct);
+                await options.EntityInstance.CreateEntityRoutes(app, ec, ct);
             }
         }
         finally

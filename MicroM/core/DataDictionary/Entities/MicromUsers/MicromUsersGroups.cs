@@ -4,7 +4,7 @@ using MicroM.Core;
 using MicroM.Data;
 using MicroM.Web.Services;
 
-namespace MicroM.DataDictionary;
+namespace MicroM.DataDictionary.Entities;
 
 
 public class MicromUsersGroupsDef : EntityDefinition
@@ -29,7 +29,8 @@ public class MicromUsersGroupsDef : EntityDefinition
 public class MicromUsersGroups : Entity<MicromUsersGroupsDef>
 {
     public MicromUsersGroups() : base() { }
-    public MicromUsersGroups(IEntityClient ec, IMicroMEncryption? encryptor = null) : base(ec, encryptor) { }
+    public MicromUsersGroups(string? schema_name) : base(schema_name) { }
+    public MicromUsersGroups(IEntityClient ec, IMicroMEncryption? encryptor = null, string? schema_name = null) : base(ec, encryptor, schema_name) { }
 
     public override async Task<DBStatusResult> InsertData(CancellationToken ct, bool throw_dbstat_exception = false, MicroMOptions? options = null, Dictionary<string, object>? claims = null, IWebAPIServices? api = null, string? app_id = null)
     {

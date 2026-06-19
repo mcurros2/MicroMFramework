@@ -64,7 +64,7 @@ export class TokenWebStorage implements TokenStorage {
             return json_obj === null ? null : JSON.parse(json_obj) as MicroMToken;
         }
         catch (e) {
-            console.log('MicromClient: Failed to read token from localStorage');
+            console.log(`MicromClient: Failed to read token from localStorage ${e}`);
             return null;
         }
     }

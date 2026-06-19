@@ -1,4 +1,4 @@
-﻿create or alter function emq_fGetTags(@tags EmailTagsTableType READONLY) returns nvarchar(max) as
+﻿create or alter function [dbo].emq_fGetTags(@tags EmailTagsTableType READONLY) returns nvarchar(max) as
 begin
 return
 (

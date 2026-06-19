@@ -1,6 +1,6 @@
 import { useCallback } from "react";
-import { DefaultAddressMapping } from "./mappingRulesDefinition";
 import { AddressComponentResult, AddressMappingRule, DefaultAddressMappingType, GoogleMapsAddressComponentType, GoogleMapsMappingRules, MappedAddressResult } from "./Mapping.types";
+import { DefaultAddressMapping } from "./mappingRulesDefinition";
 
 function convertAddressComponentsToAddressComponentResult(addressComponents: google.maps.GeocoderAddressComponent[]): AddressComponentResult {
     const result: AddressComponentResult = {};

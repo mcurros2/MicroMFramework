@@ -1,4 +1,4 @@
-﻿create or alter proc fst_idrop
+﻿create or alter proc [dbo].fst_idrop
         @file_id Char(20)
         , @fileguid varchar(255)
         , @result int output
@@ -13,16 +13,19 @@ select  @fileguid=nullif(@fileguid,'')
 if(@file_id is null and @fileguid is not null)
 begin
 	select  @file_id=c_file_id
-	from    [file_store]
+	from    [dbo].[file_store]
 	where   vc_fileguid=@fileguid
 end
 
 begin try
     
-    delete  file_store_status
+    delete  [dbo].file_store_status
     where   c_file_id = @file_id
 
-    delete  [file_store]
+    delete  [dbo].file_store_cat
+    where   c_file_id = @file_id
+
+    delete  [dbo].[file_store]
     where   c_file_id = @file_id
 
     select  @result=0, @msg='OK'

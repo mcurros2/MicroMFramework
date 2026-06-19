@@ -90,9 +90,50 @@ public static class DatabaseManagement
         }
     }
 
+    public static async Task<bool> IsDBOwner(IEntityClient dbc, string database_name, string owner_name, CancellationToken ct)
+    {
+        using IEntityClient ec = dbc.Clone();
+        try
+        {
+            await ec.Connect(ct);
+            await ec.ExecuteSQLNonQuery($"use [{database_name}]", ct);
+            return await ec.ExecuteSQLSingleColumn<int?>($"select is_member('db_owner', '{owner_name}')", ct) == 1;
+        }
+        catch
+        {
+            return false;
+        }
+        finally
+        {
+            await ec.Disconnect();
+        }
+    }
+
+    public static async Task EnsureDbOwnerMembership(IEntityClient dbc, string database_name, string login_name, CancellationToken ct)
+    {
+        using IEntityClient ec = dbc.Clone();
+        try
+        {
+            await ec.Connect(ct);
+            await ec.ExecuteSQLNonQuery($"use [{database_name}]", ct);
+            await ec.ExecuteSQLNonQuery($"if user_id('{login_name}') is null create user [{login_name}] for login [{login_name}] with default_schema = [dbo]", ct);
+            await ec.ExecuteSQLNonQuery($"begin try alter role [db_owner] add member [{login_name}] end try begin catch end catch", ct);
+        }
+        finally
+        {
+            await ec.Disconnect();
+        }
+    }
+
     public static async Task<bool> TableExists(IEntityClient ec, string table_name, string schema_name, CancellationToken ct)
     {
         string query = $"SELECT count(*) FROM information_schema.tables WHERE table_schema = '{schema_name}' AND table_name = '{table_name}'";
+        return await ec.ExecuteSQLSingleColumn<int>(query, ct) == 1;
+    }
+
+    public static async Task<bool> SchemaExists(IEntityClient ec, string schema_name, CancellationToken ct)
+    {
+        string query = $"SELECT count(*) FROM information_schema.schemata WHERE schema_name = '{schema_name}'";
         return await ec.ExecuteSQLSingleColumn<int>(query, ct) == 1;
     }
 

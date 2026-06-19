@@ -1,4 +1,4 @@
-﻿create or alter proc mmn_update
+﻿create or alter proc [dbo].mmn_update
         @user_group_id Char(20)
         , @menu_id Char(50)
         , @menu_item_id Char(50)
@@ -17,7 +17,7 @@ begin try
     begin tran
 
     select  @cu=dt_lu
-    from    [microm_users_groups_menus] with (rowlock, holdlock, updlock)
+    from    [dbo].[microm_users_groups_menus] with (rowlock, holdlock, updlock)
     where   c_user_group_id = @user_group_id
             and c_menu_id = @menu_id
             and c_menu_item_id = @menu_item_id
@@ -25,7 +25,7 @@ begin try
     if @cu is null
     begin
 
-        insert  [microm_users_groups_menus]
+        insert [dbo].[microm_users_groups_menus]
         values
             (
             @user_group_id
@@ -41,21 +41,21 @@ begin try
 
         select  @parent_menu_id = c_parent_menu_id
                 , @parent_item_id = c_parent_item_id
-        from    [microm_menus_items]
+        from    [dbo].[microm_menus_items]
         where   c_menu_id = @menu_id
                 and c_menu_item_id = @menu_item_id
 
         while @parent_menu_id is not null and @parent_item_id is not null
         begin
             select  @cu = dt_lu
-            from    [microm_users_groups_menus]
+            from    [dbo].[microm_users_groups_menus]
             where   c_user_group_id = @user_group_id
                     and c_menu_id = @parent_menu_id
                     and c_menu_item_id = @parent_item_id
 
             if @cu is null
             begin
-                insert  [microm_users_groups_menus]
+                insert  [dbo].[microm_users_groups_menus]
                 values
                     (
                     @user_group_id
@@ -72,7 +72,7 @@ begin try
 
             select    @parent_menu_id = c_parent_menu_id
                     , @parent_item_id = c_parent_item_id
-            from    [microm_menus_items]
+            from    [dbo].[microm_menus_items]
             where   c_menu_id = @parent_menu_id
                     and c_menu_item_id = @parent_item_id
         end

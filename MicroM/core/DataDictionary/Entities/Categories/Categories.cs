@@ -2,7 +2,7 @@
 using MicroM.Data;
 using MicroM.Web.Services;
 
-namespace MicroM.DataDictionary;
+namespace MicroM.DataDictionary.Entities;
 
 public class CategoriesDef : EntityDefinition
 {
@@ -18,6 +18,7 @@ public class CategoriesDef : EntityDefinition
 public class Categories : Entity<CategoriesDef>
 {
     public Categories() : base() { }
-    public Categories(IEntityClient ec, IMicroMEncryption? encryptor = null) : base(ec, encryptor) { }
+    public Categories(string? schema_name) : base(schema_name) { }
+    public Categories(IEntityClient ec, IMicroMEncryption? encryptor = null, string? schema_name = null) : base(ec, encryptor, schema_name) { }
 
 }

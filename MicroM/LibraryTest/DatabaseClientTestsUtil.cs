@@ -34,7 +34,7 @@ namespace LibraryTest
 
             await client.Connect(ct);
 
-            await client.ExecuteSQLChannel($"-- #{test_id}#\n{query}", result, ct);
+            await client.ExecuteSQLChannel($"-- #{test_id}#\n{query}", result, 5, ct);
 
             await client.Disconnect();
 

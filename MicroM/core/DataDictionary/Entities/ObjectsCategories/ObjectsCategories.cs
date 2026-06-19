@@ -2,7 +2,7 @@
 using MicroM.Data;
 using MicroM.Web.Services;
 
-namespace MicroM.DataDictionary;
+namespace MicroM.DataDictionary.Entities;
 
 public class ObjectsCategoriesDef : EntityDefinition
 {
@@ -21,6 +21,7 @@ public class ObjectsCategoriesDef : EntityDefinition
 public class ObjectsCategories : Entity<ObjectsCategoriesDef>
 {
     public ObjectsCategories() : base() { }
-    public ObjectsCategories(IEntityClient ec, IMicroMEncryption? encryptor = null) : base(ec, encryptor) { }
+    public ObjectsCategories(string? schema_name) : base(schema_name) { }
+    public ObjectsCategories(IEntityClient ec, IMicroMEncryption? encryptor = null, string? schema_name = null) : base(ec, encryptor, schema_name) { }
 
 }

@@ -1,7 +1,7 @@
 ﻿using MicroM.Core;
 using MicroM.Data;
-using MicroM.DataDictionary;
 using MicroM.DataDictionary.Configuration;
+using MicroM.DataDictionary.Entities;
 
 namespace MicroM.Extensions;
 
@@ -11,18 +11,11 @@ public static class DataDictionaryExtensions
     /// Inserts into <see cref="ObjectsStatus"/> Data Dictionay each <see cref="Status"/> in <see cref="EntityDefinition.RelatedStatus"/> for the <see cref="Entity{TDefinition}"/>.
     /// This enables the use of the status by the entity and inserts its initial status value when creating a new record.
     /// </summary>
-    /// <typeparam name="T"></typeparam>
-    /// <param name="entity"></param>
-    /// <param name="ec"></param>
-    /// <param name="status_id"></param>
-    /// <param name="object_id"></param>
-    /// <param name="ct"></param>
-    /// <returns></returns>
-    public async static Task AddStatusRelations(this EntityBase entity, IEntityClient ec, CancellationToken ct)
+    public async static Task AddStatusRelations(this EntityBase entity, IEntityClient ec, CancellationToken ct, string? dd_schema_name = null)
     {
         if (entity.Def.RelatedStatus.Count == 0) return;
 
-        var ost = new ObjectsStatus(ec);
+        var ost = new ObjectsStatus(ec, schema_name: dd_schema_name);
         foreach (var status_id in entity.Def.RelatedStatus)
         {
             ost.Def.c_status_id.Value = status_id;
@@ -37,18 +30,11 @@ public static class DataDictionaryExtensions
     /// Relates a category in the data dictionary to the specified entity.
     /// This enables the use of the category by the entity.
     /// </summary>
-    /// <typeparam name="T"></typeparam>
-    /// <param name="entity"></param>
-    /// <param name="ec"></param>
-    /// <param name="category_id"></param>
-    /// <param name="object_id"></param>
-    /// <param name="ct"></param>
-    /// <returns></returns>
-    public async static Task AddCategoryRelations(this EntityBase entity, IEntityClient ec, CancellationToken ct)
+    public async static Task AddCategoryRelations(this EntityBase entity, IEntityClient ec, CancellationToken ct, string? dd_schema_name = null)
     {
         if (entity.Def.RelatedCategories.Count == 0) return;
 
-        var oca = new ObjectsCategories(ec);
+        var oca = new ObjectsCategories(ec, schema_name: dd_schema_name);
         foreach (var category_id in entity.Def.RelatedCategories)
         {
             oca.Def.c_category_id.Value = category_id;
@@ -61,15 +47,9 @@ public static class DataDictionaryExtensions
     /// <summary>
     /// Inserts a value in the database to an existing category in the data dictionary
     /// </summary>
-    /// <param name="cat"></param>
-    /// <param name="ec"></param>
-    /// <param name="categoryvalue_id"></param>
-    /// <param name="description"></param>
-    /// <param name="ct"></param>
-    /// <returns></returns>
-    public async static Task<CategoriesValues> AddCategoryValue(this Categories cat, IEntityClient ec, string categoryvalue_id, string description, CancellationToken ct)
+    public async static Task<CategoriesValues> AddCategoryValue(this Categories cat, IEntityClient ec, string categoryvalue_id, string description, CancellationToken ct, string? schema_name = null)
     {
-        var cav = new CategoriesValues(ec);
+        var cav = new CategoriesValues(ec, schema_name: schema_name);
         cav.Def.c_category_id.Value = cat.Def.c_category_id.Value;
         cav.Def.c_categoryvalue_id.Value = categoryvalue_id;
         cav.Def.vc_description.Value = description;
@@ -81,16 +61,9 @@ public static class DataDictionaryExtensions
     /// <summary>
     /// Inserts a value in the database to an existing status in the Data Dictionary
     /// </summary>
-    /// <param name="stat"></param>
-    /// <param name="ec"></param>
-    /// <param name="statusvalue_id"></param>
-    /// <param name="description"></param>
-    /// <param name="init_value"></param>
-    /// <param name="ct"></param>
-    /// <returns></returns>
-    public async static Task<StatusValues> AddStatusValue(this Status stat, IEntityClient ec, string statusvalue_id, string description, bool init_value, CancellationToken ct)
+    public async static Task<StatusValues> AddStatusValue(this Status stat, IEntityClient ec, string statusvalue_id, string description, bool init_value, CancellationToken ct, string? schema_name = null)
     {
-        var stv = new StatusValues(ec);
+        var stv = new StatusValues(ec, schema_name: schema_name);
         stv.Def.c_status_id.Value = stat.Def.c_status_id.Value;
         stv.Def.c_statusvalue_id.Value = statusvalue_id;
         stv.Def.vc_description.Value = description;
@@ -103,15 +76,11 @@ public static class DataDictionaryExtensions
     /// <summary>
     /// Add a status record to the status and status_values data dictionary table
     /// </summary>
-    /// <param name="stc"></param>
-    /// <param name="ec"></param>
-    /// <param name="ct"></param>
-    /// <returns></returns>
-    public async static Task<Status> AddStatus(this StatusDefinition stc, IEntityClient ec, CancellationToken ct)
+    public async static Task<Status> AddStatus(this StatusDefinition stc, IEntityClient ec, CancellationToken ct, string? schema_name = null)
     {
         bool should_close = !(ec.ConnectionState == System.Data.ConnectionState.Open);
 
-        var stat = new Status(ec);
+        var stat = new Status(ec, schema_name: schema_name);
         stat.Def.c_status_id.Value = stc.StatusID;
         stat.Def.vc_description.Value = stc.Description;
 
@@ -123,7 +92,7 @@ public static class DataDictionaryExtensions
             var status_values = stc.GetPropertiesOrFields<StatusValuesDefinition, StatusDefinition>();
             foreach (var stv in status_values)
             {
-                await stat.AddStatusValue(ec, stv.StatusValueID, stv.Description, stv.InitialValue, ct);
+                await stat.AddStatusValue(ec, stv.StatusValueID, stv.Description, stv.InitialValue, ct, schema_name);
             }
         }
         finally
@@ -138,27 +107,28 @@ public static class DataDictionaryExtensions
     /// <summary>
     /// Add a category record to the categories and categories_values data dictionary table
     /// </summary>
-    /// <param name="cac"></param>
-    /// <param name="ec"></param>
-    /// <param name="ct"></param>
-    /// <returns></returns>
-    public async static Task<Categories> AddCategory(this CategoryDefinition cac, IEntityClient ec, CancellationToken ct)
+    public async static Task<Categories> AddCategory(this CategoryDefinition cad, IEntityClient ec, CancellationToken ct, string? schema_name = null)
     {
         bool should_close = !(ec.ConnectionState == System.Data.ConnectionState.Open);
 
-        var cat = new Categories(ec);
-        cat.Def.c_category_id.Value = cac.CategoryID;
-        cat.Def.vc_description.Value = cac.Description;
+        var cat = new Categories(ec, schema_name: schema_name);
+        cat.Def.c_category_id.Value = cad.CategoryID;
+        cat.Def.vc_description.Value = cad.Description;
 
         try
         {
             await cat.InsertData(ct);
             await cat.GetData(ct);
 
-            var cat_values = cac.GetPropertiesOrFields<CategoryValuesDefinition, CategoryDefinition>();
+            var cat_values = cad.GetPropertiesOrFields<CategoryValuesDefinition, CategoryDefinition>();
             foreach (var cav in cat_values)
             {
-                await cat.AddCategoryValue(ec, cav.CategoryValueID, cav.Description, ct);
+                string cav_id = cav.CategoryValueID;
+                if (cad.NumericIDS)
+                {
+                    if (cav_id.StartsWith('_')) cav_id = cav_id[1..];
+                }
+                await cat.AddCategoryValue(ec, cav_id, cav.Description, ct, schema_name);
             }
 
         }
@@ -171,38 +141,38 @@ public static class DataDictionaryExtensions
     }
 
 
-    public static async Task<T> AddToDataDictionary<T>(this T ent, CancellationToken ct) where T : EntityBase, new()
+    public static async Task<T> AddToDataDictionary<T>(this T ent, CancellationToken ct, string? dd_schema_name = null) where T : EntityBase, new()
     {
-        return (T)await AddInstanceToDataDictionary(ent, ct);
+        return (T)await AddInstanceToDataDictionary(ent, ct, dd_schema_name);
     }
 
-    public static async Task<EntityBase> AddInstanceToDataDictionary(this EntityBase ent, CancellationToken ct)
+    public static async Task<EntityBase> AddInstanceToDataDictionary(this EntityBase ent, CancellationToken ct, string? dd_schema_name = null)
     {
         var ec = ent.Client;
 
         // MMC: create the object in Data Dictionary
-        Objects obj = new(ec);
+        Objects obj = new(ec, schema_name: dd_schema_name);
         obj.Def.c_object_id.Value = ent.Def.Mneo;
         obj.Def.c_mneo_id.Value = ent.Def.Mneo;
-        obj.Def.vc_tablename.Value = ent.Def.TableName;
+        obj.Def.vc_tablename.Value = ent.Def.FullTableName;
         await obj.InsertData(ct);
 
         // MMC: create autonum in numbering table
         if (ent.Def.AutonumColumn != null)
         {
-            Numbering num = new(ec);
+            Numbering num = new(ec, schema_name: dd_schema_name);
             num.Def.c_object_id.Value = ent.Def.Mneo;
             num.Def.bi_lastnumber.Value = 0;
             await num.InsertData(ct);
         }
 
-        await ent.AddCategoryRelations(ec, ct);
-        await ent.AddStatusRelations(ec, ct);
+        await ent.AddCategoryRelations(ec, ct, dd_schema_name);
+        await ent.AddStatusRelations(ec, ct, dd_schema_name);
 
         return ent;
     }
 
-    public static async Task AddMenu(this MenuDefinition menu_definition, IEntityClient ec, CancellationToken ct)
+    public static async Task AddMenu(this MenuDefinition menu_definition, IEntityClient ec, CancellationToken ct, string? dd_schema_name = null)
     {
         bool should_close = !(ec.ConnectionState == System.Data.ConnectionState.Open);
 
@@ -210,13 +180,13 @@ public static class DataDictionaryExtensions
         {
             await ec.Connect(ct);
 
-            var menu = new MicromMenus(ec);
+            var menu = new MicromMenus(ec, schema_name: dd_schema_name);
             menu.Def.c_menu_id.Value = menu_definition.MenuID;
             menu.Def.vc_menu_name.Value = menu_definition.MenuDescription;
 
             await menu.InsertData(ct);
 
-            var menu_item = new MicromMenusItems(ec);
+            var menu_item = new MicromMenusItems(ec, schema_name: dd_schema_name);
             foreach (var item in menu_definition.MenuItems)
             {
                 if (item != null)
@@ -241,7 +211,7 @@ public static class DataDictionaryExtensions
 
                     if (item.AllowedRoutes != null)
                     {
-                        var allowed = new MicromMenusItemsAllowedRoutes(ec);
+                        var allowed = new MicromMenusItemsAllowedRoutes(ec, schema_name: dd_schema_name);
                         foreach (var route in item.AllowedRoutes)
                         {
                             allowed.Def.c_menu_id.Value = menu_definition.MenuID;
@@ -286,6 +256,5 @@ public static class DataDictionaryExtensions
             if (should_close) await ec.Disconnect();
         }
     }
-
 
 }

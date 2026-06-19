@@ -1,4 +1,4 @@
-import { DBStatusResult, DataResult, ImpDataResult, MicroMClient, ValuesObject } from "../client";
+import { DataResult, DBStatusResult, ImpDataResult, MicroMClient, ValuesObject } from "../client";
 import * as cf from "./ColumnsFunctions";
 import { EntityColumnFlags } from "./EntityColumn.types";
 import { ColumnsObject } from "./EntityColumnCollection.types";
@@ -98,9 +98,9 @@ export class EntityAPI {
     /**
      * Lookup the description for an entity.
      */
-    async lookupData(abort_signal: AbortSignal | null = null): Promise<string> {
+    async lookupData(abort_signal: AbortSignal | null = null, parentKeys: ValuesObject | null = null, proc_name: string | null = null): Promise<string> {
         const values = cf.getValues(this.#columns, { flags: EntityColumnFlags.pk | EntityColumnFlags.fk, ignoreDefaults: false });
-        const result = await this.client.lookup(this.#name, null, values, null, abort_signal);
+        const result = await this.client.lookup(this.#name, parentKeys, values, proc_name, abort_signal);
         return result.Description;
     }
 
@@ -132,6 +132,50 @@ export class EntityAPI {
         }
 
         const result = await this.client.view(this.#name, null, values, view.name, abort_signal);
+
+        return result;
+    }
+
+    downloadBlobFile(blob: Blob, filename: string) {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+
+    async exportView(view: EntityView, view_parms?: ValuesObject, limit?: string | null, search?: string[] | null, abort_signal: AbortSignal | null = null): Promise<Blob> {
+
+        if (search) search = search.map(s => (s.indexOf('%') >= 0 ? s : `%${s}%`));
+        if (!limit) limit = "";
+
+        cf.setValues(this.#columns, view_parms, null, true);
+        let values = cf.getValues(this.#columns, null);
+
+        values['@row_limit'] = limit;
+        values.like = search ? search : null;
+
+        if (view_parms) {
+            values = {
+                ...view_parms,
+                ...values
+            };
+        }
+
+        const result = await this.client.viewtoexcel(this.#name, null, values, view.name, abort_signal);
+
+        return result;
+    }
+
+    async exportProc(proc: EntityProc, proc_parms?: ValuesObject, abort_signal: AbortSignal | null = null, recordsSelection?: ValuesObject[]): Promise<Blob> {
+
+        cf.setValues(this.#columns, proc_parms, null, true);
+        const values = { ...proc_parms, ...cf.getValues(this.#columns, null) };
+
+        const result = await this.client.proctoexcel(this.#name, null, values, recordsSelection ?? [], proc.name, abort_signal);
 
         return result;
     }

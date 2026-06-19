@@ -1,7 +1,7 @@
 import ExcelJS from 'exceljs';
 import { useCallback, useEffect, useRef, useState } from "react";
-import { EntityClientAction } from "../../Entity";
 import { DBStatusResult, OperationStatus, Value, ValuesObject, ValuesRecord } from "../../client";
+import { EntityClientAction } from "../../Entity";
 import { useEntityUI } from "../Core";
 import { GridColumn, GridDoubleClickCallback, GridSelection, GridSelectionChangedCallback } from "../Grid";
 import { DataGridProps, DataGridSelectionKeys, DataGridStateProps } from "./DataGrid.types";
@@ -11,7 +11,7 @@ export function useDataGrid(props: DataGridProps, stateProps: DataGridStateProps
         entity, parentKeys, viewName, onSelectionChanged, modalFormSize,
         labels, saveFormBeforeAdd, parentFormAPI, allwaysRefreshOnEntityClose, onAddClick, onModalSaved,
         onDataRefresh, onActionExecuted, formMode, doubleClickAction, notExportableColumns, withModalFullscreenButton,
-        initialHiddenColumns
+        initialHiddenColumns, enableEdit, enableView
     } = props;
 
     const { setRefresh, setSearchText, executeViewState } = stateProps;
@@ -120,19 +120,26 @@ export function useDataGrid(props: DataGridProps, stateProps: DataGridStateProps
         }
 
         if (doubleClickAction === 'edit') {
-            if (form_mode === 'edit') {
+            if ((form_mode === 'edit' || formMode === 'add') && enableEdit) {
                 await handleEditClick();
+                return;
             }
-            if (form_mode === 'view') {
+            if (form_mode === 'view' && enableView) {
                 await handleViewClick();
+                return;
             }
+            return;
         } else if (doubleClickAction === 'view') {
-            if (form_mode === 'view') await handleViewClick();
+            if (form_mode === 'view' && enableView) {
+                await handleViewClick();
+                return;
+            }
         } else {
             await doubleClickAction(record);
+            return;
         }
 
-        await handleEditClick();
+        //await handleEditClick();
     }, [doubleClickAction, formMode, handleEditClick, handleViewClick, parentFormAPI?.formMode]);
 
 

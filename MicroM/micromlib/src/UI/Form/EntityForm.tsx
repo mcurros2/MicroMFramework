@@ -1,4 +1,4 @@
-import { ActionIcon, Button, DefaultMantineColor, FocusTrap, Group, Notification, Space, Variants, useComponentDefaultProps, useMantineTheme } from "@mantine/core";
+import { ActionIcon, Button, DefaultMantineColor, FocusTrap, Group, Notification, Space, useComponentDefaultProps, useMantineTheme, Variants } from "@mantine/core";
 import { IconCircleCheck, IconCircleX, IconHelp, IconHelpOff, IconX } from "@tabler/icons-react";
 import { PropsWithChildren, ReactNode, useEffect } from "react";
 import { AlertError, FakeProgressBar, usePreventEnterSubmission } from "../Core";
@@ -25,6 +25,7 @@ export interface EntityFormProps extends PropsWithChildren {
     okButtonVariant?: Variants<'filled' | 'outline' | 'light' | 'white' | 'default' | 'subtle' | 'gradient'>,
     saveBeforeLocalNavigation?: boolean,
     saveBeforeRemoteNavigation?: boolean,
+    disableOKIfNotDirty?: boolean,
 }
 
 export const EntityFormDefaultProps: Partial<EntityFormProps> = {
@@ -47,7 +48,7 @@ export const EntityFormDefaultProps: Partial<EntityFormProps> = {
 export function EntityForm(props: EntityFormProps) {
     const {
         formAPI, children, showOK, showCancel, showErrors, showFormValidationNotification, showLoadingProgress, OKText, CancelText, invalidFieldsLabel,
-        showHelpButton, preventEnterSubmission, CloseText, buttons, isDirtyColor, cancelButtonVariant, okButtonVariant
+        showHelpButton, preventEnterSubmission, CloseText, buttons, isDirtyColor, cancelButtonVariant, okButtonVariant, disableOKIfNotDirty
     } = useComponentDefaultProps('EntityForm', EntityFormDefaultProps, props);
 
     const { entity } = formAPI;
@@ -96,7 +97,7 @@ export function EntityForm(props: EntityFormProps) {
                         {(showOK || showCancel) &&
                             <Group position="right" style={{ flex: 'auto' }}>
                                 {showCancel && <Button variant={cancelButtonVariant} leftIcon={<IconCircleX size="1.125rem" />} onClick={handleCancel} >{formMode === 'view' ? CloseText : CancelText}</Button>}
-                                {showOK && formMode != "view" && <Button variant={okButtonVariant} type="submit" color={form.isDirty() ? isDirtyColor : theme.primaryColor} loading={status?.loading} leftIcon={<IconCircleCheck size="1.125rem" />}>{OKText}</Button>}
+                                {showOK && formMode != "view" && <Button variant={okButtonVariant} type="submit" color={form.isDirty() ? isDirtyColor : theme.primaryColor} loading={status?.loading} disabled={disableOKIfNotDirty && !form.isDirty()} leftIcon={<IconCircleCheck size="1.125rem" />}>{OKText}</Button>}
                             </Group>
                         }
                     </Group>

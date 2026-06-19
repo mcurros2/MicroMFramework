@@ -1,4 +1,5 @@
 ﻿using MicroM.Data;
+using MicroM.Web.Authentication;
 using MicroM.Web.Services;
 using Microsoft.AspNetCore.Mvc;
 
@@ -17,5 +18,6 @@ public interface IPublicController
     Task<ObjectResult> PublicProcess(IMicroMAppConfiguration app_config, IEntitiesService api, string app_id, string entityName, string procName, DataWebAPIRequest parms, CancellationToken ct);
     Task<ObjectResult> PublicUpdate(IMicroMAppConfiguration app_config, IEntitiesService api, string app_id, string entityName, DataWebAPIRequest parms, CancellationToken ct);
     Task<ObjectResult> PublicView(IMicroMAppConfiguration app_config, IEntitiesService api, string app_id, string entityName, string viewName, DataWebAPIRequest parms, CancellationToken ct);
-
+    IAsyncEnumerable<object> PublicViewStream(IAuthenticationProvider auth, IMicroMAppConfiguration app_config, IEntitiesService ents, string app_id, string entityName, string viewName, DataWebAPIRequest parms, CancellationToken ct);
+    IAsyncEnumerable<object> PublicProcStream(IAuthenticationProvider auth, IMicroMAppConfiguration app_config, IEntitiesService ents, string app_id, string entityName, string procName, DataWebAPIRequest parms, CancellationToken ct);
 }

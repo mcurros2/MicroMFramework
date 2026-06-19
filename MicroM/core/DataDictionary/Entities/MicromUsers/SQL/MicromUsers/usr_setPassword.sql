@@ -1,4 +1,4 @@
-﻿create or alter proc usr_setPassword 
+﻿create or alter proc [dbo].usr_setPassword 
 	@username varchar(255)
 	, @pwhash varchar(2048)
 as
@@ -18,7 +18,7 @@ declare	@now datetime=getdate(), @login sysname = ORIGINAL_LOGIN()
 begin try
 	begin tran
 
-	update	microm_users
+	update	[dbo].microm_users
 	set		vc_pwhash = @pwhash
 			, dt_locked = null
 			, i_badlogonattempts = 0
@@ -27,8 +27,8 @@ begin try
 	where	vc_username=@username
 
 	delete	a
-	from	microm_users_devices a
-			join microm_users b
+	from	[dbo].microm_users_devices a
+			join [dbo].microm_users b
 			on(b.c_user_id=a.c_user_id)
 	where	b.vc_username = @username
 

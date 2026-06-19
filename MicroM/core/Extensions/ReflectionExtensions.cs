@@ -1,8 +1,11 @@
 ﻿using MicroM.Core;
+using MicroM.Data;
+using MicroM.Database;
 using MicroM.DataDictionary.Configuration;
 using System.Collections.Concurrent;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Runtime.Loader;
 
 namespace MicroM.Extensions;
 
@@ -55,13 +58,39 @@ public static class ReflectionExtensions
         Dictionary<string, Type> entitiesTypes = new(StringComparer.OrdinalIgnoreCase);
         foreach (Type type in asm.GetTypes())
         {
-            if (typeof(Core.EntityBase).IsAssignableFrom(type))
+            if (typeof(EntityBase).IsAssignableFrom(type) && !type.IsAbstract)
             {
                 entitiesTypes.Add(type.Name, type);
             }
         }
         return entitiesTypes;
     }
+
+    public static CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>> GetEntitiesInstances(this Assembly assembly, IEntityClient ec, CancellationToken ct, bool create_or_alter = true, string? schema_name = null)
+    {
+        CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>> ret = new();
+
+        foreach (Type type in assembly.GetTypes())
+        {
+            ct.ThrowIfCancellationRequested();
+            if (typeof(EntityBase).IsAssignableFrom(type) && !type.IsAbstract)
+            {
+
+                var ent = (EntityBase?)Activator.CreateInstance(type) ?? throw new InvalidOperationException($"Can't create entity instance. {type.Name}");
+                if (ent != null)
+                {
+                    ent.Init(ec, schema_name: schema_name);
+                    ret.Add(type.Name, new DatabaseSchemaCreationOptions<EntityBase>(
+                        ent,
+                        create_or_alter
+                        ));
+                }
+            }
+        }
+
+        return ret;
+    }
+
 
     public static Dictionary<string, Type> GetCategoriesTypes(this Assembly asm)
     {
@@ -191,25 +220,49 @@ public static class ReflectionExtensions
     }
 
 
-    private static readonly ConcurrentDictionary<string, IOrderedEnumerable<MemberInfo>> _classMembers = new();
+    private static readonly ConcurrentDictionary<Type, IOrderedEnumerable<MemberInfo>> _classMembers = new();
 
     public static IOrderedEnumerable<MemberInfo> GetAndCacheInstanceMembers(this Type instance_type)
     {
-        string instance_typename = instance_type.ToString();
-        IOrderedEnumerable<MemberInfo> instance_members;
-        if (!_classMembers.TryGetValue(instance_typename, out IOrderedEnumerable<MemberInfo>? value))
+        // Do not cache collectible-load-context types (hot-reload/plugin assemblies),
+        // otherwise stale MemberInfo can be reused across generations and/or pin old context.
+        var alc = AssemblyLoadContext.GetLoadContext(instance_type.Assembly);
+        var isCollectible = alc?.IsCollectible == true;
+
+        if (isCollectible)
         {
-            // MMC: ordering by metadataToken is the trick to add the columns ordered as they are defined
-            // for backward compatibility we still depend that the _get stored procedure return the columns in the order that are defined
-            instance_members = instance_type.GetMembersInDeclarationOrder();
-            _classMembers.TryAdd(instance_typename, instance_members);
-        }
-        else
-        {
-            instance_members = value;
+            return instance_type.GetMembersInDeclarationOrder();
         }
 
-        return instance_members;
+        if (!_classMembers.TryGetValue(instance_type, out var members))
+        {
+            members = instance_type.GetMembersInDeclarationOrder();
+            _classMembers.TryAdd(instance_type, members);
+        }
+
+        return members;
     }
+
+    public static string ToPropertiesValuesString(this object? obj, string[]? properties_filter = null)
+    {
+        if (obj == null) return "NULL object";
+        Type objType = obj.GetType();
+        PropertyInfo[] properties = objType.GetProperties(BindingFlags.Public | BindingFlags.Instance);
+        IEnumerable<PropertyInfo> filteredProperties = properties;
+        if (properties_filter != null && properties_filter.Length > 0)
+        {
+            var filterList = properties_filter.ToHashSet(StringComparer.OrdinalIgnoreCase);
+            filteredProperties = properties.Where(p => filterList.Contains(p.Name));
+        }
+        var propertyValues = filteredProperties.Select(p =>
+        {
+            object? value = p.GetValue(obj);
+            string valueStr = value != null ? value.ToString() ?? "NULL" : "NULL";
+            return $"{p.Name}: {valueStr}";
+        });
+
+        return string.Join(" | ", propertyValues);
+    }
+
 
 }

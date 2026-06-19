@@ -18,3 +18,21 @@ export function createKeysSet<T>(): Set<keyof T> {
 export function createKeysArray<T>(): Array<keyof T> {
     return new Array<keyof T>();
 }
+
+export function nameof<T>(
+    _type: new (...args: any[]) => T,
+    selector: (x: T) => any
+): string {
+    const path: PropertyKey[] = [];
+
+    const proxy = new Proxy({}, {
+        get(_target, prop) {
+            path.push(prop);
+            return proxy;
+        }
+    }) as T;
+
+    selector(proxy);
+
+    return String(path[path.length - 1]);
+}

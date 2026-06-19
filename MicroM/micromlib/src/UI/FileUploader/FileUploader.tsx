@@ -3,11 +3,11 @@ import { Dropzone, DropzoneProps } from "@mantine/dropzone";
 import { IconCircleX, IconDownload, IconEye, IconFileTypePdf, IconPhoto, IconProps, IconTrash, IconUpload, IconX } from "@tabler/icons-react";
 import { ReactNode } from "react";
 import { NotifyError, NotifyInfo, useModal } from "../Core";
+import { UseEntityFormReturnType } from "../Form/useEntityForm";
+import { getFileType } from "./getFileType";
 import { ImagePreview } from "./ImagePreview";
 import { PDFPreview } from "./PDFPreview";
-import { getFileType } from "./getFileType";
 import { UploadProgressReport, UseFileUploadReturnType } from "./useFileUpload";
-import { UseEntityFormReturnType } from "../Form/useEntityForm";
 
 export interface FileUploaderProps extends Omit<DropzoneProps, 'children' | 'onDrop' | 'maxSize' | 'maxFiles'> {
     IdleIcon?: (props: IconProps) => ReactNode,

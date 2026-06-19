@@ -1,6 +1,6 @@
 ﻿import { useRef } from "react";
-import { Entity, EntityDefinition } from "../../Entity";
 import { MicroMClient } from "../../client";
+import { Entity, EntityDefinition } from "../../Entity";
 import { DataView } from "./DataView";
 import { DataViewProps } from "./DataView.types";
 

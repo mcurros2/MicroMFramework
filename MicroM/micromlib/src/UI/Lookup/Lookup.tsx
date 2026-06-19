@@ -1,9 +1,9 @@
-import { ActionIcon, Group, Loader, MantineSize, Stack, Text, TextInput, getSize, rem, useComponentDefaultProps, useMantineTheme } from "@mantine/core";
+import { ActionIcon, getSize, Group, Loader, MantineSize, rem, Stack, Text, TextInput, useComponentDefaultProps, useMantineTheme } from "@mantine/core";
 import { isNotEmpty } from "@mantine/form";
 import { IconSearch } from "@tabler/icons-react";
 import React, { useEffect, useRef } from "react";
-import { Entity, EntityColumn, EntityColumnFlags, EntityDefinition } from "../../Entity";
 import { Value, ValuesObject } from "../../client";
+import { Entity, EntityColumn, EntityColumnFlags, EntityDefinition } from "../../Entity";
 import { ActionIconVariant } from "../Core";
 import { UseEntityFormReturnType } from "../Form";
 import { LookupResultState, useLookup } from "../Lookup";
@@ -11,7 +11,7 @@ import { LookupResultState, useLookup } from "../Lookup";
 export interface LookupProps {
     parentKeys?: ValuesObject,
     column: EntityColumn<Value>,
-    autoFocus?: boolean,
+    autoFocus?: 'autoFocusOnAdd' | 'autoFocusOnEdit' | boolean
     entityForm: UseEntityFormReturnType
     entity: Entity<EntityDefinition>,
     lookupDefName: string,
@@ -94,6 +94,10 @@ export function Lookup(props: LookupProps) {
         }
     }, [lookupAPI.lookupResult, onLookupPerformed])
 
+    const { formMode, status } = entityForm;
+    const add_autofocus = formMode === 'add' ? true : undefined;
+    const edit_autofocus = status.loading === false && formMode !== 'add' ? true : undefined;
+
     return (
         <Stack style={{ gap: "0.1rem", flexGrow: "1" }}>
             <Group style={{ gap: "0.2rem" }}>
@@ -108,7 +112,8 @@ export function Lookup(props: LookupProps) {
                     size={size}
                     maw={idMaxWidth}
                     readOnly={readonly || entityForm.formMode === 'view' || lookupAPI.status.loading || entityForm.status.loading ? true : false}
-                    data-autofocus={autoFocus}
+                    autoFocus={autoFocus === 'autoFocusOnAdd' ? add_autofocus : autoFocus === 'autoFocusOnEdit' ? edit_autofocus : autoFocus}
+                    data-autofocus={autoFocus === 'autoFocusOnAdd' ? add_autofocus : autoFocus === 'autoFocusOnEdit' ? edit_autofocus : autoFocus}
                     disabled={disabled}
                     key={`${entity.name}${column.name}`}
                     rightSection={<ActionIcon

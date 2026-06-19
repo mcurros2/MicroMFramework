@@ -73,7 +73,7 @@ export class DataStorage implements IDataStorage {
             return json_obj === null ? null : JSON.parse(json_obj) as T;
         }
         catch (e) {
-            console.error('DataStorage: Failed to read data from DataStorage');
+            console.error(`DataStorage: Failed to read data from DataStorage ${e}`);
             return null;
         }
     }

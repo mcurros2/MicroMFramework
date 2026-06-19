@@ -1,167 +1,170 @@
 ﻿using MicroM.Configuration;
 using MicroM.Core;
 using MicroM.Data;
-using MicroM.DataDictionary;
+using MicroM.DataDictionary.Entities;
 using System.Security.Claims;
 
-namespace MicroM.Extensions
+namespace MicroM.Extensions;
+
+public static class SecurityExtensions
 {
-    public static class SecurityExtensions
+    public static IEnumerable<Claim> ToClaims(this IDictionary<string, object> dictionary)
     {
-        public static IEnumerable<Claim> ToClaims(this IDictionary<string, object> dictionary)
+        return dictionary.Select(kv => new Claim(kv.Key, kv.Value?.ToString() ?? string.Empty));
+    }
+
+    public static List<string> GetRoutePaths(this Type entity_type, AllowedRouteFlags route_flags, string[]? views = null, string[]? procs = null, string[]? actions = null)
+    {
+        ArgumentNullException.ThrowIfNull(entity_type);
+        if (!typeof(EntityBase).IsAssignableFrom(entity_type))
         {
-            return dictionary.Select(kv => new Claim(kv.Key, kv.Value?.ToString() ?? string.Empty));
+            throw new ArgumentException($"The type {entity_type.Name} is not an EntityBase type.");
         }
 
-        public static List<string> GetRoutePaths(this Type entity_type, AllowedRouteFlags route_flags, string[]? views = null, string[]? procs = null, string[]? actions = null)
+        if (!route_flags.HasFlag(AllowedRouteFlags.Views) && (views?.Length > 0))
         {
-            ArgumentNullException.ThrowIfNull(entity_type);
-            if (!typeof(EntityBase).IsAssignableFrom(entity_type))
-            {
-                throw new ArgumentException($"The type {entity_type.Name} is not an EntityBase type.");
-            }
-
-            if (!route_flags.HasFlag(AllowedRouteFlags.Views) && (views?.Length > 0))
-            {
-                route_flags |= AllowedRouteFlags.Views;
-            }
-
-            if (!route_flags.HasFlag(AllowedRouteFlags.Procs) && (procs?.Length > 0))
-            {
-                route_flags |= AllowedRouteFlags.Procs;
-            }
-
-            if (!route_flags.HasFlag(AllowedRouteFlags.Actions) && (actions?.Length > 0))
-            {
-                route_flags |= AllowedRouteFlags.Actions;
-            }
-
-            var entity = (EntityBase?)Activator.CreateInstance(entity_type);
-            if (entity == null) return [];
-
-            return entity.GetRoutePaths(entity_type.Name, route_flags, views, procs, actions);
+            route_flags |= AllowedRouteFlags.Views;
         }
 
-        public static List<string> GetRoutePaths(this EntityBase entity, string entity_name, AllowedRouteFlags route_flags, string[]? views = null, string[]? procs = null, string[]? actions = null)
+        if (!route_flags.HasFlag(AllowedRouteFlags.Procs) && (procs?.Length > 0))
         {
-            List<string> paths = [];
+            route_flags |= AllowedRouteFlags.Procs;
+        }
 
-            if (route_flags.HasFlag(AllowedRouteFlags.Get))
-            {
-                paths.Add($"{entity_name}/get");
-            }
+        if (!route_flags.HasFlag(AllowedRouteFlags.Actions) && (actions?.Length > 0))
+        {
+            route_flags |= AllowedRouteFlags.Actions;
+        }
 
-            if (route_flags.HasFlag(AllowedRouteFlags.Insert))
-            {
-                paths.Add($"{entity_name}/insert");
-            }
+        var entity = (EntityBase?)Activator.CreateInstance(entity_type);
+        if (entity == null) return [];
 
-            if (route_flags.HasFlag(AllowedRouteFlags.Update))
-            {
-                paths.Add($"{entity_name}/update");
-            }
+        return entity.GetRoutePaths(entity_type.Name, route_flags, views, procs, actions);
+    }
 
-            if (route_flags.HasFlag(AllowedRouteFlags.Delete))
-            {
-                paths.Add($"{entity_name}/delete");
-            }
+    public static List<string> GetRoutePaths(this EntityBase entity, string entity_name, AllowedRouteFlags route_flags, string[]? views = null, string[]? procs = null, string[]? actions = null)
+    {
+        List<string> paths = [];
 
-            if (route_flags.HasFlag(AllowedRouteFlags.DefaultLookup))
-            {
-                paths.Add($"{entity_name}/lookup");
-            }
+        if (route_flags.HasFlag(AllowedRouteFlags.Get))
+        {
+            paths.Add($"{entity_name}/get");
+        }
 
-            if (route_flags.HasFlag(AllowedRouteFlags.Import))
-            {
-                paths.Add($"{entity_name}/import");
-            }
+        if (route_flags.HasFlag(AllowedRouteFlags.Insert))
+        {
+            paths.Add($"{entity_name}/insert");
+        }
 
-            if (route_flags.HasFlag(AllowedRouteFlags.Views))
+        if (route_flags.HasFlag(AllowedRouteFlags.Update))
+        {
+            paths.Add($"{entity_name}/update");
+        }
+
+        if (route_flags.HasFlag(AllowedRouteFlags.Delete))
+        {
+            paths.Add($"{entity_name}/delete");
+        }
+
+        if (route_flags.HasFlag(AllowedRouteFlags.DefaultLookup))
+        {
+            paths.Add($"{entity_name}/lookup");
+        }
+
+        if (route_flags.HasFlag(AllowedRouteFlags.Import))
+        {
+            paths.Add($"{entity_name}/import");
+        }
+
+        if (route_flags.HasFlag(AllowedRouteFlags.Views))
+        {
+            foreach (var view in entity.Def.Views.Values)
             {
-                foreach (var view in entity.Def.Views.Values)
+                if ((views != null && views.Contains(view.Proc.Name)) || route_flags == AllowedRouteFlags.All)
                 {
-                    if ((views != null && views.Contains(view.Proc.Name)) || route_flags == AllowedRouteFlags.All)
+                    paths.AddRange([$"{entity_name}/view/{view.Proc.Name}", $"{entity_name}/viewstream/{view.Proc.Name}", $"{entity_name}/viewtoexcel/{view.Proc.Name}"]);
+                }
+            }
+        }
+
+        if (route_flags.HasFlag(AllowedRouteFlags.Procs))
+        {
+            foreach (var proc in entity.Def.Procs.Values)
+            {
+                if ((procs != null && procs.Contains(proc.Name)) || route_flags == AllowedRouteFlags.All)
+                {
+                    if (proc.isLookup)
                     {
-                        paths.Add($"{entity_name}/view/{view.Proc.Name}");
+                        paths.Add($"{entity_name}/lookup/{proc.Name}");
+                    }
+                    else
+                    {
+                        paths.AddRange([
+                            $"{entity_name}/proc/{proc.Name}",
+                            $"{entity_name}/proctoexcel/{proc.Name}",
+                            $"{entity_name}/procstream/{proc.Name}",
+                            $"{entity_name}/process/{proc.Name}"
+                        ]);
                     }
                 }
             }
-
-            if (route_flags.HasFlag(AllowedRouteFlags.Procs))
-            {
-                foreach (var proc in entity.Def.Procs.Values)
-                {
-                    if ((procs != null && procs.Contains(proc.Name)) || route_flags == AllowedRouteFlags.All)
-                    {
-                        if (proc.isLookup)
-                        {
-                            paths.Add($"{entity_name}/lookup/{proc.Name}");
-                        }
-                        else
-                        {
-                            paths.Add($"{entity_name}/proc/{proc.Name}");
-                            paths.Add($"{entity_name}/process/{proc.Name}");
-                        }
-                    }
-                }
-            }
-
-
-            if (route_flags.HasFlag(AllowedRouteFlags.Actions))
-            {
-                foreach (var act in entity.Def.Actions)
-                {
-                    if ((actions != null && actions.Contains(act.Key)) || route_flags == AllowedRouteFlags.All)
-                    {
-                        paths.Add($"{entity_name}/action/{act.Key}");
-                    }
-                }
-            }
-
-            return paths;
-
         }
 
-        public async static Task CreateEntityRoutes(this EntityBase entity, IEntityClient ec, CancellationToken ct)
+
+        if (route_flags.HasFlag(AllowedRouteFlags.Actions))
         {
-            ArgumentNullException.ThrowIfNull(entity);
-            bool should_close = !(ec.ConnectionState == System.Data.ConnectionState.Open);
-
-            try
+            foreach (var act in entity.Def.Actions)
             {
-                var entity_type = entity.GetType();
-                var paths = entity.GetRoutePaths(entity_type.Name, AllowedRouteFlags.All);
-
-                var routes = new MicromRoutes(ec);
-
-                foreach (var path in paths)
+                if ((actions != null && actions.Contains(act.Key)) || route_flags == AllowedRouteFlags.All)
                 {
-                    routes.Def.c_route_id.Value = "";
-                    routes.Def.vc_route_path.Value = path;
-                    await routes.InsertData(ct);
+                    paths.Add($"{entity_name}/action/{act.Key}");
                 }
-
-            }
-            finally
-            {
-                if (should_close) await ec.Disconnect();
             }
         }
 
-        public async static Task CreateEntityRoutes(this Type entity_type, IEntityClient ec, CancellationToken ct)
-        {
-            ArgumentNullException.ThrowIfNull(entity_type);
-            if (!typeof(EntityBase).IsAssignableFrom(entity_type))
-            {
-                throw new ArgumentException($"The type {entity_type.Name} is not an EntityBase type.");
-            }
-
-            EntityBase? entity = (EntityBase?)Activator.CreateInstance(entity_type);
-            if (entity == null) return;
-
-            await entity.CreateEntityRoutes(ec, ct);
-
-        }
+        return paths;
 
     }
+
+    public async static Task CreateEntityRoutes(this EntityBase entity, ApplicationOption app, IEntityClient ec, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(entity);
+        bool should_close = !(ec.ConnectionState == System.Data.ConnectionState.Open);
+
+        try
+        {
+            var entity_type = entity.GetType();
+            var paths = entity.GetRoutePaths(entity_type.Name, AllowedRouteFlags.All);
+
+            var routes = new MicromRoutes(ec, schema_name: app.SchemaConfiguration.DDSchema);
+
+            foreach (var path in paths)
+            {
+                routes.Def.c_route_id.Value = "";
+                routes.Def.vc_route_path.Value = path;
+                await routes.InsertData(ct);
+            }
+
+        }
+        finally
+        {
+            if (should_close) await ec.Disconnect();
+        }
+    }
+
+    public async static Task CreateEntityRoutes(this Type entity_type, ApplicationOption app, IEntityClient ec, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(entity_type);
+        if (!typeof(EntityBase).IsAssignableFrom(entity_type))
+        {
+            throw new ArgumentException($"The type {entity_type.Name} is not an EntityBase type.");
+        }
+
+        EntityBase? entity = (EntityBase?)Activator.CreateInstance(entity_type);
+        if (entity == null) return;
+
+        await entity.CreateEntityRoutes(app, ec, ct);
+
+    }
+
 }

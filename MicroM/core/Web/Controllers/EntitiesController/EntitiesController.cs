@@ -4,13 +4,17 @@ using MicroM.Web.Authentication;
 using MicroM.Web.Services;
 using MicroM.Web.Services.Security;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using System.Runtime.CompilerServices;
+using System.Threading.Channels;
+using static MicroM.Excel.ExcelWriter;
 using static MicroM.Web.Controllers.MicroMControllersMessages;
 
 namespace MicroM.Web.Controllers;
 
 [ApiController]
-public class EntitiesController : ControllerBase, IEntitiesController
+public class EntitiesController() : ControllerBase, IEntitiesController
 {
     [AllowAnonymous]
     [HttpGet("entities-api-status")]
@@ -312,4 +316,145 @@ public class EntitiesController : ControllerBase, IEntitiesController
         }
     }
 
+    private static async IAsyncEnumerable<object?[]> StreamRows(ChannelReader<object?[]> rows, [EnumeratorCancellation] CancellationToken ct)
+    {
+        await foreach (var row in rows.ReadAllAsync(ct))
+        {
+            yield return row;
+        }
+    }
+
+    [Authorize(policy: nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy))]
+    [HttpPost("{app_id}/ent/{entityName}/viewstream/{viewName}")]
+    public async IAsyncEnumerable<object> ViewStream([FromServices] IAuthenticationProvider auth, [FromServices] IMicroMAppConfiguration app_config, [FromServices] IEntitiesService ents, string app_id, string entityName, string viewName, [FromBody] DataWebAPIRequest parms, [EnumeratorCancellation] CancellationToken ct)
+    {
+        var app = auth.GetAppAndUnencryptClaims(app_config, app_id, parms, User.Claims.ToClaimsDictionary());
+        if (app == null)
+        {
+            Response.StatusCode = StatusCodes.Status400BadRequest;
+            yield break;
+        }
+
+        using var ec = await ents.CreateDbConnection(app, parms.ServerClaims, ct);
+        var result_channel = new DataResultSetChannel(capacity: 2);
+
+        Task producerTask = ents.HandleExecuteViewChannel(app, entityName, viewName, parms, ec, result_channel, ct);
+
+        await foreach (var resultSet in result_channel.Results.Reader.ReadAllAsync(ct))
+        {
+            yield return new
+            {
+                resultSet.Header,
+                resultSet.typeInfo,
+                records = StreamRows(resultSet.records.Reader, ct)
+            };
+        }
+
+        // We let errors bubble on purpose. If the producer task threw an error, we want that to be observed and not silently ignored.
+        // The client will see the error as a stream termination with an error status code.
+        await producerTask;
+    }
+
+    [Authorize(policy: nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy))]
+    [HttpPost("{app_id}/ent/{entityName}/procstream/{procName}")]
+    public async IAsyncEnumerable<object> ProcStream([FromServices] IAuthenticationProvider auth, [FromServices] IMicroMAppConfiguration app_config, [FromServices] IEntitiesService ents, string app_id, string entityName, string procName, [FromBody] DataWebAPIRequest parms, [EnumeratorCancellation] CancellationToken ct)
+    {
+        var app = auth.GetAppAndUnencryptClaims(app_config, app_id, parms, User.Claims.ToClaimsDictionary());
+        if (app == null)
+        {
+            Response.StatusCode = StatusCodes.Status400BadRequest;
+            yield break;
+        }
+
+        using var ec = await ents.CreateDbConnection(app, parms.ServerClaims, ct);
+        var result_channel = new DataResultSetChannel(capacity: 2);
+
+        Task producerTask = ents.HandleExecuteProcChannel(app, entityName, procName, parms, ec, result_channel, ct);
+
+        await foreach (var resultSet in result_channel.Results.Reader.ReadAllAsync(ct))
+        {
+            yield return new
+            {
+                resultSet.Header,
+                resultSet.typeInfo,
+                records = StreamRows(resultSet.records.Reader, ct)
+            };
+        }
+
+        // We let errors bubble on purpose. If the producer task threw an error, we want that to be observed and not silently ignored.
+        // The client will see the error as a stream termination with an error status code.
+        await producerTask;
+    }
+
+    const int MAX_EXCEL_ROWS = 1048575; // MAX allowed rows per sheet (DataResult.records)
+
+    [Authorize(policy: nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy))]
+    [HttpPost("{app_id}/ent/{entityName}/viewtoexcel/{viewName}")]
+    public async Task<IActionResult> ExportViewExcel([FromServices] IAuthenticationProvider auth, [FromServices] IMicroMAppConfiguration app_config, [FromServices] IEntitiesService ents, string app_id, string entityName, string viewName, [FromBody] DataWebAPIRequest parms, CancellationToken ct)
+    {
+        var app = auth.GetAppAndUnencryptClaims(app_config, app_id, parms, User.Claims.ToClaimsDictionary());
+        if (app == null) return BadRequest(APPLICATION_NOT_FOUND);
+
+        using var ec = await ents.CreateDbConnection(app, parms.ServerClaims, ct);
+        var resultChannel = new DataResultSetChannel(capacity: 2);
+
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+
+        Task producerTask = ents.HandleExecuteViewChannel(app, entityName, viewName, parms, ec, resultChannel, ct, records_channel_capacity: DataDefaults.DefaultChannelExportToExcelBuffer, complete_channel: true, max_allowed_rows: MAX_EXCEL_ROWS);
+
+        try
+        {
+            // we prefer Sylvan for now as it consumes less memory than OpenXML
+            var fileResult = await ExportSylvanFromChannelAsync($"{entityName}_export", resultChannel, producerTask, ct);
+
+            return fileResult;
+        }
+        catch (Exception ex)
+        {
+            resultChannel.Results.Writer.TryComplete(ex);
+            cts.Cancel();
+            if (ex is DataAbstractionException dbex)
+            {
+                return BadRequest(dbex.Message);
+            }
+            return BadRequest("Export failed due to an internal error");
+        }
+
+    }
+
+    [Authorize(policy: nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy))]
+    [HttpPost("{app_id}/ent/{entityName}/proctoexcel/{procName}")]
+    public async Task<IActionResult> ExportProcExcel([FromServices] IAuthenticationProvider auth, [FromServices] IMicroMAppConfiguration app_config, [FromServices] IEntitiesService ents, string app_id, string entityName, string procName, [FromBody] DataWebAPIRequest parms, CancellationToken ct)
+    {
+        var app = auth.GetAppAndUnencryptClaims(app_config, app_id, parms, User.Claims.ToClaimsDictionary());
+        if (app == null) return BadRequest(APPLICATION_NOT_FOUND);
+
+        using var ec = await ents.CreateDbConnection(app, parms.ServerClaims, ct);
+        var resultChannel = new DataResultSetChannel(capacity: 2);
+
+
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+
+        Task producerTask = ents.HandleExecuteProcChannel(app, entityName, procName, parms, ec, resultChannel, cts.Token, records_channel_capacity: DataDefaults.DefaultChannelExportToExcelBuffer, complete_channel: true, max_allowed_rows: MAX_EXCEL_ROWS);
+
+        try
+        {
+            // we prefer Sylvan for now as it consumes less memory than OpenXML
+            var fileResult = await ExportSylvanFromChannelAsync($"{entityName}_export", resultChannel, producerTask, cts.Token);
+
+            return fileResult;
+        }
+        catch (Exception ex)
+        {
+            resultChannel.Results.Writer.TryComplete(ex);
+            cts.Cancel();
+            if (ex is DataAbstractionException dbex)
+            {
+                return BadRequest(dbex.Message);
+            }
+            return BadRequest("Export failed due to an internal error");
+        }
+
+
+    }
 }
