@@ -62,6 +62,8 @@ export const LookupSelect = forwardRef<HTMLInputElement, LookupSelectOptions>(fu
 
     const theme = useMantineTheme();
 
+    const { formMode, form } = entityForm;
+
     const triggerRefreshState = useState<boolean>(true);
     const selectDataState = useState<SelectItem[]>([]);
     const [selectData] = selectDataState;
@@ -96,6 +98,22 @@ export const LookupSelect = forwardRef<HTMLInputElement, LookupSelectOptions>(fu
             column.valueDescription = '';
         }
     }, [column, entityForm.form.values, selectData]);
+
+
+    // MMC: Effect for setting the key column value to the case of the selectData
+    useEffect(() => {
+        if (formMode === 'add') return;
+
+        const bindingColumnValue = form.values[column.name] as string;
+
+        const originalItem = selectData.find(
+            item => item.value.localeCompare(bindingColumnValue, undefined, { sensitivity: 'base' }) === 0
+        )?.value ?? null;
+
+        if (originalItem !== null) {
+            form.setFieldValue(column.name, originalItem);
+        }
+    }, [column, entityForm.form.values, form, formMode, selectData]);
 
     const readoOnlyResult = resolvedSelectProps?.readOnly || entityForm.formMode === 'view' || lookupSelectAPI.status.loading || formStatus?.loading || (column.hasFlag(EntityColumnFlags.pk) && entityForm.formMode !== 'add') ? true : false;
 
