@@ -28,6 +28,7 @@ export interface UseLookupOptions {
     enableEdit?: boolean,
     enableDelete?: boolean,
     enableView?: boolean,
+    transform?: (value: string) => void,
 }
 
 export interface UseLookupReturnType {
@@ -39,7 +40,7 @@ export interface UseLookupReturnType {
 
 export const useLookup = ({
     entityForm, entity, lookupDefName, column, parentKeys, required, HTMLDescriptionRef,
-    enableAdd, enableEdit, enableDelete, enableView
+    enableAdd, enableEdit, enableDelete, enableView, transform
 }: UseLookupOptions): UseLookupReturnType => {
     const [status, setStatus] = useState<OperationStatus<ValuesObject>>({});
     const [previousLookupResult, setPreviousLookupResult] = useState<LookupResultState>();
@@ -213,13 +214,16 @@ export const useLookup = ({
 
         updateLookupType(result);
 
+        const transformKey = result.key as string;
+        if (transform) transform(transformKey);
+
         if (lastFocusedElement.current) {
             //console.log(`Ref ${HTMLDescriptionRef.current}`)
             if (HTMLDescriptionRef.current) (HTMLDescriptionRef.current as HTMLElement).focus({ preventScroll: false });
         }
 
 
-    }, [HTMLDescriptionRef, entityForm.form.values, mantine_onblur, performLookup, previousLookupResult?.error, previousLookupResult?.key, required, updateLookupType]);
+    }, [HTMLDescriptionRef, entityForm.form.values, mantine_onblur, performLookup, previousLookupResult?.error, previousLookupResult?.key, required, updateLookupType, transform]);
 
     useEffect(() => {
         // MMC: create the lookup entity 

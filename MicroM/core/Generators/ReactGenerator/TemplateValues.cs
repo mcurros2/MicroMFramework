@@ -35,6 +35,8 @@
         public string ENTITY_PROCS_ASSIGNMENT { get => tokens[nameof(ENTITY_PROCS_ASSIGNMENT)]; init => tokens[nameof(ENTITY_PROCS_ASSIGNMENT)] = value; }
         public string CATEGORIES_VALUES_CLASS { get => tokens[nameof(CATEGORIES_VALUES_CLASS)]; init => tokens[nameof(CATEGORIES_VALUES_CLASS)] = value; }
         public string CATEGORIES_VALUES_CLASS_IMPORT { get => tokens[nameof(CATEGORIES_VALUES_CLASS_IMPORT)]; init => tokens[nameof(CATEGORIES_VALUES_CLASS_IMPORT)] = value; }
+        public string CATEGORY_COLUMN_NAME { get => tokens[nameof(CATEGORY_COLUMN_NAME)]; init => tokens[nameof(CATEGORY_COLUMN_NAME)] = value; }
+        public string CATEGORYVALUE_COLUMN_NAME { get => tokens[nameof(CATEGORYVALUE_COLUMN_NAME)]; init => tokens[nameof(CATEGORYVALUE_COLUMN_NAME)] = value; }
 
     }
 }

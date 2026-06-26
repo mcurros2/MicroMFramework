@@ -61,7 +61,10 @@ namespace MicroM.Generators.ReactGenerator
             return cat_title;
         }
 
-        private static string AppendCategoryEntity(this Dictionary<string, Type> categories_types, string category_id, string categories_values_class_name, string categories_values_import_from)
+        private static string AppendCategoryEntity(
+            this Dictionary<string, Type> categories_types, string category_id, string categories_values_class_name, string categories_values_import_from,
+            string category_column_name
+            )
         {
             string title = categories_types.GetCategoryTitle(category_id);
             var parms = new TemplateValues()
@@ -70,14 +73,15 @@ namespace MicroM.Generators.ReactGenerator
                 CATEGORY_TITLE = title,
                 MICROM_LIB_PACKAGE = TemplateValues.CONST_MICROM_LIB_PACKAGE,
                 CATEGORIES_VALUES_CLASS = categories_values_class_name,
-                CATEGORIES_VALUES_CLASS_IMPORT = $"import {{ {categories_values_class_name} }} from \"{categories_values_import_from}\";"
+                CATEGORIES_VALUES_CLASS_IMPORT = $"import {{ {categories_values_class_name} }} from \"{categories_values_import_from}\";",
+                CATEGORY_COLUMN_NAME = category_column_name
             };
             return Templates.CATEGORY_ENTITY_TEMPLATE.ReplaceTemplate(parms);
         }
 
         public static string AsCategoriesEntities(
             this IReadonlyOrderedDictionary<ColumnBase> cols, Dictionary<string, Type> categories_types, string categories_values_class_name = TemplateValues.CONST_CATEGORIES_VALUES_CLASS,
-            string categories_values_import_from = TemplateValues.CONST_MICROM_LIB_PACKAGE
+            string categories_values_import_from = TemplateValues.CONST_MICROM_LIB_PACKAGE, string category_column_name = TemplateValues.CONST_CATEGORIES_ID_COLUMN_NAME
             )
         {
             var cols_enumerator = cols.Values.Where(column => string.IsNullOrEmpty(column.RelatedCategoryID) == false).GetEnumerator();
@@ -86,12 +90,12 @@ namespace MicroM.Generators.ReactGenerator
 
             if (cols_enumerator.MoveNext())
             {
-                sb.Append(categories_types.AppendCategoryEntity(cols_enumerator.Current.RelatedCategoryID!, categories_values_class_name, categories_values_import_from));
+                sb.Append(categories_types.AppendCategoryEntity(cols_enumerator.Current.RelatedCategoryID!, categories_values_class_name, categories_values_import_from, category_column_name));
 
                 while (cols_enumerator.MoveNext())
                 {
                     sb.Append("\n\n/*-------------------------------------------------------------------------*/");
-                    sb.Append(categories_types.AppendCategoryEntity(cols_enumerator.Current.RelatedCategoryID!, categories_values_class_name, categories_values_import_from));
+                    sb.Append(categories_types.AppendCategoryEntity(cols_enumerator.Current.RelatedCategoryID!, categories_values_class_name, categories_values_import_from, category_column_name));
                 }
             }
 

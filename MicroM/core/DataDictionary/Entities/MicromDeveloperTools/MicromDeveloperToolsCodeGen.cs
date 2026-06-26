@@ -100,7 +100,7 @@ public class MicromDeveloperToolsCodeGen : Entity<MicromDeveloperToolsCodeGenDef
 
         Def.vc_react_entity.Value = ent.AsTypeScriptEntity();
         Def.vc_react_definition.Value = ent.AsTypeScriptEntityDefinition(app_config.TypeScriptCategoriesFolder);
-        Def.vc_react_categories.Value = ent.Def.Columns.AsCategoriesEntities(category_types, app_config.TypeScriptDDCategoriesValuesClassName, app_config.TypeScriptDDCategoriesValuesClassImport);
+        Def.vc_react_categories.Value = ent.Def.Columns.AsCategoriesEntities(category_types, app_config.TypeScriptDDCategoriesValuesClassName, app_config.TypeScriptDDCategoriesValuesClassImport, app_config.TypeScriptDDCategoryColumnName);
         Def.vc_react_form.Value = ent.AsTypeScriptEntityForm();
 
         return true;

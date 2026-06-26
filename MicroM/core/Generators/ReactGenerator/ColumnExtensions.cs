@@ -196,11 +196,14 @@ namespace MicroM.Generators.ReactGenerator
             }
         }
 
-        internal static string AsFormField<T>(this T column, bool autoFocus = false, string separator = "\n                ") where T : ColumnBase
+        internal static string AsFormField<T>(this T column, bool autofocusOnAdd = false, bool autofocusOnEdit = false, string separator = "\n                ") where T : ColumnBase
         {
             bool autoNum = column.ColumnMetadata.HasFlag(ColumnFlags.Autonum);
+            bool PK = column.ColumnMetadata.HasFlag(ColumnFlags.PK);
             var columnSize = column.SQLMetadata.Size;
-            var autofocusParm = $"{(autoFocus ? " autoFocus={{true}}" : "")}";
+            var autofocusADD = $"{(autofocusOnAdd ? " autoFocus=\"autoFocusOnAdd\"" : "")}";
+            var autofocusEDIT = $"{(autofocusOnEdit ? " autoFocus=\"autoFocusOnEdit\"" : "")}";
+
 
             switch (column.SQLMetadata.SQLType)
             {
@@ -212,7 +215,7 @@ namespace MicroM.Generators.ReactGenerator
                 case SqlDbType.Char:
                     if (autoNum)
                     {
-                        return $"{separator}{{formMode != \"add\" &&{separator}<TextField entityForm={{formAPI}} column={{entity.def.columns.{column.Name}}} readOnly={{true}} required={{false}} maw=\"20rem\" />{separator}}}";
+                        return $"{separator}{{formMode != \"add\" &&{separator}<TextField entityForm={{formAPI}} column={{entity.def.columns.{column.Name}}} readOnly required={{false}} maxWidth=\"sm\" />{separator}}}";
                     }
                     else if (!string.IsNullOrEmpty(column.RelatedCategoryID))
                     {
@@ -220,21 +223,21 @@ namespace MicroM.Generators.ReactGenerator
                     }
                     else if (columnSize > 0 && columnSize <= 255)
                     {
-                        return $"{separator}<TextField entityForm={{formAPI}} column={{entity.def.columns.{column.Name}}}{autofocusParm}{(columnSize <= 50 ? " maw=\"20rem\"" : "")} />";
+                        return $"{separator}<TextField entityForm={{formAPI}} column={{entity.def.columns.{column.Name}}}{autofocusADD}{autofocusEDIT}{(columnSize <= 20 ? " maxWidth=\"sm\"" : "")} />";
                     }
                     else
                     {
-                        return $"{separator}<TextAreaField entityForm={{formAPI}} column={{entity.def.columns.{column.Name}}} maxRows={{4}} minRows={{4}}{autofocusParm} />";
+                        return $"{separator}<TextAreaField entityForm={{formAPI}} column={{entity.def.columns.{column.Name}}} maxRows={{4}} minRows={{4}}{autofocusADD}{autofocusEDIT} />";
                     }
 
                 case SqlDbType.Date:
                 case SqlDbType.DateTime:
                 case SqlDbType.DateTime2:
                 case SqlDbType.SmallDateTime:
-                    return $"{separator}<DateInputField entityForm={{formAPI}} column={{entity.def.columns.{column.Name}}}{autofocusParm} />";
+                    return $"{separator}<DateInputField entityForm={{formAPI}} column={{entity.def.columns.{column.Name}}}{autofocusADD}{autofocusEDIT} />";
 
                 case SqlDbType.Bit:
-                    return $"{separator}<CheckboxField entityForm={{formAPI}} column={{entity.def.columns.{column.Name}}}{autofocusParm} />";
+                    return $"{separator}<CheckboxField entityForm={{formAPI}} column={{entity.def.columns.{column.Name}}}{autofocusADD}{autofocusEDIT} />";
 
                 case SqlDbType.Decimal:
                 case SqlDbType.Money:
@@ -245,13 +248,13 @@ namespace MicroM.Generators.ReactGenerator
                 case SqlDbType.BigInt:
                 case SqlDbType.SmallInt:
                 case SqlDbType.TinyInt:
-                    return $"{separator}<NumberField entityForm={{formAPI}} column={{entity.def.columns.{column.Name}}}{autofocusParm} />";
+                    return $"{separator}<NumberField entityForm={{formAPI}} column={{entity.def.columns.{column.Name}}}{autofocusADD}{autofocusEDIT} />";
 
                 case SqlDbType.Time:
-                    return $"{separator}<TimeInputField entityForm={{formAPI}} column={{entity.def.columns.{column.Name}}}{autofocusParm} />";
+                    return $"{separator}<TimeInputField entityForm={{formAPI}} column={{entity.def.columns.{column.Name}}}{autofocusADD}{autofocusEDIT} />";
 
                 default:
-                    return $"{separator}<TextField entityForm={{formAPI}} column={{entity.def.columns.{column.Name}}}{autofocusParm}{(columnSize <= 50 ? " maw=\"20rem\"" : "")}/>";
+                    return $"{separator}<TextField entityForm={{formAPI}} column={{entity.def.columns.{column.Name}}}{autofocusADD}{autofocusEDIT}{(columnSize <= 20 ? " maxWidth=\"sm\"" : "")}/>";
             }
 
         }
@@ -263,11 +266,45 @@ namespace MicroM.Generators.ReactGenerator
 
             if (col_enumerator.MoveNext())
             {
-                colsBuilder.Append(col_enumerator.Current.AsFormField(autoFocus: true, separator: separator));
+
+                var pk = col_enumerator.Current.ColumnMetadata.HasFlag(ColumnFlags.PK);
+                var autoNum = col_enumerator.Current.ColumnMetadata.HasFlag(ColumnFlags.Autonum);
+
+                bool autoADDassigned = false;
+                bool autoEDITassigned = false;
+
+                bool autofocusOnAdd = false;
+                bool autofocusOnEdit = false;
+
+                if (pk && !autoNum)
+                {
+                    autofocusOnAdd = true;
+                    autoADDassigned = true;
+                }
+
+                colsBuilder.Append(col_enumerator.Current.AsFormField(autofocusOnAdd: autofocusOnAdd, separator: separator));
 
                 while (col_enumerator.MoveNext())
                 {
-                    colsBuilder.Append(col_enumerator.Current.AsFormField(separator: separator));
+                    autofocusOnAdd = false;
+                    autofocusOnEdit = false;
+
+                    pk = col_enumerator.Current.ColumnMetadata.HasFlag(ColumnFlags.PK);
+                    autoNum = col_enumerator.Current.ColumnMetadata.HasFlag(ColumnFlags.Autonum);
+
+                    if (pk && !autoNum && !autoADDassigned)
+                    {
+                        autofocusOnAdd = true;
+                        autoADDassigned = true;
+                    }
+                    else if (autoADDassigned && !pk && !autoEDITassigned)
+                    {
+                        autoEDITassigned = true;
+                        autofocusOnEdit = true;
+                    }
+
+                    colsBuilder.Append(col_enumerator.Current.AsFormField(autofocusOnAdd: autofocusOnAdd, autofocusOnEdit: autofocusOnEdit, separator: separator));
+
                 }
             }
 

@@ -9,7 +9,7 @@ public static class UserPasswordHasher
 
     static UserPasswordHasher()
     {
-        var opt = new PasswordHasherOptions() { CompatibilityMode = PasswordHasherCompatibilityMode.IdentityV3, IterationCount = 10000 };
+        var opt = new PasswordHasherOptions() { CompatibilityMode = PasswordHasherCompatibilityMode.IdentityV3, IterationCount = 210000 };
         _Hasher = new PasswordHasher<UserLogin>(Options.Create(opt));
 
     }

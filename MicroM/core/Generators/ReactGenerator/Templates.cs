@@ -15,8 +15,8 @@ export class cat{CATEGORY_ID} extends {CATEGORIES_VALUES_CLASS} {
 
     constructor(client: MicroMClient, parentKeys = {}) {
         super(client, parentKeys);
-        this.def.columns.c_category_id.value = ""{CATEGORY_ID}"";
-        this.def.columns.c_category_id.defaultValue = ""{CATEGORY_ID}"";
+        this.def.columns.{CATEGORY_COLUMN_NAME}.value = ""{CATEGORY_ID}"";
+        this.def.columns.{CATEGORY_COLUMN_NAME}.defaultValue = ""{CATEGORY_ID}"";
         this.Title = ""{CATEGORY_TITLE}"";
         this.HelpText = {CATEGORY_ID}HelpText;
         this.Icon = {CATEGORY_ID}Icon;

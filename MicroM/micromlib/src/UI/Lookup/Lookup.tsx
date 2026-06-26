@@ -4,11 +4,11 @@ import { IconSearch } from "@tabler/icons-react";
 import React, { useEffect, useRef } from "react";
 import { Value, ValuesObject } from "../../client";
 import { Entity, EntityColumn, EntityColumnFlags, EntityDefinition } from "../../Entity";
-import { ActionIconVariant } from "../Core";
+import { ActionIconVariant, useTextTransform, useTextTransformProps } from "../Core";
 import { UseEntityFormReturnType } from "../Form";
 import { LookupResultState, useLookup } from "../Lookup";
 
-export interface LookupProps {
+export interface LookupProps extends Omit<useTextTransformProps, 'entityForm' | 'column'> {
     parentKeys?: ValuesObject,
     column: EntityColumn<Value>,
     autoFocus?: 'autoFocusOnAdd' | 'autoFocusOnEdit' | boolean
@@ -42,18 +42,20 @@ export const LookupDefaultProps: Partial<LookupProps> = {
     enableEdit: false,
     enableDelete: false,
     enableView: true,
+    autoTrim: true,
 }
 
 export function Lookup(props: LookupProps) {
     const {
         entityForm, entity, lookupDefName, autoFocus, label, parentKeys, column, required, readonly, disabled, idMaxWidth, icon, iconVariant,
-        requiredLabel, description, size, onLookupPerformed, enableAdd, enableEdit, enableDelete, enableView
+        requiredLabel, description, size, onLookupPerformed, enableAdd, enableEdit, enableDelete, enableView, transform, autoTrim
     } = useComponentDefaultProps('Lookup', LookupDefaultProps, props);
 
 
     const theme = useMantineTheme();
     const HTMLDescriptionRef = useRef(null);
 
+    const textTransform = useTextTransform({ entityForm, column, transform, autoTrim });
 
     const lookupAPI = useLookup({
         entityForm: entityForm,
@@ -67,6 +69,7 @@ export function Lookup(props: LookupProps) {
         enableEdit: enableEdit,
         enableDelete: enableDelete,
         enableView: enableView,
+        transform: textTransform,
     });
 
     useEffect(() => {
@@ -98,6 +101,8 @@ export function Lookup(props: LookupProps) {
     const add_autofocus = formMode === 'add' ? true : undefined;
     const edit_autofocus = status.loading === false && formMode !== 'add' ? true : undefined;
 
+    const readonly_condition = readonly === undefined ? column.hasFlag(EntityColumnFlags.autoNum) || (entityForm.formMode !== 'add' && column.hasFlag(EntityColumnFlags.pk)) : readonly;
+
     return (
         <Stack style={{ gap: "0.1rem", flexGrow: "1" }}>
             <Group style={{ gap: "0.2rem" }}>
@@ -111,17 +116,17 @@ export function Lookup(props: LookupProps) {
                 <TextInput
                     size={size}
                     maw={idMaxWidth}
-                    readOnly={readonly || entityForm.formMode === 'view' || lookupAPI.status.loading || entityForm.status.loading ? true : false}
+                    readOnly={readonly_condition || entityForm.formMode === 'view' || lookupAPI.status.loading || entityForm.status.loading ? true : false}
                     autoFocus={autoFocus === 'autoFocusOnAdd' ? add_autofocus : autoFocus === 'autoFocusOnEdit' ? edit_autofocus : autoFocus}
                     data-autofocus={autoFocus === 'autoFocusOnAdd' ? add_autofocus : autoFocus === 'autoFocusOnEdit' ? edit_autofocus : autoFocus}
                     disabled={disabled}
                     key={`${entity.name}${column.name}`}
                     rightSection={<ActionIcon
                         color={theme.primaryColor}
-                        disabled={readonly || entityForm.formMode === 'view' || lookupAPI.status.loading || entityForm.status.loading}
+                        disabled={readonly_condition || entityForm.formMode === 'view' || lookupAPI.status.loading || entityForm.status.loading}
                         onClick={async () => {
                             // readonly, no lookup
-                            if (readonly || entityForm.formMode === 'view' || lookupAPI.status.loading || entityForm.status.loading) return;
+                            if (readonly_condition || entityForm.formMode === 'view' || lookupAPI.status.loading || entityForm.status.loading) return;
 
                             await lookupAPI.onBlur(column.name, true)
                         }}
