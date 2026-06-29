@@ -1,11 +1,12 @@
 import { ActionIcon, Button, Group, Loader, Select, SelectItem, SelectProps, useComponentDefaultProps, useMantineTheme } from "@mantine/core"
 import { IconSelector } from "@tabler/icons-react"
-import { forwardRef, ReactNode, useEffect, useState } from "react"
+import { forwardRef, ReactNode, useState } from "react"
 import { DataResult, DBStatusResult, OperationStatus, Value, ValuesObject } from "../../client"
 import { Entity, EntityColumn, EntityColumnFlags, EntityDefinition } from "../../Entity"
 import { ActionIconVariant, ButtonVariant, MicroMWidthSizes } from "../Core"
 import { UseEntityFormReturnType, useFieldConfiguration } from "../Form"
 import { useLookupSelect } from "./useLookupSelect"
+import { useLookupSelectInputProps } from "./useLookupSelectInputProps"
 
 
 export interface CustomSelectProps extends Omit<SelectProps, 'data'> { }
@@ -70,6 +71,8 @@ export const LookupSelect = forwardRef<HTMLInputElement, LookupSelectOptions>(fu
 
     const lookupSelectAPI = useLookupSelect({ parentKeys, selectDataState, triggerRefreshState, column, entityForm, entity, lookupDefName, maxItems, includeKeyInDescription, breadCrumbs });
 
+    const inputProps = useLookupSelectInputProps({ entityForm, column, selectData });
+
     const [showDescription,] = entityForm.showDescriptionState;
 
     const resolvedSelectProps: CustomSelectProps = {
@@ -81,40 +84,7 @@ export const LookupSelect = forwardRef<HTMLInputElement, LookupSelectOptions>(fu
     };
 
     useFieldConfiguration({ entityForm, column, required: resolvedSelectProps?.required, requiredMessage: requiredLabel });
-
-    // MMC: Effect for setting the column valueDescription
-    useEffect(() => {
-        const value = entityForm.form.values[column.name];
-        if (value) {
-            const index = selectData.findIndex((item) => item.value === value);
-            if (index >= 0) {
-                column.valueDescription = selectData[index].label;
-            }
-            else {
-                column.valueDescription = '';
-            }
-        }
-        else {
-            column.valueDescription = '';
-        }
-    }, [column, entityForm.form.values, selectData]);
-
-
-    // MMC: Effect for setting the key column value to the case of the selectData
-    useEffect(() => {
-        if (formMode === 'add') return;
-
-        const bindingColumnValue = form.values[column.name] as string;
-
-        const originalItem = selectData.find(
-            item => item.value.localeCompare(bindingColumnValue, undefined, { sensitivity: 'base' }) === 0
-        )?.value ?? null;
-
-        if (originalItem !== null) {
-            form.setFieldValue(column.name, originalItem);
-        }
-    }, [column, entityForm.form.values, form, formMode, selectData]);
-
+    
     const readoOnlyResult = resolvedSelectProps?.readOnly || entityForm.formMode === 'view' || lookupSelectAPI.status.loading || formStatus?.loading || (column.hasFlag(EntityColumnFlags.pk) && entityForm.formMode !== 'add') ? true : false;
 
     return (
@@ -145,7 +115,7 @@ export const LookupSelect = forwardRef<HTMLInputElement, LookupSelectOptions>(fu
                 </Group>
             }
             rightSectionWidth={(enableEdit) ? "auto" : undefined}
-            {...lookupSelectAPI.inputProps}
+            {...inputProps}
             ref={ref}
         />
     )

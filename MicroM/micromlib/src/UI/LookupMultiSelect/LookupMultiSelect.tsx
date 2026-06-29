@@ -4,6 +4,7 @@ import { DataResult, DBStatusResult, OperationStatus, Value, ValuesObject } from
 import { Entity, EntityColumn, EntityColumnFlags, EntityDefinition } from "../../Entity"
 import { UseEntityFormReturnType, useFieldConfiguration } from "../Form"
 import { useLookupSelect } from "../LookupSelect"
+import { useLookupMultiSelectInputProps } from "./useLookupMultiSelectInputProps"
 
 
 export interface LookupMultiSelectProps extends Omit<MultiSelectProps, 'data'> {
@@ -56,6 +57,8 @@ export function LookupMultiSelect(props: LookupMultiSelectProps) {
 
     const lookupSelectAPI = useLookupSelect({ parentKeys, selectDataState, triggerRefreshState, column, entityForm, entity, lookupDefName, maxItems: 0, includeKeyInDescription });
 
+    const inputProps = useLookupMultiSelectInputProps({ entityForm, column, selectData });
+
     const [showDescription,] = entityForm.showDescriptionState;
 
     useFieldConfiguration({ entityForm, column, required: required, requiredMessage: requiredLabel });
@@ -107,7 +110,7 @@ export function LookupMultiSelect(props: LookupMultiSelectProps) {
                 creatable={creatable}
                 onCreate={creatable ? onCreate : undefined}
                 getCreateLabel={(newValue) => `${createLabel} ${newValue}`}
-                {...lookupSelectAPI.inputProps}
+                {...inputProps}
             />
         </Group>
     )

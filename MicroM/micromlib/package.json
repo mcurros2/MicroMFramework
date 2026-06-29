@@ -1,6 +1,6 @@
 {
   "name": "@mcurros2/microm",
-  "version": "1.1.264-0",
+  "version": "1.1.268-0",
   "source": "src/index.ts",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -103,9 +103,9 @@
     }
   },
   "allowScripts": {
-    "@parcel/watcher@2.5.1": true,
-    "@swc/core@1.15.30": true,
-    "lmdb@2.8.5": true,
-    "msgpackr-extract@3.0.3": true
+    "@parcel/watcher": true,
+    "@swc/core": true,
+    "lmdb": true,
+    "msgpackr-extract": true
   }
 }

@@ -55,8 +55,7 @@ export const useLookupSelect = (props: UseLookupSelectOptions) => {
     }
 
     const status = useExecuteView(lookupEntity, parentKeys, lookupViewName, undefined, maxItems?.toString(), triggerRefresh);
-
-
+   
     // MMC: Effect for setting the select data
     useEffect(() => {
         if (status.loading) return;
@@ -82,7 +81,6 @@ export const useLookupSelect = (props: UseLookupSelectOptions) => {
 
     return {
         onEditClick: handleEditClick,
-        inputProps: entityForm.form.getInputProps(column.name),
         status: status
     }
 
