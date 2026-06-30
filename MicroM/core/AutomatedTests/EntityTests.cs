@@ -3,6 +3,7 @@ using MicroM.Data;
 using MicroM.Database;
 using MicroM.Extensions;
 using MicroM.Web.Services;
+using System.Diagnostics;
 using System.Text;
 
 namespace MicroM.AutomatedTests;
@@ -32,7 +33,9 @@ public static class EntityTests
         var pk_cols = entity.Def.Columns.GetWithFlags(ColumnFlags.PK);
         var pk_cols_names_array = pk_cols.GetColNamesArray();
 
-        log?.Invoke($"*** {entity.Def.Name}: Running tests with test data from file {test_data_file}.");
+        const string test_version = "1.1.2";
+
+        log?.Invoke($"*** {entity.Def.Name}: Running tests with test data from file {test_data_file}. version {test_version}");
 
         ColumnBase? change_column = null;
         foreach (var column in entity.Def.Columns.Values)
@@ -59,10 +62,9 @@ public static class EntityTests
 
             testData.ApplyRecordToColumns(record, entity.Def.Columns);
 
-            // get a high precision DateTime value to check how many milliseconds are needed to ensure that dt_lu value will be different after update, this can change when moving to DateTime2 with higher precision
-            var time_at_insert = DateTime.Now;
+            log?.Invoke($"{entity.Def.Name}: Inserting data for record with PK values {testData.ToRecordValuesString(record, pk_cols_names_array)} at time {DateTime.Now:O}.");
 
-            log?.Invoke($"{entity.Def.Name}: Inserting data for record with PK values {testData.ToRecordValuesString(record, pk_cols_names_array)} at time {time_at_insert:O}.");
+            var time_at_insert = DateTime.Now;
 
             await entity.InsertData(ct, throw_dbstat_exception: true);
 
@@ -72,10 +74,11 @@ public static class EntityTests
                 throw new Exception($"INSERT: Can't read record after insertion. ID {testData.ToRecordValuesString(record, pk_cols_names_array)}");
             }
 
-            log?.Invoke($"{entity.Def.Name}: Data inserted lu {entity.Def.dt_lu.Value:O}.");
-
             // save dt_lu value for later comparison after update
             var dt_lu_value = entity.Def.dt_lu.Value;
+            log?.Invoke($"{entity.Def.Name}: Data inserted lu {dt_lu_value:O}.");
+
+            var stop_watch = Stopwatch.StartNew();
 
             log?.Invoke($"{entity.Def.Name}: Looking up data for record with PK values {testData.ToRecordValuesString(record, pk_cols_names_array)}.");
 
@@ -88,16 +91,17 @@ public static class EntityTests
 
             change_column?.ValueObject = $"changed {change_column.ValueObject}";
 
-            // Get a new high preccion datetime and compare the elapsed ms. Add up to 4 millisenconds delay if needed to ensure that dt_lu value will be different after update
-            var time_before_update = DateTime.Now;
-            var elapsed_ms = (time_before_update - time_at_insert).TotalMilliseconds;
-            if (elapsed_ms < 4)
+            // Compare the elapsed ms. Wait if needed
+            stop_watch.Stop();
+            var remaining_ms = 5.0 - stop_watch.Elapsed.TotalMilliseconds;
+            if (remaining_ms > 0.0)
             {
-                int delay_ms = 4 - (int)elapsed_ms;
-                await Task.Delay(delay_ms, ct);
+                var awaited = (int)Math.Ceiling(remaining_ms);
+                await Task.Delay(awaited, ct);
+                log?.Invoke($"{entity.Def.Name}: Delayed {awaited} ms to ensure dt_lu value will be different after update. Elapsed: {stop_watch.Elapsed.TotalMilliseconds} ms. Insert dt_lu {dt_lu_value:O}, Now: {DateTime.Now:O}");
             }
 
-            log?.Invoke($"{entity.Def.Name}: Updating data for record with PK values {testData.ToRecordValuesString(record, pk_cols_names_array)} at time {DateTime.Now:O}, elapsed ms since insert {elapsed_ms}.");
+            log?.Invoke($"{entity.Def.Name}: Updating data for record with PK values {testData.ToRecordValuesString(record, pk_cols_names_array)} at time {DateTime.Now:O}, elapsed ms since insert {(DateTime.Now - time_at_insert).TotalMilliseconds}.");
 
             await entity.UpdateData(ct, throw_dbstat_exception: true);
 
@@ -118,7 +122,7 @@ public static class EntityTests
 
             if (Equals(dt_lu_value.Ticks, entity.Def.dt_lu.Value.Ticks))
             {
-                throw new Exception($"UPDATE: The column dt_lu was not updated after the update. ID in data {testData.ToRecordValuesString(record, pk_cols_names_array)}. Time elapsed between insert and update: {elapsed_ms} ms. Insert LU: {dt_lu_value:O}, before update: {entity.Def.dt_lu.Value:O}");
+                throw new Exception($"UPDATE: The column dt_lu was not updated after the update. ID in data {testData.ToRecordValuesString(record, pk_cols_names_array)}. Time elapsed between insert and update: {(DateTime.Now - time_at_insert).TotalMilliseconds} ms. Insert LU: {dt_lu_value:O}, before update: {entity.Def.dt_lu.Value:O}");
             }
 
             log?.Invoke($"{entity.Def.Name}: Deleting data for record with PK values {testData.ToRecordValuesString(record, pk_cols_names_array)} at time {DateTime.Now:O}.");

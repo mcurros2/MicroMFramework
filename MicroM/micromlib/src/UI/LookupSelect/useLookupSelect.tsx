@@ -55,10 +55,12 @@ export const useLookupSelect = (props: UseLookupSelectOptions) => {
     }
 
     const status = useExecuteView(lookupEntity, parentKeys, lookupViewName, undefined, maxItems?.toString(), triggerRefresh);
-   
+
+    const formStatus = entityForm.status;
+
     // MMC: Effect for setting the select data
     useEffect(() => {
-        if (status.loading) return;
+        if ((formStatus.loading && status.operationType === 'get') || status.loading) return;
 
         if (status.data && status.data[0].records) {
             const keyIndex = lookupDef?.viewMapping?.keyIndex ?? 0;
@@ -77,7 +79,7 @@ export const useLookupSelect = (props: UseLookupSelectOptions) => {
             setSelectData([]);
         }
 
-    }, [includeKeyInDescription, localeFormat.locale, status.loading, status.data]);
+    }, [includeKeyInDescription, localeFormat.locale, status.loading, status.data, formStatus]);
 
     return {
         onEditClick: handleEditClick,
