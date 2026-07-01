@@ -2,11 +2,11 @@
 {
     public class ViewParm
     {
-        public readonly int ColumnMapping;
+        public int ColumnMapping { get; internal set; }
         public readonly string CompoundGroup;
         public readonly int CompoundPosition;
         public readonly bool CompoundKey;
-        public readonly bool BrowsingKey;
+        public bool BrowsingKey { get; internal set; }
 
         public readonly ColumnBase Column;
 

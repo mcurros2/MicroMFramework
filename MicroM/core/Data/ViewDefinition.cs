@@ -1,5 +1,7 @@
 ﻿using MicroM.Core;
 using MicroM.Extensions;
+using System.Reflection;
+using System.Runtime.CompilerServices;
 
 namespace MicroM.Data;
 
@@ -23,7 +25,7 @@ public class ViewDefinition
     /// <summary>
     /// Indicates the most significant part of a Key
     /// </summary>
-    public ViewParm BrowsingKeyParm = null!;
+    public ViewParm? BrowsingKeyParm = null!;
 
     /// <summary>
     /// The procedure that represents the view
@@ -47,7 +49,7 @@ public class ViewDefinition
         }
     }
 
-    private void AddViewParmFromCol(ColumnBase col, int column_mapping = -1, bool browsing_key = false)
+    private ViewParm AddViewParmFromCol(ColumnBase col, int column_mapping = -1, bool browsing_key = false)
     {
         ViewParm parm = new(col, column_mapping: column_mapping, browsing_key: browsing_key);
         if (parm.Column.Name.IsIn(comparer: StringComparer.OrdinalIgnoreCase, parms: [SystemViewParmNames.like, SystemViewParmNames.d]))
@@ -57,36 +59,56 @@ public class ViewDefinition
         Parms.Add(parm.Column.Name, parm);
         Proc.AddParm(parm.Column);
         if (parm.BrowsingKey) BrowsingKeyParm = parm;
+        return parm;
     }
 
-    internal bool IsInitialized = true;
+    private ViewParm? FillParmsCollection()
+    {
+        object obj = this;
+
+        IOrderedEnumerable<MemberInfo> instance_members = this.GetType().GetAndCacheInstanceMembers();
+
+        ViewParm? lastParm = null;
+        foreach (var prop in instance_members)
+        {
+            if (prop.MemberType.IsIn(MemberTypes.Property, MemberTypes.Field) && prop.GetCustomAttribute<CompilerGeneratedAttribute>() == null)
+            {
+                if (prop.GetMemberType().IsSubclassOf(typeof(ColumnBase)))
+                {
+                    var parm = (ColumnBase?)prop.GetMemberValue(obj);
+                    parm?.Name = prop.Name;
+                    if (!Parms.ContainsKey(prop.Name) && parm != null)
+                    {
+                        if (parm.Name.IsNullOrEmpty()) parm.Name = prop.Name;
+                        if (parm.Name != prop.Name) throw new ArgumentException($"The name of the parameter {prop.Name} does not match the property name for procedure {Proc.Name}.");
+
+                        lastParm = AddViewParmFromCol(parm);
+                    }
+                }
+            }
+        }
+
+        return lastParm;
+    }
+
+    internal bool IsInitialized = false;
     internal void CreateParmsFromNames(IReadonlyOrderedDictionary<ColumnBase> cols)
     {
         if (IsInitialized) return;
 
-        if (_ColumnNames.Count == 0)
-        {
-            AddDefaultParms();
-            IsInitialized = true;
-            return;
-        }
-
-        int last_column = _ColumnNames.Count - 1;
+        ViewParm? lastParm = null;
+        lastParm = FillParmsCollection();
 
         for (int x = 0; x < _ColumnNames.Count; x++)
         {
             string colname = _ColumnNames[x];
             if (!cols.Contains(colname)) throw new ArgumentException($"View {Proc.Name}: cannot find a column with name {colname} in the entity definition.");
-            if (x != last_column)
-            {
-                AddViewParmFromCol(cols[colname]!);
-            }
-            else
-            {
-                AddViewParmFromCol(cols[colname]!, 0, true);
-            }
-
+            lastParm = AddViewParmFromCol(cols[colname]!);
         }
+
+        lastParm?.BrowsingKey = true;
+        lastParm?.ColumnMapping = 0;
+        BrowsingKeyParm = lastParm;
 
         _ColumnNames.Clear();
         AddDefaultParms();
@@ -162,13 +184,10 @@ public class ViewDefinition
     /// <summary>
     /// Add the default parameters <b>like</b> that will receive a search string.
     /// </summary>
-    /// <exception cref="InvalidOperationException"></exception>
+    private bool _defaultParmsAdded = false;
     private void AddDefaultParms()
     {
-        if (Proc.Parms.ContainsKey(SystemViewParmNames.like) || Proc.Parms.ContainsKey(SystemViewParmNames.d))
-        {
-            throw new InvalidOperationException($"The default columns for view {Proc.Name} had already been added.");
-        }
+        if (_defaultParmsAdded) return;
 
         Column<string> d = Column<string>.Char(name: SystemViewParmNames.d, size: 1);
         Column<string[]> like = Column<string[]>.Text(name: SystemViewParmNames.like, size: 0, isArray: true);
@@ -178,6 +197,8 @@ public class ViewDefinition
 
         Parms.Add(d.Name, new ViewParm(d));
         Proc.AddParm(d);
+
+        _defaultParmsAdded |= true;
     }
 
     public static EntityFilter<T> CreateFilters<T>(string name = "") where T : EntityBase

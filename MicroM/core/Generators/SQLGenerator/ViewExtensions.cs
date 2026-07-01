@@ -31,7 +31,7 @@ internal static class ViewExtensions
             if (parms.ContainsKey(pk.Name))
             {
                 if (pk.Name.IsIn(SystemViewParmNames.like, SystemViewParmNames.d)) continue;
-                if (view.BrowsingKeyParm.Column.Name == pk.Name) continue;
+                if (view.BrowsingKeyParm?.Column.Name == pk.Name) continue;
                 where.Add(pk.Name, pk);
             }
         }
@@ -41,7 +41,7 @@ internal static class ViewExtensions
         CustomOrderedDictionary<ColumnBase> viewcols = new();
         foreach (var col in insert_cols)
         {
-            if (col.ColumnMetadata.HasFlag(ColumnFlags.PK) && col.Name != view.BrowsingKeyParm.Column.Name) continue;
+            if (col.ColumnMetadata.HasFlag(ColumnFlags.PK) && col.Name != view.BrowsingKeyParm?.Column.Name) continue;
             viewcols.Add(col.Name, col);
         }
 
