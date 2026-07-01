@@ -162,14 +162,13 @@ public class Column<T> : ColumnBase
         }
     }
 
-    public static Column<string> EmbedStatus(string status_id, string value = default!, bool api_readonly = false)
+    public static Column<string> EmbedStatus(string status_id, string value = default!, ColumnFlags column_flags = ColumnFlags.Insert | ColumnFlags.Update | ColumnFlags.Fake, bool api_readonly = false)
     {
         if (typeof(T) != typeof(string))
         {
             throw new ArgumentException($"Invalid type {typeof(T)}. Only string, is allowed.");
         }
 
-        ColumnFlags column_flags = ColumnFlags.Insert | ColumnFlags.Update | ColumnFlags.Fake;
         if (api_readonly) column_flags |= ColumnFlags.APIReadOnly;
 
         return new Column<string>("", value: value, sql_type: SqlDbType.Char, size: 20, column_flags: column_flags) { RelatedStatusID = status_id };

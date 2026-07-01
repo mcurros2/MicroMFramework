@@ -19,7 +19,7 @@ export interface LookupSelectOptions {
     entity: Entity<EntityDefinition>,
     lookupDefName: string,
     enableEdit?: boolean,
-    selectProps?: CustomSelectProps,
+    selectProps?: Omit<CustomSelectProps, 'autoFocus'>,
     editIcon?: React.ReactNode,
     editIconVariant?: ActionIconVariant,
     maxItems?: number,
@@ -32,6 +32,7 @@ export interface LookupSelectOptions {
     breadCrumbs?: ReactNode,
     maxWidth?: keyof typeof MicroMWidthSizes,
     minWidth?: keyof typeof MicroMWidthSizes,
+    autoFocus?: 'autoFocusOnAdd' | 'autoFocusOnEdit' | boolean,
 }
 
 export const LookupSelectDefaultProps: Partial<LookupSelectOptions> = {
@@ -58,7 +59,7 @@ export const LookupSelect = forwardRef<HTMLInputElement, LookupSelectOptions>(fu
         entityForm, entity, lookupDefName, enableEdit,
         editIcon, editIconVariant, selectProps, maxItems,
         requiredLabel, editLabel, includeKeyInDescription,
-        withinPortal, zIndex, breadCrumbs, maxWidth, minWidth
+        withinPortal, zIndex, breadCrumbs, maxWidth, minWidth, autoFocus
     } = useComponentDefaultProps('LookupSelect', LookupSelectDefaultProps, props);
 
     const theme = useMantineTheme();
@@ -75,21 +76,30 @@ export const LookupSelect = forwardRef<HTMLInputElement, LookupSelectOptions>(fu
 
     const [showDescription,] = entityForm.showDescriptionState;
 
+    const add_autofocus = formMode === 'add' ? true : undefined;
+    const edit_autofocus = formStatus?.loading === false && formMode !== 'add' ? true : undefined;
+
+    const readonly_condition = selectProps?.readOnly === undefined ? (entityForm.formMode !== 'add' && column.hasFlag(EntityColumnFlags.pk)) : selectProps.readOnly;
+    const autofocus_condition = autoFocus === 'autoFocusOnAdd' ? add_autofocus : autoFocus === 'autoFocusOnEdit' ? edit_autofocus : autoFocus;
+
     const resolvedSelectProps: CustomSelectProps = {
         ...(selectProps ?? {}),
+        readOnly: readonly_condition,
         miw: selectProps?.miw ?? (minWidth !== 'auto' && minWidth !== undefined) ? MicroMWidthSizes[minWidth!] : undefined,
         maw: selectProps?.maw ?? (maxWidth !== 'auto' && maxWidth !== undefined) ? MicroMWidthSizes[maxWidth!] : undefined,
         label: selectProps?.label ?? column.prompt,
+        autoFocus: autofocus_condition,
         description: showDescription ? (selectProps?.description ?? column.description) : ''
     };
 
     useFieldConfiguration({ entityForm, column, required: resolvedSelectProps?.required, requiredMessage: requiredLabel });
-    
+
     const readoOnlyResult = resolvedSelectProps?.readOnly || entityForm.formMode === 'view' || lookupSelectAPI.status.loading || formStatus?.loading || (column.hasFlag(EntityColumnFlags.pk) && entityForm.formMode !== 'add') ? true : false;
 
     return (
         <Select
             {...resolvedSelectProps}
+            data-autofocus={autofocus_condition}
             withAsterisk={resolvedSelectProps.withAsterisk ?? (!resolvedSelectProps.readOnly && !(entityForm.formMode === 'view') && (resolvedSelectProps.required ?? !column.hasFlag(EntityColumnFlags.nullable)))}
             withinPortal={withinPortal}
             zIndex={zIndex}
