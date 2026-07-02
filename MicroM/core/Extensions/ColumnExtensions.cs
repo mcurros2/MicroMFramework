@@ -12,12 +12,13 @@ namespace MicroM.Extensions;
 
 public static class ColumnExtensions
 {
-    public static CustomOrderedDictionary<ColumnBase> GetWithFlags(this IReadonlyOrderedDictionary<ColumnBase> cols, ColumnFlags flags, ColumnFlags exclude_flags = ColumnFlags.Fake, params string[] exclude_names)
+    public static CustomOrderedDictionary<ColumnBase> GetWithFlags(this IReadonlyOrderedDictionary<ColumnBase> cols, ColumnFlags flags, ColumnFlags exclude_flags = ColumnFlags.Fake, bool exclude_computed = true, params string[] exclude_names)
     {
         var ret = new CustomOrderedDictionary<ColumnBase>();
         foreach (ColumnBase col in cols.Values)
         {
             if (col.Name.IsIn(exclude_names)) continue;
+            if (exclude_computed && !string.IsNullOrEmpty(col.ComputedColumnExpression)) continue;
             if (col.ColumnMetadata.HasAnyFlag(exclude_flags) && exclude_flags != ColumnFlags.None) continue;
             if (col.ColumnMetadata.HasAnyFlag(flags) || flags == ColumnFlags.All) ret.Add(col.Name, col);
         }

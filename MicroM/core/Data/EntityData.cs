@@ -149,7 +149,7 @@ public class EntityData(IEntityClient ec, EntityDefinition def, IMicroMEncryptio
 
         if (result.HasData())
         {
-            var cols = def.Columns.GetWithFlags(ColumnFlags.All, ColumnFlags.None, [nameof(DefaultColumns.webusr)]);
+            var cols = def.Columns.GetWithFlags(ColumnFlags.All, ColumnFlags.None, exclude_names: [nameof(DefaultColumns.webusr)]);
             if (result![0].Header.Length != cols.Count)
             {
                 string proc_name = QualifiedProcName($"{def.Mneo}_get");

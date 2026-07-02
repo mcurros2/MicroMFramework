@@ -25,7 +25,7 @@ internal static class GetExtensions
             CATEGORIES_JOIN = categories_join,
             JSON_PARMS_DECLARATION = json_parms_declaration,
             JSON_CATEGORIES_GET = json_categories_get,
-            GET_VALUES = entity.Def.Columns.GetWithFlags(ColumnFlags.All, ColumnFlags.None, [nameof(DefaultColumns.webusr)]).AsProcColumns(separator: $"\n{TAB}{TAB}, ", alias: "a", cat_alias: "b"),
+            GET_VALUES = entity.Def.Columns.GetWithFlags(ColumnFlags.All, ColumnFlags.None, exclude_names: [nameof(DefaultColumns.webusr)]).AsProcColumns(separator: $"\n{TAB}{TAB}, ", alias: "a", cat_alias: "b"),
             WHERE_CLAUSE = entity.Def.Columns.GetWithFlags(ColumnFlags.PK, ColumnFlags.Fake).AsColumnValuePairs(alias: "a", union_string: $"\n{TAB}{TAB}and "),
         };
         return Templates.GET_TEMPLATE.ReplaceTemplate(parms).RemoveEmptyLines();

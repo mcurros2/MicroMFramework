@@ -15,7 +15,7 @@ internal static class ViewExtensions
         {
             return "-- No standard view defined";
         }
-        var likes = entity.Def.Columns.GetWithFlags(ColumnFlags.All, ColumnFlags.Fake, DefaultColumns.SystemNames);
+        var likes = entity.Def.Columns.GetWithFlags(ColumnFlags.All, ColumnFlags.Fake, exclude_names: DefaultColumns.SystemNames);
 
         // MMC: parameters for the proc should contain the PKs used to filter results
         var view = entity.Def.Views[$"{entity.Def.Mneo}_brwStandard"];

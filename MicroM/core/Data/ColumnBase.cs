@@ -87,6 +87,8 @@ public abstract class ColumnBase
 
     public string? OverrideWith { get; init; }
 
+    public string? ComputedColumnExpression { get; init; }
+
     public ColumnBase(
         Type system_type
         , string name
@@ -102,6 +104,8 @@ public abstract class ColumnBase
         , bool encrypted = false
         , bool isArray = false
         , string? override_with = null
+        , string? computed_expression = null
+        , bool persisted = false
         )
     {
         if (system_type == null && sql_type == null && value == null)
@@ -122,8 +126,10 @@ public abstract class ColumnBase
 
         nullable ??= false;
 
+        bool resolved_persisted = !string.IsNullOrEmpty(computed_expression) ? persisted : false;
+
         // MMC: this is needed first before setting the values
-        SQLMetadata = new SQLServerMetadata(sql_type.Value, size, precision, scale, output, (bool)nullable, encrypted, isArray);
+        SQLMetadata = new SQLServerMetadata(sql_type.Value, size, precision, scale, output, (bool)nullable, encrypted, isArray, resolved_persisted);
 
         Name = name;
         ValueObject = value;
@@ -133,6 +139,9 @@ public abstract class ColumnBase
 
         RelatedCategoryID = related_category_id;
         OverrideWith = override_with;
+
+        ComputedColumnExpression = computed_expression;
+
     }
 
 
@@ -151,6 +160,8 @@ public abstract class ColumnBase
               , col.SQLMetadata.Encrypted
               , col.SQLMetadata.IsArray
               , col.OverrideWith
+              , col.ComputedColumnExpression
+              , col.SQLMetadata.Persisted
               )
 
     {

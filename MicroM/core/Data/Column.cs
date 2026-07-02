@@ -8,19 +8,6 @@ public class Column<T> : ColumnBase
     /// <summary>
     /// Creates a column with the specified name, value, and type.
     /// </summary>
-    /// <param name="name">destination_name is usually not specified and obtained through reflection</param>
-    /// <param name="value"></param>
-    /// <param name="sql_type">The SQL Type </param>
-    /// <param name="size"></param>
-    /// <param name="precision">The total number of digits</param>
-    /// <param name="scale">The decimal digits</param>
-    /// <param name="output"></param>
-    /// <param name="column_flags"></param>
-    /// <param name="nullable"></param>
-    /// <param name="fake"></param>
-    /// <param name="encrypted"></param>
-    /// <param name="isArray"></param>
-    /// <param name="override_with"></param>
     public Column(
         string name = ""
         , T value = default!
@@ -35,8 +22,11 @@ public class Column<T> : ColumnBase
         , bool encrypted = false
         , bool isArray = false
         , string? override_with = null
+        , string? computed_expression = null
+        , bool persisted = false
         )
-        : base(typeof(T), name, value, sql_type, size, precision, scale, output, column_flags, nullable, related_category_id: default, encrypted, isArray, override_with)
+        : base(typeof(T), name, value, sql_type, size, precision, scale, output, column_flags, nullable, related_category_id: default, encrypted, isArray, override_with,
+            computed_expression, persisted)
     {
         if (fake) ColumnMetadata |= ColumnFlags.Fake;
     }
@@ -131,6 +121,12 @@ public class Column<T> : ColumnBase
         ColumnFlags flags = column_flags;
         if (fake) flags |= ColumnFlags.Fake;
         return new Column<Stream>(name, value: value ?? Stream.Null, sql_type: SqlDbType.VarBinary, size: 0, column_flags: flags, nullable: nullable, override_with: override_with);
+    }
+
+    public static Column<string> Computed(string expression, bool persisted = false, bool? nullable = null, ColumnFlags column_flags = ColumnFlags.None, string name = "")
+    {
+        ColumnFlags flags = column_flags;
+        return new Column<string>(name, value: default!, sql_type: SqlDbType.VarChar, size: 0, column_flags: flags, computed_expression: expression, nullable: nullable, persisted: persisted);
     }
 
     // MMC: Decide about datetime offset, datetime2, etc.

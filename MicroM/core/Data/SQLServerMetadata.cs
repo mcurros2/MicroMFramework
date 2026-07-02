@@ -13,9 +13,10 @@ public sealed class SQLServerMetadata
     public readonly bool Nullable;
     public readonly bool Encrypted;
     public readonly bool IsArray;
+    public readonly bool Persisted;
 
     public SQLServerMetadata(SqlDbType sql_type, int size = 0, byte precision = 0, byte scale = 0,
-        bool output = false, bool nullable = false, bool encrypted = false, bool isArray = false)
+        bool output = false, bool nullable = false, bool encrypted = false, bool isArray = false, bool persisted = false)
     {
         if (sql_type.IsIn(SqlDbType.Char, SqlDbType.NChar) && size == 0)
             throw new ArgumentOutOfRangeException(nameof(size), size, $"You must specify a size greater than 0 for {sql_type}");
@@ -28,6 +29,7 @@ public sealed class SQLServerMetadata
         Nullable = nullable;
         Encrypted = encrypted;
         IsArray = isArray;
+        Persisted = persisted;
     }
 
 }

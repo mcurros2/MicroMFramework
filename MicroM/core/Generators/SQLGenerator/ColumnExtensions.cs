@@ -56,6 +56,10 @@ internal static class ColumnExtensions
     internal static string AsSQLTypeString<T>(this T col, bool include_nullable = true) where T : ColumnBase
     {
         SQLServerMetadata m = col.SQLMetadata;
+        if (!string.IsNullOrEmpty(col.ComputedColumnExpression))
+        {
+            return $" AS ({col.ComputedColumnExpression}){(m.Persisted ? " PERSISTED" : "")}{(include_nullable ? m.Nullable ? "" : " NOT NULL" : "")}";
+        }
         if (m.SQLType.IsIn(SqlDbType.NChar, SqlDbType.Char, SqlDbType.NVarChar, SqlDbType.VarChar, SqlDbType.Binary, SqlDbType.VarBinary))
         {
             return $"{m.SQLType}({(m.Size == 0 ? "max" : m.Size)}){(include_nullable ? m.Nullable ? "" : " NOT NULL" : "")}";
