@@ -17,6 +17,30 @@ public sealed class AssemblyShadowCopyService : IAssemblyShadowCopyService
         _storageRoot = options.Value.EntitiesDLLStoragePath ?? ConfigurationDefaults.EntitiesDLLStoragePath;
     }
 
+    private static void CopyFile(string sourcePath, string destPath, int maxRetries = 5, int millisecondsDelay = 200)
+    {
+        var retryCount = 0;
+        var delay = TimeSpan.FromMilliseconds(millisecondsDelay);
+        while (retryCount < maxRetries)
+        {
+            try
+            {
+                File.Copy(sourcePath, destPath, overwrite: true);
+                break;
+            }
+            catch
+            {
+                retryCount++;
+                if (retryCount >= maxRetries)
+                {
+                    throw;
+                }
+                Thread.Sleep(delay);
+                delay *= 2;
+            }
+        }
+    }
+
     public Task<AssemblyShadowCopyGeneration> CopyForReloadAsync(IReadOnlyCollection<AssemblyCopyRequest> assemblies, CancellationToken ct)
     {
         var generationId = $"{DateTime.UtcNow:yyyyMMddHHmmssfff}_{Guid.NewGuid():N}";
@@ -38,7 +62,8 @@ public sealed class AssemblyShadowCopyService : IAssemblyShadowCopyService
                 Directory.CreateDirectory(destFolder);
 
                 var destPath = Path.Combine(destFolder, Path.GetFileName(sourcePath));
-                File.Copy(sourcePath, destPath, overwrite: true);
+
+                CopyFile(sourcePath, destPath);
 
                 // copy test data if exists. Copy the complete folder and subfolders in ConfigurationDefaults.TestDataRootFolderName
                 var testDataFolder = Path.Combine(sourceFolder, ConfigurationDefaults.TestDataRootFolderName);
@@ -52,7 +77,7 @@ public sealed class AssemblyShadowCopyService : IAssemblyShadowCopyService
                         var destFileDir = Path.Combine(destTestDataFolder, relativePath);
                         Directory.CreateDirectory(destFileDir);
                         var destFile = Path.Combine(destFileDir, Path.GetFileName(file));
-                        File.Copy(file, destFile, overwrite: true);
+                        CopyFile(file, destFile);
                     }
                 }
 
