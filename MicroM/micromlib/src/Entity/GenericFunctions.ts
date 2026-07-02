@@ -20,7 +20,6 @@ export function createKeysArray<T>(): Array<keyof T> {
 }
 
 export function nameof<T>(
-    _type: new (...args: any[]) => T,
     selector: (x: T) => any
 ): string {
     const path: PropertyKey[] = [];

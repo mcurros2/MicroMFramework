@@ -15,7 +15,7 @@ export function DeveloperToolsPanel({ client, ...rest }: DeveloperToolsPanelProp
         <DataGrid
             {...rest}
             formMode="view"
-            viewName={nameof(MicromEntitiesTypesDef, v => v.views.mty_brwStandard)}
+            viewName={nameof<MicromEntitiesTypesDef>(v => v.views.mty_brwStandard)}
             entity={entity.current}
             gridHeight="flex-grow"
         />
