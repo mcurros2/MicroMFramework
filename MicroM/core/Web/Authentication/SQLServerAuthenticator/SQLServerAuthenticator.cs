@@ -11,7 +11,6 @@ using System.Collections.Concurrent;
 
 namespace MicroM.Web.Authentication;
 
-
 public class SQLServerAuthenticator : IAuthenticator
 {
     private readonly ILogger<SQLServerAuthenticator> _log;
@@ -202,5 +201,10 @@ public class SQLServerAuthenticator : IAuthenticator
     public Task<ExternalSignInResult> HandleExternalSignIn(ApplicationOption app, ExternalIdentity identity, string deviceId, CancellationToken ct)
     {
         throw new NotImplementedException();
+    }
+
+    public Task<AuthenticatorResult> VerifyTwoFactorCode(ApplicationOption app_config, string challengeId, string code, CancellationToken ct)
+    {
+        throw new NotImplementedException("SQLServerAuthenticator does not support two-factor authentication.");
     }
 }

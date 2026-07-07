@@ -1,7 +1,7 @@
 import { Modal, OverlayProps, TransitionProps, useComponentDefaultProps } from "@mantine/core";
 import { useDisclosure, useMediaQuery } from "@mantine/hooks";
 import { useEffect } from "react";
-import { MicroMClient, MicroMClientClaimTypes, MicroMToken, OperationStatus } from "../../client";
+import { MicroMClient, MicroMClientClaimTypes, MicroMToken, OperationStatus, TwoFactorLoginResult } from "../../client";
 import { Login } from "./Login";
 
 export interface LoginModalFormProps {
@@ -31,9 +31,11 @@ export function LoginModalForm(props: LoginModalFormProps) {
     } = useComponentDefaultProps('LoginModalForm', LoginModalFormDefaultProps, props);
     const [opened, { open, close }] = useDisclosure(false);
 
-    const statusCompletedHandler = (status: OperationStatus<MicroMToken>) => {
+    const statusCompletedHandler = (status: OperationStatus<MicroMToken | TwoFactorLoginResult>) => {
         if (!status.error && !status.loading) {
-            onLoggedIn(status.data?.claims);
+            if (status.data instanceof MicroMToken) {
+                onLoggedIn(status.data?.claims);
+            }
             close();
         }
     }

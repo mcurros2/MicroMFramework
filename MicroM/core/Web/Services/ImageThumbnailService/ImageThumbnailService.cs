@@ -105,7 +105,8 @@ public class ImageThumbnailService : IThumbnailService
                 decodedBitmap.Width,
                 decodedBitmap.Height);
 
-            canvas.DrawBitmap(decodedBitmap, 0, 0);
+            var samplingOptions = new SKSamplingOptions(SKFilterMode.Linear);
+            canvas.DrawBitmap(decodedBitmap, 0, 0, samplingOptions);
         }
 
         using var thumbnailImage = SKImage.FromBitmap(finalBitmap) ?? throw new InvalidOperationException("Failed to create thumbnail image.");

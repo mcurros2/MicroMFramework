@@ -285,5 +285,9 @@ public class ActiveDirectoryAuthenticator(
         throw new NotImplementedException();
     }
 
+    public Task<AuthenticatorResult> VerifyTwoFactorCode(ApplicationOption app_config, string challengeId, string code, CancellationToken ct)
+    {
+        throw new NotImplementedException("ActiveDirectoryAuthenticator does not support two-factor authentication.");
+    }
 
 }

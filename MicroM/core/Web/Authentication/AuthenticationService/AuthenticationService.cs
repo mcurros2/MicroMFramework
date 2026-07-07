@@ -16,12 +16,70 @@ using System.Security.Claims;
 namespace MicroM.Web.Services;
 
 public class AuthenticationService(
-            ILogger<AuthenticationService> log,
-            IMicroMAppConfiguration app_config,
-            IDeviceIdService deviceid_service,
-            IMicroMEncryption encryptor
+    ILogger<AuthenticationService> log, IMicroMAppConfiguration app_config, IDeviceIdService deviceid_service, IMicroMEncryption encryptor
     ) : IAuthenticationService
 {
+    private static LoginResult? CreateLoginResult(AuthenticatorResult? authenticatorResult, string? oidc_session_id = null)
+    {
+        if (authenticatorResult?.LoginData == null)
+        {
+            return null;
+        }
+
+        return new()
+        {
+            email = authenticatorResult.LoginData.email,
+            refresh_token = authenticatorResult.LoginData.refresh_token,
+            username = authenticatorResult.LoginData.username,
+            client_claims = authenticatorResult.ClientClaims,
+            authenticator_result = authenticatorResult,
+            oidc_session_id = oidc_session_id,
+            requires_two_factor = authenticatorResult.RequiresTwoFactor,
+            two_factor_challenge_id = authenticatorResult.TwoFactorChallengeId,
+            two_factor_provider = authenticatorResult.TwoFactorProvider
+        };
+    }
+
+    private async Task<TokenResult?> CreateTokenResult(ApplicationOption app, WebAPIJsonWebTokenHandler jwt_handler, AuthenticatorResult authenticatorResult, Dictionary<string, object> server_claims, CancellationToken ct)
+    {
+        if (authenticatorResult.LoginData == null)
+        {
+            return null;
+        }
+
+        if (app.IdentityProviderRoleType == nameof(IdentityProviderRole.IDPServer))
+        {
+            using var dbc = app.CreateDatabaseClient(log, deviceid_service, null);
+            try
+            {
+                await dbc.Connect(ct);
+
+                var device_id = authenticatorResult.ServerClaims[MicroMServerClaimTypes.MicroMUserDeviceID].ToString() ?? "";
+
+                if (string.IsNullOrEmpty(device_id))
+                {
+                    log.LogWarning("LOGIN: APP_ID {app_id} User: {username} empty device_id", app.ApplicationID, authenticatorResult.LoginData.username);
+                }
+
+                var sid = OauthTokenServiceProvider.EnsureSID();
+
+                await ApplicationOidcActiveSessions.CreateOrUpdateIdPSession(app, dbc, app.ApplicationID, authenticatorResult.LoginData.username, authenticatorResult.LoginData.user_id, device_id, app.OIDCIdPSubjectPepper!, sid, encryptor, ct);
+
+                authenticatorResult.ServerClaims[MicroMServerClaimTypes.MicroMOidcSessionID] = sid;
+            }
+            finally
+            {
+                await dbc.Disconnect();
+            }
+        }
+
+        var merged_claims = authenticatorResult.ServerClaims.Concat(server_claims)
+                      .GroupBy(i => i.Key)
+                      .ToDictionary(g => g.Key, g => g.First().Value);
+
+        return jwt_handler.GenerateJwtTokenWEBApi(merged_claims, app);
+    }
+
     public async Task<(LoginResult? user_data, TokenResult? token_result)> HandleLogin(IAuthenticationProvider auth, WebAPIJsonWebTokenHandler jwt_handler, string app_id, UserLogin user_login, Dictionary<string, object> server_claims, CancellationToken ct)
     {
         if (string.IsNullOrEmpty(user_login.Username)) return (null, null);
@@ -41,7 +99,6 @@ public class AuthenticationService(
 
         TokenResult? token_result = null;
         AuthenticatorResult? authenticatorResult = null;
-        string? oidc_session_id = null;
 
         var authenticator = auth.GetAuthenticator(app);
         if (authenticator != null)
@@ -58,41 +115,13 @@ public class AuthenticationService(
             }
             else
             {
-                if (authenticatorResult.PasswordVerificationResult.IsIn(PasswordVerificationResult.Success, PasswordVerificationResult.SuccessRehashNeeded) && authenticatorResult.LoginData != null)
+                if (authenticatorResult.RequiresTwoFactor)
                 {
-                    if (app.IdentityProviderRoleType == nameof(IdentityProviderRole.IDPServer))
-                    {
-                        using var dbc = app.CreateDatabaseClient(log, deviceid_service, null);
-                        try
-                        {
-                            await dbc.Connect(ct);
-
-                            var device_id = authenticatorResult.ServerClaims[MicroMServerClaimTypes.MicroMUserDeviceID].ToString() ?? "";
-
-                            if (string.IsNullOrEmpty(device_id))
-                            {
-                                log.LogWarning("LOGIN: APP_ID {app_id} User: {username} empty device_id", app_id, authenticatorResult.LoginData.username);
-                            }
-
-                            var sid = OauthTokenServiceProvider.EnsureSID();
-
-                            var sub_hash = await ApplicationOidcActiveSessions.CreateOrUpdateIdPSession(app, dbc, app.ApplicationID, authenticatorResult.LoginData.username, authenticatorResult.LoginData.user_id, device_id, app.OIDCIdPSubjectPepper!, sid, encryptor, ct);
-
-                            authenticatorResult.ServerClaims[MicroMServerClaimTypes.MicroMOidcSessionID] = sid;
-
-                        }
-                        finally
-                        {
-                            await dbc.Disconnect();
-                        }
-                    }
-
-                    var merged_claims = authenticatorResult.ServerClaims.Concat(server_claims)
-                                  .GroupBy(i => i.Key)
-                                  .ToDictionary(g => g.Key, g => g.First().Value);
-
-                    token_result = jwt_handler.GenerateJwtTokenWEBApi(merged_claims, app);
-
+                    log.LogInformation("LOGIN_2FA_REQUIRED: APP_ID {app_id} User: {username}", app_id, user_login.Username);
+                }
+                else if (authenticatorResult.PasswordVerificationResult.IsIn(PasswordVerificationResult.Success, PasswordVerificationResult.SuccessRehashNeeded) && authenticatorResult.LoginData != null)
+                {
+                    token_result = await CreateTokenResult(app, jwt_handler, authenticatorResult, server_claims, ct);
                 }
             }
         }
@@ -101,22 +130,47 @@ public class AuthenticationService(
             log.LogError("LOGIN: Invalid authenticator specified: {authenticator} APP_ID {app_id}", app.AuthenticationType, app_id);
         }
 
-        LoginResult? result = null;
-        if (authenticatorResult?.LoginData != null)
-        {
-            result = new()
-            {
-                email = authenticatorResult.LoginData.email,
-                refresh_token = authenticatorResult.LoginData.refresh_token,
-                username = authenticatorResult.LoginData.username,
-                client_claims = authenticatorResult.ClientClaims,
-                authenticator_result = authenticatorResult,
-                oidc_session_id = oidc_session_id
-            };
+        return (CreateLoginResult(authenticatorResult, oidc_session_id: null), token_result);
+    }
 
+    public async Task<(LoginResult? user_data, TokenResult? token_result)> HandleTwoFactorLogin(IAuthenticationProvider auth, WebAPIJsonWebTokenHandler jwt_handler, string app_id, TwoFactorLoginRequest request, Dictionary<string, object> server_claims, CancellationToken ct)
+    {
+        ApplicationOption? app = app_config.GetAppConfiguration(app_id);
+        if (app == null)
+        {
+            return (null, null);
         }
 
-        return (result, token_result);
+        if (app.IdentityProviderRoleType == nameof(IdentityProviderRole.IDPServer) && app.OIDCIdPSubjectPepper.IsNullOrEmpty())
+        {
+            log.LogError("LOGIN_2FA: APP_ID {app_id} OIDCIdPsubjectPepper is not configured, cannot create OIDC session", app_id);
+            return (null, null);
+        }
+
+        var authenticator = auth.GetAuthenticator(app);
+        if (authenticator == null)
+        {
+            log.LogError("LOGIN_2FA: Invalid authenticator specified: {authenticator} APP_ID {app_id}", app.AuthenticationType, app_id);
+            return (null, null);
+        }
+
+        var authenticatorResult = await authenticator.VerifyTwoFactorCode(app, request.ChallengeId, request.Code, ct);
+        TokenResult? token_result = null;
+
+        if (authenticatorResult.AccountDisabled)
+        {
+            log.LogWarning("ACCOUNT_DISABLED: APP_ID {app_id} Challenge: {challenge_id}", app_id, request.ChallengeId);
+        }
+        else if (authenticatorResult.AccountLocked)
+        {
+            log.LogWarning("ACCOUNT_LOCKOUT: APP_ID {app_id} Challenge: {challenge_id} Locked minutes remaining: {lockout_mins}", app_id, request.ChallengeId, authenticatorResult.LoginData?.locked_minutes_remaining);
+        }
+        else if (authenticatorResult.PasswordVerificationResult.IsIn(PasswordVerificationResult.Success, PasswordVerificationResult.SuccessRehashNeeded) && authenticatorResult.LoginData != null)
+        {
+            token_result = await CreateTokenResult(app, jwt_handler, authenticatorResult, server_claims, ct);
+        }
+
+        return (CreateLoginResult(authenticatorResult), token_result);
     }
 
     public async Task HandleLogoff(IAuthenticationProvider auth, string app_id, string user_name, string user_id, CancellationToken ct)

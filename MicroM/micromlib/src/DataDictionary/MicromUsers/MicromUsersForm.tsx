@@ -1,5 +1,5 @@
 import { Group, Stack, useComponentDefaultProps } from "@mantine/core";
-import { CheckboxField, EntityForm, FormOptions, LookupSelect, NotifyBitField, NotifyBitFieldDefaultProps, PasswordField, RingProgressField, TextField, useEntityForm } from "../../UI";
+import { CheckboxField, DateInputField, EntityForm, FormOptions, LookupSelect, NotifyBitField, NotifyBitFieldDefaultProps, PasswordField, RingProgressField, TextField, useEntityForm } from "../../UI";
 import { MicromUsers } from "./MicromUsers";
 
 
@@ -13,7 +13,10 @@ export interface MicromUsersFormProps extends FormOptions<MicromUsers> {
     logonAttemptsStatusDescription?: string,
     lockedTitleLabel?: string,
     minutesLabel?: string,
-    willUnlockInNextLogonLabel?: string
+    willUnlockInNextLogonLabel?: string,
+    authenticatorEnabledLabel?: string,
+    authenticatorDisabledLabel?: string,
+    authenticatorStatusTitle?: string,
 }
 
 export const MicromUsersFormDefaultProps: Partial<MicromUsersFormProps> = {
@@ -27,14 +30,17 @@ export const MicromUsersFormDefaultProps: Partial<MicromUsersFormProps> = {
     logonAttemptsStatusTitle: 'Bad login attemps',
     logonAttemptsStatusDescription: 'The account registers failed login attempts',
     minutesLabel: 'minutes',
-    willUnlockInNextLogonLabel: 'Account automatic lock period has finished. It will be unlocked in the next successful logon.'
+    willUnlockInNextLogonLabel: 'Account automatic lock period has finished. It will be unlocked in the next successful logon.',
+    authenticatorEnabledLabel: 'Authenticator app is enabled',
+    authenticatorDisabledLabel: 'Authenticator app is not enabled',
+    authenticatorStatusTitle: 'Two-factor authentication'
 }
 
 export function MicromUsersForm(props: MicromUsersFormProps) {
     const {
         entity, initialFormMode, getDataOnInit, onSaved, onCancel, disabledFalseLabel, disabledTrueLabel,
         lockedRemainingLabel, userDisabledLabel, userEnabledLabel, logonAttemptsStatusDescription, logonAttemptsStatusTitle, lockedTitleLabel,
-        minutesLabel, willUnlockInNextLogonLabel
+        minutesLabel, willUnlockInNextLogonLabel, authenticatorEnabledLabel, authenticatorDisabledLabel, authenticatorStatusTitle
     } = useComponentDefaultProps('MicromUsersForm', MicromUsersFormDefaultProps, props);
 
     const entityForm = useEntityForm(
@@ -79,6 +85,17 @@ export function MicromUsersForm(props: MicromUsersFormProps) {
                     <PasswordField entityForm={entityForm} column={entity.def.columns.vc_password} />
                 }
                 <CheckboxField entityForm={entityForm} column={entity.def.columns.bt_disabled} required={false} />
+                {formMode !== 'add' &&
+                    <CheckboxField entityForm={entityForm} column={entity.def.columns.bt_totp_enabled} required={false} />
+                }
+                {formMode !== 'add' &&
+                    <DateInputField
+                        entityForm={entityForm}
+                        column={entity.def.columns.dt_totp_confirmed}
+                        readOnly
+                        clearable={false}
+                    />
+                }
                 <Group>
                     {(!entity.def.columns.bt_islocked.value || entity.def.columns.bt_disabled.value) &&
                         <NotifyBitField
@@ -91,6 +108,15 @@ export function MicromUsersForm(props: MicromUsersFormProps) {
                             trueIcon={NotifyBitFieldDefaultProps.falseIcon}
                             falseColor={NotifyBitFieldDefaultProps.trueColor}
                             falseIcon={NotifyBitFieldDefaultProps.trueIcon}
+                        />
+                    }
+                    {formMode !== 'add' &&
+                        <NotifyBitField
+                            column={entity.def.columns.bt_totp_enabled}
+                            title={authenticatorStatusTitle}
+                            trueMessage={authenticatorEnabledLabel}
+                            falseMessage={authenticatorDisabledLabel}
+                            withBorder
                         />
                     }
                     {entity.def.columns.i_badlogonattempts.value > 0 && !entity.def.columns.bt_islocked.value && entity.def.columns.i_locked_minutes_remaining.value === 0 &&

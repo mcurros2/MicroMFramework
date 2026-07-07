@@ -80,6 +80,11 @@ public class AuthenticationController(IOptions<MicroMOptions> options) : Control
                 return Ok(result);
             }
 
+            if (login_result?.requires_two_factor == true)
+            {
+                return Ok(login_result);
+            }
+
         }
         catch (Exception ex) when (ex is TaskCanceledException || ex is OperationCanceledException)
         {
@@ -87,6 +92,136 @@ public class AuthenticationController(IOptions<MicroMOptions> options) : Control
         }
 
         return Unauthorized();
+    }
+
+
+    [Authorize(policy: nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy))]
+    [HttpPost("{app_id}/auth/totp/setup")]
+    [EnableRateLimiting(MicroMServicesConstants.RateLimitingAuthLoginPolicy)]
+    public async Task<ActionResult> StartTotpSetup(
+        [FromServices] IAuthenticationProvider auth,
+        [FromServices] ITotpService totpService,
+        string app_id,
+        CancellationToken ct)
+    {
+        try
+        {
+            string user_name = HttpContext.User.FindFirstValue(MicroMServerClaimTypes.MicroMUsername) ?? "";
+            var result = await totpService.HandleStartTotpSetup(auth, app_id, user_name, HttpContext.User.Claims.ToClaimsDictionary(), ct);
+
+            return MapTotpServiceResult(result);
+        }
+        catch (Exception ex) when (ex is TaskCanceledException || ex is OperationCanceledException)
+        {
+            return new EmptyResult();
+        }
+    }
+
+
+    [Authorize(policy: nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy))]
+    [HttpPost("{app_id}/auth/totp/confirm")]
+    [EnableRateLimiting(MicroMServicesConstants.RateLimitingAuthLoginPolicy)]
+    public async Task<ActionResult> ConfirmTotpSetup(
+        [FromServices] IAuthenticationProvider auth,
+        [FromServices] ITotpService totpService,
+        string app_id,
+        [FromBody] TotpConfirmRequest request,
+        CancellationToken ct)
+    {
+        try
+        {
+            string user_name = HttpContext.User.FindFirstValue(MicroMServerClaimTypes.MicroMUsername) ?? "";
+            var result = await totpService.HandleConfirmTotpSetup(auth, app_id, user_name, request, HttpContext.User.Claims.ToClaimsDictionary(), ct);
+
+            return MapTotpServiceResult(result);
+        }
+        catch (Exception ex) when (ex is TaskCanceledException || ex is OperationCanceledException)
+        {
+            return new EmptyResult();
+        }
+    }
+
+
+    [Authorize(policy: nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy))]
+    [HttpPost("{app_id}/auth/totp/disable")]
+    [EnableRateLimiting(MicroMServicesConstants.RateLimitingAuthLogoffPolicy)]
+    public async Task<ActionResult> DisableTotp(
+        [FromServices] IAuthenticationProvider auth,
+        [FromServices] ITotpService totpService,
+        string app_id,
+        CancellationToken ct)
+    {
+        try
+        {
+            string user_name = HttpContext.User.FindFirstValue(MicroMServerClaimTypes.MicroMUsername) ?? "";
+            var result = await totpService.HandleDisableTotp(auth, app_id, user_name, HttpContext.User.Claims.ToClaimsDictionary(), ct);
+
+            if (result.Status == TotpServiceResultStatus.Success)
+            {
+                await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            }
+
+            return MapTotpServiceResult(result);
+        }
+        catch (Exception ex) when (ex is TaskCanceledException || ex is OperationCanceledException)
+        {
+            return new EmptyResult();
+        }
+    }
+
+
+    [AllowAnonymous]
+    [HttpPost("{app_id}/auth/login-2fa")]
+    [EnableRateLimiting(MicroMServicesConstants.RateLimitingAuthLoginPolicy)]
+    public async Task<ActionResult> VerifyTwoFactor(
+        [FromServices] Services.IAuthenticationService aus,
+        [FromServices] IAuthenticationProvider auth,
+        [FromServices] WebAPIJsonWebTokenHandler jwt_handler,
+        string app_id,
+        [FromBody] TwoFactorLoginRequest request,
+        CancellationToken ct)
+    {
+        try
+        {
+            var claims = new Dictionary<string, object>();
+            var (login_result, token_result) = await aus.HandleTwoFactorLogin(auth, jwt_handler, app_id, request, claims, ct);
+            if (login_result != null && token_result != null)
+            {
+                var result = await aus.SignInAsync(HttpContext, token_result, login_result.refresh_token ?? "");
+
+                result.Add(MicroMClientClaimTypes.username, login_result.username);
+                result.Add(MicroMClientClaimTypes.useremail, login_result.email ?? "");
+
+                foreach (var claim in login_result.client_claims)
+                {
+                    result.TryAdd(claim.Key, claim.Value);
+                }
+
+                return Ok(result);
+            }
+        }
+        catch (Exception ex) when (ex is TaskCanceledException || ex is OperationCanceledException)
+        {
+            return new EmptyResult();
+        }
+
+        return Unauthorized();
+    }
+
+    private ActionResult MapTotpServiceResult(TotpServiceResult result)
+    {
+        return result.Status switch
+        {
+            TotpServiceResultStatus.Success when result.SetupResponse != null => Ok(result.SetupResponse),
+            TotpServiceResultStatus.Success => Ok(),
+            TotpServiceResultStatus.AppNotFound => NotFound("Application not found"),
+            TotpServiceResultStatus.UnsupportedAuthenticator => BadRequest("TOTP is only supported for MicroM authentication."),
+            TotpServiceResultStatus.InvalidUser => Unauthorized(),
+            TotpServiceResultStatus.SetupNotStarted => BadRequest("TOTP setup has not been started."),
+            TotpServiceResultStatus.InvalidCode => Unauthorized(),
+            TotpServiceResultStatus.DatabaseFailure => BadRequest(result.DatabaseResult),
+            _ => BadRequest()
+        };
     }
 
 

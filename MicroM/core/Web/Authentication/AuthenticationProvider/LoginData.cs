@@ -16,4 +16,9 @@ public record LoginData
     public string? usertype_name { get; set; }
     // This will be a json string array of strings
     public string? user_groups { get; set; }
+
+    // TOTP/MFA support
+    public bool totp_enabled { get; set; } = false;
+    public string? totp_secret { get; set; }
+    public DateTime? totp_confirmed_utc { get; set; }
 }

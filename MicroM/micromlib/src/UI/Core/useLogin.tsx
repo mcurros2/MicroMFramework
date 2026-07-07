@@ -1,6 +1,6 @@
 import { Text, useComponentDefaultProps } from "@mantine/core";
 import { ModalSettings } from '@mantine/modals/lib/context';
-import { MicroMClient, MicroMToken, OperationStatus } from "../../client";
+import { MicroMClient, MicroMToken, OperationStatus, TwoFactorLoginResult } from "../../client";
 import { Login, useModal } from "../Core";
 
 export interface useLoginType {
@@ -22,7 +22,7 @@ export function useLogin(props: useLoginOptions) {
     const { client, modalProps, title, onClose } = useComponentDefaultProps('useLogin', UseLoginDefaultProps, props);
     const modals = useModal();
 
-    const statusCompletedHandler = async (status: OperationStatus<MicroMToken>) => {
+    const statusCompletedHandler = async (status: OperationStatus<MicroMToken | TwoFactorLoginResult>) => {
         if (!status.error && !status.loading) {
             await modals.close();
         }

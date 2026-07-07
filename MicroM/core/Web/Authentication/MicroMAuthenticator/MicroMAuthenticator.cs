@@ -18,7 +18,9 @@ public class MicroMAuthenticator(
     IHttpContextAccessor httpContextAccessor,
     IOptions<MicroMOptions> microm_config,
     IEmailService emailService,
-    IMicroMEncryption encryptor) : IAuthenticator
+    IMicroMEncryption encryptor,
+    ITwoFactorChallengeStore challengeStore,
+    ITotpService totpService) : IAuthenticator
 {
     private readonly ILogger<MicroMAuthenticator> _log = logger;
     private readonly IDeviceIdService _deviceIdService = deviceIdService;
@@ -26,6 +28,8 @@ public class MicroMAuthenticator(
     private readonly IOptions<MicroMOptions> _microm_config = microm_config;
     private readonly IEmailService _emailService = emailService;
     private readonly IMicroMEncryption _encryptor = encryptor;
+    private readonly ITwoFactorChallengeStore _challengeStore = challengeStore;
+    private readonly ITotpService _totpService = totpService;
 
     private string GetRefreshCookieName(ApplicationOption app_config)
     {
@@ -92,35 +96,56 @@ public class MicroMAuthenticator(
                     PasswordVerificationResult ret = UserPasswordHasher.VerifyPassword(user_login, login_data.pwhash, user_login.Password);
                     result.PasswordVerificationResult = ret;
 
-
-                    string? new_refresh_token = CryptClass.GenerateRandomBase64String();
-
-                    // MMC: take note that the refresh token will be invalidated (null) if there is a bad login attempt
-                    var attempt_result = await MicromUsers.UpdateLoginAttempt(
-                        app: app_config,
-                        login_data.user_id,
-                        device_id,
-                        result.PasswordVerificationResult.IsIn(PasswordVerificationResult.Success, PasswordVerificationResult.SuccessRehashNeeded) ? new_refresh_token : login_data.refresh_token,
-                        result.PasswordVerificationResult.IsIn(PasswordVerificationResult.Success, PasswordVerificationResult.SuccessRehashNeeded),
-                        app_config.AccountLockoutMinutes,
-                        app_config.JWTRefreshExpirationHours,
-                        app_config.MaxBadLogonAttempts,
-                        ipaddress ?? "",
-                        user_agent ?? "",
-                        ec,
-                        ct
-                    );
-
-                    if (result.PasswordVerificationResult.IsIn(PasswordVerificationResult.Success, PasswordVerificationResult.SuccessRehashNeeded))
+                    // Check if password is valid
+                    if (ret.IsIn(PasswordVerificationResult.Success, PasswordVerificationResult.SuccessRehashNeeded))
                     {
-                        // MMC: save the refresh cookie. Note that Update login attempt will return a new refresh token if needed, the same or null. Update login attempt will also clear any refresh token if needed.
-                        if (!string.IsNullOrEmpty(attempt_result.RefreshToken)) WriteRefreshTokenToCookie(app_config, attempt_result.RefreshToken);
+                        // If TOTP is enabled, set RequiresTwoFactor and do NOT finalize login yet
+                        if (login_data.totp_enabled)
+                        {
+                            result.RequiresTwoFactor = true;
+                            result.TwoFactorProvider = "Authenticator";
 
-                        // Get claims
-                        var (server_claims, client_claims) = await MicromUsers.GetClaims(app_config, user_login.Username, ec, ct);
+                            // Create a short-lived challenge ID
+                            string challengeId = _challengeStore.CreateChallenge(
+                                login_data.user_id,
+                                user_login.Username,
+                                device_id,
+                                app_config.ApplicationID,
+                                user_login.LocalDeviceID ?? ""
+                            );
 
-                        result.ClientClaims = client_claims;
-                        result.ServerClaims = server_claims;
+                            result.TwoFactorChallengeId = challengeId;
+
+                            // Password is correct but we need second factor - do not update login attempt yet
+                            // Set basic server claims for challenge tracking
+                            result.ServerClaims[MicroMServerClaimTypes.MicroMUser_id] = login_data.user_id;
+                            result.ServerClaims[MicroMServerClaimTypes.MicroMAPP_id] = app_config.ApplicationID;
+                            result.ServerClaims[MicroMServerClaimTypes.MicroMUsername] = user_login.Username;
+                            result.ServerClaims[MicroMServerClaimTypes.MicroMUserDeviceID] = device_id;
+                        }
+                        else
+                        {
+                            // No TOTP required - finalize login immediately
+                            await FinalizeSuccessfulLogin(app_config, user_login, login_data, device_id, ipaddress, user_agent, result, ec, ct);
+                        }
+                    }
+                    else
+                    {
+                        // Password failed - update login attempt with failure
+                        await MicromUsers.UpdateLoginAttempt(
+                            app: app_config,
+                            login_data.user_id,
+                            device_id,
+                            null, // no refresh token on failure
+                            false, // not successful
+                            app_config.AccountLockoutMinutes,
+                            app_config.JWTRefreshExpirationHours,
+                            app_config.MaxBadLogonAttempts,
+                            ipaddress ?? "",
+                            user_agent ?? "",
+                            ec,
+                            ct
+                        );
                     }
 
                     result.ServerClaims[MicroMServerClaimTypes.MicroMUser_id] = login_data.user_id;
@@ -143,6 +168,53 @@ public class MicroMAuthenticator(
         }
 
         return result;
+    }
+
+    /// <summary>
+    /// Finalizes a successful login after all authentication factors are satisfied.
+    /// Updates login attempt, issues refresh token, loads claims.
+    /// </summary>
+    private async Task FinalizeSuccessfulLogin(
+        ApplicationOption app_config,
+        UserLogin user_login,
+        LoginData login_data,
+        string device_id,
+        string? ipaddress,
+        string? user_agent,
+        AuthenticatorResult result,
+        DatabaseClient ec,
+        CancellationToken ct)
+    {
+        string? new_refresh_token = CryptClass.GenerateRandomBase64String();
+
+        // MMC: take note that the refresh token will be invalidated (null) if there is a bad login attempt
+        var attempt_result = await MicromUsers.UpdateLoginAttempt(
+            app: app_config,
+            login_data.user_id,
+            device_id,
+            new_refresh_token,
+            true, // successful
+            app_config.AccountLockoutMinutes,
+            app_config.JWTRefreshExpirationHours,
+            app_config.MaxBadLogonAttempts,
+            ipaddress ?? "",
+            user_agent ?? "",
+            ec,
+            ct
+        );
+
+        // MMC: save the refresh cookie. Note that Update login attempt will return a new refresh token if needed, the same or null. Update login attempt will also clear any refresh token if needed.
+        if (!string.IsNullOrEmpty(attempt_result.RefreshToken))
+        {
+            WriteRefreshTokenToCookie(app_config, attempt_result.RefreshToken);
+            login_data.refresh_token = attempt_result.RefreshToken;
+        }
+
+        // Get claims
+        var (server_claims, client_claims) = await MicromUsers.GetClaims(app_config, user_login.Username, ec, ct);
+
+        result.ClientClaims = client_claims;
+        result.ServerClaims = server_claims;
     }
 
     public async Task<RefreshTokenResult> AuthenticateRefresh(ApplicationOption app_config, string user_id, string refresh_token, string local_device_id, CancellationToken ct)
@@ -449,5 +521,107 @@ public class MicroMAuthenticator(
 
         return new ExternalSignInResult(serverClaims, clientClaims, device_id, refreshToken);
 
+    }
+
+    public async Task<AuthenticatorResult> VerifyTwoFactorCode(ApplicationOption app_config, string challengeId, string code, CancellationToken ct)
+    {
+        AuthenticatorResult result = new();
+
+        // Retrieve the challenge
+        var challenge = _challengeStore.GetChallenge(challengeId);
+        if (challenge == null)
+        {
+            _log.LogWarning("TOTP verification failed: challenge {ChallengeId} not found or expired", challengeId);
+            result.PasswordVerificationResult = PasswordVerificationResult.Failed;
+            return result;
+        }
+
+        // Validate the challenge hasn't expired
+        if (DateTime.UtcNow > challenge.ExpiresUtc)
+        {
+            _log.LogWarning("TOTP verification failed: challenge {ChallengeId} expired", challengeId);
+            _challengeStore.RemoveChallenge(challengeId);
+            result.PasswordVerificationResult = PasswordVerificationResult.Failed;
+            return result;
+        }
+
+        using DatabaseClient ec = app_config.CreateDatabaseClient(_log, _deviceIdService, null);
+
+        try
+        {
+            await ec.Connect(ct);
+
+            // Get fresh user data
+            LoginData? login_data = await MicromUsers.GetUserData(app_config, challenge.Username, null, challenge.DeviceId, ec, ct);
+
+            if (login_data == null)
+            {
+                _log.LogWarning("TOTP verification failed: user {Username} not found", challenge.Username);
+                _challengeStore.RemoveChallenge(challengeId);
+                result.PasswordVerificationResult = PasswordVerificationResult.Failed;
+                return result;
+            }
+
+            result.LoginData = login_data;
+
+            // Check account status
+            if (login_data.disabled)
+            {
+                _log.LogWarning("TOTP verification failed: user {Username} is disabled", challenge.Username);
+                _challengeStore.RemoveChallenge(challengeId);
+                result.AccountDisabled = true;
+                return result;
+            }
+
+            if (login_data.locked)
+            {
+                _log.LogWarning("TOTP verification failed: user {Username} is locked", challenge.Username);
+                _challengeStore.RemoveChallenge(challengeId);
+                result.AccountLocked = true;
+                return result;
+            }
+
+            // Verify TOTP code
+            if (string.IsNullOrEmpty(login_data.totp_secret))
+            {
+                _log.LogWarning("TOTP verification failed: user {Username} has no TOTP secret", challenge.Username);
+                _challengeStore.RemoveChallenge(challengeId);
+                result.PasswordVerificationResult = PasswordVerificationResult.Failed;
+                return result;
+            }
+
+            bool isValidCode = _totpService.VerifyCode(login_data.totp_secret, code);
+
+            if (!isValidCode)
+            {
+                _log.LogWarning("TOTP verification failed: invalid code for user {Username}", challenge.Username);
+                // Don't remove challenge yet - allow retry within the 5-minute window
+                result.PasswordVerificationResult = PasswordVerificationResult.Failed;
+                return result;
+            }
+
+            // TOTP is valid - finalize login
+            _log.LogInformation("TOTP verification succeeded for user {Username}", challenge.Username);
+            _challengeStore.RemoveChallenge(challengeId);
+
+            var (device_id, ipaddress, user_agent) = _deviceIdService.GetDeviceID(challenge.LocalDeviceId);
+
+            // Create a temporary UserLogin for the finalization
+            UserLogin temp_login = new()
+            {
+                Username = challenge.Username,
+                LocalDeviceID = challenge.LocalDeviceId
+            };
+
+            await FinalizeSuccessfulLogin(app_config, temp_login, login_data, device_id, ipaddress, user_agent, result, ec, ct);
+
+            result.PasswordVerificationResult = PasswordVerificationResult.Success;
+        }
+        finally
+        {
+            await ec.Disconnect();
+        }
+
+        return result;
     }
 }

@@ -83,6 +83,8 @@ public static class WebAPIBaseExtensions
 
     public static IServiceCollection AddMicroMAuthenticator(this IServiceCollection services)
     {
+        services.AddSingleton<ITwoFactorChallengeStore, TwoFactorChallengeStore>();
+        services.AddSingleton<ITotpService, TotpService>();
         services.AddSingleton<IAuthenticator, MicroMAuthenticator>();
         return services;
     }

@@ -172,4 +172,9 @@ public class SecretsAuthenticator(
     {
         throw new NotImplementedException();
     }
+
+    public Task<AuthenticatorResult> VerifyTwoFactorCode(ApplicationOption app_config, string challengeId, string code, CancellationToken ct)
+    {
+        throw new NotImplementedException("SecretsAuthenticator does not support two-factor authentication.");
+    }
 }

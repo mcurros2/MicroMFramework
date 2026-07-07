@@ -9,6 +9,9 @@
 		, @locked DateTime
 		, @last_login DateTime
 		, @last_refresh DateTime
+        , @totp_secret VarChar(2048)
+        , @totp_enabled bit
+        , @totp_confirmed DateTime
         , @recovery_code VarChar(255)
         , @last_recovery DateTime
         , @usertype_id char(20)
@@ -59,6 +62,9 @@ begin try
 			, @locked
 			, @last_login
 			, @last_refresh
+            , null -- TOTP secret is managed by the authenticator setup flow
+            , 0
+            , null -- TOTP confirmation is managed by the authenticator setup flow
             , null -- password recovery code
             , null -- last recovery
             , @now
@@ -113,6 +119,9 @@ begin try
     update  [dbo].[microm_users]
     set     vc_email = @email
 			, bt_disabled = @disabled
+            , vc_totp_secret = case when isnull(@totp_enabled, 0) = 0 then null else vc_totp_secret end
+            , bt_totp_enabled = case when isnull(@totp_enabled, 0) = 1 and nullif(vc_totp_secret, '') is not null and dt_totp_confirmed is not null then 1 else 0 end
+            , dt_totp_confirmed = case when isnull(@totp_enabled, 0) = 0 then null else dt_totp_confirmed end
             , vc_webluuser = @webusr
             , vc_luuser = @login
             , dt_lu = @now

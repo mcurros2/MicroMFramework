@@ -9,6 +9,8 @@ import { MicroMClientClaimTypes, MicroMToken } from "./MicroMToken";
 import { PublicEndpoint } from "./PublicEndpoint";
 import { TimeoutSignal } from "./TimeoutSignal";
 import { TokenStorage, TokenWebStorage } from "./TokenStorage";
+import { TotpSetupStartResponse } from "./TotpSetupStartResponse";
+import { TwoFactorLoginResult } from "./TwoFactorLoginResult";
 
 export type APIAction = "get" | "insert" | "update" | "delete" | "lookup" | "view" | "viewstream" | "action" | "upload" | "proc" | "procstream" | "process" | "import" | "viewtoexcel" | "proctoexcel" | "timezoneoffset";
 
@@ -243,7 +245,7 @@ export class MicroMClient {
         return !!this.#TOKEN?.access_token && new Date() < new Date(this.#TOKEN.expiration);
     }
 
-    async login(username: string, password: string, rememberme?: boolean) {
+    async login(username: string, password: string, rememberme?: boolean): Promise<MicroMToken | TwoFactorLoginResult> {
         //Intentionally not accounting for tokenRefreshInProgress (see refresh logic)
 
         const loginTimeout = new TimeoutSignal(this.#LOGIN_TIMEOUT, 'Login request timed out');
@@ -271,6 +273,10 @@ export class MicroMClient {
             }
 
             const data = await response.json();
+
+            if (data?.requires_two_factor && data?.two_factor_challenge_id) {
+                return data as TwoFactorLoginResult;
+            }
 
             if (data && data.access_token) {
                 const token = new MicroMToken(data.access_token, data.expires_in, data['refresh-token'], data.token_type, data);
@@ -308,6 +314,64 @@ export class MicroMClient {
                 await this.logoff();
             }
             catch { }
+            throw error;
+        }
+        finally {
+            loginTimeout.clear();
+        }
+    }
+
+    async login2fa(challengeId: string, code: string, rememberme?: boolean, username?: string): Promise<MicroMToken> {
+        const loginTimeout = new TimeoutSignal(this.#LOGIN_TIMEOUT, 'Two-factor login request timed out');
+        try {
+            const response = await fetch(`${this.#API_URL}/${this.#APP_ID}/auth/login-2fa`, {
+                method: 'POST',
+                headers: { "Content-Type": "application/json; charset=utf-8" },
+                mode: this.#REQUEST_MODE,
+                cache: 'no-store',
+                credentials: 'include',
+                referrerPolicy: 'strict-origin-when-cross-origin',
+                signal: loginTimeout.signal,
+                body: JSON.stringify({ challengeId, code })
+            });
+
+            if (!response.ok) {
+                throw { status: response?.status, statusMessage: response?.statusText, message: response?.statusText, url: response?.url } as MicroMError;
+            }
+
+            const data = await response.json();
+            if (data && data.access_token) {
+                const token = new MicroMToken(data.access_token, data.expires_in, data['refresh-token'], data.token_type, data);
+                await this.#setToken(token);
+
+                try {
+                    await this.#DATA_STORAGE.saveData(this.#APP_ID, REMEMBER_USER_DATA_KEY, rememberme ? username ?? null : null);
+                }
+                catch (error) {
+                    console.warn('Error remembering user', error);
+                }
+
+                try {
+                    await this.#getAPIEnabledMenus(username ?? token.claims.username ?? '', loginTimeout.signal);
+                }
+                catch (error) {
+                    console.warn('Error getting enabled menus', error);
+                }
+
+                try {
+                    await this.#getTimeZoneOffset(loginTimeout.signal);
+                }
+                catch (error) {
+                    console.warn('Error getting server timezone offset', error);
+                }
+
+                return token;
+            }
+
+            throw { statusMessage: 'Unexpected result', url: response.url } as MicroMError;
+        }
+        catch (error) {
+            console.warn('Two-factor login error', error);
             throw error;
         }
         finally {
@@ -416,6 +480,68 @@ export class MicroMClient {
             loginTimeout.clear();
         }
 
+    }
+
+    async startTotpSetup(): Promise<TotpSetupStartResponse> {
+        const loginTimeout = new TimeoutSignal(this.#LOGIN_TIMEOUT, 'TOTP setup request timed out');
+        const route = `${this.#API_URL}/${this.#APP_ID}/auth/totp/setup`;
+
+        try {
+            await this.#checkAndRefreshToken();
+            if (!this.#TOKEN) { throw { status: 401, statusMessage: `Can't execute request: Not logged in`, url: route } as MicroMError; }
+
+            const response = await fetch(route, {
+                method: 'POST',
+                headers: { "Content-Type": "application/json; charset=utf-8", "Authorization": `Bearer ${this.#TOKEN.access_token}` },
+                mode: this.#REQUEST_MODE,
+                cache: 'no-store',
+                credentials: 'include',
+                referrerPolicy: 'strict-origin-when-cross-origin',
+                signal: loginTimeout.signal,
+                body: JSON.stringify({})
+            });
+
+            if (!response.ok) {
+                let error_body: string | undefined = undefined;
+                try { error_body = await response.text(); } catch { }
+                throw { status: response?.status, statusMessage: response?.statusText, message: response?.statusText, url: response?.url, errorBody: error_body } as MicroMError;
+            }
+
+            return await response.json() as TotpSetupStartResponse;
+        }
+        finally {
+            loginTimeout.clear();
+        }
+    }
+
+    async confirmTotpSetup(code: string): Promise<void> {
+        const loginTimeout = new TimeoutSignal(this.#LOGIN_TIMEOUT, 'TOTP confirmation request timed out');
+        const route = `${this.#API_URL}/${this.#APP_ID}/auth/totp/confirm`;
+
+        try {
+            await this.#checkAndRefreshToken();
+            if (!this.#TOKEN) { throw { status: 401, statusMessage: `Can't execute request: Not logged in`, url: route } as MicroMError; }
+
+            const response = await fetch(route, {
+                method: 'POST',
+                headers: { "Content-Type": "application/json; charset=utf-8", "Authorization": `Bearer ${this.#TOKEN.access_token}` },
+                mode: this.#REQUEST_MODE,
+                cache: 'no-store',
+                credentials: 'include',
+                referrerPolicy: 'strict-origin-when-cross-origin',
+                signal: loginTimeout.signal,
+                body: JSON.stringify({ Code: code })
+            });
+
+            if (!response.ok) {
+                let error_body: string | undefined = undefined;
+                try { error_body = await response.text(); } catch { }
+                throw { status: response?.status, statusMessage: response?.statusText, message: response?.statusText, url: response?.url, errorBody: error_body } as MicroMError;
+            }
+        }
+        finally {
+            loginTimeout.clear();
+        }
     }
 
     async #getLocalDeviceId() {
