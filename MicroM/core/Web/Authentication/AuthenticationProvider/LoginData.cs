@@ -20,5 +20,4 @@ public record LoginData
     // TOTP/MFA support
     public bool totp_enabled { get; set; } = false;
     public string? totp_secret { get; set; }
-    public DateTime? totp_confirmed_utc { get; set; }
 }

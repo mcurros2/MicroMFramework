@@ -99,11 +99,28 @@ public class MicroMAuthenticator(
                     // Check if password is valid
                     if (ret.IsIn(PasswordVerificationResult.Success, PasswordVerificationResult.SuccessRehashNeeded))
                     {
-                        // If TOTP is enabled, set RequiresTwoFactor and do NOT finalize login yet
+                        // If TOTP is required, set RequiresTwoFactor and do NOT finalize login yet
                         if (login_data.totp_enabled)
                         {
                             result.RequiresTwoFactor = true;
                             result.TwoFactorProvider = "Authenticator";
+
+                            if (string.IsNullOrWhiteSpace(login_data.totp_secret))
+                            {
+                                string secret = _totpService.GenerateSecret();
+                                var setupResult = await MicromUsers.SetTotpSecret(app_config, user_login.Username, secret, ec, ct);
+                                if (setupResult.Failed)
+                                {
+                                    _log.LogWarning("TOTP setup bootstrap failed: APP_ID {app_id} User: {username}", app_config.ApplicationID, user_login.Username);
+                                    result.RequiresTwoFactor = false;
+                                    result.TwoFactorProvider = null;
+                                    result.TwoFactorChallengeId = null;
+                                    result.PasswordVerificationResult = PasswordVerificationResult.Failed;
+                                    return result;
+                                }
+
+                                login_data.totp_secret = secret;
+                            }
 
                             // Create a short-lived challenge ID
                             string challengeId = _challengeStore.CreateChallenge(
@@ -600,7 +617,6 @@ public class MicroMAuthenticator(
                 return result;
             }
 
-            // TOTP is valid - finalize login
             _log.LogInformation("TOTP verification succeeded for user {Username}", challenge.Username);
             _challengeStore.RemoveChallenge(challengeId);
 

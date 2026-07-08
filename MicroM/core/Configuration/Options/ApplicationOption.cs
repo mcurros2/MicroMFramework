@@ -14,6 +14,7 @@ public class ApplicationOption
     public string SQLUser { get; set; } = "";
     public string SQLPassword { get; set; } = "";
     public string SQLDB { get; set; } = "";
+    public string? SQLAdminTotpSecret { get; set; } = null;
 
     public string JWTIssuer { get; set; } = "";
     public string? JWTAudience { get; set; } = "";

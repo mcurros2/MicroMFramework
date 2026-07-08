@@ -61,6 +61,7 @@
   
   
   <ItemGroup>
+    <None Remove="Configuration\Entities\Applications\SQL\app_setAdminTotpSecret.sql" />
     <None Remove="DataDictionary\Entities\ApplicationOidcActiveSessions\SQL\ApplicationOidcActiveSessions\aos_deleteAllSessions.sql" />
     <None Remove="DataDictionary\Entities\ApplicationOidcActiveSessions\SQL\ApplicationOidcActiveSessions\aos_deleteSessionsBySUB.sql" />
     <None Remove="DataDictionary\Entities\ApplicationOidcActiveSessions\SQL\ApplicationOidcActiveSessions\aos_GetSessionByRefreshToken.sql" />
@@ -91,12 +92,15 @@
     <None Remove="DataDictionary\Entities\MicromUsers\SQL\MicromUsers\usr_GetRecoveryCode.sql" />
     <None Remove="DataDictionary\Entities\MicromUsers\SQL\MicromUsers\usr_getRecoveryEmails.sql" />
     <None Remove="DataDictionary\Entities\MicromUsers\SQL\MicromUsers\usr_RecoverPassword.sql" />
+    <None Remove="DataDictionary\Entities\MicromUsers\SQL\MicromUsers\usr_resetTotp.sql" />
+    <None Remove="DataDictionary\Entities\MicromUsers\SQL\MicromUsers\usr_setTotpSecret.sql" />
     <None Remove="DataDictionary\Entities\MicromUsers\SQL\MicromUsers\usr_tfGetUserEmails.sql" />
     <None Remove="DataDictionary\Entities\sys\sys_GetDropDuplicateIndexes.sql" />
     <None Remove="DataDictionary\Entities\sys\sys_tfMicroMColumns.sql" />
   </ItemGroup>
    
   <ItemGroup>
+    <EmbeddedResource Include="Configuration\Entities\Applications\SQL\app_setAdminTotpSecret.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\ApplicationOidcActiveSessions\SQL\ApplicationOidcActiveSessions\aos_deleteAllSessions.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\ApplicationOidcActiveSessions\SQL\ApplicationOidcActiveSessions\aos_deleteSessionsBySUB.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\ApplicationOidcActiveSessions\SQL\ApplicationOidcActiveSessions\aos_getSessionByRefreshToken.sql" />
@@ -182,8 +186,10 @@
     <EmbeddedResource Include="DataDictionary\Entities\MicromUsers\SQL\MicromUsers\usr_logoff.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\MicromUsers\SQL\MicromUsersDevices\usd_refreshToken.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\MicromUsers\SQL\MicromUsers\usr_RecoverPassword.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\MicromUsers\SQL\MicromUsers\usr_resetTotp.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\MicromUsers\SQL\MicromUsers\usr_setPassword.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\MicromUsers\SQL\MicromUsers\usr_resetPassword.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\MicromUsers\SQL\MicromUsers\usr_setTotpSecret.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\MicromUsers\SQL\MicromUsers\usr_tfGetUserEmails.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\MicromUsers\SQL\MicromUsers\usr_updateLoginAttempt.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\MicromUsers\SQL\MicromUsers\usr_GetUserData.sql" />

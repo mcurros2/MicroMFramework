@@ -1,4 +1,4 @@
-import { Anchor, Button, Checkbox, Group, PasswordInput, PinInput, Stack, Text, TextInput, useComponentDefaultProps } from "@mantine/core";
+import { Anchor, Button, Checkbox, Group, Image, PasswordInput, PinInput, Stack, Text, TextInput, useComponentDefaultProps } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { IconMailCheck } from "@tabler/icons-react";
 import { useCallback, useEffect, useState } from "react";
@@ -138,17 +138,15 @@ export function Login(props: LoginOptions) {
         <>
             <form key="loginForm" onSubmit={form.onSubmit((values) => handleClick(values))}>
                 {status?.loading && <FakeProgressBar />}
-                <TextInput label={userLabel} placeholder={userPlaceholder} required data-autofocus disabled={status?.loading || !!twoFactorState} {...form.getInputProps('user')} />
-                <PasswordInput label={passwordLabel} placeholder={passwordPlaceholder} required mt="md" disabled={status?.loading || !!twoFactorState}  {...form.getInputProps('password')} />
                 {twoFactorState ? (
-                    <Stack mt="md">
+                    <Stack mt="md" align="center">
                         <Stack spacing={2}>
                             <Text weight={700}>{twoFactorTitle}</Text>
                             <Text size="sm" color="dimmed">{twoFactorDescription}</Text>
-                            {twoFactorState.two_factor_provider &&
-                                <Text size="xs" color="dimmed">{twoFactorProviderLabel}: {twoFactorState.two_factor_provider}</Text>
-                            }
                         </Stack>
+                        {twoFactorState.two_factor_setup_required && twoFactorState.qr_code_data_url &&
+                            <Image src={twoFactorState.qr_code_data_url} alt={twoFactorTitle} width={180} height={180} fit="contain" mx="auto" />
+                        }
                         <PinInput length={6} oneTimeCode type="number" aria-label={codeLabel} placeholder={codePlaceholder} disabled={status?.loading} {...form.getInputProps('code')} />
                         <Button key="login2fa" type="button" fullWidth disabled={status?.loading || form.values.code.length !== 6} onClick={() => void handleTwoFactorClick(form.values)}>
                             {verifyCodeButtonLabel}
@@ -159,6 +157,8 @@ export function Login(props: LoginOptions) {
                     </Stack>
                 ) : (
                     <>
+                        <TextInput label={userLabel} placeholder={userPlaceholder} required data-autofocus disabled={status?.loading || !!twoFactorState} {...form.getInputProps('user')} />
+                        <PasswordInput label={passwordLabel} placeholder={passwordPlaceholder} required mt="md" disabled={status?.loading || !!twoFactorState}  {...form.getInputProps('password')} />
                         <Group position="apart" mt="lg">
                             <Checkbox label={rememberLabel} {...form.getInputProps('rememberme', { type: 'checkbox' })} />
                             <Anchor component="button" size="sm" onClick={handleForgotPasswordClick}>

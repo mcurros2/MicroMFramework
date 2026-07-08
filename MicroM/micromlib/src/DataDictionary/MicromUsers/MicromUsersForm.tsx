@@ -1,5 +1,6 @@
-import { Group, Stack, useComponentDefaultProps } from "@mantine/core";
-import { CheckboxField, DateInputField, EntityForm, FormOptions, LookupSelect, NotifyBitField, NotifyBitFieldDefaultProps, PasswordField, RingProgressField, TextField, useEntityForm } from "../../UI";
+import { Button, Group, Stack, Text, useComponentDefaultProps } from "@mantine/core";
+import { IconRefresh } from "@tabler/icons-react";
+import { CheckboxField, ConfirmAndExecutePanel, EntityForm, FormOptions, LookupSelect, NotifyBitField, NotifyBitFieldDefaultProps, PasswordField, RingProgressField, TextField, useEntityForm, useModal } from "../../UI";
 import { MicromUsers } from "./MicromUsers";
 
 
@@ -17,6 +18,10 @@ export interface MicromUsersFormProps extends FormOptions<MicromUsers> {
     authenticatorEnabledLabel?: string,
     authenticatorDisabledLabel?: string,
     authenticatorStatusTitle?: string,
+    resetAuthenticatorButtonLabel?: string,
+    resetAuthenticatorTitle?: string,
+    resetAuthenticatorConfirmation?: string,
+    resetAuthenticatorOKLabel?: string,
 }
 
 export const MicromUsersFormDefaultProps: Partial<MicromUsersFormProps> = {
@@ -31,17 +36,51 @@ export const MicromUsersFormDefaultProps: Partial<MicromUsersFormProps> = {
     logonAttemptsStatusDescription: 'The account registers failed login attempts',
     minutesLabel: 'minutes',
     willUnlockInNextLogonLabel: 'Account automatic lock period has finished. It will be unlocked in the next successful logon.',
-    authenticatorEnabledLabel: 'Authenticator app is enabled',
-    authenticatorDisabledLabel: 'Authenticator app is not enabled',
-    authenticatorStatusTitle: 'Two-factor authentication'
+    authenticatorEnabledLabel: 'Two-factor authentication is required',
+    authenticatorDisabledLabel: 'Two-factor authentication is not required',
+    authenticatorStatusTitle: 'Two-factor authentication',
+    resetAuthenticatorButtonLabel: 'Delete all authenticators',
+    resetAuthenticatorTitle: 'Delete all authenticators',
+    resetAuthenticatorConfirmation: 'All currently registered authenticator apps will stop working. If two-factor authentication is required, the user must register an authenticator again on the next login.',
+    resetAuthenticatorOKLabel: 'Delete all',
+}
+
+const TOTP_BASE32_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+
+function generateTotpSecret(byteLength = 20) {
+    const bytes = new Uint8Array(byteLength);
+    crypto.getRandomValues(bytes);
+
+    let bits = 0;
+    let value = 0;
+    let output = "";
+
+    for (const byte of bytes) {
+        value = (value << 8) | byte;
+        bits += 8;
+
+        while (bits >= 5) {
+            output += TOTP_BASE32_ALPHABET[(value >>> (bits - 5)) & 31];
+            bits -= 5;
+        }
+    }
+
+    if (bits > 0) {
+        output += TOTP_BASE32_ALPHABET[(value << (5 - bits)) & 31];
+    }
+
+    return output;
 }
 
 export function MicromUsersForm(props: MicromUsersFormProps) {
     const {
         entity, initialFormMode, getDataOnInit, onSaved, onCancel, disabledFalseLabel, disabledTrueLabel,
         lockedRemainingLabel, userDisabledLabel, userEnabledLabel, logonAttemptsStatusDescription, logonAttemptsStatusTitle, lockedTitleLabel,
-        minutesLabel, willUnlockInNextLogonLabel, authenticatorEnabledLabel, authenticatorDisabledLabel, authenticatorStatusTitle
+        minutesLabel, willUnlockInNextLogonLabel, authenticatorEnabledLabel, authenticatorDisabledLabel, authenticatorStatusTitle,
+        resetAuthenticatorButtonLabel, resetAuthenticatorTitle, resetAuthenticatorConfirmation, resetAuthenticatorOKLabel
     } = useComponentDefaultProps('MicromUsersForm', MicromUsersFormDefaultProps, props);
+
+    const modal = useModal();
 
     const entityForm = useEntityForm(
         {
@@ -57,6 +96,28 @@ export function MicromUsersForm(props: MicromUsersFormProps) {
     const { formMode, status } = entityForm;
 
     const MAXBADLOGON_ATTEMPTS = 10;
+
+    const handleResetAuthenticatorClick = async () => {
+        await modal.open({
+            modalProps: {
+                title: <Group spacing="xs"><IconRefresh size="1.25rem" /><Text fw={700}>{resetAuthenticatorTitle}</Text></Group>,
+            },
+            content: <ConfirmAndExecutePanel
+                content={<Text size="sm">{resetAuthenticatorConfirmation}</Text>}
+                operation="proc"
+                okButtonText={resetAuthenticatorOKLabel}
+                onCancel={async () => await modal.close()}
+                onOK={async () => {
+                    const result = await entity.API.executeProcess(entity.def.procs.usr_resetTotp, { vc_username: entityForm.form.values.vc_username, vc_totp_secret: generateTotpSecret() });
+                    if (result.Failed === false) {
+                        await entityForm.performGetData();
+                        await modal.close();
+                    }
+                    return result;
+                }}
+            />
+        });
+    };
 
     return (
         <EntityForm formAPI={entityForm}>
@@ -86,15 +147,17 @@ export function MicromUsersForm(props: MicromUsersFormProps) {
                 }
                 <CheckboxField entityForm={entityForm} column={entity.def.columns.bt_disabled} required={false} />
                 {formMode !== 'add' &&
-                    <CheckboxField entityForm={entityForm} column={entity.def.columns.bt_totp_enabled} required={false} />
-                }
-                {formMode !== 'add' &&
-                    <DateInputField
-                        entityForm={entityForm}
-                        column={entity.def.columns.dt_totp_confirmed}
-                        readOnly
-                        clearable={false}
-                    />
+                    <Group align="end">
+                        <CheckboxField entityForm={entityForm} column={entity.def.columns.bt_totp_enabled} required={false} />
+                        <Button
+                            variant="light"
+                            leftIcon={<IconRefresh size="1rem" />}
+                            onClick={() => void handleResetAuthenticatorClick()}
+                            disabled={status.loading}
+                        >
+                            {resetAuthenticatorButtonLabel}
+                        </Button>
+                    </Group>
                 }
                 <Group>
                     {(!entity.def.columns.bt_islocked.value || entity.def.columns.bt_disabled.value) &&

@@ -171,6 +171,28 @@ public class AuthenticationController(IOptions<MicroMOptions> options) : Control
 
 
     [AllowAnonymous]
+    [HttpPost("{app_id}/auth/login-2fa/register")]
+    [EnableRateLimiting(MicroMServicesConstants.RateLimitingAuthLoginPolicy)]
+    public async Task<ActionResult> RegisterLoginTotp(
+        [FromServices] IAuthenticationProvider auth,
+        [FromServices] ITotpService totpService,
+        string app_id,
+        [FromBody] TwoFactorRegistrationRequest request,
+        CancellationToken ct)
+    {
+        try
+        {
+            var result = await totpService.HandleLoginTotpRegistration(auth, app_id, request, ct);
+            return MapTotpServiceResult(result);
+        }
+        catch (Exception ex) when (ex is TaskCanceledException || ex is OperationCanceledException)
+        {
+            return new EmptyResult();
+        }
+    }
+
+
+    [AllowAnonymous]
     [HttpPost("{app_id}/auth/login-2fa")]
     [EnableRateLimiting(MicroMServicesConstants.RateLimitingAuthLoginPolicy)]
     public async Task<ActionResult> VerifyTwoFactor(

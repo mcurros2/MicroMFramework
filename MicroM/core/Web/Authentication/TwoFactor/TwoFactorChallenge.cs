@@ -12,4 +12,5 @@ public class TwoFactorChallenge
     public required string LocalDeviceId { get; init; }
     public required DateTime CreatedUtc { get; init; }
     public required DateTime ExpiresUtc { get; init; }
+    public Dictionary<string, string> Metadata { get; init; } = new(StringComparer.OrdinalIgnoreCase);
 }

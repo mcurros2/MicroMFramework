@@ -13,6 +13,8 @@ public interface ITotpService
 
     Task<TotpServiceResult> HandleDisableTotp(IAuthenticationProvider auth, string app_id, string user_name, Dictionary<string, object> server_claims, CancellationToken ct);
 
+    Task<TotpServiceResult> HandleLoginTotpRegistration(IAuthenticationProvider auth, string app_id, TwoFactorRegistrationRequest request, CancellationToken ct);
+
     bool VerifyCode(string secret, string code, string securityStampModifier = "Authenticator", TotpSupportedDigits digits = TotpSupportedDigits.Six);
 
     string GetAuthenticatorUri(string username, string secret, string issuer = "MicroM", TotpSupportedDigits digits = TotpSupportedDigits.Six);

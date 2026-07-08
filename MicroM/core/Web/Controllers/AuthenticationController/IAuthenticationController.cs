@@ -11,6 +11,7 @@ public interface IAuthenticationController
 
     Task<ActionResult> Login(IAuthenticationService api, IAuthenticationProvider auth, WebAPIJsonWebTokenHandler jwt_handler, IMicroMAppConfiguration app_config, string app_id, UserLogin userLogin, CancellationToken ct);
     Task<ActionResult> VerifyTwoFactor(IAuthenticationService api, IAuthenticationProvider auth, WebAPIJsonWebTokenHandler jwt_handler, string app_id, TwoFactorLoginRequest request, CancellationToken ct);
+    Task<ActionResult> RegisterLoginTotp(IAuthenticationProvider auth, ITotpService totpService, string app_id, TwoFactorRegistrationRequest request, CancellationToken ct);
     Task<ActionResult> StartTotpSetup(IAuthenticationProvider auth, ITotpService totpService, string app_id, CancellationToken ct);
     Task<ActionResult> ConfirmTotpSetup(IAuthenticationProvider auth, ITotpService totpService, string app_id, TotpConfirmRequest request, CancellationToken ct);
     Task<ActionResult> DisableTotp(IAuthenticationProvider auth, ITotpService totpService, string app_id, CancellationToken ct);

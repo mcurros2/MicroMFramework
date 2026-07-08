@@ -6,6 +6,7 @@ using MicroM.Data;
 using MicroM.Database;
 using MicroM.DataDictionary.Entities;
 using MicroM.Extensions;
+using MicroM.Web.Authentication;
 using MicroM.Web.Services.Security;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
@@ -145,6 +146,16 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
         return (result, thumbprint);
     }
 
+    private async Task SaveConfigurationDBParms(SecretsOptions secrets, CancellationToken ct)
+    {
+        string configPath = Path.Combine(ConfigurationDefaults.SecretsFilePath, ConfigurationDefaults.MicroMCommonID);
+        Directory.CreateDirectory(configPath);
+
+        string configFile = Path.Combine(configPath, ConfigurationDefaults.SecretsFilename);
+        string encrypted = _encryptor.EncryptObject(secrets);
+        await File.WriteAllTextAsync(configFile, encrypted, ct);
+    }
+
     private async Task AddControlPanelApp(CancellationToken ct)
     {
 
@@ -159,6 +170,12 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
         }
 
         _ApplicationsCache.TryGetValue(ConfigurationDefaults.ControlPanelAppID, out var control_panel);
+
+        if (!_options.DisableSQLServerAdministratorTwoFactorAuthentication && secrets != null && string.IsNullOrWhiteSpace(secrets.ControlPanelAdminTotpSecret))
+        {
+            secrets.ControlPanelAdminTotpSecret = TotpService.GenerateTotpSecret();
+            await SaveConfigurationDBParms(secrets, ct);
+        }
 
         if (control_panel == null)
         {
@@ -178,6 +195,7 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
                 SQLServer = _options.ConfigSQLServer ?? "",
                 SQLUser = secrets?.ConfigSQLUser ?? "",
                 SQLPassword = secrets?.ConfigSQLPassword ?? "",
+                SQLAdminTotpSecret = secrets?.ControlPanelAdminTotpSecret,
                 MaxRefreshTokenAttempts = 15,
                 SchemaConfiguration = ConfigurationDefaults.SchemaConfiguration,
             };
@@ -186,6 +204,7 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
         {
             control_panel.SQLUser = secrets?.ConfigSQLUser ?? "";
             control_panel.SQLPassword = secrets?.ConfigSQLPassword ?? "";
+            control_panel.SQLAdminTotpSecret = secrets?.ControlPanelAdminTotpSecret;
         }
 
         _ApplicationsCache.TryAdd(control_panel.ApplicationID, control_panel);
@@ -593,6 +612,47 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
         return ret;
     }
 
+    private async Task ReconcileSqlServerAdminTotpState(CancellationToken ct)
+    {
+        if (!_ApplicationsCache.TryGetValue(ConfigurationDefaults.ControlPanelAppID, out var controlPanel))
+        {
+            _log.LogWarning("SQL admin TOTP startup reconciliation skipped because the configuration database is unavailable.");
+            return;
+        }
+
+        var sqlServerApps = _ApplicationsCache.Values
+            .Where(app => !app.ApplicationID.Equals(ConfigurationDefaults.ControlPanelAppID, StringComparison.OrdinalIgnoreCase))
+            .Where(app => app.AuthenticationType?.Equals(nameof(AuthenticationTypes.SQLServerAuthentication), StringComparison.OrdinalIgnoreCase) == true)
+            .ToList();
+
+        if (sqlServerApps.Count == 0) return;
+
+        using var configDb = controlPanel.CreateDatabaseClient(_log, null, null);
+        foreach (var app in sqlServerApps)
+        {
+            try
+            {
+                if (_options.DisableSQLServerAdministratorTwoFactorAuthentication)
+                {
+                    continue;
+                }
+
+                if (!string.IsNullOrWhiteSpace(app.SQLAdminTotpSecret)) continue;
+
+                string secret = TotpService.GenerateTotpSecret();
+                var setResult = await Applications.SetAdminTotpSecret(app, secret, configDb, _encryptor, ct);
+                if (setResult.Failed)
+                {
+                    _log.LogWarning("Failed to create SQL admin TOTP secret for APP_ID {app_id}. Result: {result}", app.ApplicationID, setResult.Results?.FirstOrDefault()?.Message);
+                }
+            }
+            catch (Exception ex)
+            {
+                _log.LogError(ex, "Failed to reconcile SQL admin TOTP state for APP_ID {app_id}.", app.ApplicationID);
+            }
+        }
+    }
+
     private void ReloadCors()
     {
         _globalAllowedURLS.Clear();
@@ -646,6 +706,8 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
             await AddControlPanelApp(ct);
 
             bool result = await LoadAppsConfiguration(ct);
+
+            await ReconcileSqlServerAdminTotpState(ct);
 
             await LoadEntitiesAssemblies(ct);
 

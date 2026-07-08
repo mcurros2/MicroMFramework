@@ -5,7 +5,7 @@ namespace MicroM.Web.Authentication;
 
 public interface ITwoFactorChallengeStore
 {
-    string CreateChallenge(string userId, string username, string deviceId, string applicationId, string localDeviceId);
+    string CreateChallenge(string userId, string username, string deviceId, string applicationId, string localDeviceId, Dictionary<string, string>? metadata = null);
     TwoFactorChallenge? GetChallenge(string challengeId);
     void RemoveChallenge(string challengeId);
 }
@@ -20,7 +20,7 @@ public class TwoFactorChallengeStore : ITwoFactorChallengeStore
         _cache = cache;
     }
 
-    public string CreateChallenge(string userId, string username, string deviceId, string applicationId, string localDeviceId)
+    public string CreateChallenge(string userId, string username, string deviceId, string applicationId, string localDeviceId, Dictionary<string, string>? metadata = null)
     {
         string challengeId = Guid.NewGuid().ToString("N");
         var challenge = new TwoFactorChallenge
@@ -31,7 +31,8 @@ public class TwoFactorChallengeStore : ITwoFactorChallengeStore
             ApplicationId = applicationId,
             LocalDeviceId = localDeviceId,
             CreatedUtc = DateTime.UtcNow,
-            ExpiresUtc = DateTime.UtcNow.Add(ChallengeLifetime)
+            ExpiresUtc = DateTime.UtcNow.Add(ChallengeLifetime),
+            Metadata = metadata ?? new(StringComparer.OrdinalIgnoreCase)
         };
 
         _cache.Set(challengeId, challenge, ChallengeLifetime);

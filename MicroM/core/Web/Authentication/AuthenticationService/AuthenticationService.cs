@@ -36,7 +36,9 @@ public class AuthenticationService(
             oidc_session_id = oidc_session_id,
             requires_two_factor = authenticatorResult.RequiresTwoFactor,
             two_factor_challenge_id = authenticatorResult.TwoFactorChallengeId,
-            two_factor_provider = authenticatorResult.TwoFactorProvider
+            two_factor_provider = authenticatorResult.TwoFactorProvider,
+            two_factor_setup_required = authenticatorResult.TwoFactorSetupRequired,
+            qr_code_data_url = authenticatorResult.QrCodeDataUrl
         };
     }
 

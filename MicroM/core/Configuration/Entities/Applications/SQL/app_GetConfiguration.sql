@@ -6,6 +6,7 @@ select	ApplicationID = rtrim(a.c_application_id)
 		, [SQLUser] = a.vc_user
 		, [SQLPassword] = a.vc_password
 		, SQLDB = a.vc_database
+		, SQLAdminTotpSecret = a.vc_app_admin_totp_secret
 		, JWTIssuer = a.vc_JWTIssuer
 		, JWTAudience = a.vc_JWTAudience
 		, JWTKey = a.vc_JWTKey

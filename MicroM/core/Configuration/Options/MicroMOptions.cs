@@ -28,6 +28,8 @@ public class MicroMOptions
 
     public bool EnableDropDatabases { get; set; } = false;
 
+    public bool DisableSQLServerAdministratorTwoFactorAuthentication { get; set; } = false;
+
     public string? EntitiesDLLStoragePath { get; set; } = null;
 
     public bool? EnableHotReloadForEntitiesAssemblies { get; set; } = false;

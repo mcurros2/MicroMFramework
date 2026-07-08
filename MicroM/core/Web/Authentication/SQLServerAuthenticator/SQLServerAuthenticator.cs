@@ -5,6 +5,7 @@ using MicroM.Database;
 using MicroM.DataDictionary.CategoriesDefinitions;
 using MicroM.Web.Services;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Collections.Concurrent;
@@ -17,13 +18,31 @@ public class SQLServerAuthenticator : IAuthenticator
     private readonly IMicroMEncryption _encryptor;
     private readonly IHttpContextAccessor _contextAccessor;
     private readonly IOptions<MicroMOptions> _microm_config;
+    private readonly ITwoFactorChallengeStore _challengeStore;
+    private readonly ITotpService _totpService;
+    private readonly IMicroMAppConfiguration _app_config;
 
-    public SQLServerAuthenticator(ILogger<SQLServerAuthenticator> logger, IMicroMEncryption encryptor, IHttpContextAccessor contextAccessor, IOptions<MicroMOptions> microm_config)
+
+    private const string TwoFactorProvider = "Authenticator";
+    private const string ChallengePasswordMetadataKey = "password";
+
+    public SQLServerAuthenticator(
+        ILogger<SQLServerAuthenticator> logger,
+        IMicroMEncryption encryptor,
+        IHttpContextAccessor contextAccessor,
+        IOptions<MicroMOptions> microm_config,
+        ITwoFactorChallengeStore challengeStore,
+        ITotpService totpService,
+        IMicroMAppConfiguration appConfiguration
+        )
     {
         _log = logger;
         _encryptor = encryptor;
         _contextAccessor = contextAccessor;
         _microm_config = microm_config;
+        _challengeStore = challengeStore;
+        _totpService = totpService;
+        _app_config = appConfiguration;
     }
 
     private static ConcurrentDictionary<string, AccountLockout> _lockout_cache = new(StringComparer.OrdinalIgnoreCase);
@@ -53,12 +72,76 @@ public class SQLServerAuthenticator : IAuthenticator
         httpc?.Response.Cookies.Delete(GetRefreshCookieName(app_config));
     }
 
+    private static string GetLockoutKey(ApplicationOption app_config, string username)
+    {
+        return $"{app_config.ApplicationID}.{username}";
+    }
+
+    private static string GetTotpModifier(ApplicationOption app_config, string username)
+    {
+        return $"SQLServerAdministrator:{app_config.ApplicationID}:{username}";
+    }
+
+    private void SetTwoFactorChallengeResult(ApplicationOption app_config, UserLogin user_login, AuthenticatorResult result)
+    {
+        string encryptedPassword = _encryptor.Encrypt(user_login.Password);
+        string challengeId = _challengeStore.CreateChallenge(
+            user_login.Username,
+            user_login.Username,
+            "none",
+            app_config.ApplicationID,
+            user_login.LocalDeviceID ?? "",
+            new(StringComparer.OrdinalIgnoreCase)
+            {
+                [ChallengePasswordMetadataKey] = encryptedPassword
+            });
+
+        result.RequiresTwoFactor = true;
+        result.TwoFactorProvider = TwoFactorProvider;
+        result.TwoFactorChallengeId = challengeId;
+
+        result.ServerClaims[MicroMServerClaimTypes.MicroMUser_id] = user_login.Username;
+        result.ServerClaims[MicroMServerClaimTypes.MicroMAPP_id] = app_config.ApplicationID;
+        result.ServerClaims[MicroMServerClaimTypes.MicroMUsername] = user_login.Username;
+        result.ServerClaims[MicroMServerClaimTypes.MicroMUserType_id] = nameof(UserTypes.ADMIN);
+        result.ServerClaims[MicroMServerClaimTypes.MicroMUserDeviceID] = "none";
+        result.ServerClaims[MicroMServerClaimTypes.MicroMUserGroups] = (List<string>)[];
+    }
+
+    private void FinalizeSuccessfulLogin(ApplicationOption app_config, string username, string encryptedPassword, AuthenticatorResult result, bool isAdmin)
+    {
+        string refreshToken = CryptClass.GenerateRandomBase64String();
+        result.LoginData = new()
+        {
+            user_id = username,
+            username = username,
+            refresh_token = refreshToken
+        };
+        result.PasswordVerificationResult = PasswordVerificationResult.Success;
+
+        var account = _lockout_cache.GetOrAdd(GetLockoutKey(app_config, username), new AccountLockout());
+        lock (account)
+        {
+            account.unlockAccount();
+            account.setRefreshToken(refreshToken);
+            WriteRefreshTokenToCookie(app_config, refreshToken);
+        }
+
+        result.ServerClaims[MicroMServerClaimTypes.MicroMUser_id] = username;
+        result.ServerClaims[MicroMServerClaimTypes.MicroMAPP_id] = app_config.ApplicationID;
+        result.ServerClaims[MicroMServerClaimTypes.MicroMUsername] = username;
+        result.ServerClaims[MicroMServerClaimTypes.MicroMUserType_id] = isAdmin ? nameof(UserTypes.ADMIN) : nameof(UserTypes.USER);
+        result.ServerClaims[MicroMServerClaimTypes.MicroMUserDeviceID] = "none";
+        result.ServerClaims[MicroMServerClaimTypes.MicroMUserGroups] = (List<string>)[];
+        result.ServerClaims[MicroMServerClaimTypes.MicroMPassword] = encryptedPassword;
+    }
+
     public async Task<AuthenticatorResult> AuthenticateLogin(ApplicationOption app_config, UserLogin user_login, CancellationToken ct)
     {
         AuthenticatorResult result = new();
         if (string.IsNullOrEmpty(user_login.Username)) return result;
 
-        _lockout_cache.TryGetValue($"{app_config.ApplicationID}.{user_login.Username}", out var account);
+        _lockout_cache.TryGetValue(GetLockoutKey(app_config, user_login.Username), out var account);
 
         if (account != null)
         {
@@ -82,40 +165,41 @@ public class SQLServerAuthenticator : IAuthenticator
             result.LoginData = new()
             {
                 user_id = user_login.Username,
-                username = user_login.Username,
-                refresh_token = CryptClass.GenerateRandomBase64String()
+                username = user_login.Username
             };
-            result.PasswordVerificationResult = Microsoft.AspNetCore.Identity.PasswordVerificationResult.Success;
+            result.PasswordVerificationResult = PasswordVerificationResult.Success;
 
             var is_admin = await DatabaseManagement.LoggedInUserHasAdminRights(dbc, ct);
-
-            account = _lockout_cache.GetOrAdd($"{app_config.ApplicationID}.{user_login.Username}", new AccountLockout());
-            lock (account)
+            if (is_admin)
             {
-                account.unlockAccount();
-                account.setRefreshToken(result.LoginData.refresh_token);
-                WriteRefreshTokenToCookie(app_config, result.LoginData.refresh_token);
+                if (_microm_config.Value.DisableSQLServerAdministratorTwoFactorAuthentication)
+                {
+                    FinalizeSuccessfulLogin(app_config, user_login.Username, _encryptor.Encrypt(user_login.Password), result, isAdmin: true);
+                    return result;
+                }
+
+                if (string.IsNullOrWhiteSpace(app_config.SQLAdminTotpSecret))
+                {
+                    _log.LogError("SQL admin TOTP is enabled but APP_ID {app_id} has no configured TOTP secret. Startup reconciliation should create it before admin login.", app_config.ApplicationID);
+                    result.PasswordVerificationResult = PasswordVerificationResult.Failed;
+                    return result;
+                }
+
+                SetTwoFactorChallengeResult(app_config, user_login, result);
+                return result;
             }
 
-            result.ServerClaims.Add(MicroMServerClaimTypes.MicroMUser_id, user_login.Username);
-            result.ServerClaims.Add(MicroMServerClaimTypes.MicroMAPP_id, app_config.ApplicationID);
-            result.ServerClaims.Add(MicroMServerClaimTypes.MicroMUsername, user_login.Username);
-            result.ServerClaims.Add(MicroMServerClaimTypes.MicroMUserType_id, is_admin ? nameof(UserTypes.ADMIN) : nameof(UserTypes.USER));
-            result.ServerClaims.Add(MicroMServerClaimTypes.MicroMUserDeviceID, "none");
-            result.ServerClaims[MicroMServerClaimTypes.MicroMUserGroups] = (List<string>)[];
-
-
-            result.ServerClaims.Add(MicroMServerClaimTypes.MicroMPassword, _encryptor.Encrypt(user_login.Password));
+            FinalizeSuccessfulLogin(app_config, user_login.Username, _encryptor.Encrypt(user_login.Password), result, isAdmin: false);
         }
         catch (Exception ex)
         {
             _log.LogError("Error: {error}", ex);
-            account = _lockout_cache.GetOrAdd($"{app_config.ApplicationID}.{user_login.Username}", new AccountLockout());
+            account = _lockout_cache.GetOrAdd(GetLockoutKey(app_config, user_login.Username), new AccountLockout());
             lock (account)
             {
                 account.incrementBadLogonAndLock();
                 result.AccountLocked = account.isAccountLocked();
-                result.PasswordVerificationResult = Microsoft.AspNetCore.Identity.PasswordVerificationResult.Failed;
+                result.PasswordVerificationResult = PasswordVerificationResult.Failed;
             }
         }
         finally
@@ -132,7 +216,7 @@ public class SQLServerAuthenticator : IAuthenticator
 
         if (string.IsNullOrEmpty(refresh_token) || string.IsNullOrEmpty(user_id)) return Task.FromResult(result);
 
-        _lockout_cache.TryGetValue($"{app_config.ApplicationID}.{user_id}", out var account);
+        _lockout_cache.TryGetValue(GetLockoutKey(app_config, user_id), out var account);
         if (account != null)
         {
             lock (account)
@@ -165,7 +249,7 @@ public class SQLServerAuthenticator : IAuthenticator
     public Task Logoff(ApplicationOption app_config, string user_name, CancellationToken ct)
     {
         if (string.IsNullOrEmpty(user_name)) throw new ArgumentException("Username is null or empty");
-        _ = _lockout_cache.TryRemove($"{app_config.ApplicationID}.{user_name}", out _);
+        _ = _lockout_cache.TryRemove(GetLockoutKey(app_config, user_name), out _);
         DeleteRefreshCookie(app_config);
         return Task.CompletedTask;
     }
@@ -203,8 +287,84 @@ public class SQLServerAuthenticator : IAuthenticator
         throw new NotImplementedException();
     }
 
-    public Task<AuthenticatorResult> VerifyTwoFactorCode(ApplicationOption app_config, string challengeId, string code, CancellationToken ct)
+    public async Task<AuthenticatorResult> VerifyTwoFactorCode(ApplicationOption app_config, string challengeId, string code, CancellationToken ct)
     {
-        throw new NotImplementedException("SQLServerAuthenticator does not support two-factor authentication.");
+        AuthenticatorResult result = new();
+
+        if (_microm_config.Value.DisableSQLServerAdministratorTwoFactorAuthentication)
+        {
+            _log.LogWarning("SQL admin TOTP verification rejected because SQL Server administrator 2FA is disabled for APP_ID {app_id}.", app_config.ApplicationID);
+            _challengeStore.RemoveChallenge(challengeId);
+            result.PasswordVerificationResult = PasswordVerificationResult.Failed;
+            return result;
+        }
+
+        var challenge = _challengeStore.GetChallenge(challengeId);
+        if (challenge == null || DateTime.UtcNow > challenge.ExpiresUtc || !challenge.ApplicationId.Equals(app_config.ApplicationID, StringComparison.OrdinalIgnoreCase))
+        {
+            _log.LogWarning("SQL admin TOTP verification failed: challenge {challenge_id} not found, expired, or for another application.", challengeId);
+            if (challenge != null) _challengeStore.RemoveChallenge(challengeId);
+            result.PasswordVerificationResult = PasswordVerificationResult.Failed;
+            return result;
+        }
+
+        result.LoginData = new()
+        {
+            user_id = challenge.Username,
+            username = challenge.Username
+        };
+
+        if (!challenge.Metadata.TryGetValue(ChallengePasswordMetadataKey, out var encryptedPassword) || string.IsNullOrWhiteSpace(encryptedPassword))
+        {
+            _log.LogWarning("SQL admin TOTP verification failed: challenge {challenge_id} has no password metadata.", challengeId);
+            _challengeStore.RemoveChallenge(challengeId);
+            result.PasswordVerificationResult = PasswordVerificationResult.Failed;
+            return result;
+        }
+
+        if (string.IsNullOrWhiteSpace(app_config.SQLAdminTotpSecret))
+        {
+            _log.LogWarning("SQL admin TOTP verification failed: APP_ID {app_id} has no TOTP secret.", app_config.ApplicationID);
+            _challengeStore.RemoveChallenge(challengeId);
+            result.PasswordVerificationResult = PasswordVerificationResult.Failed;
+            return result;
+        }
+
+        bool isValidCode = _totpService.VerifyCode(app_config.SQLAdminTotpSecret, code, GetTotpModifier(app_config, challenge.Username));
+        if (!isValidCode)
+        {
+            _log.LogWarning("SQL admin TOTP verification failed: invalid code for user {username}.", challenge.Username);
+            result.PasswordVerificationResult = PasswordVerificationResult.Failed;
+            return result;
+        }
+
+        string password = _encryptor.Decrypt(encryptedPassword);
+        using DatabaseClient dbc = new(app_config.SQLServer, "master", challenge.Username, password);
+        try
+        {
+            await dbc.Connect(ct);
+            bool isAdmin = await DatabaseManagement.LoggedInUserHasAdminRights(dbc, ct);
+            if (!isAdmin)
+            {
+                _log.LogWarning("SQL admin TOTP verification failed: user {username} no longer has admin rights.", challenge.Username);
+                _challengeStore.RemoveChallenge(challengeId);
+                result.PasswordVerificationResult = PasswordVerificationResult.Failed;
+                return result;
+            }
+        }
+        catch (Exception ex)
+        {
+            _log.LogWarning(ex, "SQL admin TOTP verification failed: could not revalidate SQL login for user {username}.", challenge.Username);
+            result.PasswordVerificationResult = PasswordVerificationResult.Failed;
+            return result;
+        }
+        finally
+        {
+            await dbc.Disconnect();
+        }
+
+        _challengeStore.RemoveChallenge(challengeId);
+        FinalizeSuccessfulLogin(app_config, challenge.Username, encryptedPassword, result, isAdmin: true);
+        return result;
     }
 }

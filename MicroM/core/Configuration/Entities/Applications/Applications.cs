@@ -26,6 +26,7 @@ public class ApplicationsDef : EntityDefinition
 
     public readonly Column<string?> vc_app_admin_user = Column<string?>.Text(nullable: true);
     public readonly Column<string?> vc_app_admin_password = Column<string?>.Text(size: 2048, encrypted: true, nullable: true);
+    public readonly Column<string?> vc_app_admin_totp_secret = Column<string?>.Text(size: 2048, encrypted: true, nullable: true);
 
     public readonly Column<string> vc_JWTIssuer = Column<string>.Text();
     public readonly Column<string?> vc_JWTAudience = Column<string?>.Text(nullable: true);
@@ -93,6 +94,7 @@ public class ApplicationsDef : EntityDefinition
     public readonly ProcedureDefinition app_GetConfiguration = new(readonly_locks: true);
     public readonly ProcedureDefinition app_GetOIDCClients = new(readonly_locks: true);
     public readonly ProcedureDefinition app_GetADConfiguration = new(readonly_locks: true);
+    public readonly ProcedureDefinition app_setAdminTotpSecret = new(nameof(c_application_id), nameof(vc_app_admin_totp_secret));
 
     public readonly APPOIDCDiagnostics APPOIDCDiagnostics = new();
 }
@@ -309,6 +311,7 @@ public class Applications : Entity<ApplicationsDef>
                     SQLDB = await fv.GetFieldValueAsync<string>(nameof(app_result.SQLDB), ct),
                     SQLUser = await fv.GetFieldValueAsync<string>(nameof(app_result.SQLUser), ct),
                     SQLPassword = await fv.GetFieldValueAsync<string>(nameof(app_result.SQLPassword), ct),
+                    SQLAdminTotpSecret = await fv.GetFieldValueAsync<string?>(nameof(app_result.SQLAdminTotpSecret), ct),
                     JWTAudience = await fv.GetFieldValueAsync<string?>(nameof(app_result.JWTAudience), ct),
                     JWTIssuer = await fv.GetFieldValueAsync<string>(nameof(app_result.JWTIssuer), ct),
                     JWTKey = await fv.GetFieldValueAsync<string>(nameof(app_result.JWTKey), ct),
@@ -351,6 +354,10 @@ public class Applications : Entity<ApplicationsDef>
                 if (encryptor != null)
                 {
                     app_result.SQLPassword = encryptor.Decrypt(app_result.SQLPassword);
+                    if (!string.IsNullOrWhiteSpace(app_result.SQLAdminTotpSecret))
+                    {
+                        app_result.SQLAdminTotpSecret = encryptor.Decrypt(app_result.SQLAdminTotpSecret);
+                    }
                     app_result.OIDCCertificatePassword = encryptor.Decrypt(app_result.OIDCCertificatePassword);
                     app_result.OIDCIdPSubjectPepper = encryptor.Decrypt(app_result.OIDCIdPSubjectPepper!);
                 }
@@ -438,6 +445,23 @@ public class Applications : Entity<ApplicationsDef>
         finally
         {
             await ec.Disconnect();
+        }
+
+        return result;
+    }
+
+    public async static Task<DBStatusResult> SetAdminTotpSecret(ApplicationOption app, string secret, IEntityClient ec, IMicroMEncryption? encryptor, CancellationToken ct)
+    {
+        Applications entity = new(ec, encryptor);
+
+        var proc = entity.Def.app_setAdminTotpSecret;
+        proc[nameof(ApplicationsDef.c_application_id)].ValueObject = app.ApplicationID;
+        proc[nameof(ApplicationsDef.vc_app_admin_totp_secret)].ValueObject = encryptor?.Encrypt(secret) ?? secret;
+
+        var result = await entity.Data.ExecuteProcDBStatus(proc, ct, set_parms_from_columns: false);
+        if (!result.Failed)
+        {
+            app.SQLAdminTotpSecret = secret;
         }
 
         return result;

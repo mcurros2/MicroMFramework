@@ -11,16 +11,13 @@ const columns = () =>
         vc_email: new EntityColumn<string>({ name: 'vc_email', type: 'varchar', length: 255, flags: c.Edit | EntityColumnFlags.nullable, prompt: 'Email' }),
         vc_pwhash: new EntityColumn<string>({ name: 'vc_pwhash', type: 'varchar', length: 2048, flags: c.Edit, prompt: 'Pwhash' }),
         vb_sid: new EntityColumn<string>({ name: 'vb_sid', type: 'varchar', length: 85, flags: c.Edit | EntityColumnFlags.nullable, prompt: 'Sid' }),
-        vc_refreshtoken: new EntityColumn<string>({ name: 'vc_refreshtoken', type: 'varchar', length: 255, flags: c.Edit | EntityColumnFlags.nullable, prompt: 'Refreshtoken' }),
-        dt_refresh_expiration: new EntityColumn<boolean>({ name: 'dt_refresh_expiration', type: 'datetime', flags: c.Edit | EntityColumnFlags.nullable, prompt: 'Refresh Expiration' }),
         i_badlogonattempts: new EntityColumn<number>({ name: 'i_badlogonattempts', type: 'int', flags: c.Edit, prompt: 'Badlogonattempts' }),
-        i_refreshcount: new EntityColumn<number>({ name: 'i_refreshcount', type: 'int', flags: c.Edit, prompt: 'Refreshcount' }),
         bt_disabled: new EntityColumn<boolean>({ name: 'bt_disabled', type: 'bit', length: 1, flags: c.Edit, prompt: 'Disable user' }),
         dt_locked: new EntityColumn<Date>({ name: 'dt_locked', type: 'datetime', flags: c.Edit | EntityColumnFlags.nullable, prompt: 'Date Locked' }),
         dt_last_login: new EntityColumn<Date>({ name: 'dt_last_login', type: 'datetime', flags: c.Edit | EntityColumnFlags.nullable, prompt: 'Last Login' }),
         dt_last_refresh: new EntityColumn<Date>({ name: 'dt_last_refresh', type: 'datetime', flags: c.Edit | EntityColumnFlags.nullable, prompt: 'Last Refresh' }),
-        bt_totp_enabled: new EntityColumn<boolean>({ name: 'bt_totp_enabled', type: 'bit', length: 1, flags: c.Edit, prompt: 'Authenticator enabled' }),
-        dt_totp_confirmed: new EntityColumn<Date>({ name: 'dt_totp_confirmed', type: 'datetime', flags: EntityColumnFlags.fake | EntityColumnFlags.nullable, prompt: 'Authenticator confirmed' }),
+        vc_totp_secret: new EntityColumn<string>({ name: 'vc_totp_secret', type: 'varchar', length: 2048, flags: c.Edit | EntityColumnFlags.nullable, prompt: 'Authenticator secret' }),
+        bt_totp_enabled: new EntityColumn<boolean>({ name: 'bt_totp_enabled', type: 'bit', length: 1, flags: c.Edit, prompt: 'Require two-factor authentication' }),
         vc_recovery_code: new EntityColumn<string>({ name: 'vc_recovery_code', type: 'varchar', length: 255, flags: c.Edit | EntityColumnFlags.nullable, prompt: 'Recovery Code' }),
         dt_last_recovery: new EntityColumn<Date>({ name: 'dt_last_recovery', type: 'datetime', flags: c.Edit | EntityColumnFlags.nullable, prompt: 'Last Recovery' }),
         c_usertype_id: new EntityColumn<string>({ name: 'c_usertype_id', type: 'char', length: 20, flags: c.Edit, prompt: 'Usertype Id' }),
@@ -56,9 +53,17 @@ const lookups = () =>
     }
 )
 
+const procs = () =>
+(
+    {
+        usr_resetTotp: { name: 'usr_resetTotp' }
+    }
+)
+
 export class MicromUsersDef extends EntityDefinition {
 
     columns = columns();
+    procs = procs();
     views = views();
     lookups = lookups();
 

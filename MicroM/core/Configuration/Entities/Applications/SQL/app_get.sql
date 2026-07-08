@@ -28,6 +28,7 @@ select  [c_application_id] = rtrim(a.c_application_id)
 		, a.vc_database
 		, a.vc_app_admin_user
 		, a.vc_app_admin_password
+		, a.vc_app_admin_totp_secret
 		, a.vc_JWTIssuer
 		, a.vc_JWTAudience
 		, a.vc_JWTKey

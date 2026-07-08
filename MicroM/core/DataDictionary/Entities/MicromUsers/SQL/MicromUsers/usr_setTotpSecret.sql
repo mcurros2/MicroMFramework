@@ -22,8 +22,6 @@ begin try
 
 	update [dbo].microm_users
 	set		vc_totp_secret = @totp_secret
-			, bt_totp_enabled = 0
-			, dt_totp_confirmed = null
 			, dt_lu = @now
 			, vc_luuser = @login
 	where	vc_username=@username

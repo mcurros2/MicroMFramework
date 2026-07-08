@@ -379,6 +379,35 @@ export class MicroMClient {
         }
     }
 
+    async registerLoginTotp(challengeId: string): Promise<TotpSetupStartResponse> {
+        const loginTimeout = new TimeoutSignal(this.#LOGIN_TIMEOUT, 'Authenticator registration request timed out');
+        const route = `${this.#API_URL}/${this.#APP_ID}/auth/login-2fa/register`;
+
+        try {
+            const response = await fetch(route, {
+                method: 'POST',
+                headers: { "Content-Type": "application/json; charset=utf-8" },
+                mode: this.#REQUEST_MODE,
+                cache: 'no-store',
+                credentials: 'include',
+                referrerPolicy: 'strict-origin-when-cross-origin',
+                signal: loginTimeout.signal,
+                body: JSON.stringify({ challengeId })
+            });
+
+            if (!response.ok) {
+                let error_body: string | undefined = undefined;
+                try { error_body = await response.text(); } catch { }
+                throw { status: response?.status, statusMessage: response?.statusText, message: response?.statusText, url: response?.url, errorBody: error_body } as MicroMError;
+            }
+
+            return await response.json() as TotpSetupStartResponse;
+        }
+        finally {
+            loginTimeout.clear();
+        }
+    }
+
     async localLogoff() {
         await this.#removeToken();
         await this.#deleteEnabledMenus();

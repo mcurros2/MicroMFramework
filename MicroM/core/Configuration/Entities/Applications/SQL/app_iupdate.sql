@@ -9,6 +9,7 @@
 		, @database VarChar(255)
 		, @app_admin_user VarChar(255)
 		, @app_admin_password VarChar(2048)
+		, @app_admin_totp_secret VarChar(2048)
 		, @JWTIssuer VarChar(255)
 		, @JWTAudience VarChar(255)
 		, @JWTKey VarChar(255)
@@ -88,6 +89,43 @@ begin try
     begin
         
         insert  [dbo].[applications]
+            (
+            c_application_id
+            , vc_appname
+            , vc_apiurl
+            , vc_server
+            , vc_user
+            , vc_password
+            , vc_database
+            , vc_app_admin_user
+            , vc_app_admin_password
+            , vc_app_admin_totp_secret
+            , vc_JWTIssuer
+            , vc_JWTAudience
+            , vc_JWTKey
+            , i_JWTTokenExpirationMinutes
+            , i_JWTRefreshExpirationHours
+            , i_AccountLockoutMinutes
+            , i_MaxBadLogonAttempts
+            , i_MaxRefreshTokenAttempts
+            , vc_app_schema
+            , vc_datadictionary_schema
+            , b_enable_seed_test_data
+            , b_enable_developer_tools
+            , b_enable_update_on_hotreload
+            , vc_ts_categories_folder
+            , vc_ts_dd_categories_values_class_name
+            , vc_ts_dd_categories_values_class_import
+            , vc_ts_dd_category_column_name
+            , vc_ts_dd_category_value_column_name
+            , bi_upload_limit_bytes
+            , dt_inserttime
+            , dt_lu
+            , vc_webinsuser
+            , vc_webluuser
+            , vc_insuser
+            , vc_luuser
+            )
         values
             (
             @application_id
@@ -99,6 +137,7 @@ begin try
 			, @database
             , @app_admin_user
             , @app_admin_password
+            , @app_admin_totp_secret
 			, @JWTIssuer
 			, @JWTAudience
 			, @JWTKey
@@ -244,6 +283,7 @@ begin try
 			, vc_server = @server
 			, vc_user = @user
 			, vc_app_admin_user = @app_admin_user
+			, vc_app_admin_totp_secret = isnull(@app_admin_totp_secret, vc_app_admin_totp_secret)
 			, vc_password = @password
 			, vc_database = @database
 			, vc_JWTIssuer = @JWTIssuer
