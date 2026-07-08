@@ -15,7 +15,7 @@ public interface ITotpService
 
     Task<TotpServiceResult> HandleLoginTotpRegistration(IAuthenticationProvider auth, string app_id, TwoFactorRegistrationRequest request, CancellationToken ct);
 
-    bool VerifyCode(string secret, string code, string securityStampModifier = "Authenticator", TotpSupportedDigits digits = TotpSupportedDigits.Six);
+    bool VerifyCode(string secret, string code, string? securityStampModifier = null, TotpSupportedDigits digits = TotpSupportedDigits.Six);
 
     string GetAuthenticatorUri(string username, string secret, string issuer = "MicroM", TotpSupportedDigits digits = TotpSupportedDigits.Six);
 

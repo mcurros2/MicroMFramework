@@ -2,7 +2,7 @@ import { Anchor, Button, Checkbox, Group, Image, PasswordInput, PinInput, Stack,
 import { useForm } from "@mantine/form";
 import { IconMailCheck } from "@tabler/icons-react";
 import { useCallback, useEffect, useState } from "react";
-import { MicroMClient, MicroMToken, OperationStatus, StatusCompletedHandler, toMicroMError, TwoFactorLoginResult } from "../../client";
+import { MicroMClient, MicroMToken, OperationStatus, StatusCompletedHandler, toMicroMError, TotpSetupStartResponse, TwoFactorLoginResult } from "../../client";
 import { AlertError, FakeProgressBar, RecoverPasswordEmail, useModal } from "../Core";
 
 export interface LoginOptions {
@@ -22,7 +22,7 @@ export interface LoginOptions {
     verifyCodeButtonLabel?: string,
     twoFactorTitle?: string,
     twoFactorDescription?: string,
-    twoFactorProviderLabel?: string,
+    registerAuthenticatorLabel?: string,
     cancelTwoFactorButtonLabel?: string,
 }
 
@@ -37,11 +37,11 @@ export const LoginDefaultProps: Partial<LoginOptions> = {
     loginErrorMessage: "Unknown user name or bad password",
     confirmRecoveryEmailTitle: "Recovery email",
     codeLabel: "Authentication code",
-    codePlaceholder: "123456",
+    codePlaceholder: "1",
     verifyCodeButtonLabel: "Verify code",
     twoFactorTitle: "Two-factor authentication",
     twoFactorDescription: "Enter the 6-digit code from your authenticator app.",
-    twoFactorProviderLabel: "Provider",
+    registerAuthenticatorLabel: "Register authenticator",
     cancelTwoFactorButtonLabel: "Back",
 }
 
@@ -51,7 +51,7 @@ export function Login(props: LoginOptions) {
     const {
         client, onStatusCompleted, userLabel, userPlaceholder, passwordLabel, passwordPlaceholder,
         rememberLabel, forgotLabel, signInButtonLabel, loginErrorMessage, confirmRecoveryEmailTitle, codeLabel, codePlaceholder, verifyCodeButtonLabel,
-        twoFactorTitle, twoFactorDescription, twoFactorProviderLabel, cancelTwoFactorButtonLabel,
+        twoFactorTitle, twoFactorDescription, registerAuthenticatorLabel, cancelTwoFactorButtonLabel,
     } = useComponentDefaultProps('Login', LoginDefaultProps, props);
 
     const modal = useModal();
@@ -69,6 +69,8 @@ export function Login(props: LoginOptions) {
 
     const [status, setStatus] = useState<OperationStatus<MicroMToken | TwoFactorLoginResult>>();
     const [twoFactorState, setTwoFactorState] = useState<TwoFactorLoginResult>();
+    const [totpRegistration, setTotpRegistration] = useState<TotpSetupStartResponse>();
+    const [totpRegistrationStatus, setTotpRegistrationStatus] = useState<OperationStatus<TotpSetupStartResponse>>();
 
     const handleClick = useCallback(async (values: LoginValues) => {
         setStatus({ loading: true });
@@ -76,6 +78,8 @@ export function Login(props: LoginOptions) {
             const data = await client.login(values.user, values.password, values.rememberme);
             if ('requires_two_factor' in data && data.requires_two_factor) {
                 setTwoFactorState(data);
+                setTotpRegistration(undefined);
+                setTotpRegistrationStatus(undefined);
                 setStatus(undefined);
                 return;
             }
@@ -107,6 +111,20 @@ export function Login(props: LoginOptions) {
         }
     }, [client, onStatusCompleted, twoFactorState]);
 
+    const handleRegisterAuthenticatorClick = useCallback(async () => {
+        if (!twoFactorState?.two_factor_challenge_id) return;
+
+        setTotpRegistrationStatus({ loading: true });
+        try {
+            const data = await client.registerLoginTotp(twoFactorState.two_factor_challenge_id);
+            setTotpRegistration(data);
+            setTotpRegistrationStatus({ data });
+        }
+        catch (e) {
+            setTotpRegistrationStatus({ error: toMicroMError(e) });
+        }
+    }, [client, twoFactorState]);
+
     const handleForgotPasswordClick = useCallback(async () => {
         await modal.open({
             modalProps: {
@@ -119,6 +137,8 @@ export function Login(props: LoginOptions) {
 
     const handleCancelTwoFactorClick = useCallback(() => {
         setTwoFactorState(undefined);
+        setTotpRegistration(undefined);
+        setTotpRegistrationStatus(undefined);
         setStatus(undefined);
         form.setFieldValue('code', '');
     }, [form]);
@@ -144,9 +164,12 @@ export function Login(props: LoginOptions) {
                             <Text weight={700}>{twoFactorTitle}</Text>
                             <Text size="sm" color="dimmed">{twoFactorDescription}</Text>
                         </Stack>
-                        {twoFactorState.two_factor_setup_required && twoFactorState.qr_code_data_url &&
-                            <Image src={twoFactorState.qr_code_data_url} alt={twoFactorTitle} width={180} height={180} fit="contain" mx="auto" />
+                        {(totpRegistration?.qr_code_data_url || twoFactorState.qr_code_data_url) &&
+                            <Image src={totpRegistration?.qr_code_data_url ?? twoFactorState.qr_code_data_url} alt={twoFactorTitle} width={180} height={180} fit="contain" mx="auto" />
                         }
+                        <Anchor component="button" type="button" size="sm" disabled={status?.loading || totpRegistrationStatus?.loading} onClick={() => void handleRegisterAuthenticatorClick()}>
+                            {registerAuthenticatorLabel}
+                        </Anchor>
                         <PinInput length={6} oneTimeCode type="number" aria-label={codeLabel} placeholder={codePlaceholder} disabled={status?.loading} {...form.getInputProps('code')} />
                         <Button key="login2fa" type="button" fullWidth disabled={status?.loading || form.values.code.length !== 6} onClick={() => void handleTwoFactorClick(form.values)}>
                             {verifyCodeButtonLabel}
@@ -173,6 +196,9 @@ export function Login(props: LoginOptions) {
             </form>
             <AlertError mt="xs" hidden={status?.error === undefined}>{
                 (status?.error !== undefined && status.error.name === 'validation') ? status.error.message : loginErrorMessage
+            }</AlertError>
+            <AlertError mt="xs" hidden={totpRegistrationStatus?.error === undefined}>{
+                totpRegistrationStatus?.error?.errorBody || totpRegistrationStatus?.error?.message || loginErrorMessage
             }</AlertError>
         </>
     );

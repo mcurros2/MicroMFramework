@@ -279,11 +279,9 @@ public class TotpService(
         return otp.ToString("D6", CultureInfo.InvariantCulture);
     }
 
-    public bool VerifyCode(string secret, string code, string securityStampModifier = "Authenticator", TotpSupportedDigits digits = TotpSupportedDigits.Six)
+    public bool VerifyCode(string secret, string code, string? securityStampModifier = null, TotpSupportedDigits digits = TotpSupportedDigits.Six)
     {
         if (string.IsNullOrEmpty(secret) || string.IsNullOrEmpty(code)) return false;
-
-        if (string.IsNullOrEmpty(securityStampModifier)) return false;
 
         if (code.Length != (int)digits || code.Any(c => !char.IsDigit(c))) return false;
 
@@ -300,10 +298,14 @@ public class TotpService(
 
         if (secretBytes.Length < 16) return false;
 
-        // Use the same TOTP algorithm that Identity uses (RFC 6238)
-        // Identity's implementation is internal, so we replicate the standard algorithm
-        byte[] modifier = Encoding.UTF8.GetBytes(securityStampModifier);
-        if (modifier.Length > 1024) return false;
+        byte[]? modifierBytes = null;
+        ReadOnlySpan<byte> modifier = ReadOnlySpan<byte>.Empty;
+        if (!string.IsNullOrEmpty(securityStampModifier))
+        {
+            modifierBytes = Encoding.UTF8.GetBytes(securityStampModifier);
+            if (modifierBytes.Length > 1024) return false;
+            modifier = modifierBytes;
+        }
 
         // Try current timestep and ±1 timestep for clock drift tolerance
         var unixTimestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();

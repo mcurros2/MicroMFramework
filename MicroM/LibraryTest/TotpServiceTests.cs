@@ -34,17 +34,31 @@ public class TotpServiceTests
     }
 
     [TestMethod]
-    public void VerifyCode_UsesDefaultModifier()
+    public void ComputeTotp_AllowsEmptyModifier()
+    {
+        byte[] key = Base32Decode(TestSecret);
+        ulong timestep = (ulong)(DateTimeOffset.UtcNow.ToUnixTimeSeconds() / 30);
+
+        string code = TotpService.ComputeTotp(key, timestep, ReadOnlySpan<byte>.Empty);
+
+        Assert.AreEqual(6, code.Length);
+        foreach (char c in code)
+        {
+            Assert.IsTrue(char.IsDigit(c));
+        }
+    }
+
+    [TestMethod]
+    public void VerifyCode_UsesEmptyModifierByDefault()
     {
         TotpService service = new();
         byte[] key = Base32Decode(TestSecret);
-        byte[] modifier = Encoding.UTF8.GetBytes("Authenticator");
         ulong timestep = (ulong)(DateTimeOffset.UtcNow.ToUnixTimeSeconds() / 30);
-        string code = TotpService.ComputeTotp(key, timestep, modifier);
+        string code = TotpService.ComputeTotp(key, timestep, ReadOnlySpan<byte>.Empty);
 
-        bool verified = service.VerifyCode(TestSecret, code);
-
-        Assert.IsTrue(verified);
+        Assert.IsTrue(service.VerifyCode(TestSecret, code));
+        Assert.IsTrue(service.VerifyCode(TestSecret, code, null));
+        Assert.IsTrue(service.VerifyCode(TestSecret, code, ""));
     }
 
     [TestMethod]

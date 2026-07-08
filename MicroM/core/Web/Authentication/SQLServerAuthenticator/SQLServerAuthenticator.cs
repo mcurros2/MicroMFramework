@@ -77,11 +77,6 @@ public class SQLServerAuthenticator : IAuthenticator
         return $"{app_config.ApplicationID}.{username}";
     }
 
-    private static string GetTotpModifier(ApplicationOption app_config, string username)
-    {
-        return $"SQLServerAdministrator:{app_config.ApplicationID}:{username}";
-    }
-
     private void SetTwoFactorChallengeResult(ApplicationOption app_config, UserLogin user_login, AuthenticatorResult result)
     {
         string encryptedPassword = _encryptor.Encrypt(user_login.Password);
@@ -106,6 +101,55 @@ public class SQLServerAuthenticator : IAuthenticator
         result.ServerClaims[MicroMServerClaimTypes.MicroMUserType_id] = nameof(UserTypes.ADMIN);
         result.ServerClaims[MicroMServerClaimTypes.MicroMUserDeviceID] = "none";
         result.ServerClaims[MicroMServerClaimTypes.MicroMUserGroups] = (List<string>)[];
+    }
+
+    private async Task<bool> EnsureSqlAdminTotpSecret(ApplicationOption app_config, CancellationToken ct)
+    {
+        if (!string.IsNullOrWhiteSpace(app_config.SQLAdminTotpSecret)) return true;
+
+        string secret = _totpService.GenerateSecret();
+
+        if (app_config.ApplicationID.Equals(ConfigurationDefaults.ControlPanelAppID, StringComparison.OrdinalIgnoreCase))
+        {
+            string configPath = Path.Combine(ConfigurationDefaults.SecretsFilePath, ConfigurationDefaults.MicroMCommonID);
+            string configFile = Path.Combine(configPath, ConfigurationDefaults.SecretsFilename);
+            if (!File.Exists(configFile))
+            {
+                _log.LogWarning("SQL admin TOTP secret for Control Panel could not be created because the secrets file does not exist.");
+                return false;
+            }
+
+            string encrypted = await File.ReadAllTextAsync(configFile, ct);
+            SecretsOptions? secrets = _encryptor.DecryptObject<SecretsOptions>(encrypted);
+            if (secrets == null)
+            {
+                _log.LogWarning("SQL admin TOTP secret for Control Panel could not be created because the secrets file could not be decrypted.");
+                return false;
+            }
+
+            secrets.ControlPanelAdminTotpSecret = secret;
+            Directory.CreateDirectory(configPath);
+            await File.WriteAllTextAsync(configFile, _encryptor.EncryptObject(secrets), ct);
+            app_config.SQLAdminTotpSecret = secret;
+            return true;
+        }
+
+        var controlPanel = _app_config.GetAppConfiguration(ConfigurationDefaults.ControlPanelAppID);
+        if (controlPanel == null || string.IsNullOrWhiteSpace(controlPanel.SQLServer) || string.IsNullOrWhiteSpace(controlPanel.SQLDB))
+        {
+            _log.LogWarning("SQL admin TOTP secret for APP_ID {app_id} could not be created because the configuration database is unavailable.", app_config.ApplicationID);
+            return false;
+        }
+
+        using var configDb = controlPanel.CreateDatabaseClient(_log, null, null);
+        var result = await global::MicroM.Configuration.Entities.Applications.SetAdminTotpSecret(app_config, secret, configDb, _encryptor, ct);
+        if (result.Failed)
+        {
+            _log.LogWarning("SQL admin TOTP secret for APP_ID {app_id} could not be created. Result: {result}", app_config.ApplicationID, result.Results?.FirstOrDefault()?.Message);
+            return false;
+        }
+
+        return true;
     }
 
     private void FinalizeSuccessfulLogin(ApplicationOption app_config, string username, string encryptedPassword, AuthenticatorResult result, bool isAdmin)
@@ -178,9 +222,9 @@ public class SQLServerAuthenticator : IAuthenticator
                     return result;
                 }
 
-                if (string.IsNullOrWhiteSpace(app_config.SQLAdminTotpSecret))
+                if (!await EnsureSqlAdminTotpSecret(app_config, ct))
                 {
-                    _log.LogError("SQL admin TOTP is enabled but APP_ID {app_id} has no configured TOTP secret. Startup reconciliation should create it before admin login.", app_config.ApplicationID);
+                    _log.LogError("SQL admin TOTP is enabled but APP_ID {app_id} has no configured TOTP secret and one could not be created.", app_config.ApplicationID);
                     result.PasswordVerificationResult = PasswordVerificationResult.Failed;
                     return result;
                 }
@@ -330,7 +374,7 @@ public class SQLServerAuthenticator : IAuthenticator
             return result;
         }
 
-        bool isValidCode = _totpService.VerifyCode(app_config.SQLAdminTotpSecret, code, GetTotpModifier(app_config, challenge.Username));
+        bool isValidCode = _totpService.VerifyCode(app_config.SQLAdminTotpSecret, code);
         if (!isValidCode)
         {
             _log.LogWarning("SQL admin TOTP verification failed: invalid code for user {username}.", challenge.Username);
