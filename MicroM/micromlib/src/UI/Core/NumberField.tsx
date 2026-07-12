@@ -30,7 +30,7 @@ export const NumberField = forwardRef<HTMLInputElement, NumberFieldProps>(functi
 
     const {
         column, entityForm, validate, validationContainer, required, requiredMessage, readOnly, label,
-        placeholder, description, withAsterisk, autoFocus, maxWidth, minWidth, maw, miw, ...others
+        placeholder, description, withAsterisk, autoFocus, maxWidth, minWidth, maw, miw, precision, ...others
     } = useComponentDefaultProps('NumberField', defaultProps, props);
 
     useFieldConfiguration({ entityForm, column, validationContainer, validate, required, requiredMessage, readOnly });
@@ -54,7 +54,7 @@ export const NumberField = forwardRef<HTMLInputElement, NumberFieldProps>(functi
             readOnly={entityForm.formMode === 'view' ? true : readOnly}
             data-autofocus={autoFocus === 'autoFocusOnAdd' ? add_autofocus : autoFocus === 'autoFocusOnEdit' ? edit_autofocus : autoFocus}
             autoFocus={autoFocus === 'autoFocusOnAdd' ? add_autofocus : autoFocus === 'autoFocusOnEdit' ? edit_autofocus : autoFocus}
-            precision={column.scale}
+            precision={precision ?? column.scale}
             maw={maw ?? resolved_maxWidth}
             miw={miw ?? resolved_minWidth}
             {...entityForm.form.getInputProps(column.name)}
