@@ -69,6 +69,7 @@ public static class DataDictionarySchema
         result.TryAddType<MicromUsersGroupsMenus>();
         result.TryAddType<MicromUsersDevices>();
         result.TryAddType<MicromUsersLoginHistory>();
+        result.TryAddType<MicromUsersAuthenticators>();
         result.TryAddType<MicromMenus>();
         result.TryAddType<MicromMenusItems>();
         result.TryAddType<MicromMenusItemsAllowedRoutes>();
@@ -120,6 +121,7 @@ public static class DataDictionarySchema
             ec == null ? new MicromUsersGroups(schema_name) : new MicromUsersGroups(ec, schema_name: schema_name),
             ec == null ? new MicromUsersDevices(schema_name) : new MicromUsersDevices(ec, schema_name: schema_name),
             ec == null ? new MicromUsersGroupsMembers(schema_name) : new MicromUsersGroupsMembers(ec, schema_name: schema_name),
+            ec == null ? new MicromUsersAuthenticators(schema_name) : new MicromUsersAuthenticators(ec, schema_name: schema_name),
             ec == null ? new MicromMenus(schema_name) : new MicromMenus(ec, schema_name: schema_name),
             ec == null ? new MicromMenusItems(schema_name) : new MicromMenusItems(ec, schema_name: schema_name),
             ec == null ? new MicromMenusItemsAllowedRoutes(schema_name) : new MicromMenusItemsAllowedRoutes(ec, schema_name: schema_name),
