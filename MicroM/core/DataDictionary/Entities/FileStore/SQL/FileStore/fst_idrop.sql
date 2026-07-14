@@ -19,6 +19,9 @@ end
 
 begin try
     
+    delete  [dbo].file_store_content
+    where   c_file_id = @file_id
+
     delete  [dbo].file_store_status
     where   c_file_id = @file_id
 

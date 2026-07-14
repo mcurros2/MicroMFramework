@@ -68,5 +68,7 @@
         /// </summary>
         public static long DefaultUploadFileSizeLimitBytes { get; set; } = 30 * 1024 * 1024;
 
+        public static int ExcelMaxAllowedRowsPerSheet { get; set; } = 1_048_575;
+
     }
 }

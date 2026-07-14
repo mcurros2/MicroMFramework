@@ -4,9 +4,9 @@ using MicroM.Web.Services;
 
 namespace MicroM.DataDictionary.Entities;
 
-public class MicromMenusItemsRoutesDef : EntityDefinition
+public class MicromMenusItemsAllowedRoutesDef : EntityDefinition
 {
-    public MicromMenusItemsRoutesDef() : base("mir", nameof(MicromMenusItemsAllowedRoutes)) { SQLCreationOptions = SQLCreationOptionsMetadata.WithIUpdate; }
+    public MicromMenusItemsAllowedRoutesDef() : base("mir", nameof(MicromMenusItemsAllowedRoutes)) { SQLCreationOptions = SQLCreationOptionsMetadata.WithIUpdate; }
 
     public readonly Column<string> c_menu_id = Column<string>.PK(size: 50);
     public readonly Column<string> c_menu_item_id = Column<string>.PK(size: 50);
@@ -24,7 +24,7 @@ public class MicromMenusItemsRoutesDef : EntityDefinition
 
 }
 
-public class MicromMenusItemsAllowedRoutes : Entity<MicromMenusItemsRoutesDef>
+public class MicromMenusItemsAllowedRoutes : Entity<MicromMenusItemsAllowedRoutesDef>
 {
     public MicromMenusItemsAllowedRoutes() : base() { }
     public MicromMenusItemsAllowedRoutes(string? schema_name) : base(schema_name) { }

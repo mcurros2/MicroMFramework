@@ -1,5 +1,6 @@
 ﻿using MicroM.Configuration;
 using MicroM.Data;
+using MicroM.Extensions;
 using MicroM.Web.Authentication;
 using MicroM.Web.Services;
 using MicroM.Web.Services.Security;
@@ -7,7 +8,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Runtime.CompilerServices;
-using System.Threading.Channels;
 using static MicroM.Excel.ExcelWriter;
 using static MicroM.Web.Controllers.MicroMControllersMessages;
 
@@ -316,14 +316,6 @@ public class EntitiesController() : ControllerBase, IEntitiesController
         }
     }
 
-    private static async IAsyncEnumerable<object?[]> StreamRows(ChannelReader<object?[]> rows, [EnumeratorCancellation] CancellationToken ct)
-    {
-        await foreach (var row in rows.ReadAllAsync(ct))
-        {
-            yield return row;
-        }
-    }
-
     [Authorize(policy: nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy))]
     [HttpPost("{app_id}/ent/{entityName}/viewstream/{viewName}")]
     public async IAsyncEnumerable<object> ViewStream([FromServices] IAuthenticationProvider auth, [FromServices] IMicroMAppConfiguration app_config, [FromServices] IEntitiesService ents, string app_id, string entityName, string viewName, [FromBody] DataWebAPIRequest parms, [EnumeratorCancellation] CancellationToken ct)
@@ -346,7 +338,7 @@ public class EntitiesController() : ControllerBase, IEntitiesController
             {
                 resultSet.Header,
                 resultSet.typeInfo,
-                records = StreamRows(resultSet.records.Reader, ct)
+                records = resultSet.records.Reader.StreamRows(ct)
             };
         }
 
@@ -377,7 +369,7 @@ public class EntitiesController() : ControllerBase, IEntitiesController
             {
                 resultSet.Header,
                 resultSet.typeInfo,
-                records = StreamRows(resultSet.records.Reader, ct)
+                records = resultSet.records.Reader.StreamRows(ct)
             };
         }
 
@@ -386,7 +378,6 @@ public class EntitiesController() : ControllerBase, IEntitiesController
         await producerTask;
     }
 
-    const int MAX_EXCEL_ROWS = 1048575; // MAX allowed rows per sheet (DataResult.records)
 
     [Authorize(policy: nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy))]
     [HttpPost("{app_id}/ent/{entityName}/viewtoexcel/{viewName}")]
@@ -400,7 +391,7 @@ public class EntitiesController() : ControllerBase, IEntitiesController
 
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
 
-        Task producerTask = ents.HandleExecuteViewChannel(app, entityName, viewName, parms, ec, resultChannel, ct, records_channel_capacity: DataDefaults.DefaultChannelExportToExcelBuffer, complete_channel: true, max_allowed_rows: MAX_EXCEL_ROWS);
+        Task producerTask = ents.HandleExecuteViewChannel(app, entityName, viewName, parms, ec, resultChannel, ct, records_channel_capacity: DataDefaults.DefaultChannelExportToExcelBuffer, complete_channel: true, max_allowed_rows: DataDefaults.ExcelMaxAllowedRowsPerSheet);
 
         try
         {
@@ -435,7 +426,7 @@ public class EntitiesController() : ControllerBase, IEntitiesController
 
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
 
-        Task producerTask = ents.HandleExecuteProcChannel(app, entityName, procName, parms, ec, resultChannel, cts.Token, records_channel_capacity: DataDefaults.DefaultChannelExportToExcelBuffer, complete_channel: true, max_allowed_rows: MAX_EXCEL_ROWS);
+        Task producerTask = ents.HandleExecuteProcChannel(app, entityName, procName, parms, ec, resultChannel, cts.Token, records_channel_capacity: DataDefaults.DefaultChannelExportToExcelBuffer, complete_channel: true, max_allowed_rows: DataDefaults.ExcelMaxAllowedRowsPerSheet);
 
         try
         {
