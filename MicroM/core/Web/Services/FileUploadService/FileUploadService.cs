@@ -243,6 +243,7 @@ public class FileUploadService(
                     // MMC: check for directory traversal attacks
                     if (!filePath.StartsWith(uploadsPath, StringComparison.OrdinalIgnoreCase))
                     {
+                        log.LogWarning("File {fileguid} path {filePath} is not valid to serve. Uploads path: {uploadsPath}", fileguid, filePath, uploadsPath);
                         return null;
                     }
 
@@ -274,6 +275,53 @@ public class FileUploadService(
         }
 
         return cacheEntry;
+    }
+
+    public async Task<FileDetails[]?> GetAllFileDetails(ApplicationOption app, string fileprocess, IEntityClient ec, CancellationToken ct)
+    {
+        try
+        {
+            await ec.Connect(ct);
+
+            var fileStore = new FileStore(ec, schema_name: app.SchemaConfiguration.DDSchema);
+
+            fileStore.Def.fst_brwFiles.Parms[nameof(fileStore.Def.c_fileprocess_id)].Column.ValueObject = fileprocess;
+
+            var fileDetailsList = await fileStore.ExecuteProc<FileDetails>(
+                fileStore.Def.fst_brwFiles.Proc,
+                ct,
+                set_parms_from_columns: false,
+                mode: AutoMapperMode.ByNameLaxNotThrow);
+
+            foreach (var fileDetails in fileDetailsList)
+            {
+                if (fileDetails.c_fileuploadstatus_id == nameof(FileUpload.Uploaded))
+                {
+                    var uploadsPath = Path.Combine(_options.UploadsFolder!, app.ApplicationID, fileDetails.vc_filefolder);
+                    var filePath = Path.GetFullPath(Path.Combine(uploadsPath, fileDetails.vc_fileguid));
+
+                    // MMC: check for directory traversal attacks
+                    if (!filePath.StartsWith(uploadsPath, StringComparison.OrdinalIgnoreCase))
+                    {
+                        log.LogWarning("File {fileguid} path {filePath} is not valid to serve. Uploads path: {uploadsPath}", fileDetails.vc_fileguid, filePath, uploadsPath);
+                        continue;
+                    }
+
+                    fileDetails.fullPath = filePath;
+                }
+            }
+
+            return [.. fileDetailsList];
+        }
+        catch (Exception ex)
+        {
+            log.LogError(ex, "Error retrieving all files for process {fileprocess}", fileprocess);
+            return null;
+        }
+        finally
+        {
+            await ec.Disconnect();
+        }
     }
 
     public async Task<GetFileStreamResult?> ServeFile(ApplicationOption app, string fileguid, IEntityClient ec, CancellationToken ct)

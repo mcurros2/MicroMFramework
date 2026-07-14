@@ -111,6 +111,7 @@ begin try
 
     update  [dbo].[file_store]
     set     bi_filesize = @filesize
+            , vc_file_tag = @file_tag
             , vc_webluuser = @webusr
             , vc_luuser = @login
             , dt_lu = @now
