@@ -37,7 +37,9 @@ public class AuthenticationService(
             requires_two_factor = authenticatorResult.RequiresTwoFactor,
             two_factor_challenge_id = authenticatorResult.TwoFactorChallengeId,
             two_factor_provider = authenticatorResult.TwoFactorProvider,
+            two_factor_flow = authenticatorResult.TwoFactorFlow,
             two_factor_setup_required = authenticatorResult.TwoFactorSetupRequired,
+            authenticator_management_required = authenticatorResult.AuthenticatorManagementRequired,
             qr_code_data_url = authenticatorResult.QrCodeDataUrl
         };
     }

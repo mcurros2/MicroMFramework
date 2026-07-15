@@ -7,6 +7,8 @@ public interface IAuthenticator
 {
     public const string AuthenticatorRecoveryEmailTemplateID = "RECOVERY";
     public const string AuthenticatorRecoveryEmailTemplateCodeTAG = "{RECOVERY_CODE}";
+    public const string AuthenticatorTotpEmailTemplateID = "TOTP_LOGIN";
+    public const string AuthenticatorTotpEmailTemplateCodeTAG = "{TOTP_CODE}";
 
     public abstract Task<AuthenticatorResult> AuthenticateLogin(ApplicationOption app_config, UserLogin user_login, CancellationToken ct);
 

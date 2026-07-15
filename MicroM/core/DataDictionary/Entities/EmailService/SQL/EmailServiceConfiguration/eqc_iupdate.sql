@@ -21,6 +21,7 @@ begin try
     declare @cu datetime, @now datetime=getdate(), @login sysname=original_login()
 
     declare @email_template_id char(20)='RECOVERY'
+    declare @totp_template_id char(20)='TOTP_LOGIN'
 
     select  @cu=dt_lu
     from    [dbo].[email_service_configuration] with (rowlock, holdlock, updlock)
@@ -35,6 +36,23 @@ begin try
             @email_template_id
             , @template_subject
             , @template_body
+            , @now
+            , @now
+            , @webusr
+            , @webusr
+            , @login
+            , @login
+            )
+    end
+
+    if not exists(select 1 from [dbo].[email_service_templates] where c_email_template_id=@totp_template_id)
+    begin
+        insert  [dbo].[email_service_templates]
+        values
+            (
+            @totp_template_id
+            , 'Two-factor authentication code'
+            , 'Your two-factor authentication code is {TOTP_CODE}. If you did not request this code, contact support.'
             , @now
             , @now
             , @webusr

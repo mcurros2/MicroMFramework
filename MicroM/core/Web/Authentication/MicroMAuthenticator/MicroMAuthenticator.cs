@@ -104,23 +104,8 @@ public class MicroMAuthenticator(
                         {
                             result.RequiresTwoFactor = true;
                             result.TwoFactorProvider = "Authenticator";
-
-                            if (string.IsNullOrWhiteSpace(login_data.totp_secret))
-                            {
-                                string secret = _totpService.GenerateSecret();
-                                var setupResult = await MicromUsers.SetTotpSecret(app_config, user_login.Username, secret, ec, ct);
-                                if (setupResult.Failed)
-                                {
-                                    _log.LogWarning("TOTP setup bootstrap failed: APP_ID {app_id} User: {username}", app_config.ApplicationID, user_login.Username);
-                                    result.RequiresTwoFactor = false;
-                                    result.TwoFactorProvider = null;
-                                    result.TwoFactorChallengeId = null;
-                                    result.PasswordVerificationResult = PasswordVerificationResult.Failed;
-                                    return result;
-                                }
-
-                                login_data.totp_secret = secret;
-                            }
+                            int authenticatorCount = await MicromUsersAuthenticators.CountByUser(app_config, login_data.user_id, ec, ct);
+                            string flow = authenticatorCount > 0 ? TwoFactorFlows.Authenticator : TwoFactorFlows.EmailSetup;
 
                             // Create a short-lived challenge ID
                             string challengeId = _challengeStore.CreateChallenge(
@@ -128,10 +113,24 @@ public class MicroMAuthenticator(
                                 user_login.Username,
                                 device_id,
                                 app_config.ApplicationID,
-                                user_login.LocalDeviceID ?? ""
+                                user_login.LocalDeviceID ?? "",
+                                new(StringComparer.OrdinalIgnoreCase)
+                                {
+                                    [TwoFactorChallengeMetadataKeys.Flow] = flow
+                                }
                             );
 
                             result.TwoFactorChallengeId = challengeId;
+                            result.TwoFactorFlow = flow;
+
+                            if (authenticatorCount == 0)
+                            {
+                                var emailResult = await SendTwoFactorEmailCode(app_config, challengeId, TwoFactorFlows.EmailSetup, ct);
+                                if (!emailResult.Result)
+                                {
+                                    result.TwoFactorFlow = TwoFactorFlows.SupportRequired;
+                                }
+                            }
 
                             // Password is correct but we need second factor - do not update login attempt yet
                             // Set basic server claims for challenge tracking
@@ -319,6 +318,74 @@ public class MicroMAuthenticator(
     }
 
     public void UnencryptClaims(Dictionary<string, object>? server_claims) { }
+
+    public async Task<ResultWithStatus<bool, string>> SendTwoFactorEmailCode(ApplicationOption app_config, string challengeId, string flow, CancellationToken ct)
+    {
+        var challenge = _challengeStore.GetChallenge(challengeId);
+        if (challenge == null || DateTime.UtcNow > challenge.ExpiresUtc || !challenge.ApplicationId.Equals(app_config.ApplicationID, StringComparison.OrdinalIgnoreCase))
+        {
+            if (challenge != null) _challengeStore.RemoveChallenge(challengeId);
+            return new(false, "The two-factor challenge is invalid or expired.");
+        }
+
+        if (!flow.Equals(TwoFactorFlows.EmailSetup, StringComparison.OrdinalIgnoreCase) && !flow.Equals(TwoFactorFlows.EmailRecovery, StringComparison.OrdinalIgnoreCase))
+        {
+            return new(false, "Unsupported two-factor email flow.");
+        }
+
+        using DatabaseClient ec = app_config.CreateDatabaseClient(_log, _deviceIdService, null);
+        try
+        {
+            await ec.Connect(ct);
+
+            var templates = new EmailServiceTemplates(ec);
+            templates.Def.c_email_template_id.Value = IAuthenticator.AuthenticatorTotpEmailTemplateID;
+            await templates.GetData(ct);
+
+            if (string.IsNullOrEmpty(templates.Def.vc_template_body.Value) || string.IsNullOrEmpty(templates.Def.vc_template_subject.Value))
+            {
+                _log.LogWarning("{app_id} No email template found for TOTP email", app_config.ApplicationID);
+                return new(false, "No email template found for TOTP email.");
+            }
+
+            var emails = await MicromUsers.GetRecoveryEmails(app_config, challenge.Username, ec, ct);
+            if (emails == null || emails.Count == 0)
+            {
+                _log.LogWarning("{app_id} No emails found for TOTP user: {user_name}", app_config.ApplicationID, challenge.Username);
+                return new(false, "No email is configured for this user.");
+            }
+
+            string secret = _totpService.GenerateSecret();
+            string code = _totpService.GenerateCurrentCode(secret);
+            challenge.Metadata[TwoFactorChallengeMetadataKeys.Flow] = flow;
+            challenge.Metadata[TwoFactorChallengeMetadataKeys.EmailTotpSecret] = secret;
+
+            EmailServiceTags codeTag = new() { tag = IAuthenticator.AuthenticatorTotpEmailTemplateCodeTAG, value = code };
+            EmailServiceDestination[] destinations = emails.Select(e =>
+                new EmailServiceDestination
+                {
+                    reference_id = Guid.NewGuid().ToString(),
+                    destination_name = "",
+                    destination_email = e,
+                    tags = [codeTag]
+                }).ToArray();
+
+            EmailServiceItem email = new()
+            {
+                EmailServiceConfigurationId = app_config.ApplicationID,
+                SubjectTemplate = templates.Def.vc_template_subject.Value,
+                MessageTemplate = templates.Def.vc_template_body.Value,
+                Destinations = destinations,
+            };
+
+            await _emailService.QueueEmail(app_config.ApplicationID, email, ct, true);
+            return new(true, null);
+        }
+        finally
+        {
+            await ec.Disconnect();
+        }
+    }
 
     public async Task<ResultWithStatus<bool, string>> SendPasswordRecoveryEmail(ApplicationOption app_config, string user_name, CancellationToken ct)
     {
@@ -598,16 +665,37 @@ public class MicroMAuthenticator(
                 return result;
             }
 
-            // Verify TOTP code
-            if (string.IsNullOrEmpty(login_data.totp_secret))
-            {
-                _log.LogWarning("TOTP verification failed: user {Username} has no TOTP secret", challenge.Username);
-                _challengeStore.RemoveChallenge(challengeId);
-                result.PasswordVerificationResult = PasswordVerificationResult.Failed;
-                return result;
-            }
+            string flow = challenge.Metadata.TryGetValue(TwoFactorChallengeMetadataKeys.Flow, out string? challengeFlow)
+                ? challengeFlow
+                : TwoFactorFlows.Authenticator;
 
-            bool isValidCode = _totpService.VerifyCode(login_data.totp_secret, code);
+            bool isValidCode = false;
+            bool requiresAuthenticatorManagement = false;
+
+            if (flow.Equals(TwoFactorFlows.EmailSetup, StringComparison.OrdinalIgnoreCase) || flow.Equals(TwoFactorFlows.EmailRecovery, StringComparison.OrdinalIgnoreCase))
+            {
+                if (!challenge.Metadata.TryGetValue(TwoFactorChallengeMetadataKeys.EmailTotpSecret, out string? emailSecret) || string.IsNullOrWhiteSpace(emailSecret))
+                {
+                    _log.LogWarning("TOTP verification failed: email challenge {ChallengeId} has no server TOTP secret", challengeId);
+                    result.PasswordVerificationResult = PasswordVerificationResult.Failed;
+                    return result;
+                }
+
+                isValidCode = _totpService.VerifyCode(emailSecret, code);
+                requiresAuthenticatorManagement = true;
+            }
+            else
+            {
+                var authenticators = await MicromUsersAuthenticators.GetByUser(app_config, login_data.user_id, ec, ct);
+                if (authenticators.Count == 0)
+                {
+                    _log.LogWarning("TOTP verification failed: user {Username} has no registered authenticators", challenge.Username);
+                    result.PasswordVerificationResult = PasswordVerificationResult.Failed;
+                    return result;
+                }
+
+                isValidCode = authenticators.Any(item => !string.IsNullOrWhiteSpace(item.totp_secret) && _totpService.VerifyCode(item.totp_secret, code));
+            }
 
             if (!isValidCode)
             {
@@ -632,6 +720,7 @@ public class MicroMAuthenticator(
             await FinalizeSuccessfulLogin(app_config, temp_login, login_data, device_id, ipaddress, user_agent, result, ec, ct);
 
             result.PasswordVerificationResult = PasswordVerificationResult.Success;
+            result.AuthenticatorManagementRequired = requiresAuthenticatorManagement;
         }
         finally
         {

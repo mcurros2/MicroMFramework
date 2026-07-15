@@ -77,16 +77,18 @@ public class TotpServiceTests
     }
 
     [TestMethod]
-    public void TotpSetupStartResponse_SerializesOnlyQrCodeDataUrl()
+    public void TotpSetupStartResponse_SerializesOnlyPublicSetupFields()
     {
         TotpSetupStartResponse response = new()
         {
+            setup_challenge_id = "challenge",
             qr_code_data_url = "data:image/png;base64,test"
         };
 
         string json = JsonSerializer.Serialize(response);
 
         Assert.IsTrue(json.Contains("qr_code_data_url", StringComparison.Ordinal));
+        Assert.IsTrue(json.Contains("setup_challenge_id", StringComparison.Ordinal));
         Assert.IsFalse(json.Contains("secret", StringComparison.Ordinal));
         Assert.IsFalse(json.Contains("manual_entry_key", StringComparison.Ordinal));
         Assert.IsFalse(json.Contains("authenticator_uri", StringComparison.Ordinal));
@@ -101,7 +103,7 @@ public class TotpServiceTests
         TotpService service = new(app_config: appConfig.Object);
         Mock<IAuthenticationProvider> auth = new();
 
-        TotpServiceResult result = await service.HandleStartTotpSetup(auth.Object, "missing", "user", [], CancellationToken.None);
+        TotpServiceResult result = await service.HandleStartTotpSetup(auth.Object, "missing", "user", new TotpSetupRequest { AuthenticatorName = "Phone" }, [], CancellationToken.None);
 
         Assert.AreEqual(TotpServiceResultStatus.AppNotFound, result.Status);
     }

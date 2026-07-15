@@ -36,10 +36,17 @@ public class TotpService(
 
     public string GenerateSecret() => GenerateTotpSecret();
 
-    public async Task<TotpServiceResult> HandleStartTotpSetup(IAuthenticationProvider auth, string app_id, string user_name, Dictionary<string, object> server_claims, CancellationToken ct)
+    public async Task<TotpServiceResult> HandleStartTotpSetup(IAuthenticationProvider auth, string app_id, string user_name, TotpSetupRequest request, Dictionary<string, object> server_claims, CancellationToken ct)
     {
         var (result, app) = ValidateRequest(auth, app_id, user_name, "TOTP_SETUP");
         if (result != null || app == null) return result!;
+
+        string authenticatorName = request.AuthenticatorName?.Trim() ?? "";
+        if (string.IsNullOrWhiteSpace(authenticatorName))
+        {
+            _log.LogTrace("TOTP_SETUP: APP_ID {app_id} User: {username} empty authenticator name", app_id, user_name);
+            return TotpServiceResult.Failed(TotpServiceResultStatus.InvalidUser);
+        }
 
         using var ec = app.CreateDatabaseClient(_log, _deviceIdService, server_claims);
         await ec.Connect(ct);
@@ -52,21 +59,24 @@ public class TotpService(
                 return TotpServiceResult.Failed(TotpServiceResultStatus.InvalidUser);
             }
 
-            string secret = loginData.totp_secret ?? string.Empty;
-            if (string.IsNullOrWhiteSpace(secret))
-            {
-                secret = GenerateSecret();
-                var dbResult = await MicromUsers.SetTotpSecret(app, user_name, secret, ec, ct);
-                if (dbResult.Failed)
+            string secret = GenerateSecret();
+            string setupChallengeId = ChallengeStore.CreateChallenge(
+                loginData.user_id,
+                user_name,
+                string.Empty,
+                app.ApplicationID,
+                string.Empty,
+                new(StringComparer.OrdinalIgnoreCase)
                 {
-                    _log.LogWarning("TOTP_SETUP: APP_ID {app_id} User: {username} failed to persist secret", app_id, user_name);
-                    return TotpServiceResult.Failed(TotpServiceResultStatus.DatabaseFailure, dbResult);
-                }
-            }
+                    [TwoFactorChallengeMetadataKeys.Flow] = TwoFactorFlows.Authenticator,
+                    [TwoFactorChallengeMetadataKeys.SetupTotpSecret] = secret,
+                    [TwoFactorChallengeMetadataKeys.AuthenticatorName] = authenticatorName
+                });
 
             string authenticatorUri = GetAuthenticatorUri(user_name, secret, app.ApplicationID);
             return TotpServiceResult.Success(new TotpSetupStartResponse
             {
+                setup_challenge_id = setupChallengeId,
                 qr_code_data_url = GetAuthenticatorQrCodeDataUrl(authenticatorUri)
             });
         }
@@ -85,19 +95,41 @@ public class TotpService(
         await ec.Connect(ct);
         try
         {
-            var loginData = await MicromUsers.GetUserData(app, user_name, null, string.Empty, ec, ct);
-            if (loginData == null || string.IsNullOrWhiteSpace(loginData.totp_secret))
+            if (string.IsNullOrWhiteSpace(request.SetupChallengeId))
+            {
+                _log.LogTrace("TOTP_CONFIRM: APP_ID {app_id} User: {username} empty setup challenge", app_id, user_name);
+                return TotpServiceResult.Failed(TotpServiceResultStatus.SetupNotStarted);
+            }
+
+            var challenge = ChallengeStore.GetChallenge(request.SetupChallengeId);
+            if (challenge == null || DateTime.UtcNow > challenge.ExpiresUtc || !challenge.Username.Equals(user_name, StringComparison.OrdinalIgnoreCase) || !challenge.ApplicationId.Equals(app.ApplicationID, StringComparison.OrdinalIgnoreCase))
+            {
+                _log.LogTrace("TOTP_CONFIRM: APP_ID {app_id} User: {username} setup challenge not found or expired", app_id, user_name);
+                if (challenge != null) ChallengeStore.RemoveChallenge(request.SetupChallengeId);
+                return TotpServiceResult.Failed(TotpServiceResultStatus.SetupNotStarted);
+            }
+
+            if (!challenge.Metadata.TryGetValue(TwoFactorChallengeMetadataKeys.SetupTotpSecret, out string? secret) || string.IsNullOrWhiteSpace(secret)
+                || !challenge.Metadata.TryGetValue(TwoFactorChallengeMetadataKeys.AuthenticatorName, out string? authenticatorName) || string.IsNullOrWhiteSpace(authenticatorName))
             {
                 _log.LogTrace("TOTP_CONFIRM: APP_ID {app_id} User: {username} setup has not been started", app_id, user_name);
                 return TotpServiceResult.Failed(TotpServiceResultStatus.SetupNotStarted);
             }
 
-            if (!VerifyCode(loginData.totp_secret, request.Code))
+            if (!VerifyCode(secret, request.Code))
             {
                 _log.LogWarning("TOTP_CONFIRM: APP_ID {app_id} User: {username} invalid code", app_id, user_name);
                 return TotpServiceResult.Failed(TotpServiceResultStatus.InvalidCode);
             }
 
+            var dbResult = await MicromUsersAuthenticators.InsertConfirmed(app, challenge.UserId, authenticatorName, secret, ec, ct);
+            if (dbResult.Failed)
+            {
+                _log.LogWarning("TOTP_CONFIRM: APP_ID {app_id} User: {username} failed to persist authenticator", app_id, user_name);
+                return TotpServiceResult.Failed(TotpServiceResultStatus.DatabaseFailure, dbResult);
+            }
+
+            ChallengeStore.RemoveChallenge(request.SetupChallengeId);
             return TotpServiceResult.Success();
         }
         finally
@@ -115,19 +147,21 @@ public class TotpService(
         await ec.Connect(ct);
         try
         {
-            string secret = GenerateSecret();
-            var dbResult = await MicromUsers.ResetTotp(app, user_name, secret, ec, ct);
+            var loginData = await MicromUsers.GetUserData(app, user_name, null, string.Empty, ec, ct);
+            if (loginData == null)
+            {
+                _log.LogTrace("TOTP_DISABLE: APP_ID {app_id} User: {username} not found", app_id, user_name);
+                return TotpServiceResult.Failed(TotpServiceResultStatus.InvalidUser);
+            }
+
+            var dbResult = await MicromUsersAuthenticators.DeleteAll(app, loginData.user_id, ec, ct);
             if (dbResult.Failed)
             {
                 _log.LogWarning("TOTP_DISABLE: APP_ID {app_id} User: {username} failed to reset TOTP", app_id, user_name);
                 return TotpServiceResult.Failed(TotpServiceResultStatus.DatabaseFailure, dbResult);
             }
 
-            string authenticatorUri = GetAuthenticatorUri(user_name, secret, app.ApplicationID);
-            return TotpServiceResult.Success(new TotpSetupStartResponse
-            {
-                qr_code_data_url = GetAuthenticatorQrCodeDataUrl(authenticatorUri)
-            });
+            return TotpServiceResult.Success();
         }
         finally
         {
@@ -164,44 +198,59 @@ public class TotpService(
             string authenticatorUri = GetAuthenticatorUri(challenge.Username, app.SQLAdminTotpSecret, app.ApplicationID);
             return TotpServiceResult.Success(new TotpSetupStartResponse
             {
+                setup_challenge_id = request.ChallengeId,
                 qr_code_data_url = GetAuthenticatorQrCodeDataUrl(authenticatorUri)
             });
         }
 
-        if (authenticator is not MicroMAuthenticator)
-        {
-            _log.LogError("TOTP_REGISTER: TOTP is only supported for MicroM and SQL Server authentication. APP_ID {app_id} Authenticator: {authenticator}", app_id, app.AuthenticationType);
-            return TotpServiceResult.Failed(TotpServiceResultStatus.UnsupportedAuthenticator);
-        }
+        _log.LogError("TOTP_REGISTER: login-time TOTP registration is only supported for SQL Server initial setup. APP_ID {app_id} Authenticator: {authenticator}", app_id, app.AuthenticationType);
+        return TotpServiceResult.Failed(TotpServiceResultStatus.UnsupportedAuthenticator);
+    }
 
-        using var ec = app.CreateDatabaseClient(_log, _deviceIdService, null);
+    public async Task<TotpAuthenticatorsResponse> HandleListAuthenticators(IAuthenticationProvider auth, string app_id, string user_name, Dictionary<string, object> server_claims, CancellationToken ct)
+    {
+        var (result, app) = ValidateRequest(auth, app_id, user_name, "TOTP_LIST");
+        if (result != null || app == null) return new();
+
+        using var ec = app.CreateDatabaseClient(_log, _deviceIdService, server_claims);
         await ec.Connect(ct);
         try
         {
-            var loginData = await MicromUsers.GetUserData(app, challenge.Username, null, challenge.DeviceId, ec, ct);
-            if (loginData == null)
-            {
-                _log.LogTrace("TOTP_REGISTER: APP_ID {app_id} User: {username} not found", app_id, challenge.Username);
-                return TotpServiceResult.Failed(TotpServiceResultStatus.InvalidUser);
-            }
+            var loginData = await MicromUsers.GetUserData(app, user_name, null, string.Empty, ec, ct);
+            if (loginData == null) return new();
 
-            string secret = loginData.totp_secret ?? string.Empty;
-            if (string.IsNullOrWhiteSpace(secret))
+            var authenticators = await MicromUsersAuthenticators.GetByUser(app, loginData.user_id, ec, ct);
+            return new()
             {
-                secret = GenerateSecret();
-                var dbResult = await MicromUsers.SetTotpSecret(app, challenge.Username, secret, ec, ct);
-                if (dbResult.Failed)
+                authenticators = authenticators.Select(item => new TotpAuthenticatorResponse
                 {
-                    _log.LogWarning("TOTP_REGISTER: APP_ID {app_id} User: {username} failed to persist secret", app_id, challenge.Username);
-                    return TotpServiceResult.Failed(TotpServiceResultStatus.DatabaseFailure, dbResult);
-                }
-            }
+                    authenticator_id = item.authenticator_id,
+                    authenticator_name = item.authenticator_name
+                }).ToList()
+            };
+        }
+        finally
+        {
+            await ec.Disconnect();
+        }
+    }
 
-            string authenticatorUri = GetAuthenticatorUri(challenge.Username, secret, app.ApplicationID);
-            return TotpServiceResult.Success(new TotpSetupStartResponse
-            {
-                qr_code_data_url = GetAuthenticatorQrCodeDataUrl(authenticatorUri)
-            });
+    public async Task<TotpServiceResult> HandleDeleteAuthenticator(IAuthenticationProvider auth, string app_id, string user_name, TotpDeleteAuthenticatorRequest request, Dictionary<string, object> server_claims, CancellationToken ct)
+    {
+        var (result, app) = ValidateRequest(auth, app_id, user_name, "TOTP_DELETE");
+        if (result != null || app == null) return result!;
+
+        using var ec = app.CreateDatabaseClient(_log, _deviceIdService, server_claims);
+        await ec.Connect(ct);
+        try
+        {
+            var loginData = await MicromUsers.GetUserData(app, user_name, null, string.Empty, ec, ct);
+            if (loginData == null) return TotpServiceResult.Failed(TotpServiceResultStatus.InvalidUser);
+
+            var dbResult = await MicromUsersAuthenticators.Delete(app, loginData.user_id, request.AuthenticatorId, ec, ct);
+            return dbResult.Failed
+                ? TotpServiceResult.Failed(TotpServiceResultStatus.DatabaseFailure, dbResult)
+                : TotpServiceResult.Success();
         }
         finally
         {
@@ -322,6 +371,21 @@ public class TotpService(
         }
 
         return false;
+    }
+
+    public string GenerateCurrentCode(string secret, string? securityStampModifier = null)
+    {
+        byte[] secretBytes = Base32Decode(secret);
+        byte[]? modifierBytes = null;
+        ReadOnlySpan<byte> modifier = ReadOnlySpan<byte>.Empty;
+        if (!string.IsNullOrEmpty(securityStampModifier))
+        {
+            modifierBytes = Encoding.UTF8.GetBytes(securityStampModifier);
+            modifier = modifierBytes;
+        }
+
+        ulong timestep = (ulong)(DateTimeOffset.UtcNow.ToUnixTimeSeconds() / 30);
+        return ComputeTotp(secretBytes, timestep, modifier);
     }
 
     public string GetAuthenticatorUri(string username, string secret, string issuer = "MicroM", TotpSupportedDigits digits = TotpSupportedDigits.Six)

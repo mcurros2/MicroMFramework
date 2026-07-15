@@ -10,6 +10,7 @@ import { PublicEndpoint } from "./PublicEndpoint";
 import { TimeoutSignal } from "./TimeoutSignal";
 import { TokenStorage, TokenWebStorage } from "./TokenStorage";
 import { TotpSetupStartResponse } from "./TotpSetupStartResponse";
+import { TotpAuthenticatorsResponse } from "./TotpAuthenticatorResponse";
 import { TwoFactorLoginResult } from "./TwoFactorLoginResult";
 
 export type APIAction = "get" | "insert" | "update" | "delete" | "lookup" | "view" | "viewstream" | "action" | "upload" | "proc" | "procstream" | "process" | "import" | "viewtoexcel" | "proctoexcel" | "timezoneoffset";
@@ -408,6 +409,33 @@ export class MicroMClient {
         }
     }
 
+    async sendTwoFactorEmailCode(challengeId: string): Promise<void> {
+        const loginTimeout = new TimeoutSignal(this.#LOGIN_TIMEOUT, 'Two-factor email code request timed out');
+        const route = `${this.#API_URL}/${this.#APP_ID}/auth/login-2fa/email-code`;
+
+        try {
+            const response = await fetch(route, {
+                method: 'POST',
+                headers: { "Content-Type": "application/json; charset=utf-8" },
+                mode: this.#REQUEST_MODE,
+                cache: 'no-store',
+                credentials: 'include',
+                referrerPolicy: 'strict-origin-when-cross-origin',
+                signal: loginTimeout.signal,
+                body: JSON.stringify({ challengeId })
+            });
+
+            if (!response.ok) {
+                let error_body: string | undefined = undefined;
+                try { error_body = await response.text(); } catch { }
+                throw { status: response?.status, statusMessage: response?.statusText, message: response?.statusText, url: response?.url, errorBody: error_body } as MicroMError;
+            }
+        }
+        finally {
+            loginTimeout.clear();
+        }
+    }
+
     async localLogoff() {
         await this.#removeToken();
         await this.#deleteEnabledMenus();
@@ -511,7 +539,7 @@ export class MicroMClient {
 
     }
 
-    async startTotpSetup(): Promise<TotpSetupStartResponse> {
+    async startTotpSetup(authenticatorName: string): Promise<TotpSetupStartResponse> {
         const loginTimeout = new TimeoutSignal(this.#LOGIN_TIMEOUT, 'TOTP setup request timed out');
         const route = `${this.#API_URL}/${this.#APP_ID}/auth/totp/setup`;
 
@@ -527,7 +555,7 @@ export class MicroMClient {
                 credentials: 'include',
                 referrerPolicy: 'strict-origin-when-cross-origin',
                 signal: loginTimeout.signal,
-                body: JSON.stringify({})
+                body: JSON.stringify({ authenticatorName })
             });
 
             if (!response.ok) {
@@ -543,7 +571,7 @@ export class MicroMClient {
         }
     }
 
-    async confirmTotpSetup(code: string): Promise<void> {
+    async confirmTotpSetup(code: string, setupChallengeId: string): Promise<void> {
         const loginTimeout = new TimeoutSignal(this.#LOGIN_TIMEOUT, 'TOTP confirmation request timed out');
         const route = `${this.#API_URL}/${this.#APP_ID}/auth/totp/confirm`;
 
@@ -559,7 +587,68 @@ export class MicroMClient {
                 credentials: 'include',
                 referrerPolicy: 'strict-origin-when-cross-origin',
                 signal: loginTimeout.signal,
-                body: JSON.stringify({ Code: code })
+                body: JSON.stringify({ Code: code, SetupChallengeId: setupChallengeId })
+            });
+
+            if (!response.ok) {
+                let error_body: string | undefined = undefined;
+                try { error_body = await response.text(); } catch { }
+                throw { status: response?.status, statusMessage: response?.statusText, message: response?.statusText, url: response?.url, errorBody: error_body } as MicroMError;
+            }
+        }
+        finally {
+            loginTimeout.clear();
+        }
+    }
+
+    async listTotpAuthenticators(): Promise<TotpAuthenticatorsResponse> {
+        const loginTimeout = new TimeoutSignal(this.#LOGIN_TIMEOUT, 'TOTP authenticators request timed out');
+        const route = `${this.#API_URL}/${this.#APP_ID}/auth/totp/authenticators`;
+
+        try {
+            await this.#checkAndRefreshToken();
+            if (!this.#TOKEN) { throw { status: 401, statusMessage: `Can't execute request: Not logged in`, url: route } as MicroMError; }
+
+            const response = await fetch(route, {
+                method: 'GET',
+                headers: { "Content-Type": "application/json; charset=utf-8", "Authorization": `Bearer ${this.#TOKEN.access_token}` },
+                mode: this.#REQUEST_MODE,
+                cache: 'no-store',
+                credentials: 'include',
+                referrerPolicy: 'strict-origin-when-cross-origin',
+                signal: loginTimeout.signal
+            });
+
+            if (!response.ok) {
+                let error_body: string | undefined = undefined;
+                try { error_body = await response.text(); } catch { }
+                throw { status: response?.status, statusMessage: response?.statusText, message: response?.statusText, url: response?.url, errorBody: error_body } as MicroMError;
+            }
+
+            return await response.json() as TotpAuthenticatorsResponse;
+        }
+        finally {
+            loginTimeout.clear();
+        }
+    }
+
+    async deleteTotpAuthenticator(authenticatorId: string): Promise<void> {
+        const loginTimeout = new TimeoutSignal(this.#LOGIN_TIMEOUT, 'Delete authenticator request timed out');
+        const route = `${this.#API_URL}/${this.#APP_ID}/auth/totp/authenticators/delete`;
+
+        try {
+            await this.#checkAndRefreshToken();
+            if (!this.#TOKEN) { throw { status: 401, statusMessage: `Can't execute request: Not logged in`, url: route } as MicroMError; }
+
+            const response = await fetch(route, {
+                method: 'POST',
+                headers: { "Content-Type": "application/json; charset=utf-8", "Authorization": `Bearer ${this.#TOKEN.access_token}` },
+                mode: this.#REQUEST_MODE,
+                cache: 'no-store',
+                credentials: 'include',
+                referrerPolicy: 'strict-origin-when-cross-origin',
+                signal: loginTimeout.signal,
+                body: JSON.stringify({ authenticatorId })
             });
 
             if (!response.ok) {

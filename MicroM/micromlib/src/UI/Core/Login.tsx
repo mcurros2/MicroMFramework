@@ -2,8 +2,9 @@ import { Anchor, Button, Checkbox, Group, Image, PasswordInput, PinInput, Stack,
 import { useForm } from "@mantine/form";
 import { IconMailCheck } from "@tabler/icons-react";
 import { useCallback, useEffect, useState } from "react";
-import { MicroMClient, MicroMToken, OperationStatus, StatusCompletedHandler, toMicroMError, TotpSetupStartResponse, TwoFactorLoginResult } from "../../client";
+import { MicroMClient, MicroMToken, OperationStatus, StatusCompletedHandler, toMicroMError, TwoFactorLoginResult } from "../../client";
 import { AlertError, FakeProgressBar, RecoverPasswordEmail, useModal } from "../Core";
+import { TotpAuthenticatorsManagement } from "./TotpAuthenticatorsManagement";
 
 export interface LoginOptions {
     client: MicroMClient,
@@ -22,7 +23,12 @@ export interface LoginOptions {
     verifyCodeButtonLabel?: string,
     twoFactorTitle?: string,
     twoFactorDescription?: string,
-    registerAuthenticatorLabel?: string,
+    twoFactorEmailDescription?: string,
+    twoFactorSupportDescription?: string,
+    twoFactorSqlSetupDescription?: string,
+    authenticatorManagementTitle?: string,
+    authenticatorManagementDescription?: string,
+    sendEmailCodeLabel?: string,
     cancelTwoFactorButtonLabel?: string,
 }
 
@@ -41,7 +47,12 @@ export const LoginDefaultProps: Partial<LoginOptions> = {
     verifyCodeButtonLabel: "Verify code",
     twoFactorTitle: "Two-factor authentication",
     twoFactorDescription: "Enter the 6-digit code from your authenticator app.",
-    registerAuthenticatorLabel: "Register authenticator",
+    twoFactorEmailDescription: "Enter the 6-digit code sent to your email.",
+    twoFactorSupportDescription: "No email or usable authenticator is available. Contact support to recover access.",
+    twoFactorSqlSetupDescription: "Scan this QR code with your authenticator app, then enter the 6-digit code.",
+    authenticatorManagementTitle: "Register an authenticator",
+    authenticatorManagementDescription: "Add an authenticator app to keep two-factor access available.",
+    sendEmailCodeLabel: "I do not have access",
     cancelTwoFactorButtonLabel: "Back",
 }
 
@@ -51,7 +62,8 @@ export function Login(props: LoginOptions) {
     const {
         client, onStatusCompleted, userLabel, userPlaceholder, passwordLabel, passwordPlaceholder,
         rememberLabel, forgotLabel, signInButtonLabel, loginErrorMessage, confirmRecoveryEmailTitle, codeLabel, codePlaceholder, verifyCodeButtonLabel,
-        twoFactorTitle, twoFactorDescription, registerAuthenticatorLabel, cancelTwoFactorButtonLabel,
+        twoFactorTitle, twoFactorDescription, twoFactorEmailDescription, twoFactorSupportDescription, twoFactorSqlSetupDescription,
+        authenticatorManagementTitle, authenticatorManagementDescription, sendEmailCodeLabel, cancelTwoFactorButtonLabel,
     } = useComponentDefaultProps('Login', LoginDefaultProps, props);
 
     const modal = useModal();
@@ -69,8 +81,8 @@ export function Login(props: LoginOptions) {
 
     const [status, setStatus] = useState<OperationStatus<MicroMToken | TwoFactorLoginResult>>();
     const [twoFactorState, setTwoFactorState] = useState<TwoFactorLoginResult>();
-    const [totpRegistration, setTotpRegistration] = useState<TotpSetupStartResponse>();
-    const [totpRegistrationStatus, setTotpRegistrationStatus] = useState<OperationStatus<TotpSetupStartResponse>>();
+    const [emailCodeStatus, setEmailCodeStatus] = useState<OperationStatus<void>>();
+    const [pendingAuthenticatorManagementStatus, setPendingAuthenticatorManagementStatus] = useState<OperationStatus<MicroMToken>>();
 
     const handleClick = useCallback(async (values: LoginValues) => {
         setStatus({ loading: true });
@@ -78,8 +90,7 @@ export function Login(props: LoginOptions) {
             const data = await client.login(values.user, values.password, values.rememberme);
             if ('requires_two_factor' in data && data.requires_two_factor) {
                 setTwoFactorState(data);
-                setTotpRegistration(undefined);
-                setTotpRegistrationStatus(undefined);
+                setEmailCodeStatus(undefined);
                 setStatus(undefined);
                 return;
             }
@@ -101,6 +112,12 @@ export function Login(props: LoginOptions) {
         try {
             const data = await client.login2fa(twoFactorState.two_factor_challenge_id, values.code, values.rememberme, values.user);
             const new_status = { data: data };
+            if (data.claims.authenticator_management_required === true) {
+                setPendingAuthenticatorManagementStatus(new_status);
+                setTwoFactorState(undefined);
+                setStatus(undefined);
+                return;
+            }
             setStatus(new_status);
             onStatusCompleted(new_status);
         }
@@ -111,19 +128,20 @@ export function Login(props: LoginOptions) {
         }
     }, [client, onStatusCompleted, twoFactorState]);
 
-    const handleRegisterAuthenticatorClick = useCallback(async () => {
+    const handleSendEmailCodeClick = useCallback(async () => {
         if (!twoFactorState?.two_factor_challenge_id) return;
 
-        setTotpRegistrationStatus({ loading: true });
+        setEmailCodeStatus({ loading: true });
         try {
-            const data = await client.registerLoginTotp(twoFactorState.two_factor_challenge_id);
-            setTotpRegistration(data);
-            setTotpRegistrationStatus({ data });
+            await client.sendTwoFactorEmailCode(twoFactorState.two_factor_challenge_id);
+            setTwoFactorState({ ...twoFactorState, two_factor_flow: "email_recovery" });
+            setEmailCodeStatus({ data: undefined });
+            form.setFieldValue('code', '');
         }
         catch (e) {
-            setTotpRegistrationStatus({ error: toMicroMError(e) });
+            setEmailCodeStatus({ error: toMicroMError(e) });
         }
-    }, [client, twoFactorState]);
+    }, [client, form, twoFactorState]);
 
     const handleForgotPasswordClick = useCallback(async () => {
         await modal.open({
@@ -137,11 +155,26 @@ export function Login(props: LoginOptions) {
 
     const handleCancelTwoFactorClick = useCallback(() => {
         setTwoFactorState(undefined);
-        setTotpRegistration(undefined);
-        setTotpRegistrationStatus(undefined);
+        setEmailCodeStatus(undefined);
         setStatus(undefined);
         form.setFieldValue('code', '');
     }, [form]);
+
+    const getTwoFactorDescription = () => {
+        switch (twoFactorState?.two_factor_flow) {
+            case "email_setup":
+            case "email_recovery":
+                return twoFactorEmailDescription;
+            case "support_required":
+                return twoFactorSupportDescription;
+            case "sql_admin_setup":
+                return twoFactorSqlSetupDescription;
+            default:
+                return twoFactorDescription;
+        }
+    };
+
+    const canEnterTwoFactorCode = twoFactorState?.two_factor_flow !== "support_required";
 
     useEffect(() => {
         const getRememberUser = async () => {
@@ -158,22 +191,36 @@ export function Login(props: LoginOptions) {
         <>
             <form key="loginForm" onSubmit={form.onSubmit((values) => handleClick(values))}>
                 {status?.loading && <FakeProgressBar />}
-                {twoFactorState ? (
+                {pendingAuthenticatorManagementStatus ? (
+                    <Stack mt="md">
+                        <Stack spacing={2}>
+                            <Text weight={700}>{authenticatorManagementTitle}</Text>
+                            <Text size="sm" color="dimmed">{authenticatorManagementDescription}</Text>
+                        </Stack>
+                        <TotpAuthenticatorsManagement client={client} onChanged={() => onStatusCompleted(pendingAuthenticatorManagementStatus)} />
+                    </Stack>
+                ) : twoFactorState ? (
                     <Stack mt="md" align="center">
                         <Stack spacing={2}>
                             <Text weight={700}>{twoFactorTitle}</Text>
-                            <Text size="sm" color="dimmed">{twoFactorDescription}</Text>
+                            <Text size="sm" color="dimmed">{getTwoFactorDescription()}</Text>
                         </Stack>
-                        {(totpRegistration?.qr_code_data_url || twoFactorState.qr_code_data_url) &&
-                            <Image src={totpRegistration?.qr_code_data_url ?? twoFactorState.qr_code_data_url} alt={twoFactorTitle} width={180} height={180} fit="contain" mx="auto" />
+                        {twoFactorState.qr_code_data_url &&
+                            <Image src={twoFactorState.qr_code_data_url} alt={twoFactorTitle} width={180} height={180} fit="contain" mx="auto" />
                         }
-                        <Anchor component="button" type="button" size="sm" disabled={status?.loading || totpRegistrationStatus?.loading} onClick={() => void handleRegisterAuthenticatorClick()}>
-                            {registerAuthenticatorLabel}
-                        </Anchor>
-                        <PinInput length={6} oneTimeCode type="number" aria-label={codeLabel} placeholder={codePlaceholder} disabled={status?.loading} {...form.getInputProps('code')} />
-                        <Button key="login2fa" type="button" fullWidth disabled={status?.loading || form.values.code.length !== 6} onClick={() => void handleTwoFactorClick(form.values)}>
-                            {verifyCodeButtonLabel}
-                        </Button>
+                        {twoFactorState.two_factor_flow === "authenticator" &&
+                            <Anchor component="button" type="button" size="sm" disabled={status?.loading || emailCodeStatus?.loading} onClick={() => void handleSendEmailCodeClick()}>
+                                {sendEmailCodeLabel}
+                            </Anchor>
+                        }
+                        {canEnterTwoFactorCode &&
+                            <>
+                                <PinInput length={6} oneTimeCode type="number" aria-label={codeLabel} placeholder={codePlaceholder} disabled={status?.loading} {...form.getInputProps('code')} />
+                                <Button key="login2fa" type="button" fullWidth disabled={status?.loading || form.values.code.length !== 6} onClick={() => void handleTwoFactorClick(form.values)}>
+                                    {verifyCodeButtonLabel}
+                                </Button>
+                            </>
+                        }
                         <Button key="login2fa-cancel" type="button" variant="subtle" fullWidth disabled={status?.loading} onClick={handleCancelTwoFactorClick}>
                             {cancelTwoFactorButtonLabel}
                         </Button>
@@ -197,8 +244,8 @@ export function Login(props: LoginOptions) {
             <AlertError mt="xs" hidden={status?.error === undefined}>{
                 (status?.error !== undefined && status.error.name === 'validation') ? status.error.message : loginErrorMessage
             }</AlertError>
-            <AlertError mt="xs" hidden={totpRegistrationStatus?.error === undefined}>{
-                totpRegistrationStatus?.error?.errorBody || totpRegistrationStatus?.error?.message || loginErrorMessage
+            <AlertError mt="xs" hidden={emailCodeStatus?.error === undefined}>{
+                emailCodeStatus?.error?.errorBody || emailCodeStatus?.error?.message || loginErrorMessage
             }</AlertError>
         </>
     );

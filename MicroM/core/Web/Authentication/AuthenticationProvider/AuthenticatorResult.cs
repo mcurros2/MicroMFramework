@@ -16,6 +16,8 @@ public class AuthenticatorResult
     public bool RequiresTwoFactor = false;
     public string? TwoFactorChallengeId = null;
     public string? TwoFactorProvider = null;
+    public string? TwoFactorFlow = null;
     public bool TwoFactorSetupRequired = false;
+    public bool AuthenticatorManagementRequired = false;
     public string? QrCodeDataUrl = null;
 }

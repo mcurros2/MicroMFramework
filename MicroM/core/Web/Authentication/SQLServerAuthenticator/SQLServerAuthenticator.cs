@@ -77,7 +77,7 @@ public class SQLServerAuthenticator : IAuthenticator
         return $"{app_config.ApplicationID}.{username}";
     }
 
-    private void SetTwoFactorChallengeResult(ApplicationOption app_config, UserLogin user_login, AuthenticatorResult result)
+    private void SetTwoFactorChallengeResult(ApplicationOption app_config, UserLogin user_login, AuthenticatorResult result, bool setupRequired)
     {
         string encryptedPassword = _encryptor.Encrypt(user_login.Password);
         string challengeId = _challengeStore.CreateChallenge(
@@ -88,12 +88,20 @@ public class SQLServerAuthenticator : IAuthenticator
             user_login.LocalDeviceID ?? "",
             new(StringComparer.OrdinalIgnoreCase)
             {
-                [ChallengePasswordMetadataKey] = encryptedPassword
+                [ChallengePasswordMetadataKey] = encryptedPassword,
+                [TwoFactorChallengeMetadataKeys.Flow] = setupRequired ? TwoFactorFlows.SqlAdminSetup : TwoFactorFlows.SqlAdminAuthenticator
             });
 
         result.RequiresTwoFactor = true;
         result.TwoFactorProvider = TwoFactorProvider;
         result.TwoFactorChallengeId = challengeId;
+        result.TwoFactorFlow = setupRequired ? TwoFactorFlows.SqlAdminSetup : TwoFactorFlows.SqlAdminAuthenticator;
+        result.TwoFactorSetupRequired = setupRequired;
+        if (setupRequired && !string.IsNullOrWhiteSpace(app_config.SQLAdminTotpSecret))
+        {
+            string authenticatorUri = _totpService.GetAuthenticatorUri(user_login.Username, app_config.SQLAdminTotpSecret, app_config.ApplicationID);
+            result.QrCodeDataUrl = _totpService.GetAuthenticatorQrCodeDataUrl(authenticatorUri);
+        }
 
         result.ServerClaims[MicroMServerClaimTypes.MicroMUser_id] = user_login.Username;
         result.ServerClaims[MicroMServerClaimTypes.MicroMAPP_id] = app_config.ApplicationID;
@@ -222,6 +230,7 @@ public class SQLServerAuthenticator : IAuthenticator
                     return result;
                 }
 
+                bool setupRequired = string.IsNullOrWhiteSpace(app_config.SQLAdminTotpSecret);
                 if (!await EnsureSqlAdminTotpSecret(app_config, ct))
                 {
                     _log.LogError("SQL admin TOTP is enabled but APP_ID {app_id} has no configured TOTP secret and one could not be created.", app_config.ApplicationID);
@@ -229,7 +238,7 @@ public class SQLServerAuthenticator : IAuthenticator
                     return result;
                 }
 
-                SetTwoFactorChallengeResult(app_config, user_login, result);
+                SetTwoFactorChallengeResult(app_config, user_login, result, setupRequired);
                 return result;
             }
 

@@ -19,7 +19,6 @@ select  [c_user_id] = rtrim(a.c_user_id)
         , a.dt_locked
         , a.dt_last_login
         , a.dt_last_refresh
-        , vc_totp_secret = null
         , a.bt_totp_enabled
         , vc_recovery_code = null
         , dt_last_recovery = null

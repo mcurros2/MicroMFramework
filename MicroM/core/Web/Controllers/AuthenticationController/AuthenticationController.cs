@@ -102,12 +102,13 @@ public class AuthenticationController(IOptions<MicroMOptions> options) : Control
         [FromServices] IAuthenticationProvider auth,
         [FromServices] ITotpService totpService,
         string app_id,
+        [FromBody] TotpSetupRequest request,
         CancellationToken ct)
     {
         try
         {
             string user_name = HttpContext.User.FindFirstValue(MicroMServerClaimTypes.MicroMUsername) ?? "";
-            var result = await totpService.HandleStartTotpSetup(auth, app_id, user_name, HttpContext.User.Claims.ToClaimsDictionary(), ct);
+            var result = await totpService.HandleStartTotpSetup(auth, app_id, user_name, request, HttpContext.User.Claims.ToClaimsDictionary(), ct);
 
             return MapTotpServiceResult(result);
         }
@@ -169,6 +170,49 @@ public class AuthenticationController(IOptions<MicroMOptions> options) : Control
         }
     }
 
+    [Authorize(policy: nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy))]
+    [HttpGet("{app_id}/auth/totp/authenticators")]
+    [EnableRateLimiting(MicroMServicesConstants.RateLimitingAuthLoginPolicy)]
+    public async Task<ActionResult> ListTotpAuthenticators(
+        [FromServices] IAuthenticationProvider auth,
+        [FromServices] ITotpService totpService,
+        string app_id,
+        CancellationToken ct)
+    {
+        try
+        {
+            string user_name = HttpContext.User.FindFirstValue(MicroMServerClaimTypes.MicroMUsername) ?? "";
+            var result = await totpService.HandleListAuthenticators(auth, app_id, user_name, HttpContext.User.Claims.ToClaimsDictionary(), ct);
+            return Ok(result);
+        }
+        catch (Exception ex) when (ex is TaskCanceledException || ex is OperationCanceledException)
+        {
+            return new EmptyResult();
+        }
+    }
+
+    [Authorize(policy: nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy))]
+    [HttpPost("{app_id}/auth/totp/authenticators/delete")]
+    [EnableRateLimiting(MicroMServicesConstants.RateLimitingAuthLogoffPolicy)]
+    public async Task<ActionResult> DeleteTotpAuthenticator(
+        [FromServices] IAuthenticationProvider auth,
+        [FromServices] ITotpService totpService,
+        string app_id,
+        [FromBody] TotpDeleteAuthenticatorRequest request,
+        CancellationToken ct)
+    {
+        try
+        {
+            string user_name = HttpContext.User.FindFirstValue(MicroMServerClaimTypes.MicroMUsername) ?? "";
+            var result = await totpService.HandleDeleteAuthenticator(auth, app_id, user_name, request, HttpContext.User.Claims.ToClaimsDictionary(), ct);
+            return MapTotpServiceResult(result);
+        }
+        catch (Exception ex) when (ex is TaskCanceledException || ex is OperationCanceledException)
+        {
+            return new EmptyResult();
+        }
+    }
+
 
     [AllowAnonymous]
     [HttpPost("{app_id}/auth/login-2fa/register")]
@@ -184,6 +228,31 @@ public class AuthenticationController(IOptions<MicroMOptions> options) : Control
         {
             var result = await totpService.HandleLoginTotpRegistration(auth, app_id, request, ct);
             return MapTotpServiceResult(result);
+        }
+        catch (Exception ex) when (ex is TaskCanceledException || ex is OperationCanceledException)
+        {
+            return new EmptyResult();
+        }
+    }
+
+    [AllowAnonymous]
+    [HttpPost("{app_id}/auth/login-2fa/email-code")]
+    [EnableRateLimiting(MicroMServicesConstants.RateLimitingAuthLoginPolicy)]
+    public async Task<ActionResult> SendTwoFactorEmailCode(
+        [FromServices] IAuthenticationProvider auth,
+        [FromServices] IMicroMAppConfiguration app_config,
+        string app_id,
+        [FromBody] TwoFactorEmailCodeRequest request,
+        CancellationToken ct)
+    {
+        try
+        {
+            var app = app_config.GetAppConfiguration(app_id);
+            if (app == null) return NotFound("Application not found");
+            if (auth.GetAuthenticator(app) is not MicroMAuthenticator micromAuthenticator) return BadRequest("Email TOTP is only supported for MicroM authentication.");
+
+            var result = await micromAuthenticator.SendTwoFactorEmailCode(app, request.ChallengeId, TwoFactorFlows.EmailRecovery, ct);
+            return result.Result ? Ok() : BadRequest(result.Status);
         }
         catch (Exception ex) when (ex is TaskCanceledException || ex is OperationCanceledException)
         {

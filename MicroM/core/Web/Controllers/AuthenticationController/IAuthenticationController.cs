@@ -12,9 +12,12 @@ public interface IAuthenticationController
     Task<ActionResult> Login(IAuthenticationService api, IAuthenticationProvider auth, WebAPIJsonWebTokenHandler jwt_handler, IMicroMAppConfiguration app_config, string app_id, UserLogin userLogin, CancellationToken ct);
     Task<ActionResult> VerifyTwoFactor(IAuthenticationService api, IAuthenticationProvider auth, WebAPIJsonWebTokenHandler jwt_handler, string app_id, TwoFactorLoginRequest request, CancellationToken ct);
     Task<ActionResult> RegisterLoginTotp(IAuthenticationProvider auth, ITotpService totpService, string app_id, TwoFactorRegistrationRequest request, CancellationToken ct);
-    Task<ActionResult> StartTotpSetup(IAuthenticationProvider auth, ITotpService totpService, string app_id, CancellationToken ct);
+    Task<ActionResult> StartTotpSetup(IAuthenticationProvider auth, ITotpService totpService, string app_id, TotpSetupRequest request, CancellationToken ct);
     Task<ActionResult> ConfirmTotpSetup(IAuthenticationProvider auth, ITotpService totpService, string app_id, TotpConfirmRequest request, CancellationToken ct);
     Task<ActionResult> DisableTotp(IAuthenticationProvider auth, ITotpService totpService, string app_id, CancellationToken ct);
+    Task<ActionResult> SendTwoFactorEmailCode(IAuthenticationProvider auth, IMicroMAppConfiguration app_config, string app_id, TwoFactorEmailCodeRequest request, CancellationToken ct);
+    Task<ActionResult> ListTotpAuthenticators(IAuthenticationProvider auth, ITotpService totpService, string app_id, CancellationToken ct);
+    Task<ActionResult> DeleteTotpAuthenticator(IAuthenticationProvider auth, ITotpService totpService, string app_id, TotpDeleteAuthenticatorRequest request, CancellationToken ct);
     Task<ActionResult> Logoff(IAuthenticationProvider auth, IAuthenticationService api, string app_id, CancellationToken ct);
     ActionResult IsLoggedIn();
     Task<ActionResult> RecoverPassword(IAuthenticationService api, IAuthenticationProvider auth, string app_id, UserRecoverPassword parms, CancellationToken ct);

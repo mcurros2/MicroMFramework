@@ -45,33 +45,6 @@ export const MicromUsersFormDefaultProps: Partial<MicromUsersFormProps> = {
     resetAuthenticatorOKLabel: 'Delete all',
 }
 
-const TOTP_BASE32_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
-
-function generateTotpSecret(byteLength = 20) {
-    const bytes = new Uint8Array(byteLength);
-    crypto.getRandomValues(bytes);
-
-    let bits = 0;
-    let value = 0;
-    let output = "";
-
-    for (const byte of bytes) {
-        value = (value << 8) | byte;
-        bits += 8;
-
-        while (bits >= 5) {
-            output += TOTP_BASE32_ALPHABET[(value >>> (bits - 5)) & 31];
-            bits -= 5;
-        }
-    }
-
-    if (bits > 0) {
-        output += TOTP_BASE32_ALPHABET[(value << (5 - bits)) & 31];
-    }
-
-    return output;
-}
-
 export function MicromUsersForm(props: MicromUsersFormProps) {
     const {
         entity, initialFormMode, getDataOnInit, onSaved, onCancel, disabledFalseLabel, disabledTrueLabel,
@@ -108,7 +81,7 @@ export function MicromUsersForm(props: MicromUsersFormProps) {
                 okButtonText={resetAuthenticatorOKLabel}
                 onCancel={async () => await modal.close()}
                 onOK={async () => {
-                    const result = await entity.API.executeProcess(entity.def.procs.usr_resetTotp, { vc_username: entityForm.form.values.vc_username, vc_totp_secret: generateTotpSecret() });
+                    const result = await entity.API.executeProcess(entity.def.procs.usr_resetTotp, { vc_username: entityForm.form.values.vc_username });
                     if (result.Failed === false) {
                         await entityForm.performGetData();
                         await modal.close();

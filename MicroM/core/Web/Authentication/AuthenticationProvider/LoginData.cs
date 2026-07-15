@@ -19,5 +19,4 @@ public record LoginData
 
     // TOTP/MFA support
     public bool totp_enabled { get; set; } = false;
-    public string? totp_secret { get; set; }
 }

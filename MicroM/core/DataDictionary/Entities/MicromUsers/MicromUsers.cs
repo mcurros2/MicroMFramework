@@ -26,7 +26,6 @@ public class MicromUsersDef : EntityDefinition
     public readonly Column<DateTime?> dt_last_login = new();
     public readonly Column<DateTime?> dt_last_refresh = new();
 
-    public readonly Column<string?> vc_totp_secret = Column<string?>.Text(size: 2048, nullable: true, encrypted: true);
     public readonly Column<bool> bt_totp_enabled = new(value: false);
 
     public readonly Column<string?> vc_recovery_code = Column<string?>.Text(nullable: true);
@@ -50,8 +49,7 @@ public class MicromUsersDef : EntityDefinition
     public readonly ProcedureDefinition usr_logoff = new(nameof(vc_username));
     public readonly ProcedureDefinition usr_setPassword = new(nameof(vc_username), nameof(vc_pwhash));
     public readonly ProcedureDefinition usr_resetPassword = new(nameof(vc_username));
-    public readonly ProcedureDefinition usr_setTotpSecret = new(nameof(vc_username), nameof(vc_totp_secret));
-    public readonly ProcedureDefinition usr_resetTotp = new(nameof(vc_username), nameof(vc_totp_secret));
+    public readonly ProcedureDefinition usr_resetTotp = new(nameof(vc_username));
 
     public readonly ProcedureDefinition usr_GetClientClaims = new(readonly_locks: true, nameof(vc_username));
     public readonly ProcedureDefinition usr_GetServerClaims = new(readonly_locks: true, nameof(vc_username));
@@ -277,24 +275,12 @@ public class MicromUsers : Entity<MicromUsersDef>
         return await user.Data.ExecuteProcDBStatus(proc, ct);
     }
 
-    public async static Task<DBStatusResult> SetTotpSecret(ApplicationOption app, string username, string totpSecret, IEntityClient ec, CancellationToken ct)
-    {
-        MicromUsers user = new(ec, schema_name: app.SchemaConfiguration.DDSchema);
-
-        var proc = user.Def.usr_setTotpSecret;
-        proc[nameof(MicromUsersDef.vc_username)].ValueObject = username;
-        proc[nameof(MicromUsersDef.vc_totp_secret)].ValueObject = totpSecret;
-
-        return await user.Data.ExecuteProcDBStatus(proc, ct);
-    }
-
-    public async static Task<DBStatusResult> ResetTotp(ApplicationOption app, string username, string totpSecret, IEntityClient ec, CancellationToken ct)
+    public async static Task<DBStatusResult> ResetTotp(ApplicationOption app, string username, IEntityClient ec, CancellationToken ct)
     {
         MicromUsers user = new(ec, schema_name: app.SchemaConfiguration.DDSchema);
 
         var proc = user.Def.usr_resetTotp;
         proc[nameof(MicromUsersDef.vc_username)].ValueObject = username;
-        proc[nameof(MicromUsersDef.vc_totp_secret)].ValueObject = totpSecret;
 
         return await user.Data.ExecuteProcDBStatus(proc, ct);
     }

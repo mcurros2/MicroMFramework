@@ -19,7 +19,6 @@ select	[user_id] = rtrim(a.c_user_id)
 		, username = a.vc_username
 		, [disabled] = a.bt_disabled
 		, totp_enabled = a.bt_totp_enabled
-		, totp_secret = a.vc_totp_secret
 		, refresh_token = b.vc_refreshtoken
 		, refresh_expired = cast(case when b.dt_refresh_expiration is not null and b.dt_refresh_expiration>@now then 0 else 1 end as bit)
 		, [usertype_id] = rtrim(c.c_categoryvalue_id)

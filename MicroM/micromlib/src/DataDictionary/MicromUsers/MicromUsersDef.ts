@@ -16,7 +16,6 @@ const columns = () =>
         dt_locked: new EntityColumn<Date>({ name: 'dt_locked', type: 'datetime', flags: c.Edit | EntityColumnFlags.nullable, prompt: 'Date Locked' }),
         dt_last_login: new EntityColumn<Date>({ name: 'dt_last_login', type: 'datetime', flags: c.Edit | EntityColumnFlags.nullable, prompt: 'Last Login' }),
         dt_last_refresh: new EntityColumn<Date>({ name: 'dt_last_refresh', type: 'datetime', flags: c.Edit | EntityColumnFlags.nullable, prompt: 'Last Refresh' }),
-        vc_totp_secret: new EntityColumn<string>({ name: 'vc_totp_secret', type: 'varchar', length: 2048, flags: c.Edit | EntityColumnFlags.nullable, prompt: 'Authenticator secret' }),
         bt_totp_enabled: new EntityColumn<boolean>({ name: 'bt_totp_enabled', type: 'bit', length: 1, flags: c.Edit, prompt: 'Require two-factor authentication' }),
         vc_recovery_code: new EntityColumn<string>({ name: 'vc_recovery_code', type: 'varchar', length: 255, flags: c.Edit | EntityColumnFlags.nullable, prompt: 'Recovery Code' }),
         dt_last_recovery: new EntityColumn<Date>({ name: 'dt_last_recovery', type: 'datetime', flags: c.Edit | EntityColumnFlags.nullable, prompt: 'Last Recovery' }),

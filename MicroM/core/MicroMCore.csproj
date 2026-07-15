@@ -89,11 +89,15 @@
     <None Remove="DataDictionary\Entities\MicromRoutes\SQL\mro_deleteAllRoutes.sql" />
     <None Remove="DataDictionary\Entities\MicromRoutes\SQL\mro_iupdate.sql" />
     <None Remove="DataDictionary\Entities\MicromUsers\SQL\MicromUsersGroups\mug_iupdate.sql" />
+    <None Remove="DataDictionary\Entities\MicromUsers\SQL\MicromUsersAuthenticators\uau_countByUser.sql" />
+    <None Remove="DataDictionary\Entities\MicromUsers\SQL\MicromUsersAuthenticators\uau_delete.sql" />
+    <None Remove="DataDictionary\Entities\MicromUsers\SQL\MicromUsersAuthenticators\uau_deleteAll.sql" />
+    <None Remove="DataDictionary\Entities\MicromUsers\SQL\MicromUsersAuthenticators\uau_getByUser.sql" />
+    <None Remove="DataDictionary\Entities\MicromUsers\SQL\MicromUsersAuthenticators\uau_insertConfirmed.sql" />
     <None Remove="DataDictionary\Entities\MicromUsers\SQL\MicromUsers\usr_GetRecoveryCode.sql" />
     <None Remove="DataDictionary\Entities\MicromUsers\SQL\MicromUsers\usr_getRecoveryEmails.sql" />
     <None Remove="DataDictionary\Entities\MicromUsers\SQL\MicromUsers\usr_RecoverPassword.sql" />
     <None Remove="DataDictionary\Entities\MicromUsers\SQL\MicromUsers\usr_resetTotp.sql" />
-    <None Remove="DataDictionary\Entities\MicromUsers\SQL\MicromUsers\usr_setTotpSecret.sql" />
     <None Remove="DataDictionary\Entities\MicromUsers\SQL\MicromUsers\usr_tfGetUserEmails.sql" />
     <None Remove="DataDictionary\Entities\sys\sys_GetDropDuplicateIndexes.sql" />
     <None Remove="DataDictionary\Entities\sys\sys_tfMicroMColumns.sql" />
@@ -150,6 +154,11 @@
     <EmbeddedResource Include="DataDictionary\Entities\MicromRoutes\SQL\mro_deleteAllRoutes.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\MicromRoutes\SQL\mro_iupdate.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\MicromUsers\SQL\MicromUsersDevices\usd_iupdate.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\MicromUsers\SQL\MicromUsersAuthenticators\uau_countByUser.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\MicromUsers\SQL\MicromUsersAuthenticators\uau_delete.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\MicromUsers\SQL\MicromUsersAuthenticators\uau_deleteAll.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\MicromUsers\SQL\MicromUsersAuthenticators\uau_getByUser.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\MicromUsers\SQL\MicromUsersAuthenticators\uau_insertConfirmed.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\MicromUsers\SQL\MicromUsersGroupsMenus\mmn_brwMenuItems.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\MicromUsers\SQL\MicromUsersGroupsMenus\mmn_drop.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\MicromUsers\SQL\MicromUsersGroupsMenus\mmn_update.sql" />
@@ -189,7 +198,6 @@
     <EmbeddedResource Include="DataDictionary\Entities\MicromUsers\SQL\MicromUsers\usr_resetTotp.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\MicromUsers\SQL\MicromUsers\usr_setPassword.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\MicromUsers\SQL\MicromUsers\usr_resetPassword.sql" />
-    <EmbeddedResource Include="DataDictionary\Entities\MicromUsers\SQL\MicromUsers\usr_setTotpSecret.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\MicromUsers\SQL\MicromUsers\usr_tfGetUserEmails.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\MicromUsers\SQL\MicromUsers\usr_updateLoginAttempt.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\MicromUsers\SQL\MicromUsers\usr_GetUserData.sql" />

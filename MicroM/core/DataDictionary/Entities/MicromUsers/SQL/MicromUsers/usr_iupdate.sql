@@ -6,10 +6,9 @@
 		, @sid VarChar(85)
 		, @badlogonattempts Int
 		, @disabled bit
-		, @locked DateTime
+        , @locked DateTime
         , @last_login DateTime
         , @last_refresh DateTime
-        , @totp_secret VarChar(2048)
         , @totp_enabled bit
         , @recovery_code VarChar(255)
         , @last_recovery DateTime
@@ -61,7 +60,6 @@ begin try
             , @locked
             , @last_login
             , @last_refresh
-            , null -- TOTP secret is managed by the authenticator setup flow
             , isnull(@totp_enabled, 0)
             , null -- password recovery code
             , null -- last recovery
