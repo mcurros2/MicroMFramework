@@ -189,13 +189,16 @@ public class TotpService(
         var authenticator = auth.GetAuthenticator(app);
         if (authenticator is SQLServerAuthenticator)
         {
-            if (string.IsNullOrWhiteSpace(app.SQLAdminTotpSecret))
+            if (!challenge.Metadata.TryGetValue(TwoFactorChallengeMetadataKeys.Flow, out string? flow)
+                || !flow.Equals(TwoFactorFlows.SqlAdminSetup, StringComparison.OrdinalIgnoreCase)
+                || !challenge.Metadata.TryGetValue(TwoFactorChallengeMetadataKeys.SetupTotpSecret, out string? setupSecret)
+                || string.IsNullOrWhiteSpace(setupSecret))
             {
-                _log.LogWarning("TOTP_REGISTER: APP_ID {app_id} SQL admin has no TOTP secret.", app_id);
+                _log.LogWarning("TOTP_REGISTER: challenge {challenge_id} is not an active SQL admin setup challenge.", request.ChallengeId);
                 return TotpServiceResult.Failed(TotpServiceResultStatus.SetupNotStarted);
             }
 
-            string authenticatorUri = GetAuthenticatorUri(challenge.Username, app.SQLAdminTotpSecret, app.ApplicationID);
+            string authenticatorUri = GetAuthenticatorUri(challenge.Username, setupSecret, app.ApplicationID);
             return TotpServiceResult.Success(new TotpSetupStartResponse
             {
                 setup_challenge_id = request.ChallengeId,

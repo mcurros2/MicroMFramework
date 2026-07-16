@@ -6,7 +6,6 @@ using MicroM.Data;
 using MicroM.Database;
 using MicroM.DataDictionary.Entities;
 using MicroM.Extensions;
-using MicroM.Web.Authentication;
 using MicroM.Web.Services.Security;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
@@ -171,9 +170,9 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
 
         _ApplicationsCache.TryGetValue(ConfigurationDefaults.ControlPanelAppID, out var control_panel);
 
-        if (!_options.DisableSQLServerAdministratorTwoFactorAuthentication && secrets != null && string.IsNullOrWhiteSpace(secrets.ControlPanelAdminTotpSecret))
+        if (secrets != null && _options.DisableSQLServerAdministratorTwoFactorAuthentication && secrets.ControlPanelAdminTotpSecret != null)
         {
-            secrets.ControlPanelAdminTotpSecret = TotpService.GenerateTotpSecret();
+            secrets.ControlPanelAdminTotpSecret = null;
             await SaveConfigurationDBParms(secrets, ct);
         }
 
@@ -614,6 +613,8 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
 
     private async Task ReconcileSqlServerAdminTotpState(CancellationToken ct)
     {
+        if (!_options.DisableSQLServerAdministratorTwoFactorAuthentication) return;
+
         if (!_ApplicationsCache.TryGetValue(ConfigurationDefaults.ControlPanelAppID, out var controlPanel))
         {
             _log.LogWarning("SQL admin TOTP startup reconciliation skipped because the configuration database is unavailable.");
@@ -632,18 +633,12 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
         {
             try
             {
-                if (_options.DisableSQLServerAdministratorTwoFactorAuthentication)
-                {
-                    continue;
-                }
+                if (app.SQLAdminTotpSecret == null) continue;
 
-                if (!string.IsNullOrWhiteSpace(app.SQLAdminTotpSecret)) continue;
-
-                string secret = TotpService.GenerateTotpSecret();
-                var setResult = await Applications.SetAdminTotpSecret(app, secret, configDb, _encryptor, ct);
-                if (setResult.Failed)
+                var resetResult = await Applications.SetAdminTotpSecret(app, null, configDb, _encryptor, ct);
+                if (resetResult.Failed)
                 {
-                    _log.LogWarning("Failed to create SQL admin TOTP secret for APP_ID {app_id}. Result: {result}", app.ApplicationID, setResult.Results?.FirstOrDefault()?.Message);
+                    _log.LogWarning("Failed to reset SQL admin TOTP secret for APP_ID {app_id}. Result: {result}", app.ApplicationID, resetResult.Results?.FirstOrDefault()?.Message);
                 }
             }
             catch (Exception ex)

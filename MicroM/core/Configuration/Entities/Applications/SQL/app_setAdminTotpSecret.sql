@@ -9,9 +9,9 @@ begin
     return
 end
 
-if @app_admin_totp_secret is null or @app_admin_totp_secret=''
+if @app_admin_totp_secret=''
 begin
-    select 11, 'SQL admin TOTP secret is null or empty'
+    select 11, 'SQL admin TOTP secret is empty'
     return
 end
 

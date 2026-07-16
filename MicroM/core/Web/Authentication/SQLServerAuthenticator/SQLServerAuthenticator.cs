@@ -80,26 +80,33 @@ public class SQLServerAuthenticator : IAuthenticator
     private void SetTwoFactorChallengeResult(ApplicationOption app_config, UserLogin user_login, AuthenticatorResult result, bool setupRequired)
     {
         string encryptedPassword = _encryptor.Encrypt(user_login.Password);
+        string? setupSecret = setupRequired ? _totpService.GenerateSecret() : null;
+        Dictionary<string, string> metadata = new(StringComparer.OrdinalIgnoreCase)
+        {
+            [ChallengePasswordMetadataKey] = encryptedPassword,
+            [TwoFactorChallengeMetadataKeys.Flow] = setupRequired ? TwoFactorFlows.SqlAdminSetup : TwoFactorFlows.SqlAdminAuthenticator
+        };
+        if (setupSecret != null)
+        {
+            metadata[TwoFactorChallengeMetadataKeys.SetupTotpSecret] = setupSecret;
+        }
+
         string challengeId = _challengeStore.CreateChallenge(
             user_login.Username,
             user_login.Username,
             "none",
             app_config.ApplicationID,
             user_login.LocalDeviceID ?? "",
-            new(StringComparer.OrdinalIgnoreCase)
-            {
-                [ChallengePasswordMetadataKey] = encryptedPassword,
-                [TwoFactorChallengeMetadataKeys.Flow] = setupRequired ? TwoFactorFlows.SqlAdminSetup : TwoFactorFlows.SqlAdminAuthenticator
-            });
+            metadata);
 
         result.RequiresTwoFactor = true;
         result.TwoFactorProvider = TwoFactorProvider;
         result.TwoFactorChallengeId = challengeId;
         result.TwoFactorFlow = setupRequired ? TwoFactorFlows.SqlAdminSetup : TwoFactorFlows.SqlAdminAuthenticator;
         result.TwoFactorSetupRequired = setupRequired;
-        if (setupRequired && !string.IsNullOrWhiteSpace(app_config.SQLAdminTotpSecret))
+        if (setupSecret != null)
         {
-            string authenticatorUri = _totpService.GetAuthenticatorUri(user_login.Username, app_config.SQLAdminTotpSecret, app_config.ApplicationID);
+            string authenticatorUri = _totpService.GetAuthenticatorUri(user_login.Username, setupSecret, app_config.ApplicationID);
             result.QrCodeDataUrl = _totpService.GetAuthenticatorQrCodeDataUrl(authenticatorUri);
         }
 
@@ -111,12 +118,8 @@ public class SQLServerAuthenticator : IAuthenticator
         result.ServerClaims[MicroMServerClaimTypes.MicroMUserGroups] = (List<string>)[];
     }
 
-    private async Task<bool> EnsureSqlAdminTotpSecret(ApplicationOption app_config, CancellationToken ct)
+    private async Task<bool> PersistSqlAdminTotpSecret(ApplicationOption app_config, string secret, CancellationToken ct)
     {
-        if (!string.IsNullOrWhiteSpace(app_config.SQLAdminTotpSecret)) return true;
-
-        string secret = _totpService.GenerateSecret();
-
         if (app_config.ApplicationID.Equals(ConfigurationDefaults.ControlPanelAppID, StringComparison.OrdinalIgnoreCase))
         {
             string configPath = Path.Combine(ConfigurationDefaults.SecretsFilePath, ConfigurationDefaults.MicroMCommonID);
@@ -231,13 +234,6 @@ public class SQLServerAuthenticator : IAuthenticator
                 }
 
                 bool setupRequired = string.IsNullOrWhiteSpace(app_config.SQLAdminTotpSecret);
-                if (!await EnsureSqlAdminTotpSecret(app_config, ct))
-                {
-                    _log.LogError("SQL admin TOTP is enabled but APP_ID {app_id} has no configured TOTP secret and one could not be created.", app_config.ApplicationID);
-                    result.PasswordVerificationResult = PasswordVerificationResult.Failed;
-                    return result;
-                }
-
                 SetTwoFactorChallengeResult(app_config, user_login, result, setupRequired);
                 return result;
             }
@@ -375,15 +371,46 @@ public class SQLServerAuthenticator : IAuthenticator
             return result;
         }
 
-        if (string.IsNullOrWhiteSpace(app_config.SQLAdminTotpSecret))
+        if (!challenge.Metadata.TryGetValue(TwoFactorChallengeMetadataKeys.Flow, out string? flow))
         {
-            _log.LogWarning("SQL admin TOTP verification failed: APP_ID {app_id} has no TOTP secret.", app_config.ApplicationID);
+            _log.LogWarning("SQL admin TOTP verification failed: challenge {challenge_id} has no flow metadata.", challengeId);
             _challengeStore.RemoveChallenge(challengeId);
             result.PasswordVerificationResult = PasswordVerificationResult.Failed;
             return result;
         }
 
-        bool isValidCode = _totpService.VerifyCode(app_config.SQLAdminTotpSecret, code);
+        bool isSetup = flow.Equals(TwoFactorFlows.SqlAdminSetup, StringComparison.OrdinalIgnoreCase);
+        string? verificationSecret;
+        if (isSetup)
+        {
+            if (!challenge.Metadata.TryGetValue(TwoFactorChallengeMetadataKeys.SetupTotpSecret, out verificationSecret) || string.IsNullOrWhiteSpace(verificationSecret))
+            {
+                _log.LogWarning("SQL admin TOTP verification failed: setup challenge {challenge_id} has no pending secret.", challengeId);
+                _challengeStore.RemoveChallenge(challengeId);
+                result.PasswordVerificationResult = PasswordVerificationResult.Failed;
+                return result;
+            }
+        }
+        else if (flow.Equals(TwoFactorFlows.SqlAdminAuthenticator, StringComparison.OrdinalIgnoreCase))
+        {
+            verificationSecret = app_config.SQLAdminTotpSecret;
+            if (string.IsNullOrWhiteSpace(verificationSecret))
+            {
+                _log.LogWarning("SQL admin TOTP verification failed: APP_ID {app_id} has no registered TOTP secret.", app_config.ApplicationID);
+                _challengeStore.RemoveChallenge(challengeId);
+                result.PasswordVerificationResult = PasswordVerificationResult.Failed;
+                return result;
+            }
+        }
+        else
+        {
+            _log.LogWarning("SQL admin TOTP verification failed: challenge {challenge_id} has invalid flow {flow}.", challengeId, flow);
+            _challengeStore.RemoveChallenge(challengeId);
+            result.PasswordVerificationResult = PasswordVerificationResult.Failed;
+            return result;
+        }
+
+        bool isValidCode = _totpService.VerifyCode(verificationSecret, code);
         if (!isValidCode)
         {
             _log.LogWarning("SQL admin TOTP verification failed: invalid code for user {username}.", challenge.Username);
@@ -414,6 +441,24 @@ public class SQLServerAuthenticator : IAuthenticator
         finally
         {
             await dbc.Disconnect();
+        }
+
+        if (isSetup)
+        {
+            if (!string.IsNullOrWhiteSpace(app_config.SQLAdminTotpSecret))
+            {
+                _log.LogWarning("SQL admin TOTP setup failed because APP_ID {app_id} was registered by another challenge.", app_config.ApplicationID);
+                _challengeStore.RemoveChallenge(challengeId);
+                result.PasswordVerificationResult = PasswordVerificationResult.Failed;
+                return result;
+            }
+
+            if (!await PersistSqlAdminTotpSecret(app_config, verificationSecret, ct))
+            {
+                _log.LogWarning("SQL admin TOTP setup failed because the secret could not be persisted for APP_ID {app_id}.", app_config.ApplicationID);
+                result.PasswordVerificationResult = PasswordVerificationResult.Failed;
+                return result;
+            }
         }
 
         _challengeStore.RemoveChallenge(challengeId);

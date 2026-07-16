@@ -450,13 +450,13 @@ public class Applications : Entity<ApplicationsDef>
         return result;
     }
 
-    public async static Task<DBStatusResult> SetAdminTotpSecret(ApplicationOption app, string secret, IEntityClient ec, IMicroMEncryption? encryptor, CancellationToken ct)
+    public async static Task<DBStatusResult> SetAdminTotpSecret(ApplicationOption app, string? secret, IEntityClient ec, IMicroMEncryption? encryptor, CancellationToken ct)
     {
         Applications entity = new(ec, encryptor);
 
         var proc = entity.Def.app_setAdminTotpSecret;
         proc[nameof(ApplicationsDef.c_application_id)].ValueObject = app.ApplicationID;
-        proc[nameof(ApplicationsDef.vc_app_admin_totp_secret)].ValueObject = encryptor?.Encrypt(secret) ?? secret;
+        proc[nameof(ApplicationsDef.vc_app_admin_totp_secret)].ValueObject = secret == null ? null : encryptor?.Encrypt(secret) ?? secret;
 
         var result = await entity.Data.ExecuteProcDBStatus(proc, ct, set_parms_from_columns: false);
         if (!result.Failed)

@@ -43,7 +43,6 @@ export const LoginDefaultProps: Partial<LoginOptions> = {
     loginErrorMessage: "Unknown user name or bad password",
     confirmRecoveryEmailTitle: "Recovery email",
     codeLabel: "Authentication code",
-    codePlaceholder: "1",
     verifyCodeButtonLabel: "Verify code",
     twoFactorTitle: "Two-factor authentication",
     twoFactorDescription: "Enter the 6-digit code from your authenticator app.",
@@ -215,7 +214,7 @@ export function Login(props: LoginOptions) {
                         }
                         {canEnterTwoFactorCode &&
                             <>
-                                <PinInput length={6} oneTimeCode type="number" aria-label={codeLabel} placeholder={codePlaceholder} disabled={status?.loading} {...form.getInputProps('code')} />
+                                <PinInput autoFocus length={6} oneTimeCode type="number" aria-label={codeLabel} placeholder={codePlaceholder} disabled={status?.loading} {...form.getInputProps('code')} />
                                 <Button key="login2fa" type="button" fullWidth disabled={status?.loading || form.values.code.length !== 6} onClick={() => void handleTwoFactorClick(form.values)}>
                                     {verifyCodeButtonLabel}
                                 </Button>
