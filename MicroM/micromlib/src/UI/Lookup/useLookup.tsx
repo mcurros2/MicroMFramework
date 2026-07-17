@@ -53,6 +53,7 @@ export const useLookup = ({
     const lookupDef = useRef<EntityLookup>();
     const isLooking = useRef<boolean>(false);
     const lastFocusedElement = useRef<Element>();
+    const lastValidLookup = useRef<{ key: Value, description: string }>();
 
 
     const performLookup = useCallback((bindingColumn: string, keyValue: Value, force: boolean = false): Promise<LookupResultState> => {
@@ -65,7 +66,15 @@ export const useLookup = ({
 
         return new Promise<LookupResultState>(async (resolve, reject) => {
 
-            const doLookup = async () => {
+            const doLookup = async (lookupKey: Value = keyValue) => {
+                const cached = lastValidLookup.current;
+                if (cached && cached.key?.toString() === lookupKey?.toString()) {
+                    const cachedStatus = {
+                        data: { key: lookupKey, description: cached.description }
+                    } as OperationStatus<ValuesObject>;
+                    setStatus(cachedStatus);
+                    return { description: cached.description, status: cachedStatus, errorDescription: '' };
+                }
                 try {
                     setStatus({ loading: true });
                     // Set parentKeys
@@ -76,6 +85,7 @@ export const useLookup = ({
                         data: { key: keyValue, description: result }
                     } as OperationStatus<ValuesObject>;
                     setStatus(new_status);
+                    if (result) lastValidLookup.current = { key: lookupKey, description: result };
                     return { description: result, status: new_status, errorDescription: '' };
                 }
                 catch (e: any) {
@@ -96,7 +106,7 @@ export const useLookup = ({
                         entityForm.form.setFieldValue(column, selectedKeyValue);
 
                         //lookupEntity.current!.def.columns[bindingColumn].value = selectedKeys[0][bindingColumn];
-                        const result = await doLookup();
+                        const result = await doLookup(selectedKeyValue);
                         if (result.status.error) {
                             resolve({ columnName: bindingColumn, key: keyValue, description: '', cancel: false, error: true, updateParentKeys: true, errorDescription: result.errorDescription });
                         }

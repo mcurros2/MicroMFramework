@@ -44,6 +44,7 @@ export function useCompoundLookup({
     const [rawValue, setRawValue] = useState('');
     const dirty = useRef(false);
     const looking = useRef(false);
+    const lastValidLookup = useRef<{ values: string[], description: string }>();
     const significantColumn = bindingColumns[bindingColumns.length - 1];
     const bindingColumnsKey = bindingColumns.join('\u0000');
 
@@ -96,12 +97,19 @@ export function useCompoundLookup({
     }, [bindingColumns, entity.def.columns, entityForm.form, significantColumn]);
 
     const executeDescriptionLookup = useCallback(async (values: readonly Value[]) => {
+        const normalizedValues = values.map(value => value?.toString() ?? '');
+        const cached = lastValidLookup.current;
+        if (cached && cached.values.length === normalizedValues.length && cached.values.every((value, index) => value === normalizedValues[index])) {
+            setStatus({ data: { description: cached.description } });
+            return { description: cached.description, errorDescription: undefined };
+        }
         try {
             setStatus({ loading: true });
             cf.setValues(context.lookupEntity.def.columns, parentKeys, null, true);
             context.mappings.forEach(([columnName], index) => context.lookupEntity.def.columns[columnName].value = values[index]);
             const description = await context.lookupEntity.API.lookupData(null, null, context.lookupDef.proc);
             setStatus({ data: { description } });
+            if (description) lastValidLookup.current = { values: normalizedValues, description };
             return { description, errorDescription: undefined };
         } catch (error) {
             const microMError = toMicroMError(error);
