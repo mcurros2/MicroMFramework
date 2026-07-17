@@ -1,7 +1,7 @@
 import { ActionIcon, getSize, Group, Loader, MantineSize, rem, Stack, Text, TextInput, useComponentDefaultProps, useMantineTheme } from "@mantine/core";
 import { isNotEmpty } from "@mantine/form";
 import { IconSearch } from "@tabler/icons-react";
-import React, { useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { Value, ValuesObject } from "../../client";
 import { Entity, EntityColumn, EntityColumnFlags, EntityDefinition } from "../../Entity";
 import { ActionIconVariant, useTextTransform, useTextTransformProps } from "../Core";
