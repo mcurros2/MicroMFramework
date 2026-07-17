@@ -148,6 +148,12 @@ export function useCompoundLookup({
         const transformed = transformValue(rawValue, autoTrim, transform);
         setRawValue(transformed);
 
+        if (force) {
+            await browse(transformed);
+            looking.current = false;
+            return;
+        }
+
         if (!transformed) {
             bindingColumns.forEach(columnName => {
                 entityForm.form.setFieldValue(columnName, '');
@@ -162,7 +168,7 @@ export function useCompoundLookup({
         }
 
         const split = splitCompoundKey(transformed, context.group);
-        if (force || !split.complete) {
+        if (!split.complete) {
             await browse(transformed);
         } else {
             const lookup = await executeDescriptionLookup(split.values);
