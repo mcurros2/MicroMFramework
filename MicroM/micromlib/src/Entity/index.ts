@@ -17,6 +17,7 @@ export * from "./DataResultFunctions"
 export * from "./TypeGuards"
 export * from "./EntityFunctions"
 export * from "./ColumnsMapping"
+export * from "./CompoundKeyFunctions"
 export * from "./EntityColumnCollection.types"
 
 

@@ -1,7 +1,7 @@
 import ExcelJS from 'exceljs';
 import { useCallback, useEffect, useRef, useState } from "react";
 import { DBStatusResult, OperationStatus, Value, ValuesObject, ValuesRecord } from "../../client";
-import { DefaultKeySeparator, EntityClientAction } from "../../Entity";
+import { EntityClientAction, extractCompoundRecordKeys } from "../../Entity";
 import { useEntityUI } from "../Core";
 import { GridColumn, GridDoubleClickCallback, GridSelection, GridSelectionChangedCallback } from "../Grid";
 import { DataGridProps, DataGridSelectionKeys, DataGridStateProps } from "./DataGrid.types";
@@ -67,27 +67,18 @@ export function useDataGrid(props: DataGridProps, stateProps: DataGridStateProps
                     if (idx >= record_properties.length) continue;
                     keys[columnName] = record[record_properties[idx]] as Value;
                 }
-                if (keys) result.push(keys);
-
-                // compound key groups
-                // example: compoundKeyGroups: { "group1": { viewIndex: 0, keyMappings: { "c_carrera_id": 0, "c_plan_id": 1 } } }
-
-                const compound_key_groups = entity.def.views[viewName].compoundKeyGroups;
+                const compound_key_groups = entity.def.views[viewName].compoundKeyGroups ?? {};
                 for (const groupName in compound_key_groups)
                 {
                     const compoundGroup = compound_key_groups[groupName];
-                    const compoundKeyValue = record[record_properties[compoundGroup.viewIndex]] as Value;
-                    if (!compoundKeyValue || typeof compoundKeyValue !== 'string') continue;
-
-                    // Example 'AX-33'
-                    const keyValues = compoundKeyValue.split(compoundGroup.keySeparator || DefaultKeySeparator);
-                    for (const columnName in compoundGroup.keyMappings) {
-                        const groupIndex = compoundGroup.keyMappings[columnName];
-                        if (groupIndex >= keyValues.length) continue;
-                        keys[columnName] = keyValues[groupIndex];
+                    const compoundKeys = extractCompoundRecordKeys(record, compoundGroup);
+                    if (!compoundKeys) {
+                        console.warn(`DataGrid: compound key group '${groupName}' in view '${viewName}' has an incomplete result value; its keys were omitted.`);
+                        continue;
                     }
-                    if (keys) result.push(keys);
+                    Object.assign(keys, compoundKeys);
                 }
+                result.push(keys);
             }
         }
         return result;

@@ -17,5 +17,6 @@ export interface EntityLookup {
     view?: string;
     proc?: string;
     bindingColumnKey?: string;
+    compoundKeyGroupName?: string;
     viewMapping?: ViewMapping;
 }

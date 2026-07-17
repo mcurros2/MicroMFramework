@@ -24,10 +24,12 @@ export function isEntityLookup(obj: unknown): obj is EntityLookup {
         typeof (obj as EntityLookup).entityConstructor === "function";
 
     // Optional properties
-    const hasView = !obj || typeof (obj as EntityLookup).view === "string";
-    const hasProc = !obj || typeof (obj as EntityLookup).proc === "string";
-    const hasBindingColumnKey = !obj || typeof (obj as EntityLookup).bindingColumnKey === "string";
-    const hasViewMapping = !obj || isViewMapping((obj as EntityLookup).viewMapping);
+    const lookup = obj as EntityLookup;
+    const hasView = lookup?.view === undefined || typeof lookup.view === "string";
+    const hasProc = lookup?.proc === undefined || typeof lookup.proc === "string";
+    const hasBindingColumnKey = lookup?.bindingColumnKey === undefined || typeof lookup.bindingColumnKey === "string";
+    const hasCompoundKeyGroupName = lookup?.compoundKeyGroupName === undefined || typeof lookup.compoundKeyGroupName === "string";
+    const hasViewMapping = lookup?.viewMapping === undefined || isViewMapping(lookup.viewMapping);
 
-    return hasBasicProps && hasView && hasProc && hasBindingColumnKey && hasViewMapping;
+    return hasBasicProps && hasView && hasProc && hasBindingColumnKey && hasCompoundKeyGroupName && hasViewMapping;
 }

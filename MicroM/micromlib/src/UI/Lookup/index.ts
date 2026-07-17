@@ -1,6 +1,7 @@
 export * from "./Lookup"
 export * from "./LookupForm"
 export * from "./useLookup"
+export * from "./useCompoundLookup"
 export * from "./useLookupEntity"
 export * from "./useLookupForm"
 export * from "./LookupFormAction"
