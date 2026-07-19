@@ -21,6 +21,11 @@ interface UseCompoundLookupOptions {
     enableView?: boolean;
     transform?: "uppercase" | "lowercase" | "capitalize" | "titlecase";
     autoTrim?: boolean;
+    editLastLevelOnly?: boolean;
+}
+
+interface UseCompoundLookupReturnType extends UseLookupReturnType {
+    keyPrefix: string;
 }
 
 function transformValue(value: string, autoTrim?: boolean, transform?: UseCompoundLookupOptions['transform']) {
@@ -36,12 +41,13 @@ function transformValue(value: string, autoTrim?: boolean, transform?: UseCompou
 
 export function useCompoundLookup({
     entityForm, entity, lookupDefName, bindingColumns, parentKeys, required, inputRef,
-    enableAdd, enableEdit, enableDelete, enableView, transform, autoTrim,
-}: UseCompoundLookupOptions): UseLookupReturnType {
+    enableAdd, enableEdit, enableDelete, enableView, transform, autoTrim, editLastLevelOnly = false,
+}: UseCompoundLookupOptions): UseCompoundLookupReturnType {
     const lookupForm = useLookupForm();
     const [status, setStatus] = useState<OperationStatus<ValuesObject>>({});
     const [lookupResult, setLookupResult] = useState<LookupResultState>();
     const [rawValue, setRawValue] = useState('');
+    const [lastLevelValue, setLastLevelValue] = useState('');
     const dirty = useRef(false);
     const looking = useRef(false);
     const lastValidLookup = useRef<{ values: string[], description: string }>();
@@ -66,12 +72,19 @@ export function useCompoundLookup({
     }, [bindingColumnsKey, entity, lookupDefName, parentKeys]);
 
     const bindingSignature = bindingColumns.map(column => entityForm.form.values[column]?.toString() ?? '').join('\u0000');
+    const separator = context.group.keySeparator ?? '-';
+    const prefixValues = bindingColumns.slice(0, -1).map(column => entityForm.form.values[column]?.toString() ?? '');
+    const keyPrefix = editLastLevelOnly ? `${prefixValues.join(separator)}${separator}` : '';
     useEffect(() => {
         if (!dirty.current || entityForm.status.loading || entityForm.status.operationType === 'get') {
             dirty.current = false;
-            setRawValue(composeCompoundKey(bindingColumns.map(column => entityForm.form.values[column]), context.group));
+            const values = bindingColumns.map(column => entityForm.form.values[column]);
+            setRawValue(composeCompoundKey(values, context.group));
+            setLastLevelValue(values[values.length - 1]?.toString() ?? '');
+        } else if (editLastLevelOnly) {
+            setRawValue(`${keyPrefix}${lastLevelValue}`);
         }
-    }, [bindingSignature, bindingColumnsKey, context.group, entityForm.status.loading, entityForm.status.operationType]);
+    }, [bindingSignature, bindingColumnsKey, context.group, editLastLevelOnly, entityForm.status.loading, entityForm.status.operationType, keyPrefix, lastLevelValue]);
 
     const clearDescriptions = useCallback(() => {
         bindingColumns.forEach(columnName => entity.def.columns[columnName].valueDescription = undefined);
@@ -86,15 +99,17 @@ export function useCompoundLookup({
 
     const commit = useCallback((values: readonly Value[], raw: string, description: string) => {
         bindingColumns.forEach((columnName, index) => {
+            if (editLastLevelOnly && index !== bindingColumns.length - 1) return;
             entityForm.form.setFieldValue(columnName, values[index]);
             entity.def.columns[columnName].value = values[index];
             entity.def.columns[columnName].valueDescription = index === bindingColumns.length - 1 ? description : undefined;
         });
         dirty.current = false;
         setRawValue(raw);
+        setLastLevelValue(values[values.length - 1]?.toString() ?? '');
         entityForm.form.setFieldError(significantColumn, null);
         setLookupResult({ columnName: significantColumn, key: raw, description, error: false, cancel: false, updateParentKeys: true });
-    }, [bindingColumns, entity.def.columns, entityForm.form, significantColumn]);
+    }, [bindingColumns, editLastLevelOnly, entity.def.columns, entityForm.form, significantColumn]);
 
     const executeDescriptionLookup = useCallback(async (values: readonly Value[]) => {
         const normalizedValues = values.map(value => value?.toString() ?? '');
@@ -119,6 +134,10 @@ export function useCompoundLookup({
     }, [context, parentKeys]);
 
     const browse = useCallback(async (raw: string): Promise<void> => {
+        const browseValues = editLastLevelOnly
+            ? [...prefixValues, lastLevelValue]
+            : splitCompoundKey(raw, context.group).values;
+        context.mappings.forEach(([columnName], index) => context.lookupEntity.def.columns[columnName].value = browseValues[index] ?? '');
         await new Promise<void>(async resolve => {
             await lookupForm({
                 entity: context.lookupEntity,
@@ -130,6 +149,11 @@ export function useCompoundLookup({
                     const values = selectedKeys.length ? extractCompoundKeyValues(selectedKeys[0], context.group) : undefined;
                     if (!values) {
                         setInvalid(raw, 'The selected record contains an incomplete compound key.');
+                        resolve();
+                        return;
+                    }
+                    if (editLastLevelOnly && values.slice(0, -1).some((value, index) => value?.toString() !== prefixValues[index])) {
+                        setInvalid(raw, 'The selected record does not match the fixed compound key prefix.');
                         resolve();
                         return;
                     }
@@ -148,13 +172,15 @@ export function useCompoundLookup({
                 enableAdd, enableEdit, enableDelete, enableView,
             });
         });
-    }, [commit, context, enableAdd, enableDelete, enableEdit, enableView, executeDescriptionLookup, lookupForm, parentKeys, setInvalid, significantColumn]);
+    }, [commit, context, editLastLevelOnly, enableAdd, enableDelete, enableEdit, enableView, executeDescriptionLookup, lastLevelValue, lookupForm, parentKeys, prefixValues, setInvalid, significantColumn]);
 
     const onBlur = useCallback(async (_bindingColumn: string, force = false, _event: React.FocusEvent | null = null) => {
         if (looking.current) return;
         looking.current = true;
-        const transformed = transformValue(rawValue, autoTrim, transform);
+        const transformedLastLevel = transformValue(lastLevelValue, autoTrim, transform);
+        const transformed = editLastLevelOnly ? `${keyPrefix}${transformedLastLevel}` : transformValue(rawValue, autoTrim, transform);
         setRawValue(transformed);
+        if (editLastLevelOnly) setLastLevelValue(transformedLastLevel);
 
         if (force) {
             await browse(transformed);
@@ -162,8 +188,9 @@ export function useCompoundLookup({
             return;
         }
 
-        if (!transformed) {
-            bindingColumns.forEach(columnName => {
+        if (editLastLevelOnly ? !transformedLastLevel : !transformed) {
+            bindingColumns.forEach((columnName, index) => {
+                if (editLastLevelOnly && index !== bindingColumns.length - 1) return;
                 entityForm.form.setFieldValue(columnName, '');
                 entity.def.columns[columnName].value = '';
             });
@@ -185,18 +212,24 @@ export function useCompoundLookup({
             else await browse(transformed);
         }
         looking.current = false;
-    }, [autoTrim, bindingColumns, browse, clearDescriptions, commit, context.group, entity.def.columns, entityForm.form, executeDescriptionLookup, rawValue, required, setInvalid, significantColumn, transform]);
+    }, [autoTrim, bindingColumns, browse, clearDescriptions, commit, context.group, editLastLevelOnly, entity.def.columns, entityForm.form, executeDescriptionLookup, keyPrefix, lastLevelValue, rawValue, required, setInvalid, significantColumn, transform]);
 
     const lookupInputProps = {
         ...entityForm.form.getInputProps(significantColumn),
-        value: rawValue,
+        value: editLastLevelOnly ? lastLevelValue : rawValue,
         onChange: (event: React.ChangeEvent<HTMLInputElement>) => {
             dirty.current = true;
-            setRawValue(event.currentTarget.value);
+            const value = event.currentTarget.value;
+            if (editLastLevelOnly) {
+                setLastLevelValue(value);
+                setRawValue(`${keyPrefix}${value}`);
+            } else {
+                setRawValue(value);
+            }
             clearDescriptions();
             setLookupResult(undefined);
         },
     } as ReturnType<UseFormReturnType<ValuesObject>['getInputProps']>;
 
-    return { status, lookupResult, lookupInputProps, onBlur };
+    return { status, lookupResult, lookupInputProps, onBlur, keyPrefix };
 }

@@ -1,40 +1,43 @@
-import { ActionIcon, getSize, Group, Loader, rem, Stack, Text, TextInput, useMantineTheme } from "@mantine/core";
+import { ActionIcon, getSize, Group, Loader, rem, Stack, Text, TextInput, useComponentDefaultProps, useMantineTheme } from "@mantine/core";
 import { isNotEmpty } from "@mantine/form";
-import { IconSearch } from "@tabler/icons-react";
 import { useEffect, useMemo, useRef } from "react";
 import { Value } from "../../client";
 import { EntityColumn, EntityColumnFlags } from "../../Entity";
-import { LookupCommonProps } from "./Lookup.shared";
+import { LookupCommonProps, LookupDefaultProps } from "./Lookup.shared";
 import { useCompoundLookup } from "./useCompoundLookup";
 
-type CompoundLookupProps = LookupCommonProps & { column?: never, bindingColumns: EntityColumn<Value>[] };
+type CompoundLookupProps = LookupCommonProps & { column?: never, bindingColumns: EntityColumn<Value>[], editLastLevelOnly?: boolean };
 
 export function CompoundLookup(props: CompoundLookupProps) {
     const {
         entityForm, entity, lookupDefName, autoFocus, label, parentKeys, bindingColumns, required, readonly, disabled,
-        idMaxWidth = "15rem", icon = <IconSearch size="1rem" stroke="1.5" />, iconVariant = "light",
-        requiredLabel = "A value is required", description, size = "sm", onLookupPerformed,
-        enableAdd = false, enableEdit = false, enableDelete = false, enableView = true, transform, autoTrim = true,
-    } = props;
+        idMaxWidth, icon, iconVariant, requiredLabel, description, size, onLookupPerformed,
+        enableAdd, enableEdit, enableDelete, enableView, transform, autoTrim, editLastLevelOnly,
+    } = useComponentDefaultProps('Lookup', LookupDefaultProps, props);
+
     if (bindingColumns.length < 2) throw new Error('Compound Lookup requires at least two bindingColumns.');
+
+    const theme = useMantineTheme();
 
     const significantColumn = bindingColumns[bindingColumns.length - 1];
     const bindingColumnKey = bindingColumns.map(column => column.name).join('\u0000');
     const bindingColumnNames = useMemo(() => bindingColumns.map(column => column.name), [bindingColumnKey]);
-    const theme = useMantineTheme();
     const inputRef = useRef<HTMLInputElement>(null);
+
     const lookupAPI = useCompoundLookup({
         entityForm, entity, lookupDefName, bindingColumns: bindingColumnNames, parentKeys, required,
-        inputRef, enableAdd, enableEdit, enableDelete, enableView, transform, autoTrim,
+        inputRef, enableAdd, enableEdit, enableDelete, enableView, transform, autoTrim, editLastLevelOnly,
     });
 
     useEffect(() => {
         if (required ?? !significantColumn.hasFlag(EntityColumnFlags.nullable)) entityForm.configureField(significantColumn, isNotEmpty(requiredLabel));
         else entityForm.removeValidation(significantColumn);
     }, [entityForm, required, requiredLabel, significantColumn]);
+
     useEffect(() => {
         bindingColumns.forEach((column, index) => column.valueDescription = index === bindingColumns.length - 1 ? lookupAPI.lookupResult?.description : undefined);
     }, [bindingColumns, lookupAPI.lookupResult?.description]);
+
     useEffect(() => { if (onLookupPerformed && lookupAPI.lookupResult) onLookupPerformed(lookupAPI.lookupResult); }, [lookupAPI.lookupResult, onLookupPerformed]);
 
     const controlSize = getSize({ size, sizes: theme.fontSizes });
@@ -44,6 +47,7 @@ export function CompoundLookup(props: CompoundLookupProps) {
     const { formMode, status } = entityForm;
     const addAutofocus = formMode === 'add' ? true : undefined;
     const editAutofocus = status.loading === false && formMode !== 'add' ? true : undefined;
+
     const readonlyCondition = readonly === undefined
         ? significantColumn.hasFlag(EntityColumnFlags.autoNum) || (entityForm.formMode !== 'add' && significantColumn.hasFlag(EntityColumnFlags.pk))
         : readonly;
@@ -56,6 +60,7 @@ export function CompoundLookup(props: CompoundLookupProps) {
             </Group>
             {(description ?? significantColumn.description) && <Text style={{ fontSize: `calc(${descriptionSize} - ${rem(2)})`, lineHeight: 1.2 }} color={descriptionColor}>{description ?? significantColumn.description}</Text>}
             <Group style={{ marginTop: `calc(${theme.spacing.xs} / 2)` }} align="flex-start">
+                {editLastLevelOnly && <Text weight={700}>{lookupAPI.keyPrefix}</Text>}
                 <TextInput ref={inputRef} size={size} maw={idMaxWidth}
                     readOnly={readonlyCondition || entityForm.formMode === 'view' || lookupAPI.status.loading || entityForm.status.loading}
                     autoFocus={autoFocus === 'autoFocusOnAdd' ? addAutofocus : autoFocus === 'autoFocusOnEdit' ? editAutofocus : autoFocus}

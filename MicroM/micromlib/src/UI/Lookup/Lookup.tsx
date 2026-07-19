@@ -6,7 +6,7 @@ import { SingleLookup } from "./SingleLookup";
 
 export type LookupProps = LookupCommonProps & (
     { column: EntityColumn<Value>, bindingColumns?: never } |
-    { column?: never, bindingColumns: EntityColumn<Value>[] }
+    { column?: never, bindingColumns: EntityColumn<Value>[], editLastLevelOnly?: boolean }
 );
 
 export { LookupDefaultProps };
