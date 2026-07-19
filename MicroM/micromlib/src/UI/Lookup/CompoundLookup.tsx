@@ -20,9 +20,19 @@ export function CompoundLookup(props: CompoundLookupProps) {
     const theme = useMantineTheme();
 
     const significantColumn = bindingColumns[bindingColumns.length - 1];
-    const bindingColumnKey = bindingColumns.map(column => column.name).join('\u0000');
-    const bindingColumnNames = useMemo(() => bindingColumns.map(column => column.name), [bindingColumnKey]);
+    const bindingColumnNames = useMemo(() => bindingColumns.map(column => column.name), [bindingColumns]);
+
     const inputRef = useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+        const significantColumnIsRequired = required ?? !significantColumn.hasFlag(EntityColumnFlags.nullable);
+        bindingColumns.forEach((column, index) => {
+            const validation = index === bindingColumns.length - 1 && significantColumnIsRequired
+                ? isNotEmpty(requiredLabel)
+                : undefined;
+            entityForm.configureField(column, validation);
+        });
+    }, [bindingColumns, entityForm, required, requiredLabel, significantColumn]);
 
     const lookupAPI = useCompoundLookup({
         entityForm, entity, lookupDefName, bindingColumns: bindingColumnNames, parentKeys, required,
@@ -30,18 +40,14 @@ export function CompoundLookup(props: CompoundLookupProps) {
     });
 
     useEffect(() => {
-        if (required ?? !significantColumn.hasFlag(EntityColumnFlags.nullable)) entityForm.configureField(significantColumn, isNotEmpty(requiredLabel));
-        else entityForm.removeValidation(significantColumn);
-    }, [entityForm, required, requiredLabel, significantColumn]);
-
-    useEffect(() => {
+        if (!lookupAPI.lookupResult) return;
         bindingColumns.forEach((column, index) => column.valueDescription = index === bindingColumns.length - 1 ? lookupAPI.lookupResult?.description : undefined);
-    }, [bindingColumns, lookupAPI.lookupResult?.description]);
+    }, [bindingColumns, lookupAPI.lookupResult]);
 
     useEffect(() => { if (onLookupPerformed && lookupAPI.lookupResult) onLookupPerformed(lookupAPI.lookupResult); }, [lookupAPI.lookupResult, onLookupPerformed]);
 
-    const controlSize = getSize({ size, sizes: theme.fontSizes });
-    const descriptionSize = getSize({ size, sizes: theme.fontSizes });
+    const controlSize = getSize({ size: size!, sizes: theme.fontSizes });
+    const descriptionSize = getSize({ size: size!, sizes: theme.fontSizes });
     const labelColor = theme.colorScheme === 'dark' ? theme.colors.dark[0] : theme.colors.gray[9];
     const descriptionColor = theme.colorScheme === 'dark' ? theme.colors.dark[2] : theme.colors.gray[6];
     const { formMode, status } = entityForm;
