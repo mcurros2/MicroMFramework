@@ -1,10 +1,10 @@
-import "../../../libs/w2ui/w2ui.css";
-import "./W2Grid.css";
 import { Paper, useComponentDefaultProps } from "@mantine/core";
 import { SQLType } from "client";
 import { ForwardedRef, forwardRef, ReactNode, useImperativeHandle } from "react";
+import "../../../libs/w2ui/w2ui.css";
 import { useGrid } from "./useGrid";
 import { w2columnField, w2record, w2recordId } from "./W2Grid";
+import "./W2Grid.css";
 
 export type GridSelectionMode = 'multi' | 'single';
 export type GridColumnFormat = 'url'

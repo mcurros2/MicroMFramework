@@ -54,40 +54,6 @@ const columns = () =>
     }
 )
 
-/*
-Compound lookup example (UI metadata is maintained by hand):
-
-// view:
-prod_brwStandard: {
-    name: 'prod_brwStandard',
-    keyMappings: { c_segment_id: 4 },
-    compoundKeyGroups: {
-        product: {
-            viewIndex: 1,
-            keyMappings: { c_division_id: 0, c_subdivision_id: 1, c_product_id: 2 },
-            // keySeparator: '-', // optional; '-' is the default
-        },
-    },
-}
-
-// lookup:
-'replacements': {
-    name: 'replacements',
-    view: 'prod_brwStandard',
-    proc: 'prod_replacementsLookup',
-    compoundKeyGroupName: 'product', // the compound key group name
-    entityConstructor: (client: MicroMClient, parentKeys?: ValuesObject) => new Products(client, parentKeys),
-}
-
-<Lookup lookupDefName=""replacements"" bindingColumns={[
-    comision.def.columns.c_carrerao_id,
-    comision.def.columns.c_plano_id,
-    comision.def.columns.c_materiao_id,
-]} ... />
-
-The numeric compound key order must match bindingColumns order; source and destination column names may differ.
-*/
-
 const views = () =>
 (
     {VIEWS_DEFINITION}

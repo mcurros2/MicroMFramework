@@ -282,7 +282,7 @@ namespace MicroM.Generators.ReactGenerator
                     autoADDassigned = true;
                 }
 
-                colsBuilder.Append(col_enumerator.Current.AsFormField(autofocusOnAdd: autofocusOnAdd, separator: separator));
+                colsBuilder.Append(col_enumerator.Current.AsFormField(autofocusOnAdd: autofocusOnAdd, separator: ""));
 
                 while (col_enumerator.MoveNext())
                 {

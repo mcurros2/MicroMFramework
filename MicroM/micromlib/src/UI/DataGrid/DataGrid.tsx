@@ -15,6 +15,7 @@ export const DataGridDefaultProps: Partial<DataGridProps> = {
     refreshOnInit: false,
     selectionMode: "multi",
     gridHeight: "auto",
+    minGridHeight: "none",
     preserveSelection: true,
     autoSelectFirstRow: true,
     toolbarIconVariant: "light",
@@ -69,7 +70,7 @@ export function DataGrid(props: DataGridProps) {
         enableAdd, enableEdit, enableDelete, enableView, enableExport, columnBorders, autoSizeColumnsOnLoad, rowBorders, withBorder,
         labels, columnsOverrides, toolbarSize, viewName, showActions, renderOnlyWhenVisible, filtersFormSize, parentKeys, search,
         limit, parentFormAPI, showToolbar, showActionsToolbar, enableImport, setInitialFiltersFromColumns, visibleFilters, formMode,
-        showColumnsConfigMenu, showSelectRowsButton, maxSearchTerms
+        showColumnsConfigMenu, showSelectRowsButton, maxSearchTerms, minGridHeight
     } = props;
 
     const theme = useMantineTheme();
@@ -102,12 +103,32 @@ export function DataGrid(props: DataGridProps) {
         />
     ), [columns, setColumns]);
 
+    const effectiveMinGridHeight = useMemo(() => {
+        if (!minGridHeight || minGridHeight === 'none') return undefined;
+        switch (minGridHeight) {
+            case 'xs': return '20vh';
+            case 'sm': return '30vh';
+            case 'md': return '40vh';
+            case 'lg': return '50vh';
+            case 'xl': return '60vh';
+        }
+    }, [minGridHeight]);
+
+
+    const sectionStyle: React.CSSProperties = {
+        height: gridHeight === 'flex-grow' ? '100%' : undefined,
+        display: gridHeight === 'flex-grow' ? 'flex' : undefined,
+        flexDirection: gridHeight === 'flex-grow' ? 'column' : undefined,
+        minHeight: effectiveMinGridHeight
+    }
+
+
     return (
         <>
             {renderOnlyWhenVisible && isFirstVisible === false ?
                 <div ref={visibilityDivRef} style={{ height: props.gridHeight }}></div>
                 :
-                <section style={{ height: gridHeight === 'flex-grow' ? '100%' : undefined, display: gridHeight === 'flex-grow' ? 'flex' : undefined, flexDirection: gridHeight === 'flex-grow' ? 'column' : undefined }}>
+                <section style={sectionStyle}>
                     {showToolbar &&
                         <DataGridToolbar
                             {...labels!}
@@ -192,7 +213,7 @@ export function DataGrid(props: DataGridProps) {
                             columns={columns}
                             rows={rows}
                             onDoubleClick={dataGridAPI.handleDoubleClick}
-                            gridHeight={gridHeight === 'auto' ? '50vh' : gridHeight}
+                            gridHeight={gridHeight === 'auto' ? effectiveMinGridHeight : gridHeight}
                             preserveSelection={preserveSelection}
                             onSelectionChanged={dataGridAPI.handleSelectionChanged}
                             showSelectCheckbox={dataGridAPI.showSelectCheckbox}
