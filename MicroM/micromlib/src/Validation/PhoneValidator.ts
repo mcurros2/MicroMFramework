@@ -12,7 +12,6 @@ export const isPhone: ValidatorFunction = (error?: ReactNode) => {
             return _error;
         }
 
-
         const pattern = new RegExp(
             '^\\+?\\d+$'
         );
