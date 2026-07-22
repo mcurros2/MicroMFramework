@@ -32,7 +32,7 @@ export function useExecuteLookup({ entity, lookupDefName, parentKeys }: UseLooku
         done.current = false;
 
         // Set parentKeys
-        cf.setValues(lookupEntity.def.columns, parentKeys, null, true);
+        cf.setValues(lookupEntity.def.columns, parentKeys, null, true, true);
 
         const current_values = cf.getValuesObject(lookupEntity.def.columns, { flags: EntityColumnFlags.pk | EntityColumnFlags.fk, ignoreDefaults: false });
 

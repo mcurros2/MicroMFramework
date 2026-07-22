@@ -374,3 +374,19 @@ export function copyValuesObject(obj: ValuesObject): ValuesObject {
 
     return copiedObject;
 }
+
+export function mergeValuesObject(source?: ValuesObject, mergeAndOverride?: ValuesObject) {
+    const mergedValues: ValuesObject = {};
+
+    Object.entries(source ?? {}).forEach(([name, value]) => {
+        if (hasValue(value)) mergedValues[name] = value;
+    });
+
+    Object.entries(mergeAndOverride ?? {}).forEach(([name, value]) => {
+        if (hasValue(value) || !Object.hasOwnProperty.call(mergedValues, name)) {
+            mergedValues[name] = value;
+        }
+    });
+
+    return mergedValues;
+};

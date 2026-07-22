@@ -64,7 +64,7 @@ export function useDataGridToolbarFilters(props: UseDataGridToolbarFiltersProps)
         if (!client || !FiltersEntity) return;
 
         const filter_entity = FiltersEntity(client, parentKeys);
-        setValues(filter_entity.def.columns, filterValues);
+        setValues(filter_entity.def.columns, filterValues, null, undefined, true);
         Object.values(filter_entity.def.columns).forEach(col => {
             if (filtersDescription && filtersDescription[col.prompt]) {
                 const description = filtersDescription[col.prompt];

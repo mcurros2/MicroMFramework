@@ -198,7 +198,7 @@ export function useCompoundLookup({
 
         try {
             setStatus({ loading: true });
-            cf.setValues(context.lookupEntity.def.columns, parentKeys, null, true);
+            cf.setValues(context.lookupEntity.def.columns, parentKeys, null, true, true);
             context.mappings.forEach(([columnName], index) => context.lookupEntity.def.columns[columnName].value = values[index]);
             const description = await context.lookupEntity.API.lookupData(null, null, context.lookupDef.proc);
             setStatus({ data: { description } });

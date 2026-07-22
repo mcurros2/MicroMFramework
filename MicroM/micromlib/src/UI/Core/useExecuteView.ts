@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { DataResult, OperationStatus, toMicroMError, ValuesObject } from "../../client";
-import { areArraysContentsEqual, areValuesObjectsEqual, Entity, EntityDefinition } from "../../Entity";
+import { areArraysContentsEqual, areValuesObjectsEqual, Entity, EntityDefinition, mergeValuesObject } from "../../Entity";
 
 export function useExecuteView(
     entity?: Entity<EntityDefinition>, values?: ValuesObject, viewName?: string, search?: string[] | undefined, limit?: string | null, refresh?: boolean, filters?: ValuesObject
@@ -25,7 +25,7 @@ export function useExecuteView(
     useEffect(() => {
         if (!entity || !viewName) return;
 
-        const mergedValues = { ...values, ...filters ?? {} };
+        const mergedValues = mergeValuesObject(values, filters);
 
         // Check if values, search, limit or refresh have changed from their previous values
         if (

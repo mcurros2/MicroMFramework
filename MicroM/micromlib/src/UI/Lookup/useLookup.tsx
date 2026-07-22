@@ -78,7 +78,7 @@ export const useLookup = ({
                 try {
                     setStatus({ loading: true });
                     // Set parentKeys
-                    cf.setValues(lookupEntity.current!.def.columns, parentKeys, null, true);
+                    cf.setValues(lookupEntity.current!.def.columns, parentKeys, null, true, true);
 
                     const result = await lookupEntity.current!.API.lookupData(null, null, lookupDef.current?.proc);
                     const new_status = {
