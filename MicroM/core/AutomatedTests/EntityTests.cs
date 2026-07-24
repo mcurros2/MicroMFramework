@@ -10,6 +10,7 @@ namespace MicroM.AutomatedTests;
 
 public static class EntityTests
 {
+    private const int FullTestRecordLimit = 3;
 
     private static string[] GetColNamesArray(this CustomOrderedDictionary<ColumnBase> columns)
     {
@@ -33,7 +34,7 @@ public static class EntityTests
         var pk_cols = entity.Def.Columns.GetWithFlags(ColumnFlags.PK);
         var pk_cols_names_array = pk_cols.GetColNamesArray();
 
-        const string test_version = "1.1.2";
+        const string test_version = "1.1.3";
 
         log?.Invoke($"*** {entity.Def.Name}: Running tests with test data from file {test_data_file}. version {test_version}");
 
@@ -56,12 +57,32 @@ public static class EntityTests
         }
 
         bool first_record = true;
+        int record_number = 0;
         foreach (var record in testData.records)
         {
             if (ct.IsCancellationRequested) break;
 
+            record_number++;
+
+            if (record_number > FullTestRecordLimit)
+            {
+                if (!seed_test_data)
+                {
+                    log?.Invoke($"{entity.Def.Name}: Skipping record {record_number} with PK values {testData.ToRecordValuesString(record, pk_cols_names_array)} because seeding test data is disabled.");
+                    continue;
+                }
+
+                testData.ApplyRecordToColumns(record, entity.Def.Columns);
+
+                log?.Invoke($"{entity.Def.Name}: Inserting data only for record {record_number} with PK values {testData.ToRecordValuesString(record, pk_cols_names_array)} for seeding test data.");
+
+                await entity.InsertData(ct, throw_dbstat_exception: true);
+                continue;
+            }
+
             testData.ApplyRecordToColumns(record, entity.Def.Columns);
 
+            log?.Invoke($"{entity.Def.Name}: Running full test for record {record_number} with PK values {testData.ToRecordValuesString(record, pk_cols_names_array)}.");
             log?.Invoke($"{entity.Def.Name}: Inserting data for record with PK values {testData.ToRecordValuesString(record, pk_cols_names_array)} at time {DateTime.Now:O}.");
 
             var time_at_insert = DateTime.Now;
@@ -93,7 +114,15 @@ public static class EntityTests
 
             // Compare the elapsed ms. Wait if needed
             stop_watch.Stop();
-            var remaining_ms = 5.0 - stop_watch.Elapsed.TotalMilliseconds;
+
+            // check time drift, it sometimes happens whith sql in VM
+            double sql_precision_delay = 5.0;
+            if (dt_lu_value > DateTime.Now)
+            {
+                sql_precision_delay = 15.0;
+            }
+
+            var remaining_ms = sql_precision_delay - stop_watch.Elapsed.TotalMilliseconds;
             if (remaining_ms > 0.0)
             {
                 var awaited = (int)Math.Ceiling(remaining_ms);
