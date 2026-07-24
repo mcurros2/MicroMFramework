@@ -2,8 +2,6 @@
 using MicroM.Core;
 using MicroM.Data;
 using MicroM.Database;
-using MicroM.Generators.SQLGenerator;
-using System.Text;
 using static MicroM.Database.DatabaseSchema;
 using static MicroM.Database.DatabaseSchemaTables;
 
@@ -49,7 +47,9 @@ public static class DatabaseSchemaCreationOptionsExtensions
     /// including schemas, tables, types, sequences, constraints, indexes, and custom stored procedures. It will connect
     /// to the database if not already connected and disconnect upon completion if it established the connection. The
     /// method is safe to call multiple times; it will only create or alter objects as needed.</remarks>
-    public async static Task CreateSchemaAndProcs(this CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>> entities, IEntityClient ec, AppDBSchemaConfiguration schema_config, CancellationToken ct, bool create_or_alter = false, CustomOrderedDictionary<CustomScript>? custom_procs = null, bool generate_standard_procs = true)
+    public async static Task CreateSchemaAndProcs(this CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>> entities, IEntityClient ec, AppDBSchemaConfiguration schema_config,
+        CancellationToken ct, bool create_or_alter = false, CustomOrderedDictionary<CustomScript>? custom_procs = null, bool generate_standard_procs = true,
+        bool create_only_inexisting_constraints_and_indexes = true)
     {
         bool should_close = !(ec.ConnectionState == System.Data.ConnectionState.Open);
 
@@ -75,7 +75,7 @@ public static class DatabaseSchemaCreationOptionsExtensions
             if (custom_procs?.Count > 0) await CreateAllCustomSQLTypes(ec, custom_procs, ct);
 
             created_tables = await CreateEntitiesInexistentTables(ec, entities, schema_config, ct);
-            await created_tables.CreateEntitiesConstraintsAndIndexes(schema_config, ec, ct);
+            await created_tables.CreateEntitiesConstraintsAndIndexes(schema_config, ec, ct, create_only_inexisting_constraints_and_indexes);
 
             // create custom tables if any
             if (custom_procs?.Count > 0)
@@ -96,34 +96,9 @@ public static class DatabaseSchemaCreationOptionsExtensions
 
     }
 
-    public static async Task CreateEntitiesConstraintsAndIndexes(this CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>> entities, AppDBSchemaConfiguration schema_config, IEntityClient ec, CancellationToken ct)
+    public static async Task CreateEntitiesConstraintsAndIndexes(this CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>> entities, AppDBSchemaConfiguration schema_config, IEntityClient ec, CancellationToken ct, bool create_only_inexisting_constraints_and_indexes = true)
     {
-        bool should_close = !(ec.ConnectionState == System.Data.ConnectionState.Open);
-        try
-        {
-            await ec.Connect(ct);
-
-            StringBuilder sb_create_PKs = new();
-            StringBuilder sb_create_UNs = new();
-            StringBuilder sb_create_FKs = new();
-            StringBuilder sb_create_IDXs = new();
-            foreach (var options in entities.Values)
-            {
-                sb_create_PKs.Append(options.EntityInstance.AsAlterPrimaryKey());
-                sb_create_UNs.Append(options.EntityInstance.AsAlterUniqueConstraints());
-                sb_create_FKs.Append(options.EntityInstance.AsAlterForeignKeys(schema_config));
-                sb_create_IDXs.Append(options.EntityInstance.AsCreateIndexes());
-            }
-            // create constraints and indexes
-            await ec.ExecuteSQLNonQuery(sb_create_PKs.ToString(), ct);
-            await ec.ExecuteSQLNonQuery(sb_create_UNs.ToString(), ct);
-            await ec.ExecuteSQLNonQuery(sb_create_FKs.ToString(), ct);
-            await ec.ExecuteSQLNonQuery(sb_create_IDXs.ToString(), ct);
-        }
-        finally
-        {
-            if (should_close) await ec.Disconnect();
-        }
+        await DatabaseSchemaTables.CreateEntitiesConstraintsAndIndexes(ec, entities, schema_config, ct, create_only_inexisting_constraints_and_indexes);
     }
 
     public static async Task AddEntitiesToDataDictionary(this CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>> entities, IEntityClient ec, CancellationToken ct, string? dd_schema_name = null)

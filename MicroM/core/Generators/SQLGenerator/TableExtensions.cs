@@ -292,6 +292,22 @@ public static class TableExtensions
         return sb_indexes.ToString();
     }
 
+    public static string? AsCreateIndex<T>(this T entity, string index_name) where T : EntityBase
+    {
+        if (entity.Def.Fake) return null;
+        StringBuilder sb_indexes = new();
+        if (entity.Def.Indexes.Count > 0)
+        {
+            if (entity.Def.Indexes.TryGetValue(index_name, out var index))
+            {
+                sb_indexes.AppendFormat(CultureInfo.InvariantCulture, "if not exists(select 1 from sys.indexes a where a.object_id=object_id('{1}') and a.name='{0}') create index {0} on {1} (", index.Name, entity.Def.FullTableName);
+                sb_indexes.Append(string.Join<string>(", ", index.Keys));
+                sb_indexes.Append(")\n");
+            }
+        }
+        return sb_indexes.ToString();
+    }
+
     public static string? AsCreateIndexes<T>(this T entity) where T : EntityBase
     {
         if (entity.Def.Fake) return null;
@@ -302,7 +318,7 @@ public static class TableExtensions
         {
             foreach (var index in entity.Def.Indexes.Values)
             {
-                string qualidifed_schema = !entity.Def.QualifiedSchemaName.IsNullOrEmpty() ? $"{entity.Def.QualifiedSchemaName}." : "";
+                //string qualidifed_schema = !entity.Def.QualifiedSchemaName.IsNullOrEmpty() ? $"{entity.Def.QualifiedSchemaName}." : "";
                 sb_indexes.AppendFormat(CultureInfo.InvariantCulture, "if not exists(select 1 from sys.indexes a where a.object_id=object_id('{1}') and a.name='{0}') create index {0} on {1} (", index.Name, entity.Def.FullTableName);
                 sb_indexes.Append(string.Join<string>(", ", index.Keys));
                 sb_indexes.Append(")\n");

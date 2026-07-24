@@ -96,6 +96,8 @@ public class FileUploadService(
         string fullPath = string.Empty;
         try
         {
+            await ec.Connect(ct);
+
             // Queue the upload, upload status is pending
             var queue_result = await QueueFile(app, fileprocess_id, fileName, file_tag, ec, ct);
 
@@ -113,6 +115,8 @@ public class FileUploadService(
             // Change upload status to Uploading
             await FileStore.UpdateStatus(ec, app.SchemaConfiguration.DDSchema, file_details.c_file_id, nameof(FileUpload.Uploading), ct);
 
+            await ec.Disconnect();
+
             // fileData stream is the Request body stream, which is not seekable and can only be read once.
             var store_result = await fileStorage.StoreFile(ec, app, file_details, fileData, ct);
 
@@ -125,6 +129,9 @@ public class FileUploadService(
 
             var should_create_thumbnail = !string.IsNullOrWhiteSpace(new_file_result.extension) && _thumbnailService.IsImageSupported(new_file_result.extension);
             var is_sql_storage = app.FileStorageType == nameof(FileStorageTypes.SQLFileStorage);
+
+
+            await ec.Connect(ct);
 
             if (is_sql_storage)
             {
@@ -142,9 +149,8 @@ public class FileUploadService(
 
             }
 
-            await ec.Connect(ct);
-
             // MMC: update file size
+            await fileStore.GetData(ct);
             fileStore.Def.bi_filesize.Value = store_result.Result;
             await fileStore.UpdateData(ct, true);
 
