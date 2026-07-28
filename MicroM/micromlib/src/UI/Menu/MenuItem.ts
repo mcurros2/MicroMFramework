@@ -1,4 +1,5 @@
 import { ReactElement, ReactNode } from "react"
+import { ValuesObject } from "../../client"
 
 export interface MenuItem {
     ID: string,
@@ -17,5 +18,6 @@ export interface MenuItem {
     section: 'header' | 'items' | 'footer',
     canShowAsShortcut?: boolean,
     menuPath?: string,
-    menuPathDescription?: string
+    menuPathDescription?: string,
+    parentKeys?: ValuesObject
 }
