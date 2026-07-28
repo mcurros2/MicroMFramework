@@ -12,7 +12,7 @@ import { useDataGrid } from "./useDatagrid";
 export const DataGridDefaultProps: Partial<DataGridProps> = {
     search: [],
     limit: "10000",
-    refreshOnInit: false,
+    refreshOnInit: true,
     selectionMode: "multi",
     gridHeight: "auto",
     minGridHeight: "none",
@@ -70,7 +70,7 @@ export function DataGrid(props: DataGridProps) {
         enableAdd, enableEdit, enableDelete, enableView, enableExport, columnBorders, autoSizeColumnsOnLoad, rowBorders, withBorder,
         labels, columnsOverrides, toolbarSize, viewName, showActions, renderOnlyWhenVisible, filtersFormSize, parentKeys, search,
         limit, parentFormAPI, showToolbar, showActionsToolbar, enableImport, setInitialFiltersFromColumns, visibleFilters, formMode,
-        showColumnsConfigMenu, showSelectRowsButton, maxSearchTerms, minGridHeight
+        showColumnsConfigMenu, showSelectRowsButton, maxSearchTerms, minGridHeight, refreshOnInit
     } = props;
 
     const theme = useMantineTheme();
@@ -82,9 +82,16 @@ export function DataGrid(props: DataGridProps) {
 
     const viewState = useViewState(search, limit);
 
-    const executeViewState = useExecuteView(entity, parentKeys, viewName, viewState.searchText, viewState.limitRows, viewState.refresh, viewState.filterValues);
+    const [executeViewEnabled, setExecuteViewEnabled] = useState(refreshOnInit !== false);
+
+    const executeViewState = useExecuteView(entity, parentKeys, viewName, viewState.searchText, viewState.limitRows, viewState.refresh, viewState.filterValues, executeViewEnabled);
 
     const dataGridAPI = useDataGrid(props, { executeViewState, setRefresh: viewState.setRefresh, setSearchText: viewState.setSearchText });
+
+    const handleToolbarRefresh = (searchText: string[] | undefined) => {
+        setExecuteViewEnabled(true);
+        dataGridAPI.handleRefresh(searchText);
+    };
 
     const { isLoading, rows, columns, setColumns } = dataGridAPI;
 
@@ -136,7 +143,7 @@ export function DataGrid(props: DataGridProps) {
                             enableExport={enableExport}
                             onExportClick={dataGridAPI.handleExport}
 
-                            onRefreshClick={dataGridAPI.handleRefresh}
+                            onRefreshClick={handleToolbarRefresh}
                             onCheckboxToggle={dataGridAPI.handleToggleSelectable}
                             autoFocus={autoFocus}
                             toolbarIconVariant={toolbarIconVariant}

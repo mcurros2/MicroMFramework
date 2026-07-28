@@ -4,7 +4,7 @@
   "plugins": [
     "react",
     "@typescript-eslint",
-    "node",
+    "n",
     "unused-imports",
     "simple-import-sort"
   ],

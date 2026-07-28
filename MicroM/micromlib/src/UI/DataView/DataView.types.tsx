@@ -97,8 +97,6 @@ export interface DataViewProps extends Omit<UseEntityUIProps, 'labels'> {
 
     // Rows container
     RowsContainer?: ComponentType<PropsWithChildren>,
-
-
-
+    RowsContainerProps?: PropsWithChildren,
 }
 

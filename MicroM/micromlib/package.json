@@ -1,6 +1,6 @@
 {
   "name": "@mcurros2/microm",
-  "version": "1.1.306-0",
+  "version": "1.1.309-0",
   "source": "src/index.ts",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -81,7 +81,6 @@
     "@typescript-eslint/parser": "^8.56.0",
     "dayjs": "^1.11.9",
     "eslint": "^8.53.0",
-    "eslint-plugin-node": "^11.1.0",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-simple-import-sort": "^12.1.1",
@@ -90,13 +89,15 @@
     "process": "^0.11.10",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "typescript": "5.6.3"
+    "typescript": "5.6.3",
+    "eslint-plugin-n": "^18.2.2"
   },
   "browserslist": "> 0.5%, last 2 versions, not dead",
   "dependencies": {
     "exceljs": "^4.4.0"
   },
   "overrides": {
+    "brace-expansion": "^5.0.8",
     "exceljs": {
       "uuid": "^14.0.0",
       "tmp": "0.2.7"

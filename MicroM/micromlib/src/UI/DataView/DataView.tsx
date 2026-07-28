@@ -11,6 +11,7 @@ import { useDataView } from "./useDataView";
 export const DataViewDefaultProps: Partial<DataViewProps> = {
     search: [],
     limit: "1000",
+    refreshOnInit: true,
     toolbarIconVariant: "light",
     actionsButtonVariant: "light",
     modalFormSize: "lg",
@@ -66,17 +67,24 @@ export const DataView = forwardRef(function DataView(props: DataViewProps, ref: 
         showAppliedFilters, showRefreshButton, hideCheckboxToggle, showFiltersButton, searchPlaceholder,
         showActions, parentKeys, visibleFilters, setInitialFiltersFromColumns, cardHrefRootURL, cardHrefTarget,
         showSearchInput, showSelectRowsButton, showToolbar, showDeleteOnlyWhenMultiselect, parentFormAPI, formMode,
-        CardRowAlign, RowsContainer
+        CardRowAlign, RowsContainer, refreshOnInit, RowsContainerProps
     } = props;
 
     const [searchData, setSearchData] = useState<SelectItem[]>(search?.map(s => { return { value: s, label: s } }) as SelectItem[]);
 
     const viewState = useViewState(search, limit);
 
-    const executeViewState = useExecuteView(entity, parentKeys, viewName, viewState.searchText, viewState.limitRows, viewState.refresh, viewState.filterValues);
+    const [executeViewEnabled, setExecuteViewEnabled] = useState(refreshOnInit !== false);
+
+    const executeViewState = useExecuteView(entity, parentKeys, viewName, viewState.searchText, viewState.limitRows, viewState.refresh, viewState.filterValues, executeViewEnabled);
 
     const dataViewAPI = useDataView(props, { executeViewState, setRefresh: viewState.setRefresh, setSearchText: viewState.setSearchText });
     const { handleLoadMore } = dataViewAPI;
+
+    const handleToolbarRefresh = (searchText: string[] | undefined) => {
+        setExecuteViewEnabled(true);
+        dataViewAPI.handleRefresh(searchText);
+    };
 
     const limit_number = parseInt(limit || '0');
 
@@ -97,7 +105,7 @@ export const DataView = forwardRef(function DataView(props: DataViewProps, ref: 
                             enableExport={enableExport}
                             onExportClick={dataViewAPI.handleExport}
 
-                            onRefreshClick={dataViewAPI.handleRefresh}
+                            onRefreshClick={handleToolbarRefresh}
                             onCheckboxToggle={dataViewAPI.handleToggleSelectable}
                             autoFocus={autoFocus}
                             toolbarIconVariant={toolbarIconVariant}
@@ -177,7 +185,7 @@ export const DataView = forwardRef(function DataView(props: DataViewProps, ref: 
                     <Text fz="sm" align="center" fw={500} c="dimmed">{labels?.noRecordsFoundLabel}</Text>
                 }
                 {dataViewAPI.data.length > 0 && RowsContainer &&
-                    <RowsContainer {...(CardRowAlign ? { align: CardRowAlign } : null)}>
+                    <RowsContainer {...(RowsContainerProps ? RowsContainerProps : null)} {...(CardRowAlign ? { align: CardRowAlign } : null)}>
                         {
                             CardContainer && entity && dataViewAPI.data.map((record, index) => {
                                 return <CardContainer

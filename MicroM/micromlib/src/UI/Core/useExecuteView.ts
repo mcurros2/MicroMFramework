@@ -3,11 +3,14 @@ import { DataResult, OperationStatus, toMicroMError, ValuesObject } from "../../
 import { areArraysContentsEqual, areValuesObjectsEqual, Entity, EntityDefinition, mergeValuesObject } from "../../Entity";
 
 export function useExecuteView(
-    entity?: Entity<EntityDefinition>, values?: ValuesObject, viewName?: string, search?: string[] | undefined, limit?: string | null, refresh?: boolean, filters?: ValuesObject
+    entity?: Entity<EntityDefinition>, values?: ValuesObject, viewName?: string, search?: string[] | undefined, limit?: string | null, refresh?: boolean, filters?: ValuesObject,
+    enabled = true
 ) {
-    const [status, setStatus] = useState<OperationStatus<DataResult[]>>({ loading: true, operationType: 'view' });
+    const [status, setStatus] = useState<OperationStatus<DataResult[]>>({ loading: enabled, operationType: 'view' });
     const cancellation = useRef<AbortController>(new AbortController());
     const done = useRef<boolean>();
+    const hasExecuted = useRef(false);
+    const prevEnabled = useRef(enabled);
     const prevValues = useRef<ValuesObject | undefined>(values);
     const prevSearch = useRef<string[] | undefined>(search);
     const prevLimit = useRef<string | null | undefined>(limit);
@@ -23,12 +26,18 @@ export function useExecuteView(
     }, []);
 
     useEffect(() => {
+        if (!enabled) {
+            prevEnabled.current = false;
+            return;
+        }
         if (!entity || !viewName) return;
 
         const mergedValues = mergeValuesObject(values, filters);
 
         // Check if values, search, limit or refresh have changed from their previous values
         if (
+            !hasExecuted.current ||
+            !prevEnabled.current ||
             !areValuesObjectsEqual(mergedValues, prevValues.current) ||
             !areArraysContentsEqual(search, prevSearch.current) ||
             limit !== prevLimit.current ||
@@ -38,6 +47,7 @@ export function useExecuteView(
             cancellation.current.abort("ExecuteView, aborting previous request.");
             cancellation.current = new AbortController();
             done.current = false;
+            hasExecuted.current = true;
 
             async function getData() {
                 setStatus({ loading: true, operationType: 'view' });
@@ -67,8 +77,9 @@ export function useExecuteView(
         prevSearch.current = search;
         prevLimit.current = limit;
         prevRefresh.current = refresh;
+        prevEnabled.current = enabled;
 
-    }, [entity, filters, limit, refresh, search, values, viewName]);
+    }, [enabled, entity, filters, limit, refresh, search, values, viewName]);
 
     return status;
 }
