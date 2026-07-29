@@ -40,7 +40,7 @@ begin try
         return
     end
     
-    -- MMC: no @cu concurrenty, this is designed to be called from the backend
+    -- MMC: no @cu concurrency, this is designed to be called from the backend
     begin tran
 
         update  [dbo].[file_store_status]
