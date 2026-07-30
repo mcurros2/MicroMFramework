@@ -1,10 +1,9 @@
 import { MantineTheme, Skeleton, useComponentDefaultProps } from "@mantine/core";
 import { SpotlightAction } from "@mantine/spotlight";
-import { Dispatch, ReactNode, SetStateAction, useEffect, useMemo, useState } from "react";
+import { Dispatch, ReactNode, SetStateAction, useEffect, useMemo, useRef, useState } from "react";
 import { MicroMClient, MicroMClientClaimTypes } from "../../client";
-import { isPromise } from "../../Entity";
 import { navigateToRoute } from "../Router/MicroMRouterState";
-import { MenuItem } from "./MenuItem";
+import { getMenuItemContext, MenuItem } from "./MenuItem";
 
 export interface MenuContentProps {
     client: MicroMClient,
@@ -21,8 +20,7 @@ export interface UseMenuContentProps extends MenuContentProps {
     menuContent: (props: MenuContentProps) => MenuItem[],
     enableMenuSecurity?: boolean,
     defaultLoadingComponent?: ReactNode,
-    searchMenuItemsWithContentOnly?: boolean,
-
+    searchMenuItemsWithContentOnly?: boolean
 }
 
 export const UseMenuContentDefaultProps: Partial<UseMenuContentProps> = {
@@ -55,7 +53,7 @@ const triggerItemAction = async (props: MenuItemActionProps) => {
     }
 
     if (item.onClick) {
-        item.onClick();
+        await item.onClick(getMenuItemContext(item));
     }
 
     if ((item.content || item.subitems) && item.menuPath) {
@@ -68,9 +66,12 @@ const triggerItemAction = async (props: MenuItemActionProps) => {
 const populateMenuPaths = (
     items: MenuItem[],
     parentPath: string = '',
-    parentDescription: string = ''
+    parentDescription: string = '',
+    menuId: string = ''
 ) => {
     items.forEach(item => {
+        item.menuId = menuId;
+
         const currentPath = `${parentPath}/${item.ID}`;
         item.menuPath = currentPath;
 
@@ -81,7 +82,7 @@ const populateMenuPaths = (
         item.menuPathDescription = currentDescription;
 
         if (item.subitems && item.subitems.length > 0) {
-            populateMenuPaths(item.subitems, currentPath, currentDescription);
+            populateMenuPaths(item.subitems, currentPath, currentDescription, menuId);
         }
     });
 };
@@ -146,7 +147,7 @@ const CreateSpotlightActions = (items: MenuItem[], baseActionProps: Omit<MenuIte
 
 export function useMenuContent(props: UseMenuContentProps) {
     const {
-        client, setContent, isLoggedIn, setIsLoggedIn, menuContent, defaultLoadingComponent, setOpened, loggedInInfo, menuId,
+        client, setContent, isLoggedIn, setIsLoggedIn, menuContent, setOpened, loggedInInfo, menuId,
         enableMenuSecurity, searchMenuItemsWithContentOnly
     } = useComponentDefaultProps('useMenuContent', UseMenuContentDefaultProps, props);
 
@@ -157,12 +158,13 @@ export function useMenuContent(props: UseMenuContentProps) {
     const [items, setItems] = useState<MenuItem[]>([]);
     const [actions, setActions] = useState<SpotlightAction[]>([]);
     const [menuDictionary, setMenuDictionary] = useState<Record<string, MenuItem>>({});
+    const [isLoading, setIsLoading] = useState(true);
 
 
     const internal_items = useMemo(
         () => {
             const items = menuContent({ client, setContent, setOpened, isLoggedIn, setIsLoggedIn, loggedInInfo, menuId });
-            populateMenuPaths(items);
+            populateMenuPaths(items, `/${menuId}`, '', menuId);
             return items;
         },
         [menuContent, client, setContent, setOpened, isLoggedIn, setIsLoggedIn, loggedInInfo, menuId]
@@ -170,45 +172,64 @@ export function useMenuContent(props: UseMenuContentProps) {
 
     // MMC: returns an array of mantine SpotLightAction from items
     const internal_actions = useMemo(() => {
-        const baseActionProps = { setContent, setOpened, clearContent: true, defaultLoadingComponent, onActiveChange: setActiveID, onSubitemActiveChange: setSubitemActiveID };
+        const baseActionProps = { setContent, setOpened, clearContent: true, onActiveChange: setActiveID, onSubitemActiveChange: setSubitemActiveID };
 
         const actionList = CreateSpotlightActions(internal_items, baseActionProps, searchMenuItemsWithContentOnly);
 
         return actionList;
-    }, [setContent, setOpened, defaultLoadingComponent, setActiveID, setSubitemActiveID, internal_items, searchMenuItemsWithContentOnly]);
+    }, [setContent, setOpened, setActiveID, setSubitemActiveID, internal_items, searchMenuItemsWithContentOnly]);
+
+    // Menus are materialized when the login/security lifecycle changes. Keep the
+    // latest static definitions available without making rendering inputs effect triggers.
+    const internalItemsRef = useRef(internal_items);
+    const internalActionsRef = useRef(internal_actions);
+    internalItemsRef.current = internal_items;
+    internalActionsRef.current = internal_actions;
 
     useEffect(() => {
+        let mounted = true;
+
         const get = async () => {
-            if (isLoggedIn) {
-                if (enableMenuSecurity) {
-                    const enabled = await client.getMenus();
-                    const enabled_items = filterEnabledItems(internal_items, menuId, enabled);
+            setIsLoading(true);
+            try {
+                const menuItems = internalItemsRef.current;
+                const menuActions = internalActionsRef.current;
 
-                    const enabled_actions = internal_actions.filter(item => enabled.has(`${menuId}_${item.id}`));
+                if (isLoggedIn) {
+                    if (enableMenuSecurity) {
+                        const enabled = await client.getMenus();
+                        const enabled_items = filterEnabledItems(menuItems, menuId, enabled);
+                        const enabled_actions = menuActions.filter(item => enabled.has(`${menuId}_${item.id}`));
 
-                    const dictionary = createMenuDictionary(enabled_items);
-                    setMenuDictionary(dictionary);
-
-                    setItems(enabled_items);
-                    setActions(enabled_actions);
+                        if (!mounted) return;
+                        setMenuDictionary(createMenuDictionary(enabled_items));
+                        setItems(enabled_items);
+                        setActions(enabled_actions);
+                    }
+                    else {
+                        if (!mounted) return;
+                        setMenuDictionary(createMenuDictionary(menuItems));
+                        setItems(menuItems);
+                        setActions(menuActions);
+                    }
                 }
                 else {
-                    const dictionary = createMenuDictionary(internal_items);
-                    setMenuDictionary(dictionary);
-
-                    setItems(internal_items);
-                    setActions(internal_actions);
+                    if (!mounted) return;
+                    setItems([]);
+                    setActions([]);
+                    setMenuDictionary({});
                 }
             }
-            else {
-                setItems([]);
-                setActions([]);
-                setMenuDictionary({});
+            finally {
+                if (mounted) setIsLoading(false);
             }
         }
 
         get();
 
+        return () => {
+            mounted = false;
+        };
     }, [client, isLoggedIn, menuId, enableMenuSecurity]);
 
     const result = useMemo(() => ({
@@ -216,8 +237,9 @@ export function useMenuContent(props: UseMenuContentProps) {
         subitemActiveIDState,
         items,
         actions,
-        menuPathsDictionary: menuDictionary
-    }), [activeIDState, subitemActiveIDState, items, actions, menuDictionary]);
+        menuPathsDictionary: menuDictionary,
+        isLoading
+    }), [activeIDState, subitemActiveIDState, items, actions, menuDictionary, isLoading]);
 
     return result;
 

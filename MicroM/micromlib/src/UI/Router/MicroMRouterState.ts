@@ -5,6 +5,8 @@ export interface NavigationState {
 
 export interface MicroMRouterState {
     path: string;
+    route: string;
+    searchParams: URLSearchParams;
     navigate: (newPath: string) => void;
     navigationState: NavigationState;
 }
@@ -26,5 +28,12 @@ export const normalizeRouteURL = (path: string) => {
         return `/#${path}`;
     }
     return path;
+}
+
+export function splitRoute(route: string) {
+    const queryIndex = route.indexOf('?');
+    const path = queryIndex >= 0 ? route.slice(0, queryIndex) : route;
+    const search = queryIndex >= 0 ? route.slice(queryIndex + 1) : '';
+    return { path, searchParams: new URLSearchParams(search) };
 }
 

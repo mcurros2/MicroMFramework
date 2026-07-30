@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useState } from 'react';
-import { MicroMRouterState, navigateToRoute, NavigationState, normalizeRoutePath } from './MicroMRouterState';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { MicroMRouterState, navigateToRoute, NavigationState, normalizeRoutePath, splitRoute } from './MicroMRouterState';
 
 export function useNavigation(): MicroMRouterState {
     // Adjust initial path setup to check for '/#/' prefix
-    const initialPath = window.location.hash.startsWith('#/') ? window.location.hash.slice(1) : '/';
-    const [path, setPath] = useState(initialPath);
+    const initialRoute = window.location.hash.startsWith('#/') ? window.location.hash.slice(1) : '/';
+    const [route, setRoute] = useState(initialRoute);
+    const { path, searchParams } = useMemo(() => splitRoute(route), [route]);
 
     // Initialize navigated to false to indicate initial load
     const [navigationState, setNavigationState] = useState<NavigationState>({ navigated: false, route: path });
@@ -12,11 +13,11 @@ export function useNavigation(): MicroMRouterState {
     // Unified navigation handling
     const handleNavigation = useCallback((newPath: string) => {
         const formattedPath = normalizeRoutePath(newPath);
-        if (formattedPath !== path) { // Check to prevent unnecessary state updates
-            setPath(formattedPath);
+        if (formattedPath !== route) { // Check to prevent unnecessary state updates
+            setRoute(formattedPath);
             setNavigationState({ navigated: true, route: formattedPath });
         }
-    }, [path]);
+    }, [route]);
 
     useEffect(() => {
         // Update path and navigationState based on direct hash changes
@@ -29,5 +30,5 @@ export function useNavigation(): MicroMRouterState {
         return () => window.removeEventListener('hashchange', handleHashChange);
     }, [handleNavigation]);
 
-    return { path, navigate: navigateToRoute, navigationState };
+    return { path, route, searchParams, navigate: navigateToRoute, navigationState };
 };

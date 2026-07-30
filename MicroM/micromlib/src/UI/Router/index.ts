@@ -4,3 +4,4 @@ export * from './MicroMRouterState';
 export * from './Route';
 export * from './useMicroMRouter';
 export * from './useNavigation';
+export * from './MenuRoute';

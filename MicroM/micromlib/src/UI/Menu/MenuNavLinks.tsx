@@ -1,8 +1,9 @@
 import { Badge, Group, NavLink, rem, Skeleton, useComponentDefaultProps, useMantineTheme } from "@mantine/core";
 import { Dispatch, ReactNode, SetStateAction, useCallback, useEffect } from "react";
 import { isPromise } from "../../Entity";
+import { createMenuRoute, parseMenuRoute } from "../Router/MenuRoute";
 import { useMicroMRouter } from "../Router/useMicroMRouter";
-import { MenuItem } from "./MenuItem";
+import { getMenuItemContext, MenuItem, resolveMenuItemContent } from "./MenuItem";
 
 
 export interface MenuItemsProps {
@@ -34,16 +35,16 @@ export function MenuNavLinks(props: MenuItemsProps) {
 
     const theme = useMantineTheme();
 
-    const { navigate, path } = useMicroMRouter();
+    const { navigate, path, route } = useMicroMRouter();
 
     const setActiveContent = useCallback(async (menuItem: MenuItem) => {
-        if (menuItem.content) {
-            if (isPromise(menuItem.content)) {
+        const content = resolveMenuItemContent(menuItem);
+        if (content) {
+            if (isPromise(content)) {
                 setContent(defaultLoadingComponent);
-                const content = await menuItem.content;
-                setContent(content);
+                setContent(await content);
             } else {
-                setContent(menuItem.content);
+                setContent(content);
             }
         } else if (clearContent) {
             setContent(<></>);
@@ -54,7 +55,7 @@ export function MenuNavLinks(props: MenuItemsProps) {
                 await menuItem.onClick;
             }
             else {
-                menuItem.onClick();
+                await menuItem.onClick(getMenuItemContext(menuItem));
             }
         }
 
@@ -64,6 +65,7 @@ export function MenuNavLinks(props: MenuItemsProps) {
     // Handler to process navigation based on the current path. This renders the content for navigated item
     useEffect(() => {
         const pathParts = path.split('/').filter(part => part.trim() !== '');
+        if (pathParts[0] === AllItems[0]?.menuId) pathParts.shift();
         const [itemId, subitemId] = pathParts;
 
         const item = AllItems.find(it => it.ID === itemId);
@@ -98,8 +100,13 @@ export function MenuNavLinks(props: MenuItemsProps) {
 
     // Route for navigation
     const handleItemClick = (item: MenuItem, subitem?: MenuItem) => {
-        const route = subitem ? `/${item.ID}/${subitem.ID}` : `/${item.ID}`;
-        navigate(`${route}`);
+        const selectedItem = subitem ?? item;
+        const currentMenuRoute = parseMenuRoute(route);
+        navigate(createMenuRoute({
+            menuId: selectedItem.menuId ?? item.menuId ?? "",
+            itemPath: selectedItem.menuPath,
+            context: currentMenuRoute?.context
+        }));
 
         if (autoHideNavBarOnClick && !item.subitems) setOpened(false);
     };

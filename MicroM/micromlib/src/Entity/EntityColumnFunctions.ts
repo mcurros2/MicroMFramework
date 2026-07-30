@@ -1,10 +1,6 @@
 import { Value } from "../client";
 import { EntityColumn } from "./EntityColumn";
 
-export function hasValue(value: Value) {
-    return value !== '' && value !== null && typeof value !== 'undefined';
-}
-
 export function convertValueFromString(col: EntityColumn<Value>, value: string): Value {
     if (['float', 'decimal', 'real', 'money', 'smallmoney'].includes(col.type)) {
         return parseFloat(value);

@@ -1,11 +1,14 @@
 import { Stack } from "@mantine/core";
 import { useCallback, useRef, useState } from "react";
-import { EntityForm, MicroMClient, TextField, ValuesObject, latLng, useEntityForm } from "../../src";
-import { AddressLookup } from "../../src/UI/AddressInput/AddressLookup";
-import { AddressInputTestEntity } from "./AddressTestEntity";
-import { useGoogleAddressMappingRules } from "../../src/UI/GoogleMaps/useGoogleAddressMappingRules";
-import { ARMappingRules, UYMappingRules } from "../../src/UI/GoogleMaps/mappingRulesDefinition";
+import { ValuesObject } from "../../src/client/client.types";
+import { MicroMClient } from "../../src/client/MicromClient";
+import { AddressLookup, EntityForm, TextField } from "../../src/UI";
 import { AddressAutocompleteResult } from "../../src/UI/AddressInput/AddressAutocomplete";
+import { latLng } from "../../src/UI/Core/types";
+import { useEntityForm } from "../../src/UI/Form/useEntityForm";
+import { ARMappingRules, UYMappingRules } from "../../src/UI/GoogleMaps/mappingRulesDefinition";
+import { useGoogleAddressMappingRules } from "../../src/UI/GoogleMaps/useGoogleAddressMappingRules";
+import { AddressInputTestEntity } from "./AddressTestEntity";
 
 
 export function AddressLookupTest() {
