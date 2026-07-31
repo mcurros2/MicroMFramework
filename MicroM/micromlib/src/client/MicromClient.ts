@@ -281,6 +281,7 @@ export class MicroMClient {
 
             if (data && data.access_token) {
                 const token = new MicroMToken(data.access_token, data.expires_in, data['refresh-token'], data.token_type, data);
+                await this.#deleteEnabledMenus();
                 await this.#setToken(token);
 
                 try {
@@ -343,6 +344,7 @@ export class MicroMClient {
             const data = await response.json();
             if (data && data.access_token) {
                 const token = new MicroMToken(data.access_token, data.expires_in, data['refresh-token'], data.token_type, data);
+                await this.#deleteEnabledMenus();
                 await this.#setToken(token);
 
                 try {
@@ -683,6 +685,11 @@ export class MicroMClient {
         if (!this.#TOKEN) {
             this.#TOKEN = await this.#TOKEN_STORAGE.readToken(this.#APP_ID);
         }
+
+        if (!this.#TOKEN) {
+            console.warn('No token found, clearing enabled menus');
+            this.#ENABLED_MENUS.clear();
+        }
     }
 
     async #setToken(token: MicroMToken) {
@@ -808,18 +815,8 @@ export class MicroMClient {
 
 
     //*** Enabled menus
-    async getMenus(): Promise<Set<string>> {
-
-        if (this.#ENABLED_MENUS.size === 0) {
-            const data = await this.#readEnabledMenus();
-            this.#ENABLED_MENUS = data ? new Set<string>(data) : new Set<string>();
-        }
-
-        return this.#ENABLED_MENUS;
-    }
-
-    getCachedMenus(): Set<string> {
-        return this.#ENABLED_MENUS;
+    getMenus(): Set<string> {
+        return new Set(this.#ENABLED_MENUS);
     }
 
     async #getAPIEnabledMenus(username: string, abort_signal: AbortSignal | null = null) {
@@ -845,8 +842,8 @@ export class MicroMClient {
     }
 
     async #deleteEnabledMenus() {
-        await this.#DATA_STORAGE.deleteData(this.#APP_ID, ENABLED_MENUS_DATA_KEY);
         this.#ENABLED_MENUS.clear();
+        await this.#DATA_STORAGE.deleteData(this.#APP_ID, ENABLED_MENUS_DATA_KEY);
     }
 
     //*** File upload/download
