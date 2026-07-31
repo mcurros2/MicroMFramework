@@ -63,12 +63,7 @@ const triggerItemAction = async (props: MenuItemActionProps) => {
     if (autoHideNavBarOnClick && !item.subitems) setOpened(false);
 }
 
-const populateMenuPaths = (
-    items: MenuItem[],
-    parentPath: string = '',
-    parentDescription: string = '',
-    menuId: string = ''
-) => {
+const populateMenuPaths = (items: MenuItem[], parentPath: string = '', parentDescription: string = '', menuId: string = '') => {
     items.forEach(item => {
         item.menuId = menuId;
 
@@ -100,11 +95,7 @@ const createMenuDictionary = (items: MenuItem[], dictionary: Record<string, Menu
     return dictionary;
 };
 
-const filterEnabledItems = (
-    items: MenuItem[],
-    menuId: string,
-    enabled: Set<string>
-): MenuItem[] => {
+const filterEnabledItems = (items: MenuItem[], menuId: string, enabled: Set<string>): MenuItem[] => {
     return items
         .filter(item => enabled.has(`${menuId}_${item.ID}`))
         .map(item => {

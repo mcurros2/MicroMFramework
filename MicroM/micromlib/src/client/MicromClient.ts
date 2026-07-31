@@ -9,8 +9,8 @@ import { MicroMClientClaimTypes, MicroMToken } from "./MicroMToken";
 import { PublicEndpoint } from "./PublicEndpoint";
 import { TimeoutSignal } from "./TimeoutSignal";
 import { TokenStorage, TokenWebStorage } from "./TokenStorage";
-import { TotpSetupStartResponse } from "./TotpSetupStartResponse";
 import { TotpAuthenticatorsResponse } from "./TotpAuthenticatorResponse";
+import { TotpSetupStartResponse } from "./TotpSetupStartResponse";
 import { TwoFactorLoginResult } from "./TwoFactorLoginResult";
 
 export type APIAction = "get" | "insert" | "update" | "delete" | "lookup" | "view" | "viewstream" | "action" | "upload" | "proc" | "procstream" | "process" | "import" | "viewtoexcel" | "proctoexcel" | "timezoneoffset";
@@ -818,6 +818,10 @@ export class MicroMClient {
         return this.#ENABLED_MENUS;
     }
 
+    getCachedMenus(): Set<string> {
+        return this.#ENABLED_MENUS;
+    }
+
     async #getAPIEnabledMenus(username: string, abort_signal: AbortSignal | null = null) {
         if (!this.#TOKEN) return;
 
@@ -842,6 +846,7 @@ export class MicroMClient {
 
     async #deleteEnabledMenus() {
         await this.#DATA_STORAGE.deleteData(this.#APP_ID, ENABLED_MENUS_DATA_KEY);
+        this.#ENABLED_MENUS.clear();
     }
 
     //*** File upload/download
