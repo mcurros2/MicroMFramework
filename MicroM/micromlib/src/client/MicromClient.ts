@@ -684,6 +684,8 @@ export class MicroMClient {
     async #loadToken() {
         if (!this.#TOKEN) {
             this.#TOKEN = await this.#TOKEN_STORAGE.readToken(this.#APP_ID);
+            const menu_items = await this.#readEnabledMenus();
+            this.#ENABLED_MENUS = new Set<string>(menu_items);
         }
 
         if (!this.#TOKEN) {
