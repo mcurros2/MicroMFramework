@@ -685,7 +685,7 @@ export class MicroMClient {
         if (!this.#TOKEN) {
             this.#TOKEN = await this.#TOKEN_STORAGE.readToken(this.#APP_ID);
             const menu_items = await this.#readEnabledMenus();
-            this.#ENABLED_MENUS = new Set<string>(menu_items);
+            this.#ENABLED_MENUS = new Set(menu_items ?? []);
         }
 
         if (!this.#TOKEN) {
@@ -830,9 +830,9 @@ export class MicroMClient {
 
         const menu_items = result[0].records.map((record) => `${record[0]}_${record[1]}`);
 
-        await this.#saveEnabledMenus(menu_items);
-
         this.#ENABLED_MENUS = new Set<string>(menu_items);
+
+        await this.#saveEnabledMenus(menu_items);
     }
 
     async #saveEnabledMenus(data: string[]) {

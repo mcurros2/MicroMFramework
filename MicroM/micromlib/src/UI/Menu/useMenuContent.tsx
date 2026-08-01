@@ -105,7 +105,7 @@ const createMenuDictionary = (items: MenuItem[], dictionary: Record<string, Menu
     return dictionary;
 };
 
-const filterEnabledItems = (items: MenuItem[], menuId: string, enabled: Set<string>): MenuItem[] => {
+const filterEnabledItems = (items: MenuItem[], menuId: string, enabled: ReadonlySet<string>): MenuItem[] => {
     return items
         .filter(item => enabled.has(`${menuId}_${item.ID}`))
         .map(item => {
@@ -189,7 +189,9 @@ export function useMenuContent(props: UseMenuContentProps): UseMenuContentResult
     );
 
     const materializedMenus = useMemo(() => {
-        const enabledMenus = client.getMenus();
+        const enabledMenus: ReadonlySet<string> = isLoggedIn && enableMenuSecurity
+            ? client.getMenus()
+            : new Set<string>() as ReadonlySet<string>;
         const menuProps: MenuContentProps = {
             client,
             setContent,
