@@ -1,7 +1,7 @@
 import { MantineNumberSize } from "@mantine/core";
 import { DataResult, OperationStatus, ValuesObject } from "../../client";
 import { ActionIconVariant, ButtonVariant, EntityUILabels, FormMode, UseEntityUIProps } from "../Core";
-import { DataViewLimit } from "../DataView/DataView.types";
+import { DataViewLimit, DataViewSearchCallback } from "../DataView/DataView.types";
 import { GridColumnsOverrides, GridRecord, GridSelection, GridSelectionMode } from "../Grid";
 import { DataGridToolbarSizes } from "./DataGridToolbar";
 
@@ -30,6 +30,7 @@ export interface DataGridProps extends UseEntityUIProps {
     preserveSelection?: boolean,
     autoFocus?: boolean,
     onDataRefresh?: (result: OperationStatus<DataResult[]>) => void,
+    onSearch?: DataViewSearchCallback,
     allwaysRefreshOnEntityClose?: boolean,
 
     // toolbar

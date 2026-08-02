@@ -28,6 +28,7 @@ export interface DataViewRecord<T extends ValuesObject> {
 
 export type DataViewSelectionChangedCallback = (selection: DataViewSelection, keys: ValuesObject[]) => void;
 export type DataViewSelectionChangedHandler = (selection: DataViewSelection) => void;
+export type DataViewSearchCallback = (search: string[] | undefined) => void;
 
 export type DataViewSelectionMode = 'single' | 'multi';
 
@@ -52,6 +53,7 @@ export interface DataViewProps extends Omit<UseEntityUIProps, 'labels'> {
     preserveSelection?: boolean,
     autoFocus?: boolean,
     onDataRefresh?: (result: OperationStatus<DataResult[]>) => void,
+    onSearch?: DataViewSearchCallback,
     allwaysRefreshOnEntityClose?: boolean,
 
     // toolbar

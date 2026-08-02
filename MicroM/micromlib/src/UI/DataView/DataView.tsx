@@ -1,6 +1,6 @@
 import { Button, Group, Loader, SelectItem, Space, Stack, Text, useComponentDefaultProps } from "@mantine/core";
 import { ForwardedRef, forwardRef, useState } from "react";
-import { AlertError, useExecuteView, useViewState } from "../Core";
+import { AlertError, getInitialSearchData, useExecuteView, useViewState } from "../Core";
 import { DataGridToolbar } from "../DataGrid";
 import { DataGridActionsToolbar } from "../DataGrid/DataGridActionsToolbar";
 import { DataViewProps } from "./DataView.types";
@@ -67,10 +67,10 @@ export const DataView = forwardRef(function DataView(props: DataViewProps, ref: 
         showAppliedFilters, showRefreshButton, hideCheckboxToggle, showFiltersButton, searchPlaceholder,
         showActions, parentKeys, visibleFilters, setInitialFiltersFromColumns, cardHrefRootURL, cardHrefTarget,
         showSearchInput, showSelectRowsButton, showToolbar, showDeleteOnlyWhenMultiselect, parentFormAPI, formMode,
-        CardRowAlign, RowsContainer, refreshOnInit, RowsContainerProps
+        CardRowAlign, RowsContainer, refreshOnInit, RowsContainerProps, onSearch
     } = props;
 
-    const [searchData, setSearchData] = useState<SelectItem[]>(search?.map(s => { return { value: s, label: s } }) as SelectItem[]);
+    const [searchData, setSearchData] = useState<SelectItem[]>(getInitialSearchData(search) ?? []);
 
     const viewState = useViewState(search, limit);
 
@@ -83,6 +83,7 @@ export const DataView = forwardRef(function DataView(props: DataViewProps, ref: 
 
     const handleToolbarRefresh = (searchText: string[] | undefined) => {
         setExecuteViewEnabled(true);
+        onSearch?.(searchText);
         dataViewAPI.handleRefresh(searchText);
     };
 

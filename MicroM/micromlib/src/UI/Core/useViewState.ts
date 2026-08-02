@@ -1,3 +1,4 @@
+import { SelectItem } from "@mantine/core";
 import { useState } from "react";
 import { ValuesObject } from "../../client";
 import { DataViewLimit } from "../DataView";
@@ -23,4 +24,13 @@ export function useViewState(search?: string[], limit?: DataViewLimit) {
         filtersDescription,
         setFiltersDescription
     }
+}
+
+export function getInitialSearchData(search?: string[]) {
+    return search?.map(value => ({
+        value,
+        label: value.startsWith('%') && value.endsWith('%') && value.length > 1
+            ? value.slice(1, -1)
+            : value
+    })) as SelectItem[] | undefined;
 }

@@ -1,6 +1,6 @@
 import { Box, Group, Select, SelectItem, Space, Text, useComponentDefaultProps, useMantineTheme } from "@mantine/core";
 import { useMemo, useRef, useState } from "react";
-import { AlertError, FakeProgressBar, useExecuteView, useFirstVisible, useViewState } from "../../UI/Core";
+import { AlertError, FakeProgressBar, getInitialSearchData, useExecuteView, useFirstVisible, useViewState } from "../../UI/Core";
 import { DataViewLimitData } from "../DataView/DataView.types";
 import { Grid } from "../Grid";
 import { DataGridProps } from "./DataGrid.types";
@@ -70,7 +70,7 @@ export function DataGrid(props: DataGridProps) {
         enableAdd, enableEdit, enableDelete, enableView, enableExport, columnBorders, autoSizeColumnsOnLoad, rowBorders, withBorder,
         labels, columnsOverrides, toolbarSize, viewName, showActions, renderOnlyWhenVisible, filtersFormSize, parentKeys, search,
         limit, parentFormAPI, showToolbar, showActionsToolbar, enableImport, setInitialFiltersFromColumns, visibleFilters, formMode,
-        showColumnsConfigMenu, showSelectRowsButton, maxSearchTerms, minGridHeight, refreshOnInit
+        showColumnsConfigMenu, showSelectRowsButton, maxSearchTerms, minGridHeight, refreshOnInit, onSearch
     } = props;
 
     const theme = useMantineTheme();
@@ -78,7 +78,7 @@ export function DataGrid(props: DataGridProps) {
     const visibilityDivRef = useRef<HTMLDivElement>(null);
     const isFirstVisible = useFirstVisible(visibilityDivRef);
 
-    const [searchData, setSearchData] = useState<SelectItem[]>(search?.map(s => { return { value: s, label: s } }) as SelectItem[]);
+    const [searchData, setSearchData] = useState<SelectItem[]>(getInitialSearchData(search) ?? []);
 
     const viewState = useViewState(search, limit);
 
@@ -90,6 +90,7 @@ export function DataGrid(props: DataGridProps) {
 
     const handleToolbarRefresh = (searchText: string[] | undefined) => {
         setExecuteViewEnabled(true);
+        onSearch?.(searchText);
         dataGridAPI.handleRefresh(searchText);
     };
 
