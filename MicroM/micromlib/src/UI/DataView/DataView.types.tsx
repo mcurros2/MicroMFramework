@@ -54,6 +54,7 @@ export interface DataViewProps extends Omit<UseEntityUIProps, 'labels'> {
     autoFocus?: boolean,
     onDataRefresh?: (result: OperationStatus<DataResult[]>) => void,
     onSearch?: DataViewSearchCallback,
+    onSearchTextChange?: DataViewSearchCallback,
     allwaysRefreshOnEntityClose?: boolean,
 
     // toolbar

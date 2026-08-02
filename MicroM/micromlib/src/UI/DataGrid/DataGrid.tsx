@@ -70,7 +70,7 @@ export function DataGrid(props: DataGridProps) {
         enableAdd, enableEdit, enableDelete, enableView, enableExport, columnBorders, autoSizeColumnsOnLoad, rowBorders, withBorder,
         labels, columnsOverrides, toolbarSize, viewName, showActions, renderOnlyWhenVisible, filtersFormSize, parentKeys, search,
         limit, parentFormAPI, showToolbar, showActionsToolbar, enableImport, setInitialFiltersFromColumns, visibleFilters, formMode,
-        showColumnsConfigMenu, showSelectRowsButton, maxSearchTerms, minGridHeight, refreshOnInit, onSearch
+        showColumnsConfigMenu, showSelectRowsButton, maxSearchTerms, minGridHeight, refreshOnInit, onSearch, onSearchTextChange
     } = props;
 
     const theme = useMantineTheme();
@@ -145,6 +145,7 @@ export function DataGrid(props: DataGridProps) {
                             onExportClick={dataGridAPI.handleExport}
 
                             onRefreshClick={handleToolbarRefresh}
+                            onSearchTextChange={onSearchTextChange}
                             onCheckboxToggle={dataGridAPI.handleToggleSelectable}
                             autoFocus={autoFocus}
                             toolbarIconVariant={toolbarIconVariant}

@@ -67,7 +67,7 @@ export const DataView = forwardRef(function DataView(props: DataViewProps, ref: 
         showAppliedFilters, showRefreshButton, hideCheckboxToggle, showFiltersButton, searchPlaceholder,
         showActions, parentKeys, visibleFilters, setInitialFiltersFromColumns, cardHrefRootURL, cardHrefTarget,
         showSearchInput, showSelectRowsButton, showToolbar, showDeleteOnlyWhenMultiselect, parentFormAPI, formMode,
-        CardRowAlign, RowsContainer, refreshOnInit, RowsContainerProps, onSearch
+        CardRowAlign, RowsContainer, refreshOnInit, RowsContainerProps, onSearch, onSearchTextChange
     } = props;
 
     const [searchData, setSearchData] = useState<SelectItem[]>(getInitialSearchData(search) ?? []);
@@ -107,6 +107,7 @@ export const DataView = forwardRef(function DataView(props: DataViewProps, ref: 
                             onExportClick={dataViewAPI.handleExport}
 
                             onRefreshClick={handleToolbarRefresh}
+                            onSearchTextChange={onSearchTextChange}
                             onCheckboxToggle={dataViewAPI.handleToggleSelectable}
                             autoFocus={autoFocus}
                             toolbarIconVariant={toolbarIconVariant}

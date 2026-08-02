@@ -31,6 +31,7 @@ export interface DataGridProps extends UseEntityUIProps {
     autoFocus?: boolean,
     onDataRefresh?: (result: OperationStatus<DataResult[]>) => void,
     onSearch?: DataViewSearchCallback,
+    onSearchTextChange?: DataViewSearchCallback,
     allwaysRefreshOnEntityClose?: boolean,
 
     // toolbar
