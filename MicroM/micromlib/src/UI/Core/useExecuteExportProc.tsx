@@ -1,62 +1,105 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { OperationStatus, toMicroMError, ValuesObject } from "../../client";
-import { areValuesObjectsEqual, Entity, EntityDefinition, EntityProc } from "../../Entity";
+import { Entity, EntityDefinition, EntityProc } from "../../Entity";
+import { areExecuteProcRequestsEqual, copyRequestValues, ExecuteInFlight, ExecuteProcRequest } from "./executeRequest";
 
 export function useExecuteExportProc(entity: Entity<EntityDefinition>, proc: EntityProc) {
-    const [status, setStatus] = useState<OperationStatus<Blob>>({ loading: false, operationType: 'export' });
-    const cancellation = useRef<AbortController>(new AbortController());
-    const done = useRef<boolean>(false);
-    const prevValues = useRef<ValuesObject | undefined>();
+    const initialStatus: OperationStatus<Blob> = { loading: false, operationType: 'export' };
+    const [status, setStatus] = useState<OperationStatus<Blob>>(initialStatus);
+    const statusRef = useRef(status);
+    const mounted = useRef(false);
+    const inFlight = useRef<ExecuteInFlight<ExecuteProcRequest>>();
+    const lastSuccessfulRequest = useRef<ExecuteProcRequest>();
+
+    const updateStatus = useCallback((newStatus: OperationStatus<Blob>) => {
+        statusRef.current = newStatus;
+        if (mounted.current) setStatus(newStatus);
+    }, []);
 
     useEffect(() => {
+        mounted.current = true;
+
         return () => {
-            if (!done.current) {
-                console.log("useExecuteExportProc aborted on unmount");
-                cancellation.current.abort("Component unmounted");
+            mounted.current = false;
+
+            const current = inFlight.current;
+            if (current) {
+                inFlight.current = undefined;
+                current.controller.abort("Component unmounted");
             }
         };
     }, []);
 
     const execute = useCallback(async (values?: ValuesObject) => {
-        if (status.loading) return status;
+        const request: ExecuteProcRequest = {
+            entity,
+            proc,
+            values: copyRequestValues(values)
+        };
 
-        if (!areValuesObjectsEqual(values, prevValues.current)) {
-            // Abort the previous request before starting a new one
-            cancellation.current.abort("ExecuteExportProc, aborting previous request.");
-            cancellation.current = new AbortController();
-            done.current = false;
+        const current = inFlight.current;
 
-            try {
-                // Update previous values
-                prevValues.current = values;
+        if (current && areExecuteProcRequestsEqual(current, request)) {
+            return statusRef.current;
+        }
 
-                if (entity && proc) {
-                    setStatus({ loading: true, operationType: 'export' });
+        if (!current && areExecuteProcRequestsEqual(lastSuccessfulRequest.current, request)) {
+            return;
+        }
 
-                    const data = await entity.API.exportProc(proc, values, cancellation.current.signal);
-                    done.current = true;
+        if (current) {
+            inFlight.current = undefined;
+            current.controller.abort("ExecuteExportProc, aborting previous request.");
+        }
 
-                    const new_status: OperationStatus<Blob> = { data: data, operationType: 'export' };
-                    setStatus(new_status);
-                    return new_status;
-                }
+        const controller = new AbortController();
+        const token = Symbol("useExecuteExportProc request");
 
+        inFlight.current = { ...request, controller, token };
+        updateStatus({ loading: true, operationType: 'export' });
+
+        try {
+            const data = await entity.API.exportProc(proc, values, controller.signal);
+
+            if (controller.signal.aborted || inFlight.current?.token !== token) {
+                return;
             }
-            catch (e: any) {
-                if (e.name !== 'AbortError' && e !== "ExecuteExportProc, aborting previous request.") {
-                    const new_status: OperationStatus<Blob> = { error: toMicroMError(e), operationType: 'export' };
-                    setStatus(new_status);
-                    return new_status;
-                }
+
+            lastSuccessfulRequest.current = request;
+            const newStatus: OperationStatus<Blob> = { data, operationType: 'export' };
+            updateStatus(newStatus);
+
+            return newStatus;
+        }
+        catch (e: unknown) {
+            if (controller.signal.aborted || inFlight.current?.token !== token) {
+                return;
+            }
+
+            const newStatus: OperationStatus<Blob> = { error: toMicroMError(e), operationType: 'export' };
+            updateStatus(newStatus);
+
+            return newStatus;
+        }
+        finally {
+            if (inFlight.current?.token === token) {
+                inFlight.current = undefined;
             }
         }
-    }, [entity, proc, status]);
+    }, [entity, proc, updateStatus]);
 
-    const abort = useCallback(() => { cancellation.current.abort() }, []);
+    const abort = useCallback(() => {
+        const current = inFlight.current;
+        if (!current) return;
+
+        inFlight.current = undefined;
+        current.controller.abort();
+        updateStatus({ loading: false, operationType: 'export' });
+    }, [updateStatus]);
 
     return {
-        execute: execute,
-        status: status,
-        abort: abort
+        execute,
+        status,
+        abort
     }
 }

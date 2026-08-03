@@ -1,62 +1,101 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { DataResult, OperationStatus, toMicroMError, ValuesObject } from "../../client";
-import { areValuesObjectsEqual, Entity, EntityDefinition, EntityProc } from "../../Entity";
+import { Entity, EntityDefinition, EntityProc } from "../../Entity";
+import { areExecuteProcRequestsEqual, copyRequestValues, ExecuteInFlight, ExecuteProcRequest } from "./executeRequest";
 
 export function useExecuteProc(entity: Entity<EntityDefinition>, proc: EntityProc) {
-    const [status, setStatus] = useState<OperationStatus<DataResult[]>>({ loading: false, operationType: 'proc' });
-    const cancellation = useRef<AbortController>(new AbortController());
-    const done = useRef<boolean>(false);
-    const prevValues = useRef<ValuesObject | undefined>();
+    const initialStatus: OperationStatus<DataResult[]> = { loading: false, operationType: 'proc' };
+    const [status, setStatus] = useState<OperationStatus<DataResult[]>>(initialStatus);
+    const statusRef = useRef(status);
+    const mounted = useRef(false);
+    const inFlight = useRef<ExecuteInFlight<ExecuteProcRequest>>();
+    const lastSuccessfulRequest = useRef<ExecuteProcRequest>();
+
+    const updateStatus = useCallback((newStatus: OperationStatus<DataResult[]>) => {
+        statusRef.current = newStatus;
+        if (mounted.current) setStatus(newStatus);
+    }, []);
 
     useEffect(() => {
+        mounted.current = true;
+
         return () => {
-            if (!done.current) {
-                console.log("useExecuteProc aborted on unmount");
-                cancellation.current.abort("Component unmounted");
+            mounted.current = false;
+
+            const current = inFlight.current;
+            if (current) {
+                inFlight.current = undefined;
+                current.controller.abort("Component unmounted");
             }
         };
     }, []);
 
     const execute = useCallback(async (values?: ValuesObject) => {
-        if (status.loading) return status;
+        const request: ExecuteProcRequest = {
+            entity,
+            proc,
+            values: copyRequestValues(values)
+        };
 
-        if (!areValuesObjectsEqual(values, prevValues.current)) {
-            // Abort the previous request before starting a new one
-            cancellation.current.abort("ExecuteProc, aborting previous request.");
-            cancellation.current = new AbortController();
-            done.current = false;
+        const current = inFlight.current;
 
-            try {
-                // Update previous values
-                prevValues.current = values;
+        if (current) {
+            console.warn("useExecuteProc ignored execute(): a request is already in progress. Call abort() before executing again.");
+            return statusRef.current;
+        }
 
-                if (entity && proc) {
-                    setStatus({ loading: true, operationType: 'proc' });
+        if (areExecuteProcRequestsEqual(lastSuccessfulRequest.current, request)) {
+            return;
+        }
 
-                    const data = await entity.API.executeProc(proc, values, cancellation.current.signal);
-                    done.current = true;
+        const controller = new AbortController();
+        const token = Symbol("useExecuteProc request");
 
-                    const new_status: OperationStatus<DataResult[]> = { data: data, operationType: 'proc' };
-                    setStatus(new_status);
-                    return new_status;
-                }
+        inFlight.current = { ...request, controller, token };
+        updateStatus({ loading: true, operationType: 'proc' });
 
+        try {
+            const data = await entity.API.executeProc(proc, values, controller.signal);
+
+            if (controller.signal.aborted || inFlight.current?.token !== token) {
+                return;
             }
-            catch (e: any) {
-                if (e.name !== 'AbortError' && e !== "ExecuteProc, aborting previous request.") {
-                    const new_status: OperationStatus<DataResult[]> = { error: toMicroMError(e), operationType: 'proc' };
-                    setStatus(new_status);
-                    return new_status;
-                }
+
+            lastSuccessfulRequest.current = request;
+            const newStatus: OperationStatus<DataResult[]> = { data, operationType: 'proc' };
+            updateStatus(newStatus);
+
+            return newStatus;
+        }
+        catch (e: unknown) {
+            if (controller.signal.aborted || inFlight.current?.token !== token) {
+                return;
+            }
+
+            const newStatus: OperationStatus<DataResult[]> = { error: toMicroMError(e), operationType: 'proc' };
+            updateStatus(newStatus);
+
+            return newStatus;
+        }
+        finally {
+            if (inFlight.current?.token === token) {
+                inFlight.current = undefined;
             }
         }
-    }, [entity, proc, status]);
+    }, [entity, proc, updateStatus]);
 
-    const abort = useCallback(() => { cancellation.current.abort() }, []);
+    const abort = useCallback(() => {
+        const current = inFlight.current;
+        if (!current) return;
+
+        inFlight.current = undefined;
+        current.controller.abort();
+        updateStatus({ loading: false, operationType: 'proc' });
+    }, [updateStatus]);
 
     return {
-        execute: execute,
-        status: status,
-        abort: abort
+        execute,
+        status,
+        abort
     }
 }

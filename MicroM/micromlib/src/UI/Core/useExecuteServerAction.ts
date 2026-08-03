@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { OperationStatus, toMicroMError, ValuesObject } from "../../client";
 import { areValuesObjectsEqual, Entity, EntityDefinition } from "../../Entity";
+import { copyRequestValues, ExecuteInFlight, ExecuteRequest } from "./executeRequest";
 
 export type useExecuteServerActionReturnType<TReturn extends ValuesObject> = {
     status: OperationStatus<TReturn>
@@ -8,66 +9,112 @@ export type useExecuteServerActionReturnType<TReturn extends ValuesObject> = {
     abort: () => void
 }
 
-export function useExecuteServerAction<T extends EntityDefinition, TReturn extends ValuesObject>(
-    entity: Entity<T>,
-    actionName: string,
-    doNotExecuteIfEntityValuesUnchanged?: boolean
+interface ExecuteServerActionRequest<T extends EntityDefinition> extends ExecuteRequest {
+    entity: Entity<T>;
+    actionName: string;
+}
 
+function areRequestsEqual<T extends EntityDefinition>(
+    a: ExecuteServerActionRequest<T> | undefined,
+    b: ExecuteServerActionRequest<T>
+): boolean {
+    return a?.entity === b.entity &&
+        a.actionName === b.actionName &&
+        areValuesObjectsEqual(a.values, b.values);
+}
+
+export function useExecuteServerAction<T extends EntityDefinition, TReturn extends ValuesObject>(
+    entity: Entity<T>, actionName: string, doNotExecuteIfEntityValuesUnchanged?: boolean
 ): useExecuteServerActionReturnType<TReturn> {
     const [status, setStatus] = useState<OperationStatus<TReturn>>({ loading: false });
-    const cancellation = useRef<AbortController>(new AbortController());
-    const done = useRef<boolean>(false);
-    const prevValues = useRef<ValuesObject | undefined>();
+    const statusRef = useRef(status);
+    const mounted = useRef(false);
+    const inFlight = useRef<ExecuteInFlight<ExecuteServerActionRequest<T>>>();
+    const lastSuccessfulRequest = useRef<ExecuteServerActionRequest<T>>();
+
+    const updateStatus = useCallback((newStatus: OperationStatus<TReturn>) => {
+        statusRef.current = newStatus;
+        if (mounted.current) setStatus(newStatus);
+    }, []);
 
     useEffect(() => {
+        mounted.current = true;
+
         return () => {
-            if (!done.current) {
-                console.log("useExecuteServerAction aborted on unmount");
-                cancellation.current.abort("Component unmounted");
+            mounted.current = false;
+
+            const current = inFlight.current;
+            if (current) {
+                inFlight.current = undefined;
+                current.controller.abort("Component unmounted");
             }
         };
     }, []);
 
     const execute = useCallback(async (values?: ValuesObject) => {
-        if (status.loading) {
-            return status;
+        const current = inFlight.current;
+        if (current) {
+            console.warn("useExecuteServerAction ignored execute(): a request is already in progress. Call abort() before executing again.");
+            return statusRef.current;
         }
 
-        if (!doNotExecuteIfEntityValuesUnchanged || !areValuesObjectsEqual(values, prevValues.current)) {
-            // Abort the previous request before starting a new one
-            cancellation.current.abort("ExecuteServerAction, aborting previous request.");
-            cancellation.current = new AbortController();
-            done.current = false;
+        const request: ExecuteServerActionRequest<T> = {
+            entity,
+            actionName,
+            values: copyRequestValues(values)
+        };
 
-            try {
-                const action = entity.def.serverActions[actionName];
-                if (!action) {
-                    throw new Error('Action or valuesMapper missing.');
-                }
+        if (doNotExecuteIfEntityValuesUnchanged && areRequestsEqual(lastSuccessfulRequest.current, request)) {
+            return;
+        }
 
-                setStatus({ loading: true, operationType: 'action' });
+        const controller = new AbortController();
+        const token = Symbol("useExecuteServerAction request");
+        inFlight.current = { ...request, controller, token };
 
-                const data = await entity.API.executeServerAction<ValuesObject>(action, values, cancellation.current.signal);
-                done.current = true;
-
-                setStatus({ data: data as TReturn, operationType: 'action' });
-
-                // Update previous values
-                prevValues.current = values;
+        try {
+            const action = entity.def.serverActions[actionName];
+            if (!action) {
+                throw new Error('Action or valuesMapper missing.');
             }
-            catch (e: any) {
-                if (e.name !== 'AbortError' && e !== "ExecuteServerAction, aborting previous request.") {
-                    const errorResult: OperationStatus<TReturn> = {
-                        error: toMicroMError(e),
-                        operationType: 'action'
-                    };
-                    setStatus(errorResult);
-                }
+
+            updateStatus({ loading: true, operationType: 'action' });
+
+            const data = await entity.API.executeServerAction<TReturn>(action, values, controller.signal);
+
+            if (controller.signal.aborted || inFlight.current?.token !== token) {
+                return;
+            }
+
+            lastSuccessfulRequest.current = request;
+            updateStatus({ data, operationType: 'action' });
+        }
+        catch (e: unknown) {
+            if (controller.signal.aborted || inFlight.current?.token !== token) {
+                return;
+            }
+
+            const errorResult: OperationStatus<TReturn> = {
+                error: toMicroMError(e),
+                operationType: 'action'
+            };
+            updateStatus(errorResult);
+        }
+        finally {
+            if (inFlight.current?.token === token) {
+                inFlight.current = undefined;
             }
         }
-    }, [entity, actionName, status]);
+    }, [actionName, doNotExecuteIfEntityValuesUnchanged, entity, updateStatus]);
 
-    const abort = useCallback(() => { cancellation.current.abort() }, []);
+    const abort = useCallback(() => {
+        const current = inFlight.current;
+        if (!current) return;
+
+        inFlight.current = undefined;
+        current.controller.abort();
+        updateStatus({ loading: false });
+    }, [updateStatus]);
 
     return { status, execute, abort };
 }

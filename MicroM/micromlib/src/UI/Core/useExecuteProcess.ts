@@ -1,67 +1,116 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { DBStatus, DBStatusResult, OperationStatus, toDBStatusMicroMError, toMicroMError, ValuesObject } from "../../client";
-import { areValuesObjectsEqual, Entity, EntityDefinition, EntityProc } from "../../Entity";
+import { Entity, EntityDefinition, EntityProc } from "../../Entity";
+import { areExecuteProcRequestsEqual, copyRequestValues, ExecuteInFlight, ExecuteProcRequest } from "./executeRequest";
+
+interface DBStatusError {
+    Errors: DBStatus[];
+}
+
+function isDBStatusError(error: unknown): error is DBStatusError {
+    return typeof error === 'object' &&
+        error !== null &&
+        'Errors' in error &&
+        Array.isArray(error.Errors);
+}
 
 export function useExecuteProcess(entity: Entity<EntityDefinition>, proc: EntityProc) {
-    const [status, setStatus] = useState<OperationStatus<DBStatusResult>>({ loading: false, operationType: 'proc' });
-    const cancellation = useRef<AbortController>(new AbortController());
-    const done = useRef<boolean>(false);
-    const prevValues = useRef<ValuesObject | undefined>();
+    const initialStatus: OperationStatus<DBStatusResult> = { loading: false, operationType: 'proc' };
+    const [status, setStatus] = useState<OperationStatus<DBStatusResult>>(initialStatus);
+
+    const statusRef = useRef(status);
+    const mounted = useRef(false);
+    const inFlight = useRef<ExecuteInFlight<ExecuteProcRequest>>();
+    const lastSuccessfulRequest = useRef<ExecuteProcRequest>();
+
+    const updateStatus = useCallback((newStatus: OperationStatus<DBStatusResult>) => {
+        statusRef.current = newStatus;
+        if (mounted.current) setStatus(newStatus);
+    }, []);
 
     useEffect(() => {
+        mounted.current = true;
+
         return () => {
-            if (!done.current) {
-                console.log("useExecuteProcess aborted on unmount");
-                cancellation.current.abort("Component unmounted");
+            mounted.current = false;
+
+            const current = inFlight.current;
+            if (current) {
+                inFlight.current = undefined;
+                current.controller.abort("Component unmounted");
             }
         };
-    }, [entity, proc]);
+    }, []);
 
     const execute = useCallback(async (values?: ValuesObject) => {
-        if (status.loading) {
-            return status;
+        const request: ExecuteProcRequest = {
+            entity,
+            proc,
+            values: copyRequestValues(values)
+        };
+
+        const current = inFlight.current;
+
+        if (current) {
+            console.warn("useExecuteProcess ignored execute(): a request is already in progress. Call abort() before executing again.");
+            return statusRef.current;
         }
 
-        if (!areValuesObjectsEqual(values, prevValues.current)) {
-            // Abort the previous request before starting a new one
-            cancellation.current.abort("ExecuteProcess, aborting previous request.");
-            cancellation.current = new AbortController();
-            done.current = false;
+        if (areExecuteProcRequestsEqual(lastSuccessfulRequest.current, request)) {
+            return;
+        }
 
-            try {
-                if (entity && proc) {
-                    setStatus({ loading: true, operationType: 'proc' });
+        const controller = new AbortController();
+        const token = Symbol("useExecuteProcess request");
 
-                    const data = await entity.API.executeProcess(proc, values, cancellation.current.signal);
-                    done.current = true;
+        inFlight.current = { ...request, controller, token };
+        updateStatus({ loading: true, operationType: 'proc' });
 
-                    const new_status: OperationStatus<DBStatusResult> = { data: data, operationType: 'proc' };
-                    setStatus(new_status);
+        try {
+            const data = await entity.API.executeProcess(proc, values, controller.signal);
 
-                    // Update previous values
-                    prevValues.current = values;
-
-                    return new_status;
-                }
+            if (controller.signal.aborted || inFlight.current?.token !== token) {
+                return;
             }
-            catch (e: any) {
-                if (e.name !== 'AbortError' && e !== "ExecuteProcess, aborting previous request.") {
-                    const new_status: OperationStatus<DBStatusResult> = {
-                        error: e.Errors ? toDBStatusMicroMError(e.Errors as DBStatus[], 'add') : toMicroMError(e),
-                        operationType: 'proc'
-                    };
-                    setStatus(new_status);
-                    return new_status;
-                }
+
+            lastSuccessfulRequest.current = request;
+            const newStatus: OperationStatus<DBStatusResult> = { data, operationType: 'proc' };
+            updateStatus(newStatus);
+
+            return newStatus;
+        }
+        catch (e: unknown) {
+            if (controller.signal.aborted || inFlight.current?.token !== token) {
+                return;
+            }
+
+            const newStatus: OperationStatus<DBStatusResult> = {
+                error: isDBStatusError(e) ? toDBStatusMicroMError(e.Errors, 'add') : toMicroMError(e),
+                operationType: 'proc'
+            };
+            updateStatus(newStatus);
+
+            return newStatus;
+        }
+        finally {
+            if (inFlight.current?.token === token) {
+                inFlight.current = undefined;
             }
         }
-    }, [entity, proc, status]);
+    }, [entity, proc, updateStatus]);
 
-    const abort = useCallback(() => { cancellation.current.abort() }, []);
+    const abort = useCallback(() => {
+        const current = inFlight.current;
+        if (!current) return;
+
+        inFlight.current = undefined;
+        current.controller.abort();
+        updateStatus({ loading: false, operationType: 'proc' });
+    }, [updateStatus]);
 
     return {
-        execute: execute,
-        status: status,
-        abort: abort
+        execute,
+        status,
+        abort
     }
 }

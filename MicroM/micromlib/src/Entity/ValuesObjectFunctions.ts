@@ -20,9 +20,11 @@ export function copyValuesObject(obj: ValuesObject): ValuesObject {
         if (Object.prototype.hasOwnProperty.call(obj, key)) {
             const value = obj[key];
 
-            // Handle Date object separately
+            // Copy mutable Value variants
             if (value instanceof Date) {
                 copiedObject[key] = new Date(value.getTime()) as Value;
+            } else if (Array.isArray(value)) {
+                copiedObject[key] = [...value];
             } else {
                 copiedObject[key] = value;
             }
