@@ -228,6 +228,8 @@ public abstract class EntityDefinition
         _DefaultColumnsAdded = true;
     }
 
+    public void ClearLU() => dt_lu.ValueObject = null;
+
     #endregion
 
     /// <summary>

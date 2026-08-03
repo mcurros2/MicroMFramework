@@ -103,10 +103,12 @@ public class EntityData(IEntityClient ec, EntityDefinition def, IMicroMEncryptio
     /// </summary>
     /// <param name="ct"></param>
     /// <param name="throw_dbstat_exception"></param>
+    /// <param name="clear_lu"></param>
     /// <returns></returns>
     /// <exception cref="DataAbstractionException"></exception>
-    public virtual async Task<DBStatusResult> InsertData(CancellationToken ct, bool throw_dbstat_exception = false)
+    public virtual async Task<DBStatusResult> InsertData(CancellationToken ct, bool throw_dbstat_exception = false, bool clear_lu = true)
     {
+        if (clear_lu) def.ClearLU();
         var parms = def.Columns.GetParmsWithFlags(ColumnFlags.Insert);
         if (Encryptor != null) parms.EncryptColumnData(Encryptor);
         return await ExecuteStatusData(QualifiedProcName($"{def.Mneo}_update"), parms, ct, throw_dbstat_exception);

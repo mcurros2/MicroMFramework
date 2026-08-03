@@ -19,7 +19,7 @@ public interface IEntityData
     Task<List<DataResult>> ExecuteView(ViewDefinition view, CancellationToken ct, int? row_limit = null);
     Task<bool> GetData(CancellationToken ct);
     bool MapGetColumns(List<DataResult>? result);
-    Task<DBStatusResult> InsertData(CancellationToken ct, bool throw_dbstat_exception = false);
+    Task<DBStatusResult> InsertData(CancellationToken ct, bool throw_dbstat_exception = false, bool clear_lu = true);
     Task<string?> LookupData(CancellationToken ct, string? lookup_name = null);
     Task<DBStatusResult> UpdateData(CancellationToken ct, bool throw_dbstat_exception = false);
     Task<T?> GetData<T>(CancellationToken ct, AutoMapperMode mode = AutoMapperMode.ByNameLaxNotThrow, MapResult<T>? mapper = null) where T : class, new();

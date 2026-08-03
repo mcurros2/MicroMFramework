@@ -160,6 +160,7 @@ public static class EntityTests
             {
                 log?.Invoke($"{entity.Def.Name}: Skipping deletion of first record with PK values {testData.ToRecordValuesString(record, pk_cols_names_array)} because of autonum column {entity.Def.AutonumColumn.Name}.");
                 first_record = false;
+                continue;
             }
             else
             {
