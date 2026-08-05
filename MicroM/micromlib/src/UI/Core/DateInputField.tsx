@@ -8,6 +8,7 @@ import { Value } from "../../client";
 import { EntityColumn, EntityColumnFlags } from "../../Entity";
 import { ValidatorConfiguration } from "../../Validation";
 import { UseEntityFormReturnType, useFieldConfiguration } from "../Form";
+import { MicroMWidthSizes } from "./types";
 
 dayjs.extend(customParseFormat);
 
@@ -18,11 +19,14 @@ export interface DateInputFieldProps extends Omit<DateInputProps, 'autoFocus'> {
     requiredMessage?: ReactNode,
     validationContainer?: React.ComponentType<{ children: ReactNode }>
     autoFocus?: 'autoFocusOnAdd' | 'autoFocusOnEdit' | boolean,
+    maxWidth?: keyof typeof MicroMWidthSizes,
+    minWidth?: keyof typeof MicroMWidthSizes,
 }
 
 export const DateInputFieldDefaultProps: Partial<DateInputFieldProps> = {
     validationContainer: Group,
-    maw: '20rem',
+    maxWidth: 'sm',
+    minWidth: 'sm',
     icon: <IconCalendar size="1rem" />,
     allowDeselect: true,
     valueFormat: 'YYYY-MM-DD',
@@ -35,7 +39,8 @@ export const DateInputFieldDefaultProps: Partial<DateInputFieldProps> = {
 export const DateInputField = forwardRef<HTMLInputElement, DateInputFieldProps>(function DateInputField(props, ref) {
     const {
         column, entityForm, validate, validationContainer, required, requiredMessage, readOnly, label,
-        placeholder, description, withAsterisk, autoFocus, clearable, valueFormat, ...others
+        placeholder, description, withAsterisk, autoFocus, clearable, valueFormat, maxWidth, minWidth,
+        maw, miw, ...others
     } = useComponentDefaultProps('DateInputField', DateInputFieldDefaultProps, props);
 
     useFieldConfiguration({ entityForm, column, validationContainer, validate, required, requiredMessage, readOnly });
@@ -45,6 +50,9 @@ export const DateInputField = forwardRef<HTMLInputElement, DateInputFieldProps>(
     const { formMode, status } = entityForm;
     const add_autofocus = formMode === 'add' ? true : undefined;
     const edit_autofocus = status.loading === false && formMode !== 'add' ? true : undefined;
+
+    const resolved_maw = maw ?? (maxWidth !== undefined) ? MicroMWidthSizes[maxWidth!] : undefined
+    const resolved_miw = miw ?? (minWidth !== undefined) ? MicroMWidthSizes[minWidth!] : undefined;
 
 
     return (
@@ -60,6 +68,8 @@ export const DateInputField = forwardRef<HTMLInputElement, DateInputFieldProps>(
             data-autofocus={autoFocus === 'autoFocusOnAdd' ? add_autofocus : autoFocus === 'autoFocusOnEdit' ? edit_autofocus : autoFocus}
             autoFocus={autoFocus === 'autoFocusOnAdd' ? add_autofocus : autoFocus === 'autoFocusOnEdit' ? edit_autofocus : autoFocus}
             readOnly={readOnly || entityForm.formMode === 'view'}
+            maw={resolved_maw}
+            miw={resolved_miw}
             {...entityForm.form.getInputProps(column.name)}
             ref={ref}
         />

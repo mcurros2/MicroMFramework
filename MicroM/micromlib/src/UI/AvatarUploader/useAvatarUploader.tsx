@@ -2,7 +2,7 @@ import { useComponentDefaultProps } from "@mantine/core";
 import { useCallback, useEffect, useState } from "react";
 import { MicroMClient } from "../../client";
 import { EntityColumn } from "../../Entity";
-import { useFilesUploadForm, useFileUpload } from "../FileUploader";
+import { ModalFileUploadProps, useFilesUploadForm, useFileUpload } from "../FileUploader";
 import { UseEntityFormReturnType } from "../Form";
 
 export interface useAvatarUploaderProps {
@@ -11,7 +11,8 @@ export interface useAvatarUploaderProps {
     fileGUIDColumn: EntityColumn<string>,
     initialImageURL?: string,
     labels?: AvatarUploaderLabels,
-    parentFormAPI?: UseEntityFormReturnType
+    parentFormAPI?: UseEntityFormReturnType,
+    maxFileSize?: number,
 }
 
 export type AvatarUploaderLabels = {
@@ -34,13 +35,20 @@ export interface AvatarUploaderAPI {
 
 export function useAvatarUploader(props: useAvatarUploaderProps): AvatarUploaderAPI {
     const {
-        client, fileProcessColumn, labels, initialImageURL, parentFormAPI, fileGUIDColumn
+        client, fileProcessColumn, labels, initialImageURL, parentFormAPI, fileGUIDColumn,
+        maxFileSize
     } = useComponentDefaultProps('AvatarUploader', AvatarUploaderDefaultProps, props);
 
     const imageFileUploadOpen = useFilesUploadForm();
 
+    const fileSizeProps = maxFileSize === undefined
+        ? {}
+        : { maxIndividualFileSize: maxFileSize, maxTotalFilesSize: maxFileSize };
+
     const { deleteFile } = useFileUpload({
         client,
+        maxFilesCount: 1,
+        ...fileSizeProps,
         fileProcessColumn: fileProcessColumn
     });
 
@@ -84,9 +92,10 @@ export function useAvatarUploader(props: useAvatarUploaderProps): AvatarUploader
             },
             filesUploadFormProps: {
                 maxFilesCount: 1,
+                ...fileSizeProps,
             }
         });
-    }, [client, fileGUIDColumn, fileProcessColumn, imageFileUploadOpen, labels?.modalTitle]);
+    }, [client, fileGUIDColumn, fileProcessColumn, imageFileUploadOpen, labels?.modalTitle, maxFileSize]);
 
     const handleDeleteFile = async (file_id: string, fileGUID: string) => {
         await deleteFile(file_id, fileGUID);

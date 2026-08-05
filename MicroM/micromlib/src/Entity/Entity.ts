@@ -3,6 +3,7 @@ import { ComponentType } from "react";
 import { ValuesObject } from "../client/client.types";
 import { MicroMClient } from "../client/MicromClient";
 import { FormOptions } from "../UI/Core/types";
+import * as cf from "./ColumnsFunctions";
 import { EntityAPI } from "./EntityAPI";
 import { EntityDefinition } from "./EntityDefinition";
 
@@ -27,9 +28,14 @@ export class Entity<T extends EntityDefinition> {
 
     Icon?: ComponentType<IconProps>;
 
-    constructor(client: MicroMClient, def: T, parentKeys: ValuesObject = {}) {
+    constructor(client: MicroMClient, def: T, parentKeys: ValuesObject = {}, setParentKeys: boolean = true) {
         this.#def = def;
         this.parentKeys = parentKeys;
+
+        if (setParentKeys) {
+            cf.setValues(this.def.columns, parentKeys, null, true, true);
+        }
+
         this.API = new EntityAPI(client, this.#def.name, this.#def.columns);
         this.Form = null;
         this.Title = this.def.name;
