@@ -6,18 +6,19 @@ import { AvatarUploaderAPI } from "./useAvatarUploader";
 export interface AvatarUploaderProps extends Omit<AvatarProps, 'src'> {
     API: AvatarUploaderAPI,
     PlaceHolderIcon?: React.ReactNode,
+    showFullImage?: boolean,
     readOnlyMode?: boolean
 }
 
 export function AvatarUploader(props: AvatarUploaderProps) {
     const theme = useMantineTheme();
-    const { API, PlaceHolderIcon, readOnlyMode, ...others } = props;
+    const { API, PlaceHolderIcon, readOnlyMode, showFullImage, ...others } = props;
 
-    const { imageURL, fileID, fileGUID, handleOpenFileUpload, handleDeleteFile, parentFormAPI } = API;
+    const { imageURL, thumbnailURL, fileID, fileGUID, handleOpenFileUpload, handleDeleteFile, parentFormAPI } = API;
 
     return (
         <Stack>
-            <Avatar {...others} src={imageURL ?? undefined} onClick={async () => {
+            <Avatar {...others} src={ showFullImage ? imageURL ?? undefined : thumbnailURL ?? undefined} onClick={async () => {
                 if (!readOnlyMode && parentFormAPI?.formMode !== 'view') await handleOpenFileUpload()
             }}>
                 {PlaceHolderIcon}

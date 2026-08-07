@@ -6,10 +6,11 @@ import { AutoFormFields } from "./AutoFormFields";
 
 
 export function AutoForm(props: FormOptions<Entity<EntityDefinition>>) {
-    const { entity, getDataOnInit, initialFormMode = 'view', onSaved, onCancel } = props;
+    const { entity, getDataOnInit, initialFormMode = 'view', onSaved, onCancel, ...rest } = props;
 
     const entityForm = useEntityForm(
         {
+            ...rest,
             entity: entity,
             initialFormMode: initialFormMode,
             validateInputOnBlur: true,

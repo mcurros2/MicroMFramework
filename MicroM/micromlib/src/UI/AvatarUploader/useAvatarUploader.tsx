@@ -2,7 +2,7 @@ import { useComponentDefaultProps } from "@mantine/core";
 import { useCallback, useEffect, useState } from "react";
 import { MicroMClient } from "../../client";
 import { EntityColumn } from "../../Entity";
-import { ModalFileUploadProps, useFilesUploadForm, useFileUpload } from "../FileUploader";
+import { useFilesUploadForm, useFileUpload } from "../FileUploader";
 import { UseEntityFormReturnType } from "../Form";
 
 export interface useAvatarUploaderProps {
@@ -12,7 +12,7 @@ export interface useAvatarUploaderProps {
     initialImageURL?: string,
     labels?: AvatarUploaderLabels,
     parentFormAPI?: UseEntityFormReturnType,
-    maxFileSize?: number,
+    maxFileSize?: number
 }
 
 export type AvatarUploaderLabels = {
@@ -25,6 +25,7 @@ export const AvatarUploaderDefaultProps: Partial<useAvatarUploaderProps> = {
 
 export interface AvatarUploaderAPI {
     imageURL?: string,
+    thumbnailURL?: string,
     fileID?: string,
     fileProcessID?: string,
     fileGUID?: string,
@@ -53,6 +54,7 @@ export function useAvatarUploader(props: useAvatarUploaderProps): AvatarUploader
     });
 
     const [imageURL, setImageURL] = useState<string | undefined>(initialImageURL);
+    const [thumbnailURL, setThumbnailURL] = useState<string | undefined>(undefined);
     const [fileID, setFileID] = useState<string | undefined>(undefined);
     const [fileProcessID, setFileProcessID] = useState<string | undefined>(undefined);
     const [fileGUID, setFileGUID] = useState<string | undefined>(undefined);
@@ -70,6 +72,7 @@ export function useAvatarUploader(props: useAvatarUploaderProps): AvatarUploader
                     fileGUIDColumn.value = uploadProgress[keys[0]].vc_fileguid!;
                     setFileGUID(fileGUIDColumn.value);
                     setImageURL(client.getDocumentURL(fileGUIDColumn.value));
+                    setThumbnailURL(client.getThumbnailURL(fileGUIDColumn.value));
                     setFileID(uploadProgress[keys[0]].file_id);
                     setFileProcessID(fileprocess_id);
                 }
@@ -77,6 +80,7 @@ export function useAvatarUploader(props: useAvatarUploaderProps): AvatarUploader
                     // MMC: if no file was uploaded, clear the file column
                     fileGUIDColumn.value = '';
                     setFileGUID(undefined);
+                    setThumbnailURL(undefined);
                     setImageURL(undefined);
                     setFileID(undefined);
                 }
@@ -103,6 +107,7 @@ export function useAvatarUploader(props: useAvatarUploaderProps): AvatarUploader
         fileProcessColumn.value = '';
         setFileID(undefined);
         setImageURL(undefined);
+        setThumbnailURL(undefined);
         setFileGUID(undefined);
     };
 
@@ -113,6 +118,7 @@ export function useAvatarUploader(props: useAvatarUploaderProps): AvatarUploader
                 if (fileProcessColumn.value) {
                     setFileProcessID(fileProcessColumn.value);
                     setImageURL(client.getDocumentURL(fileGUIDColumn.value));
+                    setThumbnailURL(client.getThumbnailURL(fileGUIDColumn.value));
                     setFileGUID(fileGUIDColumn.value);
                 }
             }
@@ -121,6 +127,7 @@ export function useAvatarUploader(props: useAvatarUploaderProps): AvatarUploader
 
     return {
         imageURL,
+        thumbnailURL,
         fileID,
         fileProcessID,
         fileGUID,

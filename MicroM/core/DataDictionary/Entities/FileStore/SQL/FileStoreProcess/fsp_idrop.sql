@@ -9,6 +9,18 @@ if @@trancount = 0 throw 51000, 'fsp_idrop must be called within a transaction',
 begin try
 
     delete  a
+    from    [dbo].[file_store_content] a
+            join [file_store] b
+			on(a.c_file_id = b.c_file_id)
+    where   b.c_fileprocess_id = @fileprocess_id
+
+    delete  a
+    from    [dbo].[file_store_cat] a
+            join [file_store] b
+			on(a.c_file_id = b.c_file_id)
+    where   b.c_fileprocess_id = @fileprocess_id
+    
+    delete  a
     from    [dbo].[file_store_status] a
             join [file_store] b
 			on(a.c_file_id = b.c_file_id)
