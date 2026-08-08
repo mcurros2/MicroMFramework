@@ -50,7 +50,8 @@ export function useAvatarUploader(props: useAvatarUploaderProps): AvatarUploader
         client,
         maxFilesCount: 1,
         ...fileSizeProps,
-        fileProcessColumn: fileProcessColumn
+        fileProcessColumn: fileProcessColumn,
+        loadFilesOnMount: false
     });
 
     const [imageURL, setImageURL] = useState<string | undefined>(initialImageURL);

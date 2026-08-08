@@ -42,6 +42,7 @@ export interface UseFileUploadProps {
     onValidateFile?: (file: File) => Promise<ValidateFileReturnType>,
     thumbnailMaxSize?: number,
     thumbnailQuality?: number,
+    loadFilesOnMount?: boolean,
 }
 
 export const UseFileUploadDefaultProps: Partial<UseFileUploadProps> = {
@@ -55,6 +56,7 @@ export const UseFileUploadDefaultProps: Partial<UseFileUploadProps> = {
     totalUploadExceedsMaximumSizeText: 'Total upload exceeds maximum size of',
     thumbnailMaxSize: 150,
     thumbnailQuality: 75,
+    loadFilesOnMount: true,
 }
 
 export interface UploadProgressReport {
@@ -87,7 +89,7 @@ export function useFileUpload(props: UseFileUploadProps): UseFileUploadReturnTyp
         client, maxIndividualFileSize, maxTotalFilesSize, maxFilesCount,
         youCanUploadAMaximumOfText, filesText, exceedMaximumIndividualSizeText, unspecifiedErrorWhenUploadingFileText,
         totalUploadExceedsMaximumSizeText, fileProcessColumn, onCancel, editor, onValidateFile,
-        thumbnailMaxSize, thumbnailQuality
+        thumbnailMaxSize, thumbnailQuality, loadFilesOnMount
     } = useComponentDefaultProps('useFileUpload', UseFileUploadDefaultProps, props);
 
     const [uploadProgress, setUploadProgress] = useState<Record<string, UploadProgressReport>>({});
@@ -116,6 +118,7 @@ export function useFileUpload(props: UseFileUploadProps): UseFileUploadReturnTyp
                 const data = await fileStore.API.executeView(fileStore.def.views.fst_brwFiles);
                 setLoadingNotification(false);
                 if (data && data.length > 0) {
+                    let totalSize = 0;
                     setUploadProgress((prev) => {
                         const updatedState = { ...prev };
                         const file_records = mapDataResultToType<FileUploaderView>(data[0], "enforceObject", null, null);
@@ -132,9 +135,11 @@ export function useFileUpload(props: UseFileUploadProps): UseFileUploadReturnTyp
                                 thumbnailURL: client.getThumbnailURL(file.vc_fileguid, thumbnailMaxSize, thumbnailQuality),
                                 vc_fileguid: file.vc_fileguid
                             };
+                            totalSize += file.bi_filesize;
                         });
                         return updatedState;
                     });
+                    uploadedSize.current = totalSize;
                 }
             }
             catch (e: unknown) {
@@ -150,9 +155,9 @@ export function useFileUpload(props: UseFileUploadProps): UseFileUploadReturnTyp
 
         };
 
-        if (fileProcessColumn.value) refreshFiles();
+        if (loadFilesOnMount && fileProcessColumn.value) refreshFiles();
 
-    }, [client, fileProcessColumn.value]);
+    }, [client, fileProcessColumn.value, loadFilesOnMount]);
 
 
     const uploadFiles = async (selectedFiles: File[]) => {
@@ -237,9 +242,6 @@ export function useFileUpload(props: UseFileUploadProps): UseFileUploadReturnTyp
                 setCancelledNotification(true);
                 break;
             }
-
-            // MMC: update total uploaded size
-            uploadedSize.current += file.size;
         }
 
         setUploadingNotification(false);
@@ -350,11 +352,13 @@ export function useFileUpload(props: UseFileUploadProps): UseFileUploadReturnTyp
             const result = await fileStore.API.deleteData(undefined, abort_signal);
             setLoadingNotification(false);
             if (!result.Failed) {
+                const deletedFileSize = uploadProgress[file_id]?.file_size || 0;
                 setUploadProgress((prev) => {
                     const updatedState = { ...prev };
                     delete updatedState[file_id];
                     return updatedState;
                 });
+                uploadedSize.current = Math.max(0, uploadedSize.current - deletedFileSize);
             };
             return result;
         }
