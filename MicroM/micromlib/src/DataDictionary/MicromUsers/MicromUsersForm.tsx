@@ -120,7 +120,7 @@ export function MicromUsersForm(props: MicromUsersFormProps) {
                 }
                 <CheckboxField entityForm={entityForm} column={entity.def.columns.bt_disabled} required={false} />
                 {formMode !== 'add' &&
-                    <Group align="end">
+                    <Group align="center">
                         <CheckboxField entityForm={entityForm} column={entity.def.columns.bt_totp_enabled} required={false} />
                         <Button
                             variant="light"

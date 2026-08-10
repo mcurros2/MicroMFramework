@@ -19,7 +19,7 @@ const columns = () =>
         bt_totp_enabled: new EntityColumn<boolean>({ name: 'bt_totp_enabled', type: 'bit', length: 1, flags: c.Edit, prompt: 'Require two-factor authentication' }),
         vc_recovery_code: new EntityColumn<string>({ name: 'vc_recovery_code', type: 'varchar', length: 255, flags: c.Edit | EntityColumnFlags.nullable, prompt: 'Recovery Code' }),
         dt_last_recovery: new EntityColumn<Date>({ name: 'dt_last_recovery', type: 'datetime', flags: c.Edit | EntityColumnFlags.nullable, prompt: 'Last Recovery' }),
-        c_usertype_id: new EntityColumn<string>({ name: 'c_usertype_id', type: 'char', length: 20, flags: c.Edit, prompt: 'Usertype Id' }),
+        c_usertype_id: new EntityColumn<string>({ name: 'c_usertype_id', type: 'char', length: 20, flags: c.Edit, prompt: 'User Type' }),
         vc_user_groups: new EntityColumn<string[]>({ name: 'vc_user_groups', type: 'varchar', flags: c.Edit | EntityColumnFlags.nullable, prompt: 'User Groups', isArray: true }),
         bt_islocked: new EntityColumn<boolean>({ name: 'bt_islocked', type: 'bit', length: 1, flags: EntityColumnFlags.fake, prompt: 'Locked' }),
         i_locked_minutes_remaining: new EntityColumn<number>({ name: 'i_locked_minutes_remaining', type: 'int', flags: EntityColumnFlags.fake, prompt: 'Locked minutes remaining' }),
