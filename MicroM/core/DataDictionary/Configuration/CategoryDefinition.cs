@@ -2,58 +2,56 @@
 using System.Reflection;
 using System.Runtime.CompilerServices;
 
-namespace MicroM.DataDictionary.Configuration
+namespace MicroM.DataDictionary.Configuration;
+
+public abstract class CategoryDefinition
 {
-    public abstract class CategoryDefinition
+    public CategoryDefinition() { }
+
+    public string CategoryID { get; protected set; } = "";
+    public string Description { get; init; } = "";
+
+    public bool Multivalue { get; init; } = false;
+
+    public bool NumericIDS { get; init; } = false;
+
+    public Dictionary<string, CategoryValuesDefinition> Values { get; } = new(StringComparer.OrdinalIgnoreCase);
+
+    public CategoryDefinition(string description, bool multivalue = false, bool numeric_ids = false)
     {
-        public CategoryDefinition() { }
+        CategoryID = this.GetType().Name;
+        Description = description;
+        Multivalue = multivalue;
+        NumericIDS = numeric_ids;
 
-        public string CategoryID { get; protected set; } = "";
-        public string Description { get; init; } = "";
+        FillValuesDictionary();
+    }
 
-        public bool Multivalue { get; init; } = false;
+    private void FillValuesDictionary()
+    {
+        IOrderedEnumerable<MemberInfo> instance_members = this.GetType().GetAndCacheInstanceMembers();
 
-        public bool NumericIDS { get; init; } = false;
-
-        public Dictionary<string, CategoryValuesDefinition> Values { get; } = new(StringComparer.OrdinalIgnoreCase);
-
-        public CategoryDefinition(string description, bool multivalue = false, bool numeric_ids = false)
+        foreach (var prop in instance_members)
         {
-            CategoryID = this.GetType().Name;
-            Description = description;
-            Multivalue = multivalue;
-            NumericIDS = numeric_ids;
-
-            FillValuesDictionary();
-        }
-
-        private void FillValuesDictionary()
-        {
-            IOrderedEnumerable<MemberInfo> instance_members = this.GetType().GetAndCacheInstanceMembers();
-
-            foreach (var prop in instance_members)
+            if (prop.MemberType.IsIn(MemberTypes.Property, MemberTypes.Field) && prop.GetCustomAttribute<CompilerGeneratedAttribute>() == null)
             {
-                if (prop.MemberType.IsIn(MemberTypes.Property, MemberTypes.Field) && prop.GetCustomAttribute<CompilerGeneratedAttribute>() == null)
+                if (prop.GetMemberType() == typeof(CategoryValuesDefinition))
                 {
-                    if (prop.GetMemberType() == typeof(CategoryValuesDefinition))
+                    var category_value = (CategoryValuesDefinition?)prop.GetMemberValue(this);
+                    if (category_value != null)
                     {
-                        var category_value = (CategoryValuesDefinition?)prop.GetMemberValue(this);
-                        if (category_value != null)
+                        if (Values.TryAdd(prop.Name, category_value))
                         {
-                            if (Values.TryAdd(prop.Name, category_value))
-                            {
-                                category_value.CategoryValueID = prop.Name;
-                            }
-                            else
-                            {
-                                throw new ArgumentException($"Duplicate Category Value: Value {category_value.CategoryValueID} ({category_value.Description}), Category {this.CategoryID} ({Description})");
-                            }
+                            category_value.CategoryValueID = prop.Name;
+                        }
+                        else
+                        {
+                            throw new ArgumentException($"Duplicate Category Value: Value {category_value.CategoryValueID} ({category_value.Description}), Category {this.CategoryID} ({Description})");
                         }
                     }
                 }
             }
         }
-
     }
 
 }

@@ -15,7 +15,7 @@ set @user_group_id = NULLIF(@user_group_id,'')
 begin try
     declare @cu datetime, @now datetime=getdate(), @login sysname=original_login()
 
-    create table [#TempMembers] ([user_id] char(20))
+    create table [#TempMembers] ([user_id] char(20) collate database_default)
 
     IF @group_members IS NOT NULL
     BEGIN

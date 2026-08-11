@@ -27,7 +27,7 @@ select  @api_key_id = null
 
 set @url_authorized_redirects = NULLIF(@url_authorized_redirects,'')
 
-create table [#TempRedirectUrls] (c_client_app_url_id char(20) null, vc_url_authorized_redirect varchar(2048) null)
+create table [#TempRedirectUrls] (c_client_app_url_id char(20) collate database_default null, vc_url_authorized_redirect varchar(2048) collate database_default null)
 IF @url_authorized_redirects IS NOT NULL
 BEGIN
     insert  [#TempRedirectUrls]

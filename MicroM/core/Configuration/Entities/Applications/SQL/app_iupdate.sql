@@ -59,7 +59,7 @@ set @enable_seed_test_data = isnull(@enable_seed_test_data, 0)
 set @enable_developer_tools = isnull(@enable_developer_tools, 0)
 set @enable_update_on_hotreload = isnull(@enable_update_on_hotreload, 0)
 
-create table [#TempAppUrls] (c_application_url_id char(20) null, vc_application_url varchar(max))
+create table [#TempAppUrls] (c_application_url_id char(20) collate database_default null, vc_application_url varchar(max) collate database_default)
 
 IF @appurls IS NOT NULL
 BEGIN

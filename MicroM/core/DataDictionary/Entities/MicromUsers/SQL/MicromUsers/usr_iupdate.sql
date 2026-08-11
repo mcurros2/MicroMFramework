@@ -27,7 +27,7 @@ select @user_groups = nullif(@user_groups, '')
 begin try
     declare @cu datetime, @now datetime=getdate(), @login sysname=original_login()
 
-    create table [#TempGroups] (user_group_id char(20))
+    create table [#TempGroups] (user_group_id char(20) collate database_default)
 
     IF @user_groups IS NOT NULL
     BEGIN

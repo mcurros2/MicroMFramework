@@ -9,7 +9,7 @@
 
 set @like = NULLIF(@like,'')
 
-create table [#like] (phrase varchar(max))
+create table [#like] (phrase varchar(max) collate database_default)
 
 IF @like IS NOT NULL
 BEGIN

@@ -186,7 +186,7 @@ where   {WHERE_CLAUSE}
 
     internal const string JSON_CATEGORIES_PARSE_TEMPLATE =
     @"
-    create table {CATEGORY_TEMP_TABLE} (jsoncategory_id char(20), category_desc varchar(max))
+    create table {CATEGORY_TEMP_TABLE} (jsoncategory_id char(20) collate database_default, category_desc varchar(max) collate database_default)
 
     IF {CATEGORY_PARM} IS NOT NULL
     BEGIN
