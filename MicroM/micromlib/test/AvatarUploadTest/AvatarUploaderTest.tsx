@@ -1,26 +1,59 @@
-import { AvatarUploader, EntityForm, useAvatarUploader, useEntityForm } from "UI";
+import { Group, Select, Stack, Switch } from "@mantine/core";
 import { MicroMClient } from "client";
-import { useRef } from "react";
+import { useState } from "react";
+import { AvatarImageFormat, AvatarUploader, EntityForm, useAvatarUploader, useEntityForm } from "UI";
 import { AvatarUploaderTestEntity } from "./AvatarUploaderTestEntity";
 
 export function AvatarUploaderTest() {
+    const [client] = useState(() => new MicroMClient({ app_id: "", api_url: "" }));
+    const [entity] = useState(() => new AvatarUploaderTestEntity(client));
+    const [exifOrientation, setExifOrientation] = useState(true);
+    const [crop, setCrop] = useState(true);
+    const [resize, setResize] = useState(true);
+    const [manualRotation, setManualRotation] = useState(true);
+    const [compression, setCompression] = useState(true);
+    const [outputFormat, setOutputFormat] = useState<AvatarImageFormat>();
 
-    const client = useRef(new MicroMClient({ app_id: "", api_url: "" }));
-    const entity = useRef(new AvatarUploaderTestEntity(client.current));
-
-    const entityForm = useEntityForm({ entity: entity.current, initialFormMode: "add", getDataOnInit: false });
+    const entityForm = useEntityForm({ entity, initialFormMode: "add", getDataOnInit: false });
 
     const avatarAPI = useAvatarUploader({
-        client: entity.current.API.client,
-        fileProcessColumn: entity.current.def.columns.c_fileprocess_id,
-        fileGUIDColumn: entity.current.def.columns.vc_fileguid,
+        client: entity.API.client,
+        fileProcessColumn: entity.def.columns.c_fileprocess_id,
+        fileGUIDColumn: entity.def.columns.vc_fileguid,
         initialImageURL: "https://i.pravatar.cc/64?u=69",
-        parentFormAPI: entityForm
+        parentFormAPI: entityForm,
+        imageProcessing: {
+            exifOrientation,
+            crop,
+            manualRotation,
+            resize,
+            compression,
+            outputFormat
+        }
     });
 
     return <EntityForm formAPI={entityForm}>
-        <AvatarUploader
-            API={avatarAPI} 
-             />
-    </EntityForm>
+        <Stack>
+            <Group>
+                <Switch label="EXIF orientation" checked={exifOrientation} onChange={event => setExifOrientation(event.currentTarget.checked)} />
+                <Switch label="Crop" checked={crop} onChange={event => setCrop(event.currentTarget.checked)} />
+                <Switch label="Resize" checked={resize} onChange={event => setResize(event.currentTarget.checked)} />
+                <Switch label="Manual rotation" checked={manualRotation} onChange={event => setManualRotation(event.currentTarget.checked)} />
+                <Switch label="Compression" checked={compression} onChange={event => setCompression(event.currentTarget.checked)} />
+                <Select
+                    label="Output format"
+                    clearable
+                    placeholder="Preserve original"
+                    value={outputFormat}
+                    data={[
+                        { value: 'image/jpeg', label: 'JPEG' },
+                        { value: 'image/png', label: 'PNG' },
+                        { value: 'image/webp', label: 'WebP' }
+                    ]}
+                    onChange={value => setOutputFormat(value as AvatarImageFormat | undefined)}
+                />
+            </Group>
+            <AvatarUploader API={avatarAPI} />
+        </Stack>
+    </EntityForm>;
 }

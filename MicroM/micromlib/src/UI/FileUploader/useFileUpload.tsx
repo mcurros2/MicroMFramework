@@ -6,9 +6,10 @@ import { FileStoreProcess } from "../../DataDictionary/FileStoreProcess/FileStor
 import { EntityColumn, mapDataResultToType } from "../../Entity";
 import { useModal } from "../Core";
 import { ImageEditor } from "./ImageEditor";
+import { resolveImageProcessingOptions } from "./imageProcessing";
 
 export interface UseFileUploadReturnType {
-    uploadFiles: (selectedFiles: File[]) => Promise<void>,
+    uploadFiles: (selectedFiles: File[]) => Promise<UploadProgressReport[]>,
     deleteFile: (file_id: string, fileGUID: string) => Promise<DBStatusResult>,
     downloadFile: (fileUrl: string, fileName?: string) => Promise<void>,
     uploadProgress: Record<string, UploadProgressReport>,
@@ -26,6 +27,11 @@ export interface UseFileUploadReturnType {
 
 export type ValidateFileReturnType = { error: boolean, message?: string };
 
+export type UploadCompletionResult = ValidateFileReturnType & {
+    rollbackUploadedFile?: boolean,
+    removeFromQueue?: boolean,
+};
+
 export interface UseFileUploadProps {
     client: MicroMClient,
     fileProcessColumn: EntityColumn<string>,
@@ -40,6 +46,9 @@ export interface UseFileUploadProps {
     onCancel?: () => void,
     editor?: 'none' | 'image',
     onValidateFile?: (file: File) => Promise<ValidateFileReturnType>,
+    onProcessFile?: (file: File) => Promise<File | null>,
+    onBeforeUpload?: (file: File) => Promise<boolean>,
+    onUploadComplete?: (report: UploadProgressReport) => Promise<UploadCompletionResult | void>,
     thumbnailMaxSize?: number,
     thumbnailQuality?: number,
     loadFilesOnMount?: boolean,
@@ -89,6 +98,7 @@ export function useFileUpload(props: UseFileUploadProps): UseFileUploadReturnTyp
         client, maxIndividualFileSize, maxTotalFilesSize, maxFilesCount,
         youCanUploadAMaximumOfText, filesText, exceedMaximumIndividualSizeText, unspecifiedErrorWhenUploadingFileText,
         totalUploadExceedsMaximumSizeText, fileProcessColumn, onCancel, editor, onValidateFile,
+        onProcessFile, onBeforeUpload, onUploadComplete,
         thumbnailMaxSize, thumbnailQuality, loadFilesOnMount
     } = useComponentDefaultProps('useFileUpload', UseFileUploadDefaultProps, props);
 
@@ -157,14 +167,55 @@ export function useFileUpload(props: UseFileUploadProps): UseFileUploadReturnTyp
 
         if (loadFilesOnMount && fileProcessColumn.value) refreshFiles();
 
-    }, [client, fileProcessColumn.value, loadFilesOnMount]);
+    }, [client, fileProcessColumn.value, loadFilesOnMount, thumbnailMaxSize, thumbnailQuality]);
 
+
+    const openImageEditor = async (file: File) => {
+        const source = URL.createObjectURL(file);
+        const options = resolveImageProcessingOptions({ crop: true });
+
+        return await new Promise<File | null>(async resolveEditor => {
+            let closeHandled = false;
+
+            const close = async (result: File | null) => {
+                if (closeHandled) return;
+                closeHandled = true;
+                resolveEditor(result);
+                await modals.close();
+            };
+
+            await modals.open({
+                content: <ImageEditor
+                    src={source}
+                    sourceFile={file}
+                    options={options}
+                    onSave={async result => await close(result)}
+                    onCancel={async () => await close(null)}
+                />,
+                modalProps: {
+                    trapFocus: true,
+                    returnFocus: true,
+                    title: <Text fw="700">Editor</Text>,
+                    size: 'lg'
+                },
+                onClosed: () => {
+                    URL.revokeObjectURL(source);
+                    if (!closeHandled) {
+                        closeHandled = true;
+                        resolveEditor(null);
+                    }
+                }
+            });
+        });
+    };
 
     const uploadFiles = async (selectedFiles: File[]) => {
+        const reports: UploadProgressReport[] = [];
+
         // Check against maxFilesCount.
         if ((Object.keys(uploadProgress).length + selectedFiles.length) > maxFilesCount!) {
             setErrorNotification(`${youCanUploadAMaximumOfText} ${maxFilesCount} ${filesText}.`);
-            return;
+            return reports;
         }
 
         setErrorNotification('');
@@ -172,18 +223,6 @@ export function useFileUpload(props: UseFileUploadProps): UseFileUploadReturnTyp
         setUploadingNotification(true);
 
         for (let file of selectedFiles) {
-            // Check against maxIndividualFileSize.
-            if (file.size > maxIndividualFileSize!) {
-                setErrorNotification(`"${file.name}" ${exceedMaximumIndividualSizeText} ${maxIndividualFileSize! / (1024 ** 2)}MB`);
-                continue;
-            }
-
-            // Check against maxTotalFilesSize.
-            if ((uploadedSize.current + file.size) > maxTotalFilesSize!) {
-                setErrorNotification(`${totalUploadExceedsMaximumSizeText} ${maxTotalFilesSize! / (1024 ** 2)}MB`);
-                break;
-            }
-
             // Client-side validation
             if (onValidateFile) {
                 const validation = await onValidateFile(file);
@@ -193,47 +232,35 @@ export function useFileUpload(props: UseFileUploadProps): UseFileUploadReturnTyp
                 }
             }
 
-            if (editor === 'image') {
-                file = await new Promise<File>(async resolveEditor => {
+            try {
+                const processedFile = onProcessFile
+                    ? await onProcessFile(file)
+                    : editor === 'image' ? await openImageEditor(file) : file;
+                if (!processedFile) continue;
+                file = processedFile;
+            }
+            catch (e: unknown) {
+                setErrorNotification(e instanceof Error ? e.message : String(e));
+                continue;
+            }
 
-                    const imageDataURL = await new Promise<string>((resolveImageDataURL, rejectImageDataURL) => {
-                        const fileReader = new FileReader();
-                        fileReader.onloadend = () => {
-                            resolveImageDataURL(fileReader.result as string);
-                        }
-                        fileReader.onerror = () => {
-                            rejectImageDataURL();
-                        }
-                        fileReader.readAsDataURL(file);
-                    });
+            // Size limits apply to the final file that will be uploaded.
+            if (file.size > maxIndividualFileSize!) {
+                setErrorNotification(`"${file.name}" ${exceedMaximumIndividualSizeText} ${maxIndividualFileSize! / (1024 ** 2)}MB`);
+                continue;
+            }
 
-                    let closeHandled = false;
+            if ((uploadedSize.current + file.size) > maxTotalFilesSize!) {
+                setErrorNotification(`${totalUploadExceedsMaximumSizeText} ${maxTotalFilesSize! / (1024 ** 2)}MB`);
+                break;
+            }
 
-                    async function handleImageEditorOk(imageBlob: Blob) {
-                        closeHandled = true;
-                        resolveEditor(new File([imageBlob], file.name, { type: file.type }));
-                        await modals.close();
-                    }
-
-                    await modals.open(
-                        {
-                            content: <ImageEditor src={imageDataURL} onOk={handleImageEditorOk} />,
-                            modalProps: {
-                                //...modalProps,
-                                trapFocus: true,
-                                returnFocus: true,
-                                title: <Text fw="700">Editor</Text>,
-                            },
-                            onClosed: () => {
-                                if (!closeHandled) { 
-                                    resolveEditor(file); //TODO: should cancel the upload?
-                                }
-                            }
-                        });
-                });
+            if (onBeforeUpload && !await onBeforeUpload(file)) {
+                continue;
             }
 
             const result = await uploadFile(file);
+            reports.push(result);
             if (result.errorMessage && !result.cancelled) {
                 setErrorNotification(result.errorMessage);
                 break;
@@ -242,9 +269,45 @@ export function useFileUpload(props: UseFileUploadProps): UseFileUploadReturnTyp
                 setCancelledNotification(true);
                 break;
             }
+
+            if (onUploadComplete && result.file_id && result.vc_fileguid) {
+                try {
+                    const completion = await onUploadComplete(result);
+                    if (completion?.error) {
+                        let message = completion.message || unspecifiedErrorWhenUploadingFileText;
+                        let rollbackFailed = false;
+                        if (completion.rollbackUploadedFile) {
+                            const rollback = await deleteFile(result.file_id, result.vc_fileguid);
+                            rollbackFailed = rollback.Failed;
+                            if (rollbackFailed) message += ' The replacement upload could not be removed.';
+                        }
+                        if (!completion.rollbackUploadedFile || rollbackFailed) {
+                            result.errorMessage = message;
+                            result.progress = 0;
+                            updateProgress(result.status_id, result);
+                        }
+                        setErrorNotification(message);
+                        break;
+                    }
+                    if (completion?.removeFromQueue) {
+                        setUploadProgress(prev => {
+                            const updated = { ...prev };
+                            delete updated[result.file_id!];
+                            return updated;
+                        });
+                        uploadedSize.current = Math.max(0, uploadedSize.current - result.file_size);
+                    }
+                }
+                catch (e: unknown) {
+                    const message = e instanceof Error ? e.message : String(e);
+                    setErrorNotification(message);
+                    break;
+                }
+            }
         }
 
         setUploadingNotification(false);
+        return reports;
     }
 
     const clearNotifications = () => { setErrorNotification(''); setCancelledNotification(false); }
@@ -286,6 +349,8 @@ export function useFileUpload(props: UseFileUploadProps): UseFileUploadReturnTyp
 
                 currentProcessID = fileProcess.def.columns.c_fileprocess_id.value;
                 setFileProcessID(currentProcessID);
+                // EntityColumn is an intentional mutable model object shared with the parent form.
+                // eslint-disable-next-line react-hooks/immutability
                 fileProcessColumn.value = currentProcessID;
                 setLoadingNotification(false);
             }

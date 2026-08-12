@@ -1,7 +1,6 @@
-import { ActionIcon, Avatar, AvatarProps, Group, Stack, useMantineTheme } from "@mantine/core";
-import { IconTrash, IconUpload } from "@tabler/icons-react";
+import { ActionIcon, Alert, Avatar, AvatarProps, Group, Loader, Stack, useMantineTheme } from "@mantine/core";
+import { IconEdit, IconTrash, IconUpload, IconX } from "@tabler/icons-react";
 import { AvatarUploaderAPI } from "./useAvatarUploader";
-
 
 export interface AvatarUploaderProps extends Omit<AvatarProps, 'src'> {
     API: AvatarUploaderAPI,
@@ -14,20 +13,68 @@ export function AvatarUploader(props: AvatarUploaderProps) {
     const theme = useMantineTheme();
     const { API, PlaceHolderIcon, readOnlyMode, showFullImage, ...others } = props;
 
-    const { imageURL, thumbnailURL, fileID, fileGUID, handleOpenFileUpload, handleDeleteFile, parentFormAPI } = API;
+    const {
+        imageURL, thumbnailURL, fileID, fileGUID, handleOpenFileUpload, handleEditImage, handleDeleteFile,
+        parentFormAPI, canEditImage, processing, errorNotification, clearNotifications, labels
+    } = API;
+    const editable = !readOnlyMode && parentFormAPI?.formMode !== 'view';
+    const handleAvatarClick = async () => {
+        if (!editable || processing) return;
+        if (canEditImage) await handleEditImage();
+        else await handleOpenFileUpload();
+    };
 
     return (
         <Stack>
-            <Avatar {...others} src={ showFullImage ? imageURL ?? undefined : thumbnailURL ?? undefined} onClick={async () => {
-                if (!readOnlyMode && parentFormAPI?.formMode !== 'view') await handleOpenFileUpload()
-            }}>
-                {PlaceHolderIcon}
+            <Avatar
+                {...others}
+                src={showFullImage ? imageURL ?? undefined : thumbnailURL ?? imageURL ?? undefined}
+                onClick={() => void handleAvatarClick()}
+                sx={editable ? { cursor: processing ? 'wait' : 'pointer' } : undefined}
+                aria-busy={processing}
+            >
+                {processing ? <Loader size="sm" /> : PlaceHolderIcon}
             </Avatar>
-            {!readOnlyMode && parentFormAPI?.formMode !== 'view' &&
+            {editable &&
                 <Group position="right">
-                    <ActionIcon color={theme.primaryColor} variant="light" onClick={async () => await handleOpenFileUpload()}><IconUpload size="1rem" /></ActionIcon>
-                    <ActionIcon color={theme.primaryColor} variant="light" onClick={async () => await handleDeleteFile(fileID ?? '', fileGUID ?? '')}><IconTrash size="1rem" /></ActionIcon>
+                    {canEditImage &&
+                        <ActionIcon
+                            color={theme.primaryColor}
+                            variant="light"
+                            title={labels.editLabel}
+                            aria-label={labels.editLabel}
+                            disabled={processing}
+                            onClick={() => void handleEditImage()}
+                        >
+                            <IconEdit size="1rem" />
+                        </ActionIcon>
+                    }
+                    <ActionIcon
+                        color={theme.primaryColor}
+                        variant="light"
+                        title={labels.uploadLabel}
+                        aria-label={labels.uploadLabel}
+                        disabled={processing}
+                        onClick={() => void handleOpenFileUpload()}
+                    >
+                        <IconUpload size="1rem" />
+                    </ActionIcon>
+                    <ActionIcon
+                        color={theme.primaryColor}
+                        variant="light"
+                        title={labels.deleteLabel}
+                        aria-label={labels.deleteLabel}
+                        disabled={processing || (!fileID && !fileGUID)}
+                        onClick={() => void handleDeleteFile(fileID ?? '', fileGUID ?? '')}
+                    >
+                        <IconTrash size="1rem" />
+                    </ActionIcon>
                 </Group>
+            }
+            {errorNotification &&
+                <Alert color="red" withCloseButton onClose={clearNotifications} icon={<IconX size="1rem" />}>
+                    {errorNotification}
+                </Alert>
             }
         </Stack>
     );

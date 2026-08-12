@@ -28,12 +28,28 @@ export function FilesUploadForm(props: FilesUploadFormProps) {
     const {
         helpMessage, client, uploaderProps, okLabel, onCancel,
         maxFilesCount, maxIndividualFileSize, maxTotalFilesSize, onOK, fileProcessColumn,
-        showOKButton, editor, onValidateFile
+        showOKButton, editor, onValidateFile, onProcessFile, onBeforeUpload, onUploadComplete,
+        thumbnailMaxSize, thumbnailQuality, loadFilesOnMount
     } = useComponentDefaultProps('FilesUploadForm', FilesUploadFormDefaultProps, props);
 
 
     const theme = useMantineTheme();
-    const uploadAPI = useFileUpload({ client, fileProcessColumn, maxFilesCount, maxIndividualFileSize, maxTotalFilesSize, onCancel, editor, onValidateFile });
+    const uploadAPI = useFileUpload({
+        client,
+        fileProcessColumn,
+        maxFilesCount,
+        maxIndividualFileSize,
+        maxTotalFilesSize,
+        onCancel,
+        editor,
+        onValidateFile,
+        onProcessFile,
+        onBeforeUpload,
+        onUploadComplete,
+        thumbnailMaxSize,
+        thumbnailQuality,
+        loadFilesOnMount
+    });
     const { uploadingNotification } = uploadAPI;
 
     const handleOK = () => {
