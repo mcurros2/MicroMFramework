@@ -6,6 +6,7 @@ import { Value } from "../../client";
 import { EntityColumn, EntityColumnFlags } from "../../Entity";
 import { ValidatorConfiguration } from "../../Validation";
 import { UseEntityFormReturnType, useFieldConfiguration } from "../Form";
+import { MicroMWidthSizes } from "./types";
 
 export interface TimeFieldProps extends Omit<TimeInputProps, 'validate' | 'autoFocus'> {
     column: EntityColumn<Value>,
@@ -15,11 +16,13 @@ export interface TimeFieldProps extends Omit<TimeInputProps, 'validate' | 'autoF
     validationContainer?: React.ComponentType<{ children: ReactNode }>
     autoFocus?: 'autoFocusOnAdd' | 'autoFocusOnEdit' | boolean,
     showTimePicker?: boolean,
+    maxWidth?: keyof typeof MicroMWidthSizes,
+    minWidth?: keyof typeof MicroMWidthSizes,
 }
 
 export const TimeFieldDefaultProps: Partial<TimeFieldProps> = {
     showTimePicker: true,
-    maw: '20rem',
+    maxWidth: "sm"
 }
 
 // Define the methods and properties you want to expose
@@ -35,7 +38,7 @@ interface ExtendedHTMLInputElement extends HTMLInputElement {
 export const TimeField = forwardRef<TimeFieldRef, TimeFieldProps>(function TimeField(props: TimeFieldProps, ref) {
     const {
         entityForm, column, validationContainer, validate, required, requiredMessage, readOnly, showTimePicker,
-        label, placeholder, description, withAsterisk, autoFocus,
+        label, placeholder, description, withAsterisk, autoFocus, maw, miw, maxWidth, minWidth,
         ...others
     } = useComponentDefaultProps('TimeField', TimeFieldDefaultProps, props);
 
@@ -55,10 +58,15 @@ export const TimeField = forwardRef<TimeFieldRef, TimeFieldProps>(function TimeF
     const add_autofocus = formMode === 'add' ? true : undefined;
     const edit_autofocus = status.loading === false && formMode !== 'add' ? true : undefined;
 
+    const resolved_maw = maw ?? (maxWidth !== undefined) ? MicroMWidthSizes[maxWidth!] : undefined
+    const resolved_miw = miw ?? (minWidth !== undefined) ? MicroMWidthSizes[minWidth!] : undefined;
+
     return (
         <TimeInput
             {...others}
             withAsterisk={withAsterisk ?? (!readOnly && !(entityForm.formMode === 'view') && (required ?? !column.hasFlag(EntityColumnFlags.nullable)))}
+            maw={resolved_maw}
+            miw={resolved_miw}
             label={label ?? column.prompt}
             placeholder={placeholder ?? column.placeholder}
             description={showDescription ? (description ?? column.description) : ''}
