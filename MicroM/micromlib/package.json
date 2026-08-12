@@ -1,6 +1,6 @@
 {
   "name": "@mcurros2/microm",
-  "version": "1.1.336-0",
+  "version": "1.1.341-0",
   "source": "src/index.ts",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -55,7 +55,6 @@
     "dayjs": "^1.11.9",
     "mime": "^3.0.0",
     "react": "^18.2.0",
-    "react-advanced-cropper": "^0.20.1",
     "react-dom": "^18.2.0"
   },
   "devDependencies": {
@@ -94,7 +93,8 @@
   },
   "browserslist": "> 0.5%, last 2 versions, not dead",
   "dependencies": {
-    "exceljs": "^4.4.0"
+    "exceljs": "^4.4.0",
+    "react-easy-crop": "^6.2.3"
   },
   "overrides": {
     "brace-expansion": "^5.0.8",

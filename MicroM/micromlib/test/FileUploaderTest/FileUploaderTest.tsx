@@ -26,7 +26,7 @@ export function FileUploaderTest() {
                             client={client.current}
                             fileProcessColumn={entity.current.def.columns.c_fileprocess_id}
                             maxFilesCount={2}
-                            editor="image" />
+                            editor />
                         <NumberField entityForm={entityForm} column={entity.current.def.columns.i_order} />
                         <WeekPickerField
                             entityForm={entityForm}

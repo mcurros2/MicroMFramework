@@ -1,11 +1,12 @@
 import { ActionIcon, Box, Button, Card, Group, Image, ImageProps, Progress, Stack, Text, useComponentDefaultProps, useMantineTheme } from "@mantine/core";
 import { Dropzone, DropzoneProps } from "@mantine/dropzone";
-import { IconCircleX, IconDownload, IconEye, IconFileTypePdf, IconPhoto, IconProps, IconTrash, IconUpload, IconX } from "@tabler/icons-react";
+import { IconCircleX, IconDownload, IconEdit, IconEye, IconFileTypePdf, IconPhoto, IconProps, IconTrash, IconUpload, IconX } from "@tabler/icons-react";
 import { ReactNode } from "react";
 import { NotifyError, NotifyInfo, useModal } from "../Core";
 import { UseEntityFormReturnType } from "../Form/useEntityForm";
 import { getFileType } from "./getFileType";
 import { ImagePreview } from "./ImagePreview";
+import { isSupportedImageFile } from "./imageProcessing";
 import { PDFPreview } from "./PDFPreview";
 import { UploadProgressReport, UseFileUploadReturnType } from "./useFileUpload";
 
@@ -25,6 +26,8 @@ export interface FileUploaderProps extends Omit<DropzoneProps, 'children' | 'onD
     showCancelButton?: boolean,
     cancelLabel?: string,
     parentFormAPI?: UseEntityFormReturnType,
+    editor?: boolean,
+    editImageLabel?: string,
 }
 
 
@@ -47,7 +50,9 @@ export const FileUploaderDefaultProps: Partial<FileUploaderProps> = {
         mah: "3.94rem"
     },
     showCancelButton: true,
-    cancelLabel: 'Cancel'
+    cancelLabel: 'Cancel',
+    editor: false,
+    editImageLabel: 'Edit image'
 }
 
 
@@ -55,12 +60,12 @@ export function FileUploader(props: FileUploaderProps) {
     const {
         IdleIcon, UploadText, uploadAPI, EachFileShouldNotExceedText, AttachUpToText, FilesText,
         imageProps, onDelete, closeText, cancelledText, operationCancelledText, pdfCannotBeViewedText,
-        showCancelButton, cancelLabel, parentFormAPI, ...dropzoneProps
+        showCancelButton, cancelLabel, parentFormAPI, editor, editImageLabel, ...dropzoneProps
     } = useComponentDefaultProps('FileUploader', FileUploaderDefaultProps, props);
 
     const {
         uploadFiles, uploadProgress, errorNotification, cancelledNotification, clearNotifications, uploadingNotification, deleteFile,
-        downloadFile, cancelUpload, loadingNotification
+        downloadFile, editImage, cancelUpload, loadingNotification
     } = uploadAPI;
 
     const theme = useMantineTheme();
@@ -77,6 +82,10 @@ export function FileUploader(props: FileUploaderProps) {
         if (onDelete) result = await onDelete(file_id);
         if (result) await deleteFile(file_id, '');
 
+    };
+
+    const handleEditImage = async (report: UploadProgressReport) => {
+        await editImage(report);
     };
 
     const handlePreviewImage = async (documentURL: string, fileName: string) => {
@@ -101,12 +110,27 @@ export function FileUploader(props: FileUploaderProps) {
 
     const progressElements = Object.values(uploadProgress).map((report: UploadProgressReport) => {
         const fileType = getFileType(report.file_name);
+        const canEditImage = editor && isSupportedImageFile(report.file_name)
+            && !!report.file_id && !!report.vc_fileguid && !!report.documentURL
+            && parentFormAPI?.formMode !== 'view' && !dropzoneProps.disabled;
 
         return (
             <Card key={report.status_id} bg={theme.colorScheme === 'dark' ? theme.colors.dark[8] : theme.colors.gray[3]} w="15rem">
                 {report.done && !report.errorMessage &&
                     <Card.Section p="xs" mb="1rem">
                         <Group position="right">
+                            {canEditImage &&
+                                <ActionIcon
+                                    color={theme.primaryColor}
+                                    variant="light"
+                                    title={editImageLabel}
+                                    aria-label={editImageLabel}
+                                    disabled={uploadingNotification || loadingNotification}
+                                    onClick={() => void handleEditImage(report)}
+                                >
+                                    <IconEdit size="1rem" />
+                                </ActionIcon>
+                            }
                             {(fileType === 'image' || fileType === 'pdf') &&
                                 <ActionIcon color={theme.primaryColor} variant="light" onClick={async () =>
                                     fileType === 'image'

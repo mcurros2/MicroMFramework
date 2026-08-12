@@ -17,7 +17,9 @@ export function AvatarUploader(props: AvatarUploaderProps) {
         imageURL, thumbnailURL, fileID, fileGUID, handleOpenFileUpload, handleEditImage, handleDeleteFile,
         parentFormAPI, canEditImage, processing, errorNotification, clearNotifications, labels
     } = API;
+
     const editable = !readOnlyMode && parentFormAPI?.formMode !== 'view';
+
     const handleAvatarClick = async () => {
         if (!editable || processing) return;
         if (canEditImage) await handleEditImage();

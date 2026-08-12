@@ -2,18 +2,16 @@ import { Button, Card, Group, Text, useComponentDefaultProps, useMantineTheme } 
 import { IconCircleCheck, IconInfoCircle } from "@tabler/icons-react";
 import { EntityColumn } from "../../Entity";
 import { FileUploader, FileUploaderProps } from "./FileUploader";
-import { UploadProgressReport, useFileUpload, UseFileUploadProps, ValidateFileReturnType } from "./useFileUpload";
+import { UploadProgressReport, useFileUpload, UseFileUploadProps } from "./useFileUpload";
 
 export interface FilesUploadFormProps extends UseFileUploadProps {
     fileProcessColumn: EntityColumn<string>,
     onOK?: (fileprocess_id: string, uploadProgress: Record<string, UploadProgressReport>) => void,
     onDelete?: (file_id: string) => boolean,
     helpMessage?: string,
-    uploaderProps?: Omit<FileUploaderProps, 'uploadAPI' | 'abortSignal'>,
+    uploaderProps?: Omit<FileUploaderProps, 'uploadAPI' | 'abortSignal' | 'editor'>,
     okLabel?: string,
     showOKButton?: boolean,
-    editor?: 'none' | 'image',
-    onValidateFile?: (file: File) => Promise<ValidateFileReturnType>,
 }
 
 export const FilesUploadFormDefaultProps: Partial<FilesUploadFormProps> = {
@@ -26,7 +24,7 @@ export const FilesUploadFormDefaultProps: Partial<FilesUploadFormProps> = {
 
 export function FilesUploadForm(props: FilesUploadFormProps) {
     const {
-        helpMessage, client, uploaderProps, okLabel, onCancel,
+        helpMessage, client, uploaderProps, okLabel, onCancel, onDelete,
         maxFilesCount, maxIndividualFileSize, maxTotalFilesSize, onOK, fileProcessColumn,
         showOKButton, editor, onValidateFile, onProcessFile, onBeforeUpload, onUploadComplete,
         thumbnailMaxSize, thumbnailQuality, loadFilesOnMount
@@ -53,7 +51,7 @@ export function FilesUploadForm(props: FilesUploadFormProps) {
     const { uploadingNotification } = uploadAPI;
 
     const handleOK = () => {
-        
+
         if (onOK) onOK(uploadAPI.fileProcessID, uploadAPI.uploadProgress);
     };
 
@@ -66,7 +64,7 @@ export function FilesUploadForm(props: FilesUploadFormProps) {
                         <Text fz="xs" c="dimmed">{helpMessage}</Text>
                     </Group>
                 </Card.Section>
-                <FileUploader {...uploaderProps} uploadAPI={uploadAPI} />
+                <FileUploader {...uploaderProps} uploadAPI={uploadAPI} editor={editor} onDelete={onDelete} />
             </Card>
             <Group mt="md" position="right">
                 {showOKButton &&

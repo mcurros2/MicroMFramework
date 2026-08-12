@@ -1,4 +1,5 @@
-export type BrowserImageFormat = 'image/jpeg' | 'image/png' | 'image/webp';
+import mime from "mime";
+import { canvasToBlob, closeDecodedImage, getDecodedImageSize, loadDecodedImage } from "./imageCanvas";
 
 export interface ImageCropOptions {
     aspectRatio?: number;
@@ -17,7 +18,7 @@ export interface ImageManualRotationOptions {
 export interface ImageCompressionOptions {
     thresholdBytes?: number;
     quality?: number;
-    fallbackFormat?: BrowserImageFormat;
+    fallbackFormat?: string;
 }
 
 export interface BrowserImageProcessingOptions {
@@ -26,7 +27,7 @@ export interface BrowserImageProcessingOptions {
     resize?: boolean | ImageResizeOptions;
     manualRotation?: boolean | ImageManualRotationOptions;
     compression?: boolean | ImageCompressionOptions;
-    outputFormat?: BrowserImageFormat;
+    outputFormat?: string;
     jpegBackgroundColor?: string;
 }
 
@@ -36,7 +37,7 @@ export interface ResolvedBrowserImageProcessingOptions {
     resize: false | Required<ImageResizeOptions>;
     manualRotation: false | Required<ImageManualRotationOptions>;
     compression: false | Required<ImageCompressionOptions>;
-    outputFormat?: BrowserImageFormat;
+    outputFormat?: string;
     jpegBackgroundColor: string;
 }
 
@@ -64,13 +65,16 @@ const manualRotationDefaults: Required<ImageManualRotationOptions> = {
     stepDegrees: 90
 };
 
+const jpegMimeType = mime.getType('jpg')!;
+const pngMimeType = mime.getType('png')!;
+const webpMimeType = mime.getType('webp')!;
+const supportedFormats = new Set([jpegMimeType, pngMimeType, webpMimeType]);
+
 const compressionDefaults: Required<ImageCompressionOptions> = {
     thresholdBytes: 1024 ** 2,
     quality: 0.82,
-    fallbackFormat: 'image/webp'
+    fallbackFormat: webpMimeType
 };
-
-const supportedFormats: BrowserImageFormat[] = ['image/jpeg', 'image/png', 'image/webp'];
 
 function resolveFeature<T extends object>(value: boolean | T | undefined, defaults: Required<T>): false | Required<T> {
     if (!value) return false;
@@ -89,74 +93,64 @@ export function resolveImageProcessingOptions(options?: BrowserImageProcessingOp
     };
 }
 
-export function hasInteractiveImageProcessing(options: ResolvedBrowserImageProcessingOptions) {
-    return options.crop !== false || options.manualRotation !== false;
+function normalizeImageFormat(type: string | null | undefined) {
+    if (!type) return undefined;
+    const normalizedType = type.toLowerCase();
+    if (supportedFormats.has(normalizedType)) return normalizedType;
+
+    const typeFromExtension = mime.getType(normalizedType);
+    if (typeFromExtension && supportedFormats.has(typeFromExtension)) return typeFromExtension;
+
+    const extension = mime.getExtension(normalizedType);
+    const canonicalType = extension ? mime.getType(extension) : null;
+    return canonicalType && supportedFormats.has(canonicalType) ? canonicalType : undefined;
 }
 
-function normalizeImageFormat(type: string): BrowserImageFormat | undefined {
-    const normalizedType = type.toLowerCase() === 'image/jpg' ? 'image/jpeg' : type.toLowerCase();
-    return supportedFormats.includes(normalizedType as BrowserImageFormat)
-        ? normalizedType as BrowserImageFormat
-        : undefined;
+export function getSupportedImageMimeType(fileName: string, declaredType?: string) {
+    return normalizeImageFormat(declaredType) ?? normalizeImageFormat(mime.getType(fileName));
+}
+
+export function isSupportedImageFile(fileName: string, declaredType?: string) {
+    return getSupportedImageMimeType(fileName, declaredType) !== undefined;
 }
 
 export function getImageOutputSettings(file: File, options: ResolvedBrowserImageProcessingOptions) {
-    const sourceFormat = normalizeImageFormat(file.type);
+    const sourceFormat = getSupportedImageMimeType(file.name, file.type);
     if (!sourceFormat) {
         throw new Error(`The image format "${file.type || 'unknown'}" cannot be processed in the browser.`);
     }
 
     const shouldCompress = options.compression !== false && file.size > options.compression.thresholdBytes;
-    const outputFormat = options.outputFormat
-        ?? (shouldCompress && sourceFormat === 'image/png' ? options.compression && options.compression.fallbackFormat : sourceFormat);
+    const requestedOutputFormat = options.outputFormat
+        ?? (shouldCompress && sourceFormat === pngMimeType && options.compression !== false
+            ? options.compression.fallbackFormat
+            : sourceFormat);
+    const outputFormat = normalizeImageFormat(requestedOutputFormat);
+    if (!outputFormat) {
+        throw new Error(`The image format "${requestedOutputFormat || 'unknown'}" cannot be encoded in the browser.`);
+    }
 
     return {
         sourceFormat,
-        outputFormat: outputFormat as BrowserImageFormat,
+        outputFormat,
         shouldCompress,
-        quality: shouldCompress && (outputFormat === 'image/jpeg' || outputFormat === 'image/webp')
-            ? options.compression && options.compression.quality
+        quality: shouldCompress && options.compression !== false && (outputFormat === jpegMimeType || outputFormat === webpMimeType)
+            ? options.compression.quality
             : undefined
     };
 }
 
-export function getCanvasResizeOptions(options: ResolvedBrowserImageProcessingOptions) {
-    return options.resize === false
-        ? { imageSmoothingEnabled: true, imageSmoothingQuality: 'high' as const }
-        : options.resize.allowUpscale ? {
-            width: options.resize.maxWidth,
-            height: options.resize.maxHeight,
-            imageSmoothingEnabled: true,
-            imageSmoothingQuality: 'high' as const
-        } : {
-            maxWidth: options.resize.maxWidth,
-            maxHeight: options.resize.maxHeight,
-            imageSmoothingEnabled: true,
-            imageSmoothingQuality: 'high' as const
-        };
-}
-
-function extensionForFormat(format: BrowserImageFormat) {
-    switch (format) {
-        case 'image/jpeg': return 'jpg';
-        case 'image/png': return 'png';
-        case 'image/webp': return 'webp';
-    }
-}
-
-function replaceFileExtension(fileName: string, format: BrowserImageFormat) {
+function replaceFileExtension(fileName: string, format: string) {
     const baseName = fileName.replace(/\.[^/.]+$/, '') || 'avatar';
-    return `${baseName}.${extensionForFormat(format)}`;
+    const extension = mime.getExtension(format);
+    if (!extension) throw new Error(`No file extension is registered for ${format}.`);
+    return `${baseName}.${extension}`;
 }
 
-export async function canvasToProcessedFile(
-    canvas: HTMLCanvasElement,
-    source: File,
-    options: ResolvedBrowserImageProcessingOptions
-) {
+export async function canvasToProcessedFile(canvas: HTMLCanvasElement, source: File, options: ResolvedBrowserImageProcessingOptions) {
     const { outputFormat, quality } = getImageOutputSettings(source, options);
 
-    if (outputFormat === 'image/jpeg') {
+    if (outputFormat === jpegMimeType) {
         const flattenedCanvas = document.createElement('canvas');
         flattenedCanvas.width = canvas.width;
         flattenedCanvas.height = canvas.height;
@@ -168,9 +162,7 @@ export async function canvasToProcessedFile(
         canvas = flattenedCanvas;
     }
 
-    const blob = await new Promise<Blob>((resolve, reject) => {
-        canvas.toBlob(result => result ? resolve(result) : reject(new Error('The browser could not encode the image.')), outputFormat, quality);
-    });
+    const blob = await canvasToBlob(canvas, outputFormat, quality);
 
     if (blob.type !== outputFormat) {
         throw new Error(`The browser does not support ${outputFormat} image encoding.`);
@@ -189,8 +181,11 @@ function getExifOrientation(buffer: ArrayBuffer) {
     let offset = 2;
     while (offset + 4 <= view.byteLength) {
         const marker = view.getUint16(offset, false);
+
         offset += 2;
+
         if ((marker & 0xff00) !== 0xff00) break;
+
         const length = view.getUint16(offset, false);
         if (length < 2 || offset + length > view.byteLength) break;
 
@@ -199,11 +194,16 @@ function getExifOrientation(buffer: ArrayBuffer) {
             const littleEndian = view.getUint16(tiffOffset, false) === 0x4949;
             const firstIfdOffset = view.getUint32(tiffOffset + 4, littleEndian);
             const ifdOffset = tiffOffset + firstIfdOffset;
+
             if (ifdOffset + 2 > view.byteLength) return 1;
+
             const entries = view.getUint16(ifdOffset, littleEndian);
+
             for (let index = 0; index < entries; index++) {
                 const entryOffset = ifdOffset + 2 + index * 12;
+
                 if (entryOffset + 12 > view.byteLength) return 1;
+
                 if (view.getUint16(entryOffset, littleEndian) === 0x0112) {
                     return view.getUint16(entryOffset + 8, littleEndian);
                 }
@@ -214,36 +214,14 @@ function getExifOrientation(buffer: ArrayBuffer) {
     return 1;
 }
 
-async function loadBitmap(file: File, respectExifOrientation: boolean) {
-    if ('createImageBitmap' in window) {
-        return await createImageBitmap(file, {
-            imageOrientation: respectExifOrientation ? 'from-image' : 'none'
-        });
-    }
-
-    const source = URL.createObjectURL(file);
-    try {
-        const image = await new Promise<HTMLImageElement>((resolve, reject) => {
-            const element = new Image();
-            element.onload = () => resolve(element);
-            element.onerror = () => reject(new Error('The browser could not decode the image.'));
-            element.src = source;
-        });
-        return image;
-    }
-    finally {
-        URL.revokeObjectURL(source);
-    }
-}
-
 export async function processImageFileAutomatically(file: File, options: ResolvedBrowserImageProcessingOptions) {
-    if (!normalizeImageFormat(file.type)) {
+    if (!getSupportedImageMimeType(file.name, file.type)) {
         const requiresPixelProcessing = options.resize !== false || options.compression !== false || !!options.outputFormat;
         if (!requiresPixelProcessing) return file;
     }
 
     const settings = getImageOutputSettings(file, options);
-    const exifOrientation = settings.sourceFormat === 'image/jpeg' && options.exifOrientation
+    const exifOrientation = settings.sourceFormat === jpegMimeType && options.exifOrientation
         ? getExifOrientation(await file.arrayBuffer())
         : 1;
     const formatChanges = settings.outputFormat !== settings.sourceFormat;
@@ -252,11 +230,11 @@ export async function processImageFileAutomatically(file: File, options: Resolve
         return file;
     }
 
-    const image = await loadBitmap(file, options.exifOrientation);
+    const image = await loadDecodedImage(file, options.exifOrientation);
     try {
-        const originalWidth = image.width;
-        const originalHeight = image.height;
+        const { width: originalWidth, height: originalHeight } = getDecodedImageSize(image);
         const resize = options.resize;
+
         const scale = resize === false
             ? 1
             : Math.min(
@@ -270,16 +248,20 @@ export async function processImageFileAutomatically(file: File, options: Resolve
         }
 
         const canvas = document.createElement('canvas');
+
         canvas.width = Math.max(1, Math.round(originalWidth * scale));
         canvas.height = Math.max(1, Math.round(originalHeight * scale));
+
         const context = canvas.getContext('2d');
         if (!context) throw new Error('The browser could not create an image canvas.');
+
         context.imageSmoothingEnabled = true;
         context.imageSmoothingQuality = 'high';
         context.drawImage(image, 0, 0, canvas.width, canvas.height);
+
         return await canvasToProcessedFile(canvas, file, options);
     }
     finally {
-        if (image instanceof ImageBitmap) image.close();
+        closeDecodedImage(image);
     }
 }

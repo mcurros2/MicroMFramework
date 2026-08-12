@@ -17,7 +17,7 @@ export interface ModalFileUploadProps {
     modalProps?: ModalSettings,
     modalTitle?: string,
     filesUploadFormProps: Omit<FilesUploadFormProps, 'fileProcessColumn' | 'uploaderProps' | 'client' | 'onOK' | 'onCancel'>,
-    uploaderProps?: Omit<FileUploaderProps, 'uploadAPI' | 'abortSignal'>
+    uploaderProps?: Omit<FileUploaderProps, 'uploadAPI' | 'abortSignal' | 'editor'>
 }
 
 export const UseFileUploadFormOpenDefaultProps: Partial<ModalFileUploadProps> = {

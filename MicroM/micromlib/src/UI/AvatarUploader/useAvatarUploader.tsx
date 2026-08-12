@@ -5,10 +5,9 @@ import { EntityColumn } from "../../Entity";
 import { ConfirmAndExecutePanel, useModal } from "../Core";
 import { UploadProgressReport, useFilesUploadForm, useFileUpload } from "../FileUploader";
 import { ImageEditor } from "../FileUploader/ImageEditor";
-import { BrowserImageFormat, BrowserImageProcessingOptions, getImageOutputSettings, hasInteractiveImageProcessing, processImageFileAutomatically, resolveImageProcessingOptions } from "../FileUploader/imageProcessing";
+import { BrowserImageProcessingOptions, getImageOutputSettings, processImageFileAutomatically, resolveImageProcessingOptions } from "../FileUploader/imageProcessing";
 import { UseEntityFormReturnType } from "../Form";
 
-export type AvatarImageFormat = BrowserImageFormat;
 export type AvatarImageProcessingOptions = BrowserImageProcessingOptions;
 
 export interface useAvatarUploaderProps {
@@ -19,6 +18,7 @@ export interface useAvatarUploaderProps {
     labels?: AvatarUploaderLabels,
     parentFormAPI?: UseEntityFormReturnType,
     maxFileSize?: number,
+    editor?: boolean,
     imageProcessing?: AvatarImageProcessingOptions,
 }
 
@@ -36,7 +36,6 @@ export type AvatarUploaderLabels = {
     replaceMessage?: string,
     replaceConfirmLabel?: string,
     replaceCancelLabel?: string,
-    replacementFailedMessage?: string,
 }
 
 const AvatarUploaderDefaultLabels: Required<AvatarUploaderLabels> = {
@@ -53,11 +52,11 @@ const AvatarUploaderDefaultLabels: Required<AvatarUploaderLabels> = {
     replaceMessage: 'The existing uploaded image will be deleted after the replacement is uploaded successfully.',
     replaceConfirmLabel: 'Replace image',
     replaceCancelLabel: 'Keep current image',
-    replacementFailedMessage: 'The replacement could not be completed. The current image was kept.',
 };
 
 export const AvatarUploaderDefaultProps: Partial<useAvatarUploaderProps> = {
     labels: AvatarUploaderDefaultLabels,
+    editor: false,
     imageProcessing: { exifOrientation: true }
 };
 
@@ -81,18 +80,20 @@ export interface AvatarUploaderAPI {
 export function useAvatarUploader(props: useAvatarUploaderProps): AvatarUploaderAPI {
     const {
         client, fileProcessColumn, labels: suppliedLabels, initialImageURL, parentFormAPI, fileGUIDColumn,
-        maxFileSize, imageProcessing
+        maxFileSize, editor, imageProcessing
     } = useComponentDefaultProps('AvatarUploader', AvatarUploaderDefaultProps, props);
 
     const labels = useMemo(
         () => ({ ...AvatarUploaderDefaultLabels, ...suppliedLabels }),
         [suppliedLabels]
     );
-    const processingOptions = useMemo(
-        () => resolveImageProcessingOptions(imageProcessing),
-        [imageProcessing]
-    );
-    const interactiveProcessing = hasInteractiveImageProcessing(processingOptions);
+
+    const processingOptions = useMemo(() => resolveImageProcessingOptions(editor === true ? {
+        ...imageProcessing,
+        crop: imageProcessing?.crop ?? true,
+        manualRotation: imageProcessing?.manualRotation ?? true
+    } : imageProcessing), [editor, imageProcessing]);
+    const editorEnabled = editor === true;
     const imageFileUploadOpen = useFilesUploadForm();
     const modals = useModal();
 
@@ -104,8 +105,7 @@ export function useAvatarUploader(props: useAvatarUploaderProps): AvatarUploader
         client,
         maxFilesCount: 1,
         ...fileSizeProps,
-        fileProcessColumn,
-        loadFilesOnMount: false
+        fileProcessColumn
     });
 
     const [imageURL, setImageURL] = useState<string | undefined>(initialImageURL);
@@ -115,16 +115,16 @@ export function useAvatarUploader(props: useAvatarUploaderProps): AvatarUploader
     const [fileGUID, setFileGUID] = useState<string>();
     const [editing, setEditing] = useState(false);
     const currentFile = useRef<{ fileID?: string, fileGUID?: string }>({});
+
     currentFile.current = { fileID, fileGUID };
 
     const processFile = useCallback(async (file: File): Promise<File | null> => {
-        if (!interactiveProcessing) {
+        if (!editorEnabled) {
             return await processImageFileAutomatically(file, processingOptions);
         }
 
         getImageOutputSettings(file, processingOptions);
 
-        const source = URL.createObjectURL(file);
         return await new Promise<File | null>(async resolveEditor => {
             let closeHandled = false;
 
@@ -137,7 +137,6 @@ export function useAvatarUploader(props: useAvatarUploaderProps): AvatarUploader
 
             await modals.open({
                 content: <ImageEditor
-                    src={source}
                     sourceFile={file}
                     options={processingOptions}
                     saveLabel={labels.saveLabel}
@@ -155,7 +154,6 @@ export function useAvatarUploader(props: useAvatarUploaderProps): AvatarUploader
                     withCloseButton: false
                 },
                 onClosed: () => {
-                    URL.revokeObjectURL(source);
                     if (!closeHandled) {
                         closeHandled = true;
                         resolveEditor(null);
@@ -163,7 +161,7 @@ export function useAvatarUploader(props: useAvatarUploaderProps): AvatarUploader
                 }
             });
         });
-    }, [interactiveProcessing, labels, modals, processingOptions]);
+    }, [editorEnabled, labels, modals, processingOptions]);
 
     const confirmReplacement = useCallback(async () => {
         if (!currentFile.current.fileGUID) return true;
@@ -206,19 +204,6 @@ export function useAvatarUploader(props: useAvatarUploaderProps): AvatarUploader
     }, [labels, modals]);
 
     const commitUploadedFile = useCallback(async (report: UploadProgressReport, removeFromQueue: boolean) => {
-        const previousFile = currentFile.current;
-        if (previousFile.fileGUID) {
-            const deleteResult = await deletionAPI.deleteFile(previousFile.fileID ?? '', previousFile.fileGUID);
-            if (deleteResult.Failed) {
-                return {
-                    error: true,
-                    message: labels.replacementFailedMessage,
-                    rollbackUploadedFile: true,
-                    removeFromQueue
-                };
-            }
-        }
-
         fileGUIDColumn.value = report.vc_fileguid!;
         setFileGUID(report.vc_fileguid);
         setImageURL(report.documentURL ?? client.getDocumentURL(report.vc_fileguid!));
@@ -227,7 +212,7 @@ export function useAvatarUploader(props: useAvatarUploaderProps): AvatarUploader
         setFileProcessID(fileProcessColumn.value);
 
         return { error: false, removeFromQueue };
-    }, [client, deletionAPI, fileGUIDColumn, fileProcessColumn, labels.replacementFailedMessage]);
+    }, [client, fileGUIDColumn, fileProcessColumn]);
 
     const directUploadAPI = useFileUpload({
         client,
@@ -235,18 +220,38 @@ export function useAvatarUploader(props: useAvatarUploaderProps): AvatarUploader
         ...fileSizeProps,
         fileProcessColumn,
         loadFilesOnMount: false,
+        editor: editorEnabled,
         onProcessFile: processFile,
         onBeforeUpload: confirmReplacement,
         onUploadComplete: async report => await commitUploadedFile(report, true)
     });
 
     const handleOpenFileUpload = useCallback(async () => {
+
         await imageFileUploadOpen({
             fileProcessColumn,
             client,
             modalTitle: labels.modalTitle,
-            onOK: fileprocess_id => {
-                if (fileprocess_id) setFileProcessID(fileprocess_id);
+            onOK: (fileprocess_id, uploadProgress) => {
+                const report = Object.values(uploadProgress).find(item => item.done && !item.errorMessage && item.vc_fileguid);
+                if (report?.vc_fileguid) {
+                    fileProcessColumn.value = fileprocess_id;
+                    fileGUIDColumn.value = report.vc_fileguid;
+                    setFileProcessID(fileprocess_id);
+                    setFileGUID(report.vc_fileguid);
+                    setFileID(report.file_id);
+                    setImageURL(report.documentURL ?? client.getDocumentURL(report.vc_fileguid));
+                    setThumbnailURL(report.thumbnailURL ?? client.getThumbnailURL(report.vc_fileguid));
+                }
+                else {
+                    fileProcessColumn.value = '';
+                    fileGUIDColumn.value = '';
+                    setFileProcessID(undefined);
+                    setFileGUID(undefined);
+                    setFileID(undefined);
+                    setImageURL(undefined);
+                    setThumbnailURL(undefined);
+                }
             },
             modalProps: {
                 closeOnClickOutside: false,
@@ -256,49 +261,56 @@ export function useAvatarUploader(props: useAvatarUploaderProps): AvatarUploader
             },
             uploaderProps: {
                 accept: ["image/*"],
+                editImageLabel: labels.editLabel
             },
             filesUploadFormProps: {
                 maxFilesCount: 1,
                 ...fileSizeProps,
-                loadFilesOnMount: false,
+                editor: editorEnabled,
                 onProcessFile: processFile,
-                onBeforeUpload: confirmReplacement,
-                onUploadComplete: async report => await commitUploadedFile(report, false)
+                onBeforeUpload: confirmReplacement
             }
         });
-    }, [client, commitUploadedFile, confirmReplacement, fileProcessColumn, fileSizeProps, imageFileUploadOpen, labels.modalTitle, processFile]);
+
+    }, [client, confirmReplacement, editorEnabled, fileGUIDColumn, fileProcessColumn, fileSizeProps, imageFileUploadOpen, labels.editLabel, labels.modalTitle, processFile]);
 
     const handleEditImage = useCallback(async () => {
-        if (!interactiveProcessing || !imageURL || editing) return;
+        if (!editorEnabled || !imageURL || !fileGUID || editing) return;
 
         setEditing(true);
         try {
-            const blob = await client.downloadBlob(imageURL);
-            const extension = fileGUID?.split('.').pop();
-            const name = `avatar${extension ? `.${extension}` : ''}`;
-            const inferredType = extension?.toLowerCase() === 'png'
-                ? 'image/png'
-                : extension?.toLowerCase() === 'webp' ? 'image/webp' : 'image/jpeg';
-            const file = new File([blob], name, { type: blob.type || inferredType, lastModified: Date.now() });
-            await directUploadAPI.uploadFiles([file]);
+            await directUploadAPI.editImage({
+                status_id: fileID ?? fileGUID,
+                file_id: fileID,
+                file_name: fileGUID,
+                file_size: 0,
+                progress: 100,
+                done: true,
+                documentURL: imageURL,
+                thumbnailURL,
+                vc_fileguid: fileGUID
+            });
         }
         finally {
             setEditing(false);
         }
-    }, [client, directUploadAPI, editing, fileGUID, imageURL, interactiveProcessing]);
+    }, [directUploadAPI, editing, editorEnabled, fileGUID, fileID, imageURL, thumbnailURL]);
 
     const handleDeleteFile = useCallback(async (file_id: string, guid: string) => {
         if (!file_id && !guid) return;
+
         const result = await deletionAPI.deleteFile(file_id, guid);
         if (result.Failed) return;
 
         fileGUIDColumn.value = '';
         fileProcessColumn.value = '';
+
         setFileProcessID(undefined);
         setFileID(undefined);
         setImageURL(undefined);
         setThumbnailURL(undefined);
         setFileGUID(undefined);
+
     }, [deletionAPI, fileGUIDColumn, fileProcessColumn]);
 
     useEffect(() => {
@@ -327,7 +339,7 @@ export function useAvatarUploader(props: useAvatarUploaderProps): AvatarUploader
         handleEditImage,
         handleDeleteFile,
         parentFormAPI,
-        canEditImage: interactiveProcessing && !!imageURL && !!fileGUID,
+        canEditImage: editorEnabled && !!imageURL && !!fileGUID,
         processing: editing || !!directUploadAPI.uploadingNotification || !!directUploadAPI.loadingNotification || !!deletionAPI.loadingNotification,
         errorNotification: directUploadAPI.errorNotification || deletionAPI.errorNotification,
         clearNotifications,
