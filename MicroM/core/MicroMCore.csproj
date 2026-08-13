@@ -136,6 +136,9 @@
     <EmbeddedResource Include="DataDictionary\Entities\FileStore\SQL\FileStoreProcess\fsp_idrop.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\FileStore\SQL\FileStoreStatus\fsts_iupdate.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\FileStore\SQL\FileStore\fst_brwFiles.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\FileStore\SQL\FileStore\fst_qryTerminalFiles.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\FileStore\SQL\FileStoreClient\fcc_brwFiles.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\FileStore\SQL\FileStoreClient\fcc_drop.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\FileStore\SQL\FileStore\fst_getByGUID.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\FileStore\SQL\FileStore\fst_get.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\FileStore\SQL\FileStore\fst_idrop.sql" />

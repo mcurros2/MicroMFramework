@@ -13,7 +13,7 @@ namespace MicroM.Web.Services;
 
 public class FileUploadService(
     IOptions<MicroMOptions> options, ILogger<FileUploadService> log, ILoggerFactory loggerFactory, IThumbnailService thumbnailService, IStorageService<FileStorageService> fileStorage,
-    IStorageService<SQLServerStorageService> sqlStorage, IOptions<DiskFileCacheOptions> cacheOptions
+    IStorageService<SQLServerStorageService> sqlStorage, IOptions<DiskFileCacheOptions> cacheOptions, IFilePhysicalCleanupService physicalCleanup
     ) : IFileUploadService, IDisposable
 {
     private readonly MicroMOptions _options = options.Value;
@@ -23,6 +23,7 @@ public class FileUploadService(
     private readonly MemoryCache _fileDetailsCache = new(new MemoryCacheOptions() { SizeLimit = 100000 }, loggerFactory);
 
     private readonly IThumbnailService _thumbnailService = thumbnailService;
+    private readonly IFilePhysicalCleanupService _physicalCleanup = physicalCleanup;
     private bool disposedValue;
 
     private async Task<ResultWithStatus<FileUploadQueueFileResult?, ErrorResult>> QueueFile(ApplicationOption app, string fileprocess_id, string file_name, string? file_tag, IEntityClient ec, CancellationToken ct)
@@ -94,6 +95,7 @@ public class FileUploadService(
     public async Task<UploadFileResult> UploadFile(ApplicationOption app, string fileprocess_id, string fileName, Stream fileData, string? file_tag, int? maxSize, int? quality, IEntityClient ec, CancellationToken ct)
     {
         string fullPath = string.Empty;
+        FileDetails? queuedFileDetails = null;
         try
         {
             await ec.Connect(ct);
@@ -105,6 +107,7 @@ public class FileUploadService(
             if (queue_result.Result == null) return new() { ErrorMessage = "Error queuing file" };
 
             var file_details = queue_result.Result.details;
+            queuedFileDetails = file_details;
             var new_file_result = queue_result.Result.new_file_result;
             var fileStore = queue_result.Result.file_store;
 
@@ -193,15 +196,17 @@ public class FileUploadService(
                 }
             }
 
-            return new UploadFileResult() { FileId = fileStore.Def.c_file_id.Value, FileProcessId = fileStore.Def.c_fileprocess_id.Value!, FileGuid = fileStore.Def.vc_fileguid.Value };
+            return new UploadFileResult() { FileProcessId = fileStore.Def.c_fileprocess_id.Value!, vc_fileguid = fileStore.Def.vc_fileguid.Value };
         }
         catch (OperationCanceledException)
         {
             if (!string.IsNullOrEmpty(fullPath) && File.Exists(fullPath))
             {
                 // Delete the file if the operation was canceled
-                File.Delete(fullPath);
+                FilesProvider.TryDeleteFile(fullPath);
             }
+
+            await TrySetTerminalUploadStatus(app, queuedFileDetails, nameof(FileUpload.Cancelled), ec, CancellationToken.None);
 
             return new UploadFileResult() { ErrorMessage = "Operation canceled" };
         }
@@ -210,8 +215,10 @@ public class FileUploadService(
             if (!string.IsNullOrEmpty(fullPath) && File.Exists(fullPath))
             {
                 // Clean up the file in case of other exceptions
-                File.Delete(fullPath);
+                FilesProvider.TryDeleteFile(fullPath);
             }
+
+            await TrySetTerminalUploadStatus(app, queuedFileDetails, nameof(FileUpload.Failed), ec, CancellationToken.None);
 
             throw;
         }
@@ -283,50 +290,144 @@ public class FileUploadService(
         return cacheEntry;
     }
 
-    public async Task<FileDetails[]?> GetAllFileDetails(ApplicationOption app, string fileprocess, IEntityClient ec, CancellationToken ct)
+    public async Task<DBStatusResult> DeleteFile(ApplicationOption app, string fileguid, IEntityClient ec, CancellationToken ct, bool throwDbStatusException = false)
+    {
+        if (string.IsNullOrWhiteSpace(fileguid)) return FailedStatus("File GUID is required.");
+
+        var fileDetails = await GetFileDetailsForCleanup(app, fileguid, ec, ct);
+        if (fileDetails == null || string.IsNullOrWhiteSpace(fileDetails.c_file_id))
+        {
+            return FailedStatus("File GUID was not found.");
+        }
+
+        var clientFile = new FileStoreClient(ec, schema_name: app.SchemaConfiguration.DDSchema);
+        clientFile.Def.vc_fileguid.Value = fileguid;
+        var logicalDeletion = await clientFile.MarkDeleted(ct, throwDbStatusException);
+        if (logicalDeletion.Failed) return logicalDeletion;
+
+        InvalidateFileDetails(fileguid);
+        if (!await TryCleanupFile(app, fileDetails, ec, ct))
+        {
+            log.LogWarning("File {FileGuid} was marked Deleted but cleanup failed; it will retry in 24 hours", fileguid);
+        }
+
+        return logicalDeletion;
+    }
+
+    public async Task<FileCleanupResult> CleanupTerminalFiles(ApplicationOption app, IEntityClient ec, CancellationToken ct)
+    {
+        var cleaned = 0;
+        var failed = 0;
+        var fileStore = new FileStore(ec, schema_name: app.SchemaConfiguration.DDSchema);
+        var files = await fileStore.ExecuteProc<FileDetails>(
+            fileStore.Def.fst_qryTerminalFiles,
+            ct,
+            set_parms_from_columns: false,
+            mode: AutoMapperMode.ByNameLaxNotThrow);
+
+        foreach (var file in files)
+        {
+            ct.ThrowIfCancellationRequested();
+            InvalidateFileDetails(file.vc_fileguid);
+            SetFullPath(app, file);
+
+            if (await TryCleanupFile(app, file, ec, ct)) cleaned++;
+            else failed++;
+        }
+
+        return new(cleaned, failed);
+    }
+
+    private static DBStatusResult FailedStatus(string message) => new()
+    {
+        Failed = true,
+        Results = [new(DBStatusCodes.Error, message)]
+    };
+
+    private void InvalidateFileDetails(string fileguid)
+    {
+        if (!string.IsNullOrWhiteSpace(fileguid)) _fileDetailsCache.Remove($"FileStore_{fileguid}");
+    }
+
+    private async Task<FileDetails?> GetFileDetailsForCleanup(ApplicationOption app, string fileguid, IEntityClient ec, CancellationToken ct)
     {
         try
         {
             await ec.Connect(ct);
-
-            var fileStore = new FileStore(ec, schema_name: app.SchemaConfiguration.DDSchema);
-
-            fileStore.Def.fst_brwFiles.Parms[nameof(fileStore.Def.c_fileprocess_id)].Column.ValueObject = fileprocess;
-
-            var fileDetailsList = await fileStore.ExecuteProc<FileDetails>(
-                fileStore.Def.fst_brwFiles.Proc,
+            var lookup = new FileStore(ec, schema_name: app.SchemaConfiguration.DDSchema);
+            lookup.Def.fst_getByGUID.Parms[nameof(lookup.Def.vc_fileguid)].ValueObject = fileguid;
+            var details = await lookup.ExecuteProcSingleRow<FileDetails>(
+                lookup.Def.fst_getByGUID,
                 ct,
                 set_parms_from_columns: false,
                 mode: AutoMapperMode.ByNameLaxNotThrow);
 
-            foreach (var fileDetails in fileDetailsList)
-            {
-                if (fileDetails.c_fileuploadstatus_id == nameof(FileUpload.Uploaded))
-                {
-                    var uploadsPath = Path.Combine(_options.UploadsFolder!, app.ApplicationID, fileDetails.vc_filefolder);
-                    var filePath = Path.GetFullPath(Path.Combine(uploadsPath, fileDetails.vc_fileguid));
-
-                    // MMC: check for directory traversal attacks
-                    if (!filePath.StartsWith(uploadsPath, StringComparison.OrdinalIgnoreCase))
-                    {
-                        log.LogWarning("File {fileguid} path {filePath} is not valid to serve. Uploads path: {uploadsPath}", fileDetails.vc_fileguid, filePath, uploadsPath);
-                        continue;
-                    }
-
-                    fileDetails.fullPath = filePath;
-                }
-            }
-
-            return [.. fileDetailsList];
-        }
-        catch (Exception ex)
-        {
-            log.LogError(ex, "Error retrieving all files for process {fileprocess}", fileprocess);
-            return null;
+            if (details != null) SetFullPath(app, details);
+            return details;
         }
         finally
         {
             await ec.Disconnect();
+        }
+    }
+
+    private void SetFullPath(ApplicationOption app, FileDetails fileDetails)
+    {
+        var uploadsPath = Path.GetFullPath(Path.Combine(_options.UploadsFolder!, app.ApplicationID, fileDetails.vc_filefolder));
+        var filePath = Path.GetFullPath(Path.Combine(uploadsPath, fileDetails.vc_fileguid));
+        if (!filePath.StartsWith(uploadsPath + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException($"File GUID '{fileDetails.vc_fileguid}' resolves outside the upload directory.");
+        }
+
+        fileDetails.fullPath = filePath;
+    }
+
+    private async Task<bool> TryCleanupFile(ApplicationOption app, FileDetails fileDetails, IEntityClient ec, CancellationToken ct)
+    {
+        try
+        {
+            if (!_physicalCleanup.TryCleanup(app.ApplicationID, fileDetails))
+            {
+                log.LogWarning("Could not delete physical or cached data for file {FileGuid}", fileDetails.vc_fileguid);
+                return false;
+            }
+
+            var fileStore = new FileStore(ec, schema_name: app.SchemaConfiguration.DDSchema);
+            fileStore.Def.c_file_id.Value = fileDetails.c_file_id;
+            fileStore.Def.vc_fileguid.Value = fileDetails.vc_fileguid;
+            var deletion = await fileStore.DeleteData(ct, throw_dbstat_exception: true, options: _options);
+            if (deletion.Failed)
+            {
+                log.LogWarning("Could not delete the FileStore database record for file {FileGuid}", fileDetails.vc_fileguid);
+                return false;
+            }
+
+            return true;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            log.LogWarning(ex, "Could not fully clean file {FileGuid}; it will retry in 24 hours", fileDetails.vc_fileguid);
+            return false;
+        }
+    }
+
+    private static async Task TrySetTerminalUploadStatus(
+        ApplicationOption app,
+        FileDetails? fileDetails,
+        string status,
+        IEntityClient ec,
+        CancellationToken ct)
+    {
+        if (fileDetails == null || string.IsNullOrWhiteSpace(fileDetails.c_file_id)) return;
+
+        try
+        {
+            await FileStore.UpdateStatus(ec, app.SchemaConfiguration.DDSchema, fileDetails.c_file_id, status, ct);
+        }
+        catch
+        {
+            // Preserve the original upload exception/cancellation. The incomplete record can be diagnosed separately.
         }
     }
 

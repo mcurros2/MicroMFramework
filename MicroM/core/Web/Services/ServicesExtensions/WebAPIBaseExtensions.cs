@@ -53,7 +53,10 @@ public static class WebAPIBaseExtensions
 
     public static IServiceCollection AddFileUploadService(this IServiceCollection services)
     {
+        services.AddSingleton<FilePhysicalCleanupService>();
+        services.AddSingleton<IFilePhysicalCleanupService>(provider => provider.GetRequiredService<FilePhysicalCleanupService>());
         services.AddSingleton<IFileUploadService, FileUploadService>();
+        services.AddHostedService<FileStoreCleanupService>();
         return services;
     }
 

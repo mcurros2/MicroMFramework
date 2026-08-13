@@ -1,11 +1,12 @@
 import { Text, useComponentDefaultProps } from "@mantine/core";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { MicroMClient } from "../../client";
+import { FileStoreClient } from "../../DataDictionary/FileStoreClient/FileStoreClient";
 import { EntityColumn } from "../../Entity";
 import { ConfirmAndExecutePanel, useModal } from "../Core";
 import { UploadProgressReport, useFilesUploadForm, useFileUpload } from "../FileUploader";
 import { ImageEditor } from "../FileUploader/ImageEditor";
-import { BrowserImageProcessingOptions, getImageOutputSettings, processImageFileAutomatically, resolveImageProcessingOptions } from "../FileUploader/imageProcessing";
+import { BrowserImageProcessingOptions, getImageOutputSettings, getSupportedImageMimeType, processImageFileAutomatically, resolveImageProcessingOptions } from "../FileUploader/imageProcessing";
 import { UseEntityFormReturnType } from "../Form";
 
 export type AvatarImageProcessingOptions = BrowserImageProcessingOptions;
@@ -63,12 +64,11 @@ export const AvatarUploaderDefaultProps: Partial<useAvatarUploaderProps> = {
 export interface AvatarUploaderAPI {
     imageURL?: string,
     thumbnailURL?: string,
-    fileID?: string,
     fileProcessID?: string,
     fileGUID?: string,
     handleOpenFileUpload: () => Promise<void>,
     handleEditImage: () => Promise<void>,
-    handleDeleteFile: (file_id: string, fileGUID: string) => Promise<void>,
+    handleDeleteFile: (fileGUID: string) => Promise<void>,
     parentFormAPI?: UseEntityFormReturnType,
     canEditImage: boolean,
     processing: boolean,
@@ -105,18 +105,20 @@ export function useAvatarUploader(props: useAvatarUploaderProps): AvatarUploader
         client,
         maxFilesCount: 1,
         ...fileSizeProps,
-        fileProcessColumn
+        fileProcessColumn,
+        loadFilesOnMount: false
     });
 
     const [imageURL, setImageURL] = useState<string | undefined>(initialImageURL);
     const [thumbnailURL, setThumbnailURL] = useState<string>();
-    const [fileID, setFileID] = useState<string>();
     const [fileProcessID, setFileProcessID] = useState<string>();
     const [fileGUID, setFileGUID] = useState<string>();
     const [editing, setEditing] = useState(false);
-    const currentFile = useRef<{ fileID?: string, fileGUID?: string }>({});
+    const [localError, setLocalError] = useState<string>();
+    const currentFile = useRef<{ fileGUID?: string }>({});
+    const replacementSnapshot = useRef<string[]>([]);
 
-    currentFile.current = { fileID, fileGUID };
+    currentFile.current = { fileGUID };
 
     const processFile = useCallback(async (file: File): Promise<File | null> => {
         if (!editorEnabled) {
@@ -208,11 +210,70 @@ export function useAvatarUploader(props: useAvatarUploaderProps): AvatarUploader
         setFileGUID(report.vc_fileguid);
         setImageURL(report.documentURL ?? client.getDocumentURL(report.vc_fileguid!));
         setThumbnailURL(report.thumbnailURL ?? client.getThumbnailURL(report.vc_fileguid!));
-        setFileID(report.file_id);
         setFileProcessID(fileProcessColumn.value);
 
         return { error: false, removeFromQueue };
     }, [client, fileGUIDColumn, fileProcessColumn]);
+
+    const snapshotProcessFiles = useCallback(async () => {
+        if (!fileProcessColumn.value) {
+            replacementSnapshot.current = [];
+            return [];
+        }
+
+        const files = await new FileStoreClient(client).listFiles(fileProcessColumn.value);
+        const guids = files.map(file => file.vc_fileguid).filter(Boolean);
+        if (currentFile.current.fileGUID && !guids.includes(currentFile.current.fileGUID)) {
+            guids.push(currentFile.current.fileGUID);
+        }
+        replacementSnapshot.current = [...new Set(guids)];
+        return files;
+    }, [client, fileProcessColumn]);
+
+    const replaceAndCommit = useCallback(async (report: UploadProgressReport, removeFromQueue: boolean) => {
+        const replacementGUID = report.vc_fileguid;
+        const displayedGUID = currentFile.current.fileGUID;
+
+        if (!replacementGUID || replacementGUID === displayedGUID) {
+            return { error: true, message: 'The replacement upload did not return a new file GUID.' };
+        }
+
+        const snapshot = replacementSnapshot.current.filter(guid => guid !== replacementGUID);
+        const deletionOrder = [
+            ...snapshot.filter(guid => guid !== displayedGUID),
+            ...(displayedGUID && snapshot.includes(displayedGUID) ? [displayedGUID] : [])
+        ];
+        const fileStore = new FileStoreClient(client);
+
+        for (const guid of deletionOrder) {
+            try {
+                const deletion = await fileStore.deleteFile(guid);
+                if (deletion.Failed) throw new Error('Delete failed');
+            }
+            catch {
+                try { await fileStore.deleteFile(replacementGUID); } catch { }
+                return { error: true, message: 'The existing image could not be replaced. The current image was kept.' };
+            }
+        }
+
+        replacementSnapshot.current = [];
+        await commitUploadedFile(report, removeFromQueue);
+
+        try {
+            const refreshed = await fileStore.listFiles(fileProcessColumn.value);
+            if (refreshed.length !== 1 || refreshed[0].vc_fileguid !== replacementGUID) {
+                return { error: true, message: 'The replacement was uploaded, but the refreshed avatar file list is inconsistent.' };
+            }
+        }
+        catch (e: unknown) {
+            return {
+                error: true,
+                message: `The replacement was uploaded, but the avatar file list could not be refreshed: ${e instanceof Error ? e.message : String(e)}`
+            };
+        }
+
+        return { error: false, removeFromQueue };
+    }, [client, commitUploadedFile, fileProcessColumn]);
 
     const directUploadAPI = useFileUpload({
         client,
@@ -222,8 +283,7 @@ export function useAvatarUploader(props: useAvatarUploaderProps): AvatarUploader
         loadFilesOnMount: false,
         editor: editorEnabled,
         onProcessFile: processFile,
-        onBeforeUpload: confirmReplacement,
-        onUploadComplete: async report => await commitUploadedFile(report, true)
+        onUploadComplete: async report => await replaceAndCommit(report, true)
     });
 
     const handleOpenFileUpload = useCallback(async () => {
@@ -232,27 +292,7 @@ export function useAvatarUploader(props: useAvatarUploaderProps): AvatarUploader
             fileProcessColumn,
             client,
             modalTitle: labels.modalTitle,
-            onOK: (fileprocess_id, uploadProgress) => {
-                const report = Object.values(uploadProgress).find(item => item.done && !item.errorMessage && item.vc_fileguid);
-                if (report?.vc_fileguid) {
-                    fileProcessColumn.value = fileprocess_id;
-                    fileGUIDColumn.value = report.vc_fileguid;
-                    setFileProcessID(fileprocess_id);
-                    setFileGUID(report.vc_fileguid);
-                    setFileID(report.file_id);
-                    setImageURL(report.documentURL ?? client.getDocumentURL(report.vc_fileguid));
-                    setThumbnailURL(report.thumbnailURL ?? client.getThumbnailURL(report.vc_fileguid));
-                }
-                else {
-                    fileProcessColumn.value = '';
-                    fileGUIDColumn.value = '';
-                    setFileProcessID(undefined);
-                    setFileGUID(undefined);
-                    setFileID(undefined);
-                    setImageURL(undefined);
-                    setThumbnailURL(undefined);
-                }
-            },
+            onOK: () => { },
             modalProps: {
                 closeOnClickOutside: false,
                 closeOnEscape: false,
@@ -266,47 +306,57 @@ export function useAvatarUploader(props: useAvatarUploaderProps): AvatarUploader
             filesUploadFormProps: {
                 maxFilesCount: 1,
                 ...fileSizeProps,
+                loadFilesOnMount: false,
                 editor: editorEnabled,
                 onProcessFile: processFile,
-                onBeforeUpload: confirmReplacement
+                onBeforeUpload: async () => {
+                    await snapshotProcessFiles();
+                    return await confirmReplacement();
+                },
+                onUploadComplete: async report => await replaceAndCommit(report, false)
             }
         });
 
-    }, [client, confirmReplacement, editorEnabled, fileGUIDColumn, fileProcessColumn, fileSizeProps, imageFileUploadOpen, labels.editLabel, labels.modalTitle, processFile]);
+    }, [client, confirmReplacement, editorEnabled, fileProcessColumn, fileSizeProps, imageFileUploadOpen, labels.editLabel, labels.modalTitle, processFile, replaceAndCommit, snapshotProcessFiles]);
 
     const handleEditImage = useCallback(async () => {
         if (!editorEnabled || !imageURL || !fileGUID || editing) return;
 
         setEditing(true);
+        setLocalError(undefined);
         try {
-            await directUploadAPI.editImage({
-                status_id: fileID ?? fileGUID,
-                file_id: fileID,
-                file_name: fileGUID,
-                file_size: 0,
-                progress: 100,
-                done: true,
-                documentURL: imageURL,
-                thumbnailURL,
-                vc_fileguid: fileGUID
-            });
+            const files = await snapshotProcessFiles();
+            if (!await confirmReplacement()) return;
+
+            const source = files.find(file => file.vc_fileguid === fileGUID);
+            const blob = await client.downloadBlob(client.getDocumentURL(fileGUID));
+            const fileName = source?.vc_filename || fileGUID;
+            const imageType = getSupportedImageMimeType(fileName, blob.type);
+            if (!imageType) throw new Error(`The image format "${blob.type || fileName}" cannot be processed in the browser.`);
+
+            await directUploadAPI.uploadFiles([new File([blob], fileName, {
+                type: imageType,
+                lastModified: Date.now()
+            })]);
+        }
+        catch (e: unknown) {
+            setLocalError(e instanceof Error ? e.message : String(e));
         }
         finally {
             setEditing(false);
         }
-    }, [directUploadAPI, editing, editorEnabled, fileGUID, fileID, imageURL, thumbnailURL]);
+    }, [client, confirmReplacement, directUploadAPI, editing, editorEnabled, fileGUID, imageURL, snapshotProcessFiles]);
 
-    const handleDeleteFile = useCallback(async (file_id: string, guid: string) => {
-        if (!file_id && !guid) return;
+    const handleDeleteFile = useCallback(async (guid: string) => {
+        if (!guid) return;
 
-        const result = await deletionAPI.deleteFile(file_id, guid);
+        const result = await deletionAPI.deleteFile(guid);
         if (result.Failed) return;
 
         fileGUIDColumn.value = '';
         fileProcessColumn.value = '';
 
         setFileProcessID(undefined);
-        setFileID(undefined);
         setImageURL(undefined);
         setThumbnailURL(undefined);
         setFileGUID(undefined);
@@ -325,6 +375,7 @@ export function useAvatarUploader(props: useAvatarUploaderProps): AvatarUploader
     }, [client, fileGUIDColumn, fileProcessColumn, parentFormAPI]);
 
     const clearNotifications = useCallback(() => {
+        setLocalError(undefined);
         directUploadAPI.clearNotifications?.();
         deletionAPI.clearNotifications?.();
     }, [deletionAPI, directUploadAPI]);
@@ -332,7 +383,6 @@ export function useAvatarUploader(props: useAvatarUploaderProps): AvatarUploader
     return {
         imageURL,
         thumbnailURL,
-        fileID,
         fileProcessID,
         fileGUID,
         handleOpenFileUpload,
@@ -341,7 +391,7 @@ export function useAvatarUploader(props: useAvatarUploaderProps): AvatarUploader
         parentFormAPI,
         canEditImage: editorEnabled && !!imageURL && !!fileGUID,
         processing: editing || !!directUploadAPI.uploadingNotification || !!directUploadAPI.loadingNotification || !!deletionAPI.loadingNotification,
-        errorNotification: directUploadAPI.errorNotification || deletionAPI.errorNotification,
+        errorNotification: localError || directUploadAPI.errorNotification || deletionAPI.errorNotification,
         clearNotifications,
         labels
     };

@@ -7,7 +7,7 @@ import { UploadProgressReport, useFileUpload, UseFileUploadProps } from "./useFi
 export interface FilesUploadFormProps extends UseFileUploadProps {
     fileProcessColumn: EntityColumn<string>,
     onOK?: (fileprocess_id: string, uploadProgress: Record<string, UploadProgressReport>) => void,
-    onDelete?: (file_id: string) => boolean,
+    onDelete?: (fileGUID: string) => boolean,
     helpMessage?: string,
     uploaderProps?: Omit<FileUploaderProps, 'uploadAPI' | 'abortSignal' | 'editor'>,
     okLabel?: string,

@@ -1,9 +1,9 @@
 import { Text, useComponentDefaultProps } from "@mantine/core";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { DBStatusResult, MicroMClient } from "../../client";
-import { FileStore } from "../../DataDictionary";
+import { FileStoreClient } from "../../DataDictionary/FileStoreClient/FileStoreClient";
 import { FileStoreProcess } from "../../DataDictionary/FileStoreProcess/FileStoreProcess";
-import { EntityColumn, mapDataResultToType } from "../../Entity";
+import { EntityColumn } from "../../Entity";
 import { useModal } from "../Core";
 import { ImageEditor } from "./ImageEditor";
 import { getSupportedImageMimeType, resolveImageProcessingOptions } from "./imageProcessing";
@@ -11,7 +11,6 @@ import { getSupportedImageMimeType, resolveImageProcessingOptions } from "./imag
 export interface UploadProgressReport {
     errorMessage?: string,
     status_id: string,
-    file_id?: string,
     progress: number,
     done?: boolean,
     cancelled?: boolean,
@@ -25,7 +24,7 @@ export interface UploadProgressReport {
 export interface UseFileUploadReturnType {
     uploadFiles: (selectedFiles: File[]) => Promise<UploadProgressReport[]>,
     editImage: (report: UploadProgressReport) => Promise<UploadProgressReport | null>,
-    deleteFile: (file_id: string, fileGUID: string) => Promise<DBStatusResult>,
+    deleteFile: (fileGUID: string) => Promise<DBStatusResult>,
     downloadFile: (fileUrl: string, fileName?: string) => Promise<void>,
     uploadProgress: Record<string, UploadProgressReport>,
     fileProcessID: string,
@@ -85,15 +84,6 @@ export const UseFileUploadDefaultProps: Partial<UseFileUploadProps> = {
 
 export type UploadStatus = 'Pending' | 'Uploading' | 'Uploaded' | 'Failed' | 'Cancelled';
 
-export type FileUploaderView = {
-    c_file_id: string;
-    vc_filename: string;
-    vc_filefolder: string;
-    vc_fileguid: string;
-    c_fileuploadstatus_id: string;
-    bi_filesize: number;
-};
-
 export function useFileUpload(props: UseFileUploadProps): UseFileUploadReturnType {
     const {
         client, maxIndividualFileSize, maxTotalFilesSize, maxFilesCount,
@@ -113,45 +103,49 @@ export function useFileUpload(props: UseFileUploadProps): UseFileUploadReturnTyp
     const [cancelledNotification, setCancelledNotification] = useState<boolean>();
     const [uploadingNotification, setUploadingNotification] = useState<boolean>();
 
-    const abortController = new AbortController();
+    const [abortController] = useState(() => new AbortController());
     const abort_signal = abortController.signal;
 
     const modals = useModal();
 
+    const refreshFiles = useCallback(async () => {
+        if (!fileProcessColumn.value) {
+            setUploadProgress({});
+            uploadedSize.current = 0;
+            return {} as Record<string, UploadProgressReport>;
+        }
+
+        const fileStore = new FileStoreClient(client);
+        const files = await fileStore.listFiles(fileProcessColumn.value, thumbnailMaxSize, thumbnailQuality, abort_signal);
+        const refreshed: Record<string, UploadProgressReport> = {};
+        let totalSize = 0;
+
+        files.forEach(file => {
+            refreshed[file.vc_fileguid] = {
+                status_id: file.vc_fileguid,
+                file_name: file.vc_filename,
+                file_size: file.bi_filesize,
+                progress: 100,
+                done: true,
+                documentURL: file.documentURL,
+                thumbnailURL: file.thumbnailURL,
+                vc_fileguid: file.vc_fileguid
+            };
+            totalSize += file.bi_filesize;
+        });
+
+        setUploadProgress(refreshed);
+        uploadedSize.current = totalSize;
+        return refreshed;
+    }, [abort_signal, client, fileProcessColumn, thumbnailMaxSize, thumbnailQuality]);
+
     // MMC: get existing uploaded files for the process
     useEffect(() => {
-
-        const refreshFiles = async () => {
+        const loadFiles = async () => {
             setLoadingNotification(true);
             try {
-                const fileStore = new FileStore(client);
-                fileStore.def.columns.c_fileprocess_id.value = fileProcessColumn.value;
-                const data = await fileStore.API.executeView(fileStore.def.views.fst_brwFiles);
+                await refreshFiles();
                 setLoadingNotification(false);
-                if (data && data.length > 0) {
-                    let totalSize = 0;
-                    setUploadProgress((prev) => {
-                        const updatedState = { ...prev };
-                        const file_records = mapDataResultToType<FileUploaderView>(data[0], "enforceObject", null, null);
-
-                        file_records.forEach((file) => {
-                            updatedState[file.c_file_id] = {
-                                file_id: file.c_file_id,
-                                status_id: file.c_file_id,
-                                file_name: file.vc_filename,
-                                file_size: file.bi_filesize,
-                                progress: 100,
-                                done: true,
-                                documentURL: client.getDocumentURL(file.vc_fileguid),
-                                thumbnailURL: client.getThumbnailURL(file.vc_fileguid, thumbnailMaxSize, thumbnailQuality),
-                                vc_fileguid: file.vc_fileguid
-                            };
-                            totalSize += file.bi_filesize;
-                        });
-                        return updatedState;
-                    });
-                    uploadedSize.current = totalSize;
-                }
             }
             catch (e: unknown) {
                 setLoadingNotification(false);
@@ -166,9 +160,9 @@ export function useFileUpload(props: UseFileUploadProps): UseFileUploadReturnTyp
 
         };
 
-        if (loadFilesOnMount && fileProcessColumn.value) refreshFiles();
+        if (loadFilesOnMount && fileProcessColumn.value) loadFiles();
 
-    }, [client, fileProcessColumn.value, loadFilesOnMount, thumbnailMaxSize, thumbnailQuality]);
+    }, [fileProcessColumn.value, loadFilesOnMount, refreshFiles]);
 
 
     const openImageEditor = async (file: File) => {
@@ -262,8 +256,14 @@ export function useFileUpload(props: UseFileUploadProps): UseFileUploadReturnTyp
 
             if (!validateFileSize(file)) continue;
 
-            if (onBeforeUpload && !await onBeforeUpload(file)) {
-                continue;
+            if (onBeforeUpload) {
+                try {
+                    if (!await onBeforeUpload(file)) continue;
+                }
+                catch (e: unknown) {
+                    setErrorNotification(e instanceof Error ? e.message : String(e));
+                    continue;
+                }
             }
 
             const result = await uploadFile(file);
@@ -277,7 +277,7 @@ export function useFileUpload(props: UseFileUploadProps): UseFileUploadReturnTyp
                 break;
             }
 
-            if (onUploadComplete && result.file_id && result.vc_fileguid) {
+            if (onUploadComplete && result.vc_fileguid) {
                 try {
                     const completion = await onUploadComplete(result);
                     if (completion?.error) {
@@ -291,7 +291,7 @@ export function useFileUpload(props: UseFileUploadProps): UseFileUploadReturnTyp
                     if (completion?.removeFromQueue) {
                         setUploadProgress(prev => {
                             const updated = { ...prev };
-                            delete updated[result.file_id!];
+                            delete updated[result.vc_fileguid!];
                             return updated;
                         });
                         uploadedSize.current = Math.max(0, uploadedSize.current - result.file_size);
@@ -313,17 +313,17 @@ export function useFileUpload(props: UseFileUploadProps): UseFileUploadReturnTyp
 
     const updateProgress = (statusId: string, newStatus: UploadProgressReport) => {
         setUploadProgress((prev) => {
-            if (newStatus.file_id) {
+            if (newStatus.vc_fileguid) {
                 const updatedState = { ...prev };
 
                 // MMC: delete previous status
                 delete updatedState[newStatus.status_id];
 
-                // MMC: change status_id to file_id (this will allow to upload the same file several times)
-                newStatus.status_id = newStatus.file_id;
+                // Completed uploads are keyed only by their public GUID.
+                newStatus.status_id = newStatus.vc_fileguid;
 
                 // MMC: add new status
-                updatedState[newStatus.file_id] = newStatus;
+                updatedState[newStatus.vc_fileguid] = newStatus;
 
                 return updatedState;
             } else {
@@ -366,20 +366,20 @@ export function useFileUpload(props: UseFileUploadProps): UseFileUploadReturnTyp
 
             // MMC: update finished status
             if (result) {
-                // Update the total uploaded size and check against maxTotalFilesSize.
-                uploadedSize.current += file.size;
+                const errorMessage = result.ErrorMessage
+                    || (!result.vc_fileguid ? 'The upload did not return a file GUID.' : undefined);
+                if (!errorMessage) uploadedSize.current += file.size;
 
                 const finalResult: UploadProgressReport = {
-                    file_id: result.FileId,
                     file_name: file.name,
                     file_size: file.size,
                     status_id: status_id,
-                    progress: result.ErrorMessage ? 0 : 100,
+                    progress: errorMessage ? 0 : 100,
                     done: true,
-                    errorMessage: result.ErrorMessage,
+                    errorMessage,
                     documentURL: result.documentURL,
                     thumbnailURL: result.thumbnailURL,
-                    vc_fileguid: result.FileGuid
+                    vc_fileguid: result.vc_fileguid
                 };
                 updateProgress(status_id, finalResult);
                 return finalResult;
@@ -407,22 +407,18 @@ export function useFileUpload(props: UseFileUploadProps): UseFileUploadReturnTyp
         } as UploadProgressReport;
     }
 
-    const deleteFile = async (file_id: string, fileGUID: string) => {
+    const deleteFile = async (fileGUID: string) => {
         try {
             setLoadingNotification(true);
-            const fileStore = new FileStore(client);
-
-            fileStore.def.columns.c_file_id.value = file_id;
-            fileStore.def.columns.vc_fileguid.value = fileGUID;
-
-            const result = await fileStore.API.deleteData(undefined, abort_signal);
+            const fileStore = new FileStoreClient(client);
+            const result = await fileStore.deleteFile(fileGUID, abort_signal);
 
             setLoadingNotification(false);
             if (!result.Failed) {
-                const deletedFileSize = uploadProgress[file_id]?.file_size || 0;
+                const deletedFileSize = uploadProgress[fileGUID]?.file_size || 0;
                 setUploadProgress((prev) => {
                     const updatedState = { ...prev };
-                    delete updatedState[file_id];
+                    delete updatedState[fileGUID];
                     return updatedState;
                 });
                 uploadedSize.current = Math.max(0, uploadedSize.current - deletedFileSize);
@@ -473,7 +469,7 @@ export function useFileUpload(props: UseFileUploadProps): UseFileUploadReturnTyp
             if (!processedFile) return null;
             file = processedFile;
 
-            const replacedFileSize = report.file_id ? uploadProgress[report.file_id]?.file_size ?? 0 : 0;
+            const replacedFileSize = report.file_size;
             if (!validateFileSize(file, replacedFileSize)) return null;
             if (onBeforeUpload && !await onBeforeUpload(file)) return null;
 
@@ -482,16 +478,26 @@ export function useFileUpload(props: UseFileUploadProps): UseFileUploadReturnTyp
                 if (!replacement.cancelled) setErrorNotification(replacement.errorMessage);
                 return null;
             }
-            if (replacement.cancelled || !replacement.file_id || !replacement.vc_fileguid) {
+            if (replacement.cancelled || !replacement.vc_fileguid || replacement.vc_fileguid === report.vc_fileguid) {
                 setCancelledNotification(true);
                 return null;
             }
 
-            const deletion = await deleteFile(report.file_id ?? '', report.vc_fileguid);
+            const deletion = await deleteFile(report.vc_fileguid);
             if (deletion.Failed) {
-                await deleteFile(replacement.file_id, replacement.vc_fileguid);
+                await deleteFile(replacement.vc_fileguid);
                 setErrorNotification('The existing image could not be replaced. The current image was kept.');
                 return null;
+            }
+
+            try {
+                const refreshed = await refreshFiles();
+                if (!refreshed[replacement.vc_fileguid] || refreshed[report.vc_fileguid]) {
+                    setErrorNotification('The replacement was uploaded, but the refreshed file list is inconsistent.');
+                }
+            }
+            catch (e: unknown) {
+                setErrorNotification(`The replacement was uploaded, but the file list could not be refreshed: ${e instanceof Error ? e.message : String(e)}`);
             }
 
             if (onUploadComplete) {
@@ -506,7 +512,7 @@ export function useFileUpload(props: UseFileUploadProps): UseFileUploadReturnTyp
                     if (completion?.removeFromQueue) {
                         setUploadProgress(prev => {
                             const updated = { ...prev };
-                            delete updated[replacement.file_id!];
+                            delete updated[replacement.vc_fileguid!];
                             return updated;
                         });
                         uploadedSize.current = Math.max(0, uploadedSize.current - replacement.file_size);

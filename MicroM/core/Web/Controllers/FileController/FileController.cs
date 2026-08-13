@@ -34,8 +34,13 @@ public class FileController : ControllerBase, IFileController
 
             var result = await ups.ServeFile(app, fileguid, ec, ct);
 
-            if (result == null) return NotFound();
+            if (result == null)
+            {
+                Response.Headers.CacheControl = "public, max-age=86400";
+                return NotFound();
+            }
 
+            Response.Headers.CacheControl = "private, max-age=31536000, immutable";
             return File(result.Stream, result.ContentType);
         }
         catch (Exception ex) when (ex is TaskCanceledException || ex is OperationCanceledException || (ex.InnerException is TaskCanceledException || ex.InnerException is OperationCanceledException))
@@ -58,8 +63,13 @@ public class FileController : ControllerBase, IFileController
 
             var result = await ups.ServeThumbnail(app, fileguid, maxSize, quality, ec, ct);
 
-            if (result == null) return NotFound();
+            if (result == null)
+            {
+                Response.Headers.CacheControl = "public, max-age=86400";
+                return NotFound();
+            }
 
+            Response.Headers.CacheControl = "private, max-age=31536000, immutable";
             return File(result.Stream, result.ContentType);
         }
         catch (Exception ex) when (ex is TaskCanceledException || ex is OperationCanceledException || (ex.InnerException is TaskCanceledException || ex.InnerException is OperationCanceledException))

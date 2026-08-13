@@ -17,6 +17,12 @@ begin
 	where   vc_fileguid=@fileguid
 end
 
+if(@file_id is null)
+begin
+    select @result=11, @msg='File GUID was not found'
+    return
+end
+
 begin try
     
     delete  [dbo].file_store_content
@@ -30,7 +36,7 @@ begin try
 
     delete  [dbo].[file_store]
     where   c_file_id = @file_id
-
+    
     select  @result=0, @msg='OK'
 
 end try

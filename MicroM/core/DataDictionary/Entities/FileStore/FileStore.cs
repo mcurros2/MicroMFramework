@@ -26,6 +26,7 @@ public class FileStoreDef : EntityDefinition
     public readonly ViewDefinition fst_brwFiles = new(nameof(c_file_id), nameof(c_fileprocess_id));
 
     public readonly ProcedureDefinition fst_getByGUID = new([nameof(vc_fileguid)]);
+    public readonly ProcedureDefinition fst_qryTerminalFiles = new(readonly_locks: true);
 
     public readonly EntityForeignKey<FileStoreProcess, FileStore> FKFileStoreProcess = new();
     public readonly EntityUniqueConstraint UCFileStore = new(keys: [nameof(vc_fileguid)]);

@@ -1,11 +1,11 @@
 ﻿using MicroM.Configuration;
+using MicroM.Core;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Collections.Concurrent;
 using static MicroM.Web.Services.DiskFileCacheProvider;
 
 namespace MicroM.Web.Services;
-
 
 public sealed class DiskFileCacheService : IDiskFileCacheService
 {
@@ -132,7 +132,7 @@ public sealed class DiskFileCacheService : IDiskFileCacheService
 
             Directory.CreateDirectory(Path.Combine(_cacheTempRoot, app_id));
 
-            await using (var output = OpenWriteTempStream(tempPath, _cacheOptions.WriteBufferSize))
+            await using (var output = FilesProvider.OpenSequentialWriteStream(tempPath, _cacheOptions.WriteBufferSize))
             {
                 await sourceStream.CopyToAsync(output, _cacheOptions.CopyBufferSize, ct);
                 await output.FlushAsync(ct);
@@ -161,7 +161,7 @@ public sealed class DiskFileCacheService : IDiskFileCacheService
         }
         finally
         {
-            TryDeleteFile(tempPath);
+            FilesProvider.TryDeleteFile(tempPath);
             if (KnownSizeBytes > _cacheOptions.MaxCacheSizeBytes)
             {
                 _bus.Publish(new DiskFileCacheEntryAddedEvent());
@@ -187,13 +187,13 @@ public sealed class DiskFileCacheService : IDiskFileCacheService
         return DiskFileCacheMaintenanceProvider.ReconcileCache(this, _appConfig, _cacheRoot, _cacheTempRoot, tmpExtension, _log, ct);
     }
 
-    public void RemoveEntry(string app_id, FileDetails sourceFileDetails)
+    public bool RemoveEntry(string app_id, FileDetails sourceFileDetails)
     {
         ValidateSourceFileDetails(sourceFileDetails);
 
         var key = $"{app_id}:{sourceFileDetails.vc_fileguid}";
 
-        RemoveEntry(key);
+        return RemoveEntry(key, GetFinalPath(app_id, sourceFileDetails, _cacheRoot));
     }
 
 
@@ -213,13 +213,15 @@ public sealed class DiskFileCacheService : IDiskFileCacheService
             });
     }
 
-    private void RemoveEntry(string key)
+    private bool RemoveEntry(string key, string? fallbackPath = null)
     {
         if (_entries.TryRemove(key, out var existingEntry))
         {
             Interlocked.Add(ref _knownSizeBytes, -existingEntry.FileDetails.bi_filesize);
-            TryDeleteFile(existingEntry.cachedFilePath);
+            return FilesProvider.TryDeleteFile(existingEntry.cachedFilePath);
         }
+
+        return FilesProvider.TryDeleteFile(fallbackPath);
     }
 
 }

@@ -18,8 +18,7 @@ export type APIAction = "get" | "insert" | "update" | "delete" | "lookup" | "vie
 export interface FileUploadResponse {
     ErrorMessage?: string,
     FileProcessId?: string,
-    FileId?: string,
-    FileGuid?: string,
+    vc_fileguid?: string,
     documentURL?: string,
     thumbnailURL?: string,
 }
@@ -869,7 +868,6 @@ export class MicroMClient {
         const response = await fetch(fileUrl, {
             headers: { ...(this.#TOKEN ? { "Authorization": `Bearer ${this.#TOKEN.access_token}` } : {}) },
             mode: this.#REQUEST_MODE,
-            cache: 'no-store',
             credentials: 'include',
             referrerPolicy: 'strict-origin-when-cross-origin',
             signal: abort_signal
@@ -913,9 +911,9 @@ export class MicroMClient {
             xhr.onload = async () => {
                 if (xhr.status >= 200 && xhr.status < 300) {
                     const data: FileUploadResponse = JSON.parse(xhr.responseText);
-                    if (!data.ErrorMessage) {
-                        data.documentURL = `${this.#API_URL}/${this.#APP_ID}/serve/${data.FileGuid}`;
-                        data.thumbnailURL = `${this.#API_URL}/${this.#APP_ID}/thumbnail/${data.FileGuid}/${max_size}/${quality}`;
+                    if (!data.ErrorMessage && data.vc_fileguid) {
+                        data.documentURL = `${this.#API_URL}/${this.#APP_ID}/serve/${data.vc_fileguid}`;
+                        data.thumbnailURL = `${this.#API_URL}/${this.#APP_ID}/thumbnail/${data.vc_fileguid}/${max_size}/${quality}`;
                     }
                     resolve(data);
                 } else {

@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using MicroM.Core;
+using Microsoft.Extensions.Logging;
 
 namespace MicroM.Web.Services;
 
@@ -48,49 +49,12 @@ internal static class DiskFileCacheProvider
 
     internal static FileStream? TryOpenReadStream(string path, int readBufferSize, ILogger log)
     {
-        try
+        var stream = FilesProvider.TryOpenSequentialReadStream(path, readBufferSize);
+        if (stream == null)
         {
-            return new FileStream(
-                path,
-                FileMode.Open, FileAccess.Read, FileShare.Read,
-                readBufferSize,
-                FileOptions.Asynchronous | FileOptions.SequentialScan
-                );
-
+            log.LogDebug("Failed to open cache file for reading: {path}", path);
         }
-        catch (Exception ex)
-        {
-            log.LogDebug(ex, "Failed to open cache file for reading: {path}", path);
-            return null;
-        }
-
-    }
-
-    internal static FileStream OpenWriteTempStream(string path, int writeBufferSize)
-    {
-        return new FileStream(
-            path,
-            FileMode.CreateNew,
-            FileAccess.Write,
-            FileShare.None,
-            writeBufferSize,
-            FileOptions.Asynchronous | FileOptions.SequentialScan
-            );
-    }
-
-    internal static void TryDeleteFile(string? path)
-    {
-        if (string.IsNullOrWhiteSpace(path)) return;
-
-        try
-        {
-            if (File.Exists(path)) File.Delete(path);
-        }
-        catch
-        {
-            // Best-effort cache cleanup.
-            // IO races are expected; background trimming can retry later.
-        }
+        return stream;
     }
 
     internal static bool UsableCacheFileExists(string? path, string tmpExtension)

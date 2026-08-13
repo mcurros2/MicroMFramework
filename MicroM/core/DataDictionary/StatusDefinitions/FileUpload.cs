@@ -11,5 +11,6 @@ public class FileUpload : StatusDefinition
     public readonly StatusValuesDefinition Uploaded = new("Uploaded");
     public readonly StatusValuesDefinition Failed = new("Failed");
     public readonly StatusValuesDefinition Cancelled = new("Cancelled");
+    public readonly StatusValuesDefinition Deleted = new("Deleted");
 
 }

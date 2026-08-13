@@ -17,7 +17,7 @@ export interface FileUploaderProps extends Omit<DropzoneProps, 'children' | 'onD
     FilesText?: string,
     EachFileShouldNotExceedText?: string,
     uploadAPI: UseFileUploadReturnType,
-    onDelete?: (file_id: string) => boolean,
+    onDelete?: (fileGUID: string) => boolean,
     imageProps?: ImageProps,
     closeText?: string,
     cancelledText?: string,
@@ -77,10 +77,10 @@ export function FileUploader(props: FileUploaderProps) {
         await uploadFiles(selectedFiles);
     }
 
-    const handleDeleteFile = async (file_id: string) => {
+    const handleDeleteFile = async (fileGUID: string) => {
         let result = true;
-        if (onDelete) result = await onDelete(file_id);
-        if (result) await deleteFile(file_id, '');
+        if (onDelete) result = await onDelete(fileGUID);
+        if (result) await deleteFile(fileGUID);
 
     };
 
@@ -111,7 +111,7 @@ export function FileUploader(props: FileUploaderProps) {
     const progressElements = Object.values(uploadProgress).map((report: UploadProgressReport) => {
         const fileType = getFileType(report.file_name);
         const canEditImage = editor && isSupportedImageFile(report.file_name)
-            && !!report.file_id && !!report.vc_fileguid && !!report.documentURL
+            && !!report.vc_fileguid && !!report.documentURL
             && parentFormAPI?.formMode !== 'view' && !dropzoneProps.disabled;
 
         return (
@@ -141,7 +141,7 @@ export function FileUploader(props: FileUploaderProps) {
                             }
                             <ActionIcon color={theme.primaryColor} variant="light" onClick={async () => await downloadFile(report.documentURL!)}><IconDownload size="1rem" /></ActionIcon>
                             {parentFormAPI?.formMode !== 'view' &&
-                                    <ActionIcon disabled={dropzoneProps.disabled} color={theme.primaryColor} variant="light" onClick={async () => await handleDeleteFile(report.file_id!)}><IconTrash size="1rem" /></ActionIcon>
+                                    <ActionIcon disabled={dropzoneProps.disabled || !report.vc_fileguid} color={theme.primaryColor} variant="light" onClick={async () => await handleDeleteFile(report.vc_fileguid!)}><IconTrash size="1rem" /></ActionIcon>
                             }
                         </Group>
                     </Card.Section>

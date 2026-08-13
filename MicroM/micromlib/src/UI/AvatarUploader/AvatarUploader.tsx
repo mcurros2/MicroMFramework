@@ -14,7 +14,7 @@ export function AvatarUploader(props: AvatarUploaderProps) {
     const { API, PlaceHolderIcon, readOnlyMode, showFullImage, ...others } = props;
 
     const {
-        imageURL, thumbnailURL, fileID, fileGUID, handleOpenFileUpload, handleEditImage, handleDeleteFile,
+        imageURL, thumbnailURL, fileGUID, handleOpenFileUpload, handleEditImage, handleDeleteFile,
         parentFormAPI, canEditImage, processing, errorNotification, clearNotifications, labels
     } = API;
 
@@ -66,8 +66,8 @@ export function AvatarUploader(props: AvatarUploaderProps) {
                         variant="light"
                         title={labels.deleteLabel}
                         aria-label={labels.deleteLabel}
-                        disabled={processing || (!fileID && !fileGUID)}
-                        onClick={() => void handleDeleteFile(fileID ?? '', fileGUID ?? '')}
+                        disabled={processing || !fileGUID}
+                        onClick={() => void handleDeleteFile(fileGUID ?? '')}
                     >
                         <IconTrash size="1rem" />
                     </ActionIcon>
