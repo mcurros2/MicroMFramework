@@ -19,6 +19,7 @@ export interface useAvatarUploaderProps {
     maxFileSize?: number,
     editor?: boolean,
     imageProcessing?: AvatarImageProcessingOptions,
+    onDeleteComplete?: (fileGUID: string) => Promise<void> | void,
 }
 
 export type AvatarUploaderLabels = {
@@ -78,7 +79,7 @@ export interface AvatarUploaderAPI {
 export function useAvatarUploader(props: useAvatarUploaderProps): AvatarUploaderAPI {
     const {
         client, fileProcessColumn, labels: suppliedLabels, initialImageURL, parentFormAPI,
-        fileGUIDColumn, maxFileSize, editor, imageProcessing
+        fileGUIDColumn, maxFileSize, editor, imageProcessing, onDeleteComplete
     } = useComponentDefaultProps('AvatarUploader', AvatarUploaderDefaultProps, props);
 
     const labels = useMemo(
@@ -161,7 +162,8 @@ export function useAvatarUploader(props: useAvatarUploaderProps): AvatarUploader
             withCloseButton: false
         },
         onBeforeReplace: async () => await confirmReplacement(),
-        onUploadComplete: commitUploadedFile
+        onUploadComplete: commitUploadedFile,
+        onDeleteComplete
     });
 
     const selectedGUID = fileGUIDColumn.value || undefined;

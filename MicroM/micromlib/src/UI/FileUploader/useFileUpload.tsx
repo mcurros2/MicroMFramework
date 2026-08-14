@@ -86,6 +86,7 @@ export interface UseFileUploadProps {
     onBeforeUpload?: (file: File) => Promise<boolean>,
     onBeforeReplace?: (currentFile: UploadProgressReport, replacementFile?: File) => Promise<boolean>,
     onUploadComplete?: (report: UploadProgressReport) => Promise<UploadCompletionResult | void>,
+    onDeleteComplete?: (fileGUID: string) => Promise<void> | void,
     thumbnailMaxSize?: number,
     thumbnailQuality?: number,
     loadFilesOnMount?: boolean,
@@ -164,7 +165,7 @@ export function useFileUpload(props: UseFileUploadProps): UseFileUploadReturnTyp
         unspecifiedErrorWhenUploadingFileText, totalUploadExceedsMaximumSizeText,
         fileProcessColumn, onCancel, editor, imageProcessing, imageEditorTitle,
         imageEditorProps, imageEditorModalProps, onValidateFile, onProcessFile,
-        onBeforeUpload, onBeforeReplace, onUploadComplete, thumbnailMaxSize,
+        onBeforeUpload, onBeforeReplace, onUploadComplete, onDeleteComplete, thumbnailMaxSize,
         thumbnailQuality, loadFilesOnMount
     } = useComponentDefaultProps('useFileUpload', UseFileUploadDefaultProps, props);
 
@@ -536,7 +537,9 @@ export function useFileUpload(props: UseFileUploadProps): UseFileUploadReturnTyp
 
         try {
             setErrorNotification(undefined);
-            return await deleteStoredFile(fileGUID, controller.signal);
+            const result = await deleteStoredFile(fileGUID, controller.signal);
+            if (!result.Failed) await onDeleteComplete?.(fileGUID);
+            return result;
         }
         catch (error: unknown) {
             if (!(error instanceof Error && error.name === 'AbortError')) {
@@ -547,7 +550,7 @@ export function useFileUpload(props: UseFileUploadProps): UseFileUploadReturnTyp
         finally {
             finishOperation(controller);
         }
-    }, [beginOperation, deleteStoredFile, finishOperation]);
+    }, [beginOperation, deleteStoredFile, finishOperation, onDeleteComplete]);
 
     const findFile = useCallback((file: string | UploadProgressReport) => {
         if (typeof file !== 'string') return file;
