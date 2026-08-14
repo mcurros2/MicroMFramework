@@ -274,9 +274,6 @@ public class EntityData(IEntityClient ec, EntityDefinition def, IMicroMEncryptio
     /// </summary>
     public virtual async Task<DBStatusResult> ExecuteProcDBStatus(ProcedureDefinition proc, CancellationToken ct, bool set_parms_from_columns = true, bool throw_dbstat_exception = false)
     {
-        //proc.Parms.TryGetValue(SystemColumnNames.webusr, out ColumnBase? webusr);
-        //if (webusr != null) webusr.ValueObject = EntityClient.WebUser;
-
         bool should_close = (EntityClient.ConnectionState != ConnectionState.Open);
 
         DBStatusResult? result;
@@ -313,9 +310,6 @@ public class EntityData(IEntityClient ec, EntityDefinition def, IMicroMEncryptio
     public virtual async Task<List<DataResult>> ExecuteProc(ProcedureDefinition proc, CancellationToken ct, int row_limit = 0, bool set_parms_from_columns = true)
     {
         if (row_limit != 0 && proc.ReadonlyLocks == false) throw new ArgumentException($"Procedure {proc.QualifiedName} is defined with {nameof(proc.ReadonlyLocks)} false and cannot specify a {nameof(row_limit)} at execution");
-
-        proc.Parms.TryGetValue(SystemColumnNames.webusr, out ColumnBase? webusr);
-        webusr?.ValueObject = EntityClient.WebUser;
 
         List<DataResult> result;
 
@@ -374,9 +368,6 @@ public class EntityData(IEntityClient ec, EntityDefinition def, IMicroMEncryptio
     {
         if (row_limit != 0 && proc.ReadonlyLocks == false) throw new ArgumentException($"Procedure {proc.QualifiedName} is defined with {nameof(proc.ReadonlyLocks)} false and cannot specify a {nameof(row_limit)} at execution");
 
-        proc.Parms.TryGetValue(SystemColumnNames.webusr, out ColumnBase? webusr);
-        webusr?.ValueObject = EntityClient.WebUser;
-
         bool should_close = (EntityClient.ConnectionState != ConnectionState.Open);
 
         await EntityClient.Connect(ct);
@@ -408,9 +399,6 @@ public class EntityData(IEntityClient ec, EntityDefinition def, IMicroMEncryptio
     {
         if (proc.ReadonlyLocks) throw new ArgumentException($"Procedure {proc.QualifiedName} is defined with {nameof(proc.ReadonlyLocks)} true, because of this cannot be run without returning a result");
 
-        proc.Parms.TryGetValue(SystemColumnNames.webusr, out ColumnBase? webusr);
-        webusr?.ValueObject = EntityClient.WebUser;
-
         bool should_close = (EntityClient.ConnectionState != ConnectionState.Open);
         await EntityClient.Connect(ct);
 
@@ -436,9 +424,6 @@ public class EntityData(IEntityClient ec, EntityDefinition def, IMicroMEncryptio
     public virtual async Task<List<T>> ExecuteProc<T>(ProcedureDefinition proc, CancellationToken ct, int row_limit = 0, bool set_parms_from_columns = true, AutoMapperMode mode = AutoMapperMode.ByName, MapResult<T>? mapper = null) where T : class, new()
     {
         if (row_limit != 0 && proc.ReadonlyLocks == false) throw new ArgumentException($"Procedure {proc.QualifiedName} is defined with {nameof(proc.ReadonlyLocks)} false and cannot specify a {nameof(row_limit)} at execution");
-
-        proc.Parms.TryGetValue(SystemColumnNames.webusr, out ColumnBase? webusr);
-        webusr?.ValueObject = EntityClient.WebUser;
 
         List<T> result = [];
 
@@ -473,9 +458,6 @@ public class EntityData(IEntityClient ec, EntityDefinition def, IMicroMEncryptio
     public virtual async Task<T?> ExecuteProcSingleColumn<T>(ProcedureDefinition proc, CancellationToken ct, int row_limit = 0, bool set_parms_from_columns = true)
     {
         if (row_limit != 0 && proc.ReadonlyLocks == false) throw new ArgumentException($"Procedure {proc.QualifiedName} is defined with {nameof(proc.ReadonlyLocks)} false and cannot specify a {nameof(row_limit)} at execution");
-
-        proc.Parms.TryGetValue(SystemColumnNames.webusr, out ColumnBase? webusr);
-        webusr?.ValueObject = EntityClient.WebUser;
 
         T? result;
 
