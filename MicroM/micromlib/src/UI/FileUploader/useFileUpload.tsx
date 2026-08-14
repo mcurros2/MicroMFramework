@@ -59,10 +59,7 @@ export function useFileUploadSnapshot(uploadAPI: UseFileUploadReturnType) {
 
 export type ValidateFileReturnType = { error: boolean, message?: string };
 
-export type UploadCompletionResult = ValidateFileReturnType & {
-    /** @deprecated Uploaded files now remain in the canonical files list until deleted. */
-    removeFromQueue?: boolean,
-};
+export type UploadCompletionResult = ValidateFileReturnType;
 
 export type ImageEditorConfigurationProps = Partial<Pick<ImageEditorProps,
     'saveLabel' | 'cancelLabel' | 'rotateClockwiseLabel' | 'rotateCounterClockwiseLabel'>>;
