@@ -20,6 +20,7 @@ export interface useAvatarUploaderProps {
     editor?: boolean,
     imageProcessing?: AvatarImageProcessingOptions,
     onDeleteComplete?: (fileGUID: string) => Promise<void> | void,
+    onUploadComplete?: (fileGUID: string) => Promise<void> | void
 }
 
 export type AvatarUploaderLabels = {
@@ -79,7 +80,7 @@ export interface AvatarUploaderAPI {
 export function useAvatarUploader(props: useAvatarUploaderProps): AvatarUploaderAPI {
     const {
         client, fileProcessColumn, labels: suppliedLabels, initialImageURL, parentFormAPI,
-        fileGUIDColumn, maxFileSize, editor, imageProcessing, onDeleteComplete
+        fileGUIDColumn, maxFileSize, editor, imageProcessing, onDeleteComplete, onUploadComplete
     } = useComponentDefaultProps('AvatarUploader', AvatarUploaderDefaultProps, props);
 
     const labels = useMemo(
@@ -139,8 +140,11 @@ export function useAvatarUploader(props: useAvatarUploaderProps): AvatarUploader
         // EntityColumn is an intentional mutable model object shared with the parent form.
         // eslint-disable-next-line react-hooks/immutability
         fileGUIDColumn.value = report.vc_fileguid;
+
+        await onUploadComplete?.(report.vc_fileguid);
+
         return { error: false };
-    }, [fileGUIDColumn]);
+    }, [fileGUIDColumn, onUploadComplete]);
 
     const uploadAPI = useFileUpload({
         client,
