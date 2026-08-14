@@ -8,7 +8,7 @@ import { getFileType } from "./getFileType";
 import { ImagePreview } from "./ImagePreview";
 import { isSupportedImageFile } from "./imageProcessing";
 import { PDFPreview } from "./PDFPreview";
-import { UploadProgressReport, UseFileUploadReturnType } from "./useFileUpload";
+import { UploadProgressReport, UseFileUploadReturnType, useFileUploadSnapshot } from "./useFileUpload";
 
 export interface FileUploaderProps extends Omit<DropzoneProps, 'children' | 'onDrop' | 'maxSize' | 'maxFiles'> {
     IdleIcon?: (props: IconProps) => ReactNode,
@@ -17,7 +17,7 @@ export interface FileUploaderProps extends Omit<DropzoneProps, 'children' | 'onD
     FilesText?: string,
     EachFileShouldNotExceedText?: string,
     uploadAPI: UseFileUploadReturnType,
-    onDelete?: (fileGUID: string) => boolean,
+    onDelete?: (fileGUID: string) => boolean | Promise<boolean>,
     imageProps?: ImageProps,
     closeText?: string,
     cancelledText?: string,
@@ -28,6 +28,8 @@ export interface FileUploaderProps extends Omit<DropzoneProps, 'children' | 'onD
     parentFormAPI?: UseEntityFormReturnType,
     editor?: boolean,
     editImageLabel?: string,
+    replaceFileGUID?: string,
+    replaceExistingFile?: boolean,
 }
 
 
@@ -60,20 +62,36 @@ export function FileUploader(props: FileUploaderProps) {
     const {
         IdleIcon, UploadText, uploadAPI, EachFileShouldNotExceedText, AttachUpToText, FilesText,
         imageProps, onDelete, closeText, cancelledText, operationCancelledText, pdfCannotBeViewedText,
-        showCancelButton, cancelLabel, parentFormAPI, editor, editImageLabel, ...dropzoneProps
+        showCancelButton, cancelLabel, parentFormAPI, editor: _editor, editImageLabel,
+        replaceFileGUID, replaceExistingFile, ...dropzoneProps
     } = useComponentDefaultProps('FileUploader', FileUploaderDefaultProps, props);
 
     const {
-        uploadFiles, uploadProgress, errorNotification, cancelledNotification, clearNotifications, uploadingNotification, deleteFile,
-        downloadFile, editImage, cancelUpload, loadingNotification
+        uploadFiles, replaceFile, clearNotifications, deleteFile, downloadFile,
+        editImage, canEditImage, cancelUpload
     } = uploadAPI;
+
+    const {
+        files, errorNotification, cancelledNotification, uploadingNotification, loadingNotification,
+        maxFilesCount, maxIndividualFileSize
+    } = useFileUploadSnapshot(uploadAPI);
+
+    void _editor;
 
     const theme = useMantineTheme();
     const modals = useModal();
 
-    dropzoneProps.disabled = dropzoneProps.disabled || (parentFormAPI?.formMode === 'view');
+    const disabled = dropzoneProps.disabled || (parentFormAPI?.formMode === 'view');
 
     const handleUpload = async (selectedFiles: File[]) => {
+        const replacementGUID = replaceFileGUID ?? (replaceExistingFile
+            ? files.find(file => file.done && !file.errorMessage && !file.cancelled)?.vc_fileguid
+            : undefined);
+
+        if (replacementGUID && selectedFiles.length === 1) {
+            await replaceFile(replacementGUID, selectedFiles[0]);
+            return;
+        }
         await uploadFiles(selectedFiles);
     }
 
@@ -108,20 +126,21 @@ export function FileUploader(props: FileUploaderProps) {
         });
     };
 
-    const progressElements = Object.values(uploadProgress).map((report: UploadProgressReport) => {
+    const progressElements = files.map((report: UploadProgressReport) => {
         const fileType = getFileType(report.file_name);
         const successful = report.done && !report.errorMessage && !report.cancelled;
         const inProgress = !report.done && !report.cancelled;
-        const canEditImage = editor && isSupportedImageFile(report.file_name)
+
+        const canEditCurrentImage = canEditImage(report) && isSupportedImageFile(report.file_name)
             && !!report.vc_fileguid && !!report.documentURL
-            && parentFormAPI?.formMode !== 'view' && !dropzoneProps.disabled;
+            && parentFormAPI?.formMode !== 'view' && !disabled;
 
         return (
             <Card key={report.status_id} bg={theme.colorScheme === 'dark' ? theme.colors.dark[8] : theme.colors.gray[3]} w="15rem">
                 {successful &&
                     <Card.Section p="xs" mb="1rem">
                         <Group position="right">
-                            {canEditImage &&
+                            {canEditCurrentImage &&
                                 <ActionIcon
                                     color={theme.primaryColor}
                                     variant="light"
@@ -141,9 +160,9 @@ export function FileUploader(props: FileUploaderProps) {
                                     <IconEye size="1rem" />
                                 </ActionIcon>
                             }
-                            <ActionIcon color={theme.primaryColor} variant="light" onClick={async () => await downloadFile(report.documentURL!)}><IconDownload size="1rem" /></ActionIcon>
+                            <ActionIcon color={theme.primaryColor} variant="light" onClick={async () => await downloadFile(report.documentURL!, report.file_name)}><IconDownload size="1rem" /></ActionIcon>
                             {parentFormAPI?.formMode !== 'view' &&
-                                    <ActionIcon disabled={dropzoneProps.disabled || !report.vc_fileguid} color={theme.primaryColor} variant="light" onClick={async () => await handleDeleteFile(report.vc_fileguid!)}><IconTrash size="1rem" /></ActionIcon>
+                                    <ActionIcon disabled={disabled || !report.vc_fileguid} color={theme.primaryColor} variant="light" onClick={async () => await handleDeleteFile(report.vc_fileguid!)}><IconTrash size="1rem" /></ActionIcon>
                             }
                         </Group>
                     </Card.Section>
@@ -184,7 +203,7 @@ export function FileUploader(props: FileUploaderProps) {
     return (
         <Stack>
             <Group grow>
-                <Dropzone {...dropzoneProps} loading={uploadingNotification || loadingNotification} onDrop={handleUpload}>
+                <Dropzone {...dropzoneProps} disabled={disabled} loading={uploadingNotification || loadingNotification} onDrop={handleUpload}>
                     <Group position="center" spacing="xl" style={{ pointerEvents: 'none' }}>
                         <Dropzone.Accept>
                             <IconUpload
@@ -208,7 +227,7 @@ export function FileUploader(props: FileUploaderProps) {
                                 {UploadText}
                             </Text>
                             <Text size="sm" color="dimmed" inline mt={7}>
-                                {AttachUpToText} {uploadAPI.maxFilesCount} {FilesText}, {EachFileShouldNotExceedText} {Math.round(uploadAPI.maxIndividualFileSize! / (1024 ** 2))} MB
+                                {AttachUpToText} {maxFilesCount} {FilesText}, {EachFileShouldNotExceedText} {Math.round(maxIndividualFileSize! / (1024 ** 2))} MB
                             </Text>
                         </div>
                     </Group>

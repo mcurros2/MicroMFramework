@@ -6,7 +6,7 @@ import { EntityColumn } from "../../Entity";
 import { useModal } from "../Core";
 import { FilesUploadForm, FilesUploadFormProps } from "./FilesUploadForm";
 import { FileUploaderProps } from "./FileUploader";
-import { UploadProgressReport } from "./useFileUpload";
+import { UploadProgressReport, UseFileUploadReturnType } from "./useFileUpload";
 
 export interface ModalFileUploadProps {
     client: MicroMClient,
@@ -16,8 +16,9 @@ export interface ModalFileUploadProps {
     onClosed?: () => void,
     modalProps?: ModalSettings,
     modalTitle?: string,
-    filesUploadFormProps: Omit<FilesUploadFormProps, 'fileProcessColumn' | 'uploaderProps' | 'client' | 'onOK' | 'onCancel'>,
-    uploaderProps?: Omit<FileUploaderProps, 'uploadAPI' | 'abortSignal' | 'editor'>
+    uploadAPI?: UseFileUploadReturnType,
+    filesUploadFormProps: Omit<FilesUploadFormProps, 'fileProcessColumn' | 'uploaderProps' | 'client' | 'onOK' | 'onCancel' | 'uploadAPI'>,
+    uploaderProps?: Omit<FileUploaderProps, 'uploadAPI' | 'editor'>
 }
 
 export const UseFileUploadFormOpenDefaultProps: Partial<ModalFileUploadProps> = {
@@ -30,7 +31,7 @@ export function useFilesUploadForm() {
 
     const open = useCallback(async (props: ModalFileUploadProps) => {
         const {
-            client, onOK, onCancel, modalProps, onClosed, modalTitle, uploaderProps, fileProcessColumn, filesUploadFormProps
+            client, onOK, onCancel, modalProps, onClosed, modalTitle, uploadAPI, uploaderProps, fileProcessColumn, filesUploadFormProps
         } = { ...UseFileUploadFormOpenDefaultProps, ...props };
 
         buttonResult.current = 'Quit';
@@ -65,6 +66,7 @@ export function useFilesUploadForm() {
                 content:
                     <FilesUploadForm
                         fileProcessColumn={fileProcessColumn}
+                        uploadAPI={uploadAPI}
                         uploaderProps={uploaderProps}
                         client={client}
                         onOK={async (fileprocess_id: string, uploadProgress: Record<string, UploadProgressReport>) => await handleOK(fileprocess_id, uploadProgress)}

@@ -7,7 +7,7 @@ import Cropper, { Area, Point } from "react-easy-crop";
 import { getRotatedSize, prepareEditorImage, renderEditedImage } from "./imageEditorProcessing";
 import { canvasToProcessedFile, ResolvedBrowserImageProcessingOptions } from "./imageProcessing";
 
-interface ImageEditorProps {
+export interface ImageEditorProps {
     sourceFile: File,
     options: ResolvedBrowserImageProcessingOptions,
     onSave: (file: File) => Promise<void> | void,
@@ -16,6 +16,13 @@ interface ImageEditorProps {
     cancelLabel?: string,
     rotateClockwiseLabel?: string,
     rotateCounterClockwiseLabel?: string,
+}
+
+export const ImageEditorDefaultProps: Partial<ImageEditorProps> = {
+    saveLabel: 'Save',
+    cancelLabel: 'Cancel',
+    rotateClockwiseLabel: 'Rotate clockwise',
+    rotateCounterClockwiseLabel: 'Rotate counter-clockwise'
 }
 
 interface FullImagePreviewProps {
@@ -56,21 +63,18 @@ const FullImagePreview = ({ source, rotation, label }: FullImagePreviewProps) =>
 
         draw();
 
+        if (typeof ResizeObserver === 'undefined') {
+            window.addEventListener('resize', draw);
+            return () => window.removeEventListener('resize', draw);
+        }
+
         const observer = new ResizeObserver(draw);
         observer.observe(canvas);
-
         return () => observer.disconnect();
     }, [rotation, source]);
 
     return <canvas ref={canvasRef} className="image-editor__cropper" role="img" aria-label={label} />;
 };
-
-export const ImageEditorDefaultProps: Partial<ImageEditorProps> = {
-    saveLabel: 'Save',
-    cancelLabel: 'Cancel',
-    rotateClockwiseLabel: 'Rotate clockwise',
-    rotateCounterClockwiseLabel: 'Rotate counter-clockwise'
-}
 
 export const ImageEditor = (props: ImageEditorProps) => {
     const {
@@ -93,7 +97,13 @@ export const ImageEditor = (props: ImageEditorProps) => {
         let disposed = false;
         let prepared: Awaited<ReturnType<typeof prepareEditorImage>> | undefined;
 
+        setPreparedImage(undefined);
+        setCrop({ x: 0, y: 0 });
+        setZoom(1);
+        setRotationDegrees(0);
+        setCroppedAreaPixels(undefined);
         setReady(false);
+        setSaving(false);
         setError(undefined);
 
         void prepareEditorImage(sourceFile, options.exifOrientation)
@@ -124,7 +134,7 @@ export const ImageEditor = (props: ImageEditorProps) => {
             setCroppedAreaPixels(undefined);
         }
 
-        setRotationDegrees(current => (current + manualRotation.stepDegrees * direction) % 360);
+        setRotationDegrees(current => ((current + manualRotation.stepDegrees * direction) % 360 + 360) % 360);
     }, [cropEnabled, manualRotation]);
 
     const save = useCallback(async () => {
@@ -190,7 +200,7 @@ export const ImageEditor = (props: ImageEditorProps) => {
                         disableAutomaticStylesInjection
                         onCropChange={setCrop}
                         onZoomChange={setZoom}
-                        onCropAreaChange={(_, area) => {
+                        onCropComplete={(_, area) => {
                             setCroppedAreaPixels(area);
                             setReady(true);
                         }}

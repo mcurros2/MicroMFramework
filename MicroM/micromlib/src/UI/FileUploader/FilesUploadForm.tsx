@@ -2,16 +2,18 @@ import { Button, Card, Group, Text, useComponentDefaultProps, useMantineTheme } 
 import { IconCircleCheck, IconInfoCircle } from "@tabler/icons-react";
 import { EntityColumn } from "../../Entity";
 import { FileUploader, FileUploaderProps } from "./FileUploader";
-import { UploadProgressReport, useFileUpload, UseFileUploadProps } from "./useFileUpload";
+import { UploadProgressReport, useFileUpload, UseFileUploadProps, UseFileUploadReturnType, useFileUploadSnapshot } from "./useFileUpload";
 
 export interface FilesUploadFormProps extends UseFileUploadProps {
     fileProcessColumn: EntityColumn<string>,
     onOK?: (fileprocess_id: string, uploadProgress: Record<string, UploadProgressReport>) => void,
-    onDelete?: (fileGUID: string) => boolean,
+    onDelete?: (fileGUID: string) => boolean | Promise<boolean>,
     helpMessage?: string,
-    uploaderProps?: Omit<FileUploaderProps, 'uploadAPI' | 'abortSignal' | 'editor'>,
+    uploaderProps?: Omit<FileUploaderProps, 'uploadAPI' | 'editor'>,
     okLabel?: string,
     showOKButton?: boolean,
+    /** Reuse an existing hook instance instead of creating an uploader owned by this form. */
+    uploadAPI?: UseFileUploadReturnType,
 }
 
 export const FilesUploadFormDefaultProps: Partial<FilesUploadFormProps> = {
@@ -22,55 +24,116 @@ export const FilesUploadFormDefaultProps: Partial<FilesUploadFormProps> = {
     maxFilesCount: 5,
 }
 
-export function FilesUploadForm(props: FilesUploadFormProps) {
-    const {
-        helpMessage, client, uploaderProps, okLabel, onCancel, onDelete,
-        maxFilesCount, maxIndividualFileSize, maxTotalFilesSize, onOK, fileProcessColumn,
-        showOKButton, editor, onValidateFile, onProcessFile, onBeforeUpload, onUploadComplete,
-        thumbnailMaxSize, thumbnailQuality, loadFilesOnMount
-    } = useComponentDefaultProps('FilesUploadForm', FilesUploadFormDefaultProps, props);
+interface FilesUploadFormContentProps {
+    uploadAPI: UseFileUploadReturnType,
+    uploaderProps?: Omit<FileUploaderProps, 'uploadAPI' | 'editor'>,
+    onDelete?: (fileGUID: string) => boolean | Promise<boolean>,
+    onOK?: (fileprocess_id: string, uploadProgress: Record<string, UploadProgressReport>) => void,
+    helpMessage?: string,
+    okLabel?: string,
+    showOKButton?: boolean,
+}
 
-
+function FilesUploadFormContent({
+    uploadAPI, uploaderProps, onDelete, onOK, helpMessage, okLabel, showOKButton
+}: FilesUploadFormContentProps) {
     const theme = useMantineTheme();
-    const uploadAPI = useFileUpload({
-        client,
-        fileProcessColumn,
-        maxFilesCount,
-        maxIndividualFileSize,
-        maxTotalFilesSize,
-        onCancel,
-        editor,
-        onValidateFile,
-        onProcessFile,
-        onBeforeUpload,
-        onUploadComplete,
-        thumbnailMaxSize,
-        thumbnailQuality,
-        loadFilesOnMount
-    });
-    const { uploadingNotification } = uploadAPI;
-
-    const handleOK = () => {
-
-        if (onOK) onOK(uploadAPI.fileProcessID, uploadAPI.uploadProgress);
-    };
+    const uploadState = useFileUploadSnapshot(uploadAPI);
+    const handleOK = () => onOK?.(uploadState.fileProcessID, uploadState.uploadProgress);
 
     return (
         <>
-            <Card shadow="sm" withBorder={theme.colorScheme === 'dark' ? false : true}>
+            <Card shadow="sm" withBorder={theme.colorScheme !== 'dark'}>
                 <Card.Section p="xs" bg={theme.colorScheme === 'dark' ? theme.colors.dark[5] : theme.colors[theme.primaryColor][3]} mb="1rem">
                     <Group sx={{ gap: "0.25rem" }}>
                         <IconInfoCircle size="1.1rem" />
                         <Text fz="xs" c="dimmed">{helpMessage}</Text>
                     </Group>
                 </Card.Section>
-                <FileUploader {...uploaderProps} uploadAPI={uploadAPI} editor={editor} onDelete={onDelete} />
+                <FileUploader {...uploaderProps} uploadAPI={uploadAPI} onDelete={onDelete} />
             </Card>
             <Group mt="md" position="right">
                 {showOKButton &&
-                    <Button loading={uploadingNotification} disabled={uploadingNotification} onClick={handleOK} color={theme.colors.green[5]} leftIcon={<IconCircleCheck size="1.5rem" />}>{okLabel}</Button>
+                    <Button
+                        loading={uploadState.uploadingNotification}
+                        disabled={uploadState.uploadingNotification}
+                        onClick={handleOK}
+                        color={theme.colors.green[5]}
+                        leftIcon={<IconCircleCheck size="1.5rem" />}
+                    >
+                        {okLabel}
+                    </Button>
                 }
             </Group>
         </>
-    )
+    );
+}
+
+function OwnedFilesUploadForm(props: Omit<FilesUploadFormProps, 'uploadAPI'>) {
+    const {
+        helpMessage, client, uploaderProps, okLabel, onCancel, onDelete,
+        maxFilesCount, maxIndividualFileSize, maxTotalFilesSize, onOK, fileProcessColumn,
+        youCanUploadAMaximumOfText, filesText, exceedMaximumIndividualSizeText,
+        unspecifiedErrorWhenUploadingFileText, totalUploadExceedsMaximumSizeText,
+        showOKButton, editor, imageProcessing, imageEditorTitle, imageEditorProps,
+        imageEditorModalProps, onValidateFile, onProcessFile, onBeforeUpload,
+        onBeforeReplace, onUploadComplete, thumbnailMaxSize, thumbnailQuality,
+        loadFilesOnMount
+    } = props;
+
+    const uploadAPI = useFileUpload({
+        client,
+        fileProcessColumn,
+        maxFilesCount,
+        maxIndividualFileSize,
+        maxTotalFilesSize,
+        youCanUploadAMaximumOfText,
+        filesText,
+        exceedMaximumIndividualSizeText,
+        unspecifiedErrorWhenUploadingFileText,
+        totalUploadExceedsMaximumSizeText,
+        onCancel,
+        editor,
+        imageProcessing,
+        imageEditorTitle,
+        imageEditorProps,
+        imageEditorModalProps,
+        onValidateFile,
+        onProcessFile,
+        onBeforeUpload,
+        onBeforeReplace,
+        onUploadComplete,
+        thumbnailMaxSize,
+        thumbnailQuality,
+        loadFilesOnMount
+    });
+
+    return <FilesUploadFormContent
+        uploadAPI={uploadAPI}
+        uploaderProps={uploaderProps}
+        onDelete={onDelete}
+        onOK={onOK}
+        helpMessage={helpMessage}
+        okLabel={okLabel}
+        showOKButton={showOKButton}
+    />;
+}
+
+export function FilesUploadForm(props: FilesUploadFormProps) {
+    const resolvedProps = useComponentDefaultProps('FilesUploadForm', FilesUploadFormDefaultProps, props);
+    const { uploadAPI, ...ownedProps } = resolvedProps;
+
+    if (uploadAPI) {
+        return <FilesUploadFormContent
+            uploadAPI={uploadAPI}
+            uploaderProps={resolvedProps.uploaderProps}
+            onDelete={resolvedProps.onDelete}
+            onOK={resolvedProps.onOK}
+            helpMessage={resolvedProps.helpMessage}
+            okLabel={resolvedProps.okLabel}
+            showOKButton={resolvedProps.showOKButton}
+        />;
+    }
+
+    return <OwnedFilesUploadForm {...ownedProps} />;
 }
