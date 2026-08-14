@@ -352,19 +352,11 @@ public class AuthenticationController(IOptions<MicroMOptions> options) : Control
 
             if (failed == false)
             {
-                DBStatusResult db_result = new()
-                {
-                    Failed = false,
-                    Results = [new() { Status = DBStatusCodes.OK, Message = "OK" }]
-                };
+                DBStatusResult db_result = DBStatusResult.SuccessStatus();
                 return Ok(db_result);
             }
 
-            DBStatusResult error_result = new()
-            {
-                Failed = true,
-                Results = [new() { Status = DBStatusCodes.Error, Message = status }]
-            };
+            DBStatusResult error_result = DBStatusResult.FailedStatus(status ?? "Is not possible to recover the password, review your information and try again later");
             return Ok(error_result);
         }
         catch (Exception ex) when (ex is TaskCanceledException || ex is OperationCanceledException)
@@ -387,19 +379,11 @@ public class AuthenticationController(IOptions<MicroMOptions> options) : Control
 
             if (failed == false)
             {
-                DBStatusResult db_result = new()
-                {
-                    Failed = false,
-                    Results = [new() { Status = DBStatusCodes.OK, Message = "OK" }]
-                };
+                DBStatusResult db_result = DBStatusResult.SuccessStatus();
                 return Ok(db_result);
             }
 
-            DBStatusResult error_result = new()
-            {
-                Failed = true,
-                Results = [new() { Status = DBStatusCodes.Error, Message = "Is not possible to send the recovery email, review your information and try again later" }]
-            };
+            DBStatusResult error_result = DBStatusResult.FailedStatus("Is not possible to send the recovery email, review your information and try again later");
             return Ok(error_result);
         }
         catch (Exception ex) when (ex is TaskCanceledException || ex is OperationCanceledException)

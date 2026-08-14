@@ -2,7 +2,7 @@ import { Text, useComponentDefaultProps } from "@mantine/core";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { MicroMClient } from "../../client";
 import { FileStoreClient } from "../../DataDictionary/FileStoreClient/FileStoreClient";
-import { EntityColumn } from "../../Entity";
+import { convertRecordsToArrayOfValuesObject, EntityColumn } from "../../Entity";
 import { ConfirmAndExecutePanel, useModal } from "../Core";
 import { UploadProgressReport, useFilesUploadForm, useFileUpload } from "../FileUploader";
 import { ImageEditor } from "../FileUploader/ImageEditor";
@@ -93,6 +93,7 @@ export function useAvatarUploader(props: useAvatarUploaderProps): AvatarUploader
         crop: imageProcessing?.crop ?? true,
         manualRotation: imageProcessing?.manualRotation ?? true
     } : imageProcessing), [editor, imageProcessing]);
+
     const editorEnabled = editor === true;
     const imageFileUploadOpen = useFilesUploadForm();
     const modals = useModal();
@@ -105,8 +106,7 @@ export function useAvatarUploader(props: useAvatarUploaderProps): AvatarUploader
         client,
         maxFilesCount: 1,
         ...fileSizeProps,
-        fileProcessColumn,
-        loadFilesOnMount: false
+        fileProcessColumn
     });
 
     const [imageURL, setImageURL] = useState<string | undefined>(initialImageURL);
@@ -115,6 +115,7 @@ export function useAvatarUploader(props: useAvatarUploaderProps): AvatarUploader
     const [fileGUID, setFileGUID] = useState<string>();
     const [editing, setEditing] = useState(false);
     const [localError, setLocalError] = useState<string>();
+
     const currentFile = useRef<{ fileGUID?: string }>({});
     const replacementSnapshot = useRef<string[]>([]);
 
@@ -215,20 +216,32 @@ export function useAvatarUploader(props: useAvatarUploaderProps): AvatarUploader
         return { error: false, removeFromQueue };
     }, [client, fileGUIDColumn, fileProcessColumn]);
 
+    const getProcessFiles = useCallback(async () => {
+        if (!fileProcessColumn.value) return [];
+
+        const fileStore = new FileStoreClient(client);
+        const data = await fileStore.API.executeView(
+            fileStore.def.views.fcc_brwFiles,
+            { c_fileprocess_id: fileProcessColumn.value }
+        );
+
+        return data.flatMap(result => convertRecordsToArrayOfValuesObject(result, null));
+    }, [client, fileProcessColumn]);
+
     const snapshotProcessFiles = useCallback(async () => {
         if (!fileProcessColumn.value) {
             replacementSnapshot.current = [];
             return [];
         }
 
-        const files = await new FileStoreClient(client).listFiles(fileProcessColumn.value);
-        const guids = files.map(file => file.vc_fileguid).filter(Boolean);
+        const files = await getProcessFiles();
+        const guids = files.map(file => String(file.vc_fileguid ?? '')).filter(Boolean);
         if (currentFile.current.fileGUID && !guids.includes(currentFile.current.fileGUID)) {
             guids.push(currentFile.current.fileGUID);
         }
         replacementSnapshot.current = [...new Set(guids)];
         return files;
-    }, [client, fileProcessColumn]);
+    }, [fileProcessColumn, getProcessFiles]);
 
     const replaceAndCommit = useCallback(async (report: UploadProgressReport, removeFromQueue: boolean) => {
         const replacementGUID = report.vc_fileguid;
@@ -243,24 +256,28 @@ export function useAvatarUploader(props: useAvatarUploaderProps): AvatarUploader
             ...snapshot.filter(guid => guid !== displayedGUID),
             ...(displayedGUID && snapshot.includes(displayedGUID) ? [displayedGUID] : [])
         ];
+
         const fileStore = new FileStoreClient(client);
+        const deleteStoredFile = async (guid: string) => {
+            fileStore.def.columns.vc_fileguid.value = guid;
+            return await fileStore.API.deleteData();
+        };
 
         for (const guid of deletionOrder) {
             try {
-                const deletion = await fileStore.deleteFile(guid);
+                const deletion = await deleteStoredFile(guid);
                 if (deletion.Failed) throw new Error('Delete failed');
             }
             catch {
-                try { await fileStore.deleteFile(replacementGUID); } catch { }
+                try { await deleteStoredFile(replacementGUID); } catch { }
                 return { error: true, message: 'The existing image could not be replaced. The current image was kept.' };
             }
         }
 
         replacementSnapshot.current = [];
-        await commitUploadedFile(report, removeFromQueue);
 
         try {
-            const refreshed = await fileStore.listFiles(fileProcessColumn.value);
+            const refreshed = await getProcessFiles();
             if (refreshed.length !== 1 || refreshed[0].vc_fileguid !== replacementGUID) {
                 return { error: true, message: 'The replacement was uploaded, but the refreshed avatar file list is inconsistent.' };
             }
@@ -272,15 +289,16 @@ export function useAvatarUploader(props: useAvatarUploaderProps): AvatarUploader
             };
         }
 
+        await commitUploadedFile(report, removeFromQueue);
+
         return { error: false, removeFromQueue };
-    }, [client, commitUploadedFile, fileProcessColumn]);
+    }, [client, commitUploadedFile, getProcessFiles]);
 
     const directUploadAPI = useFileUpload({
         client,
         maxFilesCount: 1,
         ...fileSizeProps,
         fileProcessColumn,
-        loadFilesOnMount: false,
         editor: editorEnabled,
         onProcessFile: processFile,
         onUploadComplete: async report => await replaceAndCommit(report, true)
@@ -306,7 +324,6 @@ export function useAvatarUploader(props: useAvatarUploaderProps): AvatarUploader
             filesUploadFormProps: {
                 maxFilesCount: 1,
                 ...fileSizeProps,
-                loadFilesOnMount: false,
                 editor: editorEnabled,
                 onProcessFile: processFile,
                 onBeforeUpload: async () => {
@@ -324,13 +341,14 @@ export function useAvatarUploader(props: useAvatarUploaderProps): AvatarUploader
 
         setEditing(true);
         setLocalError(undefined);
+
         try {
             const files = await snapshotProcessFiles();
             if (!await confirmReplacement()) return;
 
             const source = files.find(file => file.vc_fileguid === fileGUID);
             const blob = await client.downloadBlob(client.getDocumentURL(fileGUID));
-            const fileName = source?.vc_filename || fileGUID;
+            const fileName = String(source?.vc_filename || fileGUID);
             const imageType = getSupportedImageMimeType(fileName, blob.type);
             if (!imageType) throw new Error(`The image format "${blob.type || fileName}" cannot be processed in the browser.`);
 
@@ -345,6 +363,7 @@ export function useAvatarUploader(props: useAvatarUploaderProps): AvatarUploader
         finally {
             setEditing(false);
         }
+
     }, [client, confirmReplacement, directUploadAPI, editing, editorEnabled, fileGUID, imageURL, snapshotProcessFiles]);
 
     const handleDeleteFile = useCallback(async (guid: string) => {

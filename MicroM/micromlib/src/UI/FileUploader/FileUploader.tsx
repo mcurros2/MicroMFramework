@@ -110,13 +110,15 @@ export function FileUploader(props: FileUploaderProps) {
 
     const progressElements = Object.values(uploadProgress).map((report: UploadProgressReport) => {
         const fileType = getFileType(report.file_name);
+        const successful = report.done && !report.errorMessage && !report.cancelled;
+        const inProgress = !report.done && !report.cancelled;
         const canEditImage = editor && isSupportedImageFile(report.file_name)
             && !!report.vc_fileguid && !!report.documentURL
             && parentFormAPI?.formMode !== 'view' && !dropzoneProps.disabled;
 
         return (
             <Card key={report.status_id} bg={theme.colorScheme === 'dark' ? theme.colors.dark[8] : theme.colors.gray[3]} w="15rem">
-                {report.done && !report.errorMessage &&
+                {successful &&
                     <Card.Section p="xs" mb="1rem">
                         <Group position="right">
                             {canEditImage &&
@@ -146,7 +148,7 @@ export function FileUploader(props: FileUploaderProps) {
                         </Group>
                     </Card.Section>
                 }
-                {!report.done &&
+                {inProgress &&
                     <>
                         <Text size="sm" color="dimmed">{report.file_name} - {report.progress}%</Text>
                         <Progress value={report.progress} striped animate />
@@ -155,16 +157,19 @@ export function FileUploader(props: FileUploaderProps) {
                 {report.cancelled &&
                     <Text size="sm" color="dimmed">{cancelledText}: {report.file_name}</Text>
                 }
-                {report.done && !report.errorMessage && fileType === 'image' &&
+                {report.errorMessage &&
+                    <Text size="sm" color="red">{report.file_name}: {report.errorMessage}</Text>
+                }
+                {successful && fileType === 'image' &&
                     <Image {...imageProps} src={report.thumbnailURL} />
                 }
-                {report.done && !report.errorMessage && fileType === 'pdf' &&
+                {successful && fileType === 'pdf' &&
                     <Group grow h="9.375rem">
                         <IconFileTypePdf size="3.2rem" stroke={1.5} />
                     </Group>
                 }
                 {
-                    report.done && !report.errorMessage &&
+                    successful &&
                     <Box mt="xs">
                         <Text size="xs" color="dimmed" truncate>{report.file_name}</Text>
                         <Text size="xs" color="dimmed" >{(report.file_size / (1024 ** 2)).toFixed(2)}MB</Text>

@@ -21,15 +21,6 @@ public class ApplicationDatabase
         return controlPanelCfg?.SQLUser;
     }
 
-    private static DBStatusResult ConfigUserMissingError()
-    {
-        return new()
-        {
-            Failed = true,
-            Results = [new() { Status = DBStatusCodes.Error, Message = "Configuration SQL user was not found in control panel configuration." }]
-        };
-    }
-
     private static async Task<DBStatusResult?> EnsureConfigUserDbOwnerOnAppDb(
         IEntityClient admin_dbc,
         string appDbName,
@@ -39,7 +30,7 @@ public class ApplicationDatabase
         var configSqlUser = GetConfigSqlUser(api);
         if (string.IsNullOrWhiteSpace(configSqlUser))
         {
-            return ConfigUserMissingError();
+            return DBStatusResult.FailedStatus("Configuration SQL user was not found in control panel configuration.");
         }
 
         await EnsureDbOwnerMembership(admin_dbc, appDbName, configSqlUser, ct);
@@ -233,7 +224,7 @@ public class ApplicationDatabase
 
         if (errors.Count > 0)
         {
-            return new() { Failed = true, Results = errors };
+            return DBStatusResult.FailedStatus(errors);
         }
 
 
@@ -241,7 +232,7 @@ public class ApplicationDatabase
 
         if (await admin_dbc.Connect(ct, false) == false)
         {
-            return new() { Failed = true, Results = [new() { Status = DBStatusCodes.Error, Message = $"Can't connect to the APP Server {app.Def.vc_server.Value}." }] };
+            return DBStatusResult.FailedStatus("Can't connect to the APP Server " + app.Def.vc_server.Value + ".");
         }
 
         try
@@ -253,25 +244,25 @@ public class ApplicationDatabase
             if (!result)
             {
                 errors.Add(new() { Status = DBStatusCodes.Error, Message = $"Application {app.Def.c_application_id.Value.Trim()} not found" });
-                return new() { Failed = true, Results = errors };
+                return DBStatusResult.FailedStatus(errors);
             }
 
             // No admin rigths
             if (app.Def.b_adminuserhasrights.Value == false)
             {
-                return new() { Failed = true, Results = [new() { Status = DBStatusCodes.Error, Message = "The logged in user has no admin user rights" }] };
+                return DBStatusResult.FailedStatus("The logged in user has no admin user rights");
             }
 
             // DB Exists but drop and recreate is not specified
             if (app.Def.b_appdbexists.Value && drop_and_recreate == false)
             {
-                return new() { Failed = true, Results = [new() { Status = DBStatusCodes.Error, Message = $"The APP Database {app.Def.vc_database.Value} already exists." }] };
+                return DBStatusResult.FailedStatus($"The APP Database {app.Def.vc_database.Value} already exists.");
             }
 
             // APP user exists, but the APP DB don't, this can lead to a configuration password mismatch
             if (app.Def.b_appuserexists.Value && app.Def.b_appdbexists.Value == false && drop_and_recreate == false)
             {
-                return new() { Failed = true, Results = [new() { Status = DBStatusCodes.Error, Message = $"The APP Database user {app.Def.vc_user.Value} exists, but the config database don't. Please delete the existing login to reconfigure the database." }] };
+                return DBStatusResult.FailedStatus($"The APP Database user {app.Def.vc_user.Value} exists, but the config database don't. Please delete the existing login to reconfigure the database.");
             }
 
             // Create the APP DB
@@ -392,55 +383,35 @@ public class ApplicationDatabase
         var controlPanelCfg = config.GetAppConfiguration(ConfigurationDefaults.ControlPanelAppID);
         if (controlPanelCfg == null || string.IsNullOrWhiteSpace(controlPanelCfg.SQLUser) || string.IsNullOrWhiteSpace(controlPanelCfg.SQLPassword))
         {
-            return new()
-            {
-                Failed = true,
-                Results = [new() { Status = DBStatusCodes.Error, Message = "Configuration SQL user credentials were not found." }]
-            };
+            return DBStatusResult.FailedStatus("Configuration SQL user credentials were not found.");
         }
 
         if (string.IsNullOrWhiteSpace(app_config.SQLServer) || string.IsNullOrWhiteSpace(app_config.SQLDB))
         {
-            return new()
-            {
-                Failed = true,
-                Results = [new() { Status = DBStatusCodes.Error, Message = $"Invalid SQL configuration for app '{app_config.ApplicationID}'." }]
-            };
+            return DBStatusResult.FailedStatus($"Invalid SQL configuration for app '{app_config.ApplicationID}'.");
         }
 
         using var config_dbc = new DatabaseClient(app_config.SQLServer, app_config.SQLDB, controlPanelCfg.SQLUser, controlPanelCfg.SQLPassword, logger: log);
 
         if (await config_dbc.Connect(ct, throw_exception: false) == false)
         {
-            return new()
-            {
-                Failed = true,
-                Results = [new() { Status = DBStatusCodes.Error, Message = $"Can't connect to APP DB '{app_config.SQLDB}' in server '{app_config.SQLServer}' using configuration SQL user." }]
-            };
+            return DBStatusResult.FailedStatus($"Can't connect to APP DB '{app_config.SQLDB}' in server '{app_config.SQLServer}' using configuration SQL user.");
         }
 
         try
         {
             if (!await DatabaseExists(config_dbc, app_config.SQLDB, ct))
             {
-                return new()
-                {
-                    Failed = true,
-                    Results = [new() { Status = DBStatusCodes.Error, Message = $"APP Database '{app_config.SQLDB}' does not exist." }]
-                };
+                return DBStatusResult.FailedStatus($"APP Database '{app_config.SQLDB}' does not exist.");
             }
 
             await InitializeApplication(config_dbc, app_config, app_config.SQLUser, app_config.EnableSeedTestData, config, log, ct);
 
-            return new() { Results = [new() { Status = DBStatusCodes.OK }] };
+            return DBStatusResult.SuccessStatus();
         }
         catch (Exception ex)
         {
-            return new()
-            {
-                Failed = true,
-                Results = [new() { Status = DBStatusCodes.Error, Message = $"Hot reload update failed for app '{app_config.ApplicationID}'. {ex.Message}" }]
-            };
+            return DBStatusResult.FailedStatus($"Hot reload update failed for app '{app_config.ApplicationID}'. {ex.Message}");
         }
         finally
         {

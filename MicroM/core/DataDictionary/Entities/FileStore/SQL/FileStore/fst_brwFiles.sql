@@ -16,4 +16,3 @@ from    [dbo].[file_store] a
         join [dbo].file_store_status b
 		on(b.c_file_id = a.c_file_id and b.c_status_id='FileUpload')
 where   a.c_fileprocess_id = @fileprocess_id
-        and b.c_statusvalue_id = 'Uploaded'

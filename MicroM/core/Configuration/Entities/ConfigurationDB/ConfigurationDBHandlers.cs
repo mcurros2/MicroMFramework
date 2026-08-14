@@ -170,7 +170,7 @@ public static class ConfigurationDBHandlers
 
         if (errors.Count > 0)
         {
-            return new() { Failed = true, Results = errors };
+            return DBStatusResult.FailedStatus(errors);
         }
 
 
@@ -182,25 +182,25 @@ public static class ConfigurationDBHandlers
         // No admin rigths
         if (existing_config.Def.b_adminuserhasrights.Value == false)
         {
-            return new() { Failed = true, Results = [new() { Status = DBStatusCodes.Error, Message = "The logged in user has no admin user rights" }] };
+            return DBStatusResult.FailedStatus("The logged in user has no admin user rights");
         }
 
         // If we have logged in, a certificate will always be created, so don't create one here, as the same failure will exist
         if (existing_config.Def.b_certificatefound.Value == false)
         {
-            return new() { Failed = true, Results = [new() { Status = DBStatusCodes.Error, Message = "A certificate was not found. Check if the service and user have permissions to create a certificate in the user store." }] };
+            return DBStatusResult.FailedStatus("A certificate was not found. Check if the service and user have permissions to create a certificate in the user store.");
         }
 
         // Config user exists, but the config DB don't, this can lead to a configuration password mismatch
         if (existing_config.Def.b_secretsfilevalid.Value == false)
         {
-            return new() { Failed = true, Results = [new() { Status = DBStatusCodes.Error, Message = "A secrets file exists but can't be decrypted. Delete the file if you are trying to reconfigure the server from scratch." }] };
+            return DBStatusResult.FailedStatus("A secrets file exists but can't be decrypted. Delete the file if you are trying to reconfigure the server from scratch.");
         }
 
         // Config user exists, but the config DB don't, this can lead to a configuration password mismatch
         if (existing_config.Def.b_configuserexists.Value && existing_config.Def.b_configdbexists.Value == false && cfg.Def.b_recreatedatabase.Value == false)
         {
-            return new() { Failed = true, Results = [new() { Status = DBStatusCodes.Error, Message = "The configuration user exists, but the config database don't. Please delete the existing login to reconfigure the database." }] };
+            return DBStatusResult.FailedStatus("The configuration user exists, but the config database don't. Please delete the existing login to reconfigure the database.");
         }
 
         // MMC: a certificate was found, try to get sql configuration user from secrets and ignore the configuration user specified
@@ -210,7 +210,7 @@ public static class ConfigurationDBHandlers
             secrets = await ReadConfigurationDBParms(existing_config.Def.vc_certificatethumbprint.Value, ct);
             if (secrets?.ConfigSQLUser != cfg.Def.vc_configsqluser.Value)
             {
-                return new() { Failed = true, Results = [new() { Status = DBStatusCodes.Error, Message = "The specified configuration username is different from the secrets configuration. Delete the existing configuration." }] };
+                return DBStatusResult.FailedStatus("The specified configuration username is different from the secrets configuration. Delete the existing configuration.");
             }
             if (!string.IsNullOrEmpty(secrets?.ConfigSQLUser)) cfg.Def.vc_configsqluser.Value = secrets.ConfigSQLUser;
         }
@@ -278,7 +278,7 @@ public static class ConfigurationDBHandlers
             entities?.Clear();
             dd_entities?.Clear();
 
-            return new() { Results = [new() { Status = DBStatusCodes.OK }] };
+            return DBStatusResult.SuccessStatus();
         }
         finally
         {

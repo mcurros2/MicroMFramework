@@ -78,6 +78,7 @@ public static class DataDictionarySchema
         result.TryAddType<FileStoreStatus>();
         result.TryAddType<FileStoreCat>();
         result.TryAddType<FileStoreContent>();
+        result.TryAddType<FileStoreClient>();
         result.TryAddType<EmailServiceConfiguration>();
         result.TryAddType<EmailServiceQueue>();
         result.TryAddType<EmailServiceQueueStatus>();
@@ -114,6 +115,7 @@ public static class DataDictionarySchema
             ec == null ? new FileStoreCat(schema_name) : new FileStoreCat(ec, schema_name: schema_name),
             ec == null ? new FileStoreStatus(schema_name) : new FileStoreStatus(ec, schema_name: schema_name),
             ec == null ? new FileStoreContent(schema_name) : new FileStoreContent(ec, schema_name: schema_name),
+            ec == null ? new FileStoreClient(schema_name) : new FileStoreClient(ec, schema_name: schema_name),
             ec == null ? new MicromRoutes(schema_name) : new MicromRoutes(ec, schema_name: schema_name),
             ec == null ? new MicromUsers(schema_name) : new MicromUsers(ec, schema_name: schema_name),
             ec == null ? new MicromUsersCat(schema_name) : new MicromUsersCat(ec, schema_name: schema_name),

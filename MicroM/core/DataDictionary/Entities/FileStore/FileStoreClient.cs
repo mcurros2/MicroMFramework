@@ -30,38 +30,22 @@ public class FileStoreClient : Entity<FileStoreClientDef>
     public FileStoreClient(string? schema_name) : base(schema_name) { }
     public FileStoreClient(IEntityClient ec, IMicroMEncryption? encryptor = null, string? schema_name = null) : base(ec, encryptor, schema_name) { }
 
-    internal Task<DBStatusResult> MarkDeleted(CancellationToken ct, bool throwDbStatusException = false)
-    {
-        return base.DeleteData(ct, throwDbStatusException);
-    }
-
     public override async Task<DBStatusResult> DeleteData(
-        CancellationToken ct,
-        bool throw_dbstat_exception = false,
-        MicroMOptions? options = null,
-        Dictionary<string, object>? server_claims = null,
-        IWebAPIServices? api = null,
-        string? app_id = null)
+        CancellationToken ct, bool throw_dbstat_exception = false, MicroMOptions? options = null, Dictionary<string, object>? server_claims = null,
+        IWebAPIServices? api = null, string? app_id = null)
     {
         if (api == null || string.IsNullOrWhiteSpace(app_id))
         {
-            return new()
-            {
-                Failed = true,
-                Results = [new(DBStatusCodes.Error, "File deletion requires the web API services and application ID.")]
-            };
+            return DBStatusResult.FailedStatus([new(DBStatusCodes.Error, "File deletion requires the web API services and application ID.")]);
         }
 
         var app = api.app_config.GetAppConfiguration(app_id);
         if (app == null)
         {
-            return new()
-            {
-                Failed = true,
-                Results = [new(DBStatusCodes.Error, $"Application '{app_id}' was not found.")]
-            };
+            return DBStatusResult.FailedStatus([new(DBStatusCodes.Error, $"Application '{app_id}' was not found.")]);
         }
 
-        return await api.upload.DeleteFile(app, Def.vc_fileguid.Value, Client, ct, throw_dbstat_exception);
+        return await api.upload.DeleteFile(app, Def.vc_fileguid.Value, Client, ct);
     }
+
 }

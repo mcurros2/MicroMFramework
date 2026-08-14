@@ -120,17 +120,17 @@ public class Applications : Entity<ApplicationsDef>
 
         if (Def.b_createdatabase.Value && Def.b_appdbexists.Value)
         {
-            return new() { Failed = true, Results = [new() { Status = DBStatusCodes.Error, Message = "Can't create the APP Database. Reason: The database already exists." }] };
+            return DBStatusResult.FailedStatus("Can't create the APP Database. Reason: The database already exists.");
         }
 
         if (dropDatabaseEnabled && Def.b_dropdatabase.Value && Def.b_appdbexists.Value == false)
         {
-            return new() { Failed = true, Results = [new() { Status = DBStatusCodes.Error, Message = "Can't drop the APP Database. Reason: The database doesn't exist." }] };
+            return DBStatusResult.FailedStatus("Can't drop the APP Database. Reason: The database doesn't exist.");
         }
 
         if (dropDatabaseEnabled == false && Def.b_dropdatabase.Value)
         {
-            return new() { Failed = true, Results = [new() { Status = DBStatusCodes.Error, Message = "Can't drop the APP Database. Reason: Dropping existing databases has been disabled." }] };
+            return DBStatusResult.FailedStatus("Can't drop the APP Database. Reason: Dropping existing databases has been disabled.");
         }
 
         if (dropDatabaseEnabled && Def.b_dropdatabase.Value)
@@ -152,7 +152,7 @@ public class Applications : Entity<ApplicationsDef>
             if (result.Failed) return result;
         }
 
-        return new() { Results = [new() { Status = DBStatusCodes.OK }] };
+        return DBStatusResult.SuccessStatus();
     }
 
     public override async Task<DBStatusResult> InsertData(CancellationToken ct, bool throw_dbstat_exception = false, MicroMOptions? options = null, Dictionary<string, object>? server_claims = null, IWebAPIServices? api = null, string? app_id = null)
@@ -193,7 +193,7 @@ public class Applications : Entity<ApplicationsDef>
                 var refreshed = await api.app_config.RefreshConfiguration(Def.c_application_id.Value.Trim(), ct);
                 if (!refreshed)
                 {
-                    return new() { Failed = true, Results = [new() { Status = DBStatusCodes.Error, Message = "Failed to refresh application configuration after insert." }] };
+                    return DBStatusResult.FailedStatus("Failed to refresh application configuration after insert.");
                 }
 
                 result = await PerformCreateOrDropDatabase(ct, options, server_claims, api);
@@ -252,7 +252,7 @@ public class Applications : Entity<ApplicationsDef>
                 var refreshed = await api.app_config.RefreshConfiguration(Def.c_application_id.Value, ct);
                 if (!refreshed)
                 {
-                    return new() { Failed = true, Results = [new() { Status = DBStatusCodes.Error, Message = "Failed to refresh application configuration after update." }] };
+                    return DBStatusResult.FailedStatus("Failed to refresh application configuration after update.");
                 }
 
                 result = await PerformCreateOrDropDatabase(ct, options, server_claims, api);

@@ -2,6 +2,19 @@
 
 public static class FilesProvider
 {
+    public static string GetFilePath(string uploadsFolder, string appId, string fileFolder, string fileGuid)
+    {
+        var uploadsPath = Path.GetFullPath(Path.Combine(uploadsFolder, appId, fileFolder));
+        var filePath = Path.GetFullPath(Path.Combine(uploadsPath, fileGuid));
+
+        if (!filePath.StartsWith(uploadsPath + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException($"File GUID '{fileGuid}' resolves outside the upload directory.");
+        }
+
+        return filePath;
+    }
+
     public static bool TryDeleteFile(string? path)
     {
         if (string.IsNullOrWhiteSpace(path)) return true;

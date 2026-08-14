@@ -1,3 +1,4 @@
+using MicroM.Core;
 using MicroM.DataDictionary.Entities;
 using MicroM.Web.Services;
 using MicroM.Web.Services.Security;
@@ -7,6 +8,7 @@ using Moq;
 using System;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -41,6 +43,16 @@ public class FileUploadContractTests
         Assert.IsTrue(EveryoneAllowedRoutes.IsEveryoneAllowedRoute("microm", "app", "/microm/app/ent/FileStoreClient/delete"));
         Assert.IsTrue(EveryoneAllowedRoutes.IsEveryoneAllowedRoute("microm", "app", "/microm/app/ent/FileStoreClient/view/fcc_brwFiles"));
         Assert.IsFalse(EveryoneAllowedRoutes.IsEveryoneAllowedRoute("microm", "app", "/microm/app/files"));
+
+        Assert.AreEqual(
+            typeof(FileStoreClient),
+            typeof(FileStoreClient).GetMethod(nameof(FileStoreClient.DeleteData))!.DeclaringType);
+        Assert.IsNotNull(typeof(IFileUploadService).GetMethod("DeleteFile"));
+        Assert.IsNull(typeof(IFileUploadService).GetMethod("CleanupTerminalFiles"));
+        Assert.IsNotNull(typeof(FileUploadService).GetField("_fileDetailsCache", BindingFlags.Instance | BindingFlags.NonPublic));
+
+        Assert.IsFalse(typeof(FileStore).Assembly.GetManifestResourceNames()
+            .Any(name => name.EndsWith("fcc_drop.sql", StringComparison.OrdinalIgnoreCase)));
     }
 
     [TestMethod]
@@ -64,10 +76,14 @@ public class FileUploadContractTests
     }
 
     [TestMethod]
-    public void FileQueries_FilterUploadedAndSelectEveryCleanupStatus()
+    public void FileQueries_PreserveUploaderStatusesAndSelectEveryCleanupStatus()
     {
-        var listSql = ReadEmbeddedSql("fcc_brwFiles.sql");
-        StringAssert.Contains(listSql, "c_statusvalue_id = 'Uploaded'");
+        var backendListSql = ReadEmbeddedSql("fst_brwFiles.sql");
+        Assert.IsFalse(backendListSql.Contains("c_statusvalue_id = 'Uploaded'", StringComparison.OrdinalIgnoreCase));
+
+        var clientListSql = ReadEmbeddedSql("fcc_brwFiles.sql");
+        StringAssert.Contains(clientListSql, "c_statusvalue_id <> 'Deleted'");
+        Assert.IsFalse(clientListSql.Contains("c_statusvalue_id = 'Uploaded'", StringComparison.OrdinalIgnoreCase));
 
         var cleanupSql = ReadEmbeddedSql("fst_qryTerminalFiles.sql");
         StringAssert.Contains(cleanupSql, "'Deleted'");
@@ -76,7 +92,7 @@ public class FileUploadContractTests
     }
 
     [TestMethod]
-    public void PhysicalCleanup_EvictsDiskCacheAndDeletesOriginalAndAllThumbnails()
+    public void PhysicalCleanup_EvictsDiskCacheAndDeletesOriginalAndResolvedThumbnail()
     {
         var root = Path.Combine(Path.GetTempPath(), $"microm-cleanup-{Guid.NewGuid():N}");
         Directory.CreateDirectory(root);
@@ -101,14 +117,44 @@ public class FileUploadContractTests
             };
             var diskCache = new Mock<IDiskFileCacheService>();
             diskCache.Setup(cache => cache.RemoveEntry("app", details)).Returns(true);
-            var cleanup = new FilePhysicalCleanupService(diskCache.Object, NullLogger<FilePhysicalCleanupService>.Instance);
+            var thumbnailService = new Mock<IThumbnailService>();
+            thumbnailService
+                .Setup(service => service.GetThumbnailFilename(original, 150, 75))
+                .Returns((Path.GetFileName(thumbnail150), ".jpg", thumbnail150));
+            var cleanup = new FilePhysicalCleanupService(
+                diskCache.Object,
+                thumbnailService.Object,
+                NullLogger<FilePhysicalCleanupService>.Instance);
 
             Assert.IsTrue(cleanup.TryCleanup("app", details));
             diskCache.Verify(cache => cache.RemoveEntry("app", details), Times.Once);
+            thumbnailService.Verify(service => service.GetThumbnailFilename(original, 150, 75), Times.Once);
             Assert.IsFalse(File.Exists(original));
             Assert.IsFalse(File.Exists(thumbnail150));
-            Assert.IsFalse(File.Exists(thumbnail300));
+            Assert.IsTrue(File.Exists(thumbnail300));
             Assert.IsTrue(File.Exists(unrelated));
+        }
+        finally
+        {
+            if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [TestMethod]
+    public void FilesProvider_DeleteIsIdempotentAndPathResolutionRejectsTraversal()
+    {
+        var root = Path.Combine(Path.GetTempPath(), $"microm-files-provider-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(root);
+
+        try
+        {
+            var file = Path.Combine(root, "file.txt");
+            File.WriteAllText(file, "content");
+
+            Assert.IsTrue(FilesProvider.TryDeleteFile(file));
+            Assert.IsTrue(FilesProvider.TryDeleteFile(file));
+            Assert.ThrowsExactly<InvalidOperationException>(() =>
+                FilesProvider.GetFilePath(root, "app", "folder", "..\\outside.txt"));
         }
         finally
         {

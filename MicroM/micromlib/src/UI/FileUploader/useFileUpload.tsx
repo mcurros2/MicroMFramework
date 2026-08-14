@@ -1,9 +1,9 @@
 import { Text, useComponentDefaultProps } from "@mantine/core";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { DBStatusResult, MicroMClient } from "../../client";
+import { DBStatusResult, MicroMClient, ValuesObject } from "../../client";
 import { FileStoreClient } from "../../DataDictionary/FileStoreClient/FileStoreClient";
 import { FileStoreProcess } from "../../DataDictionary/FileStoreProcess/FileStoreProcess";
-import { EntityColumn } from "../../Entity";
+import { convertRecordsToArrayOfValuesObject, EntityColumn } from "../../Entity";
 import { useModal } from "../Core";
 import { ImageEditor } from "./ImageEditor";
 import { getSupportedImageMimeType, resolveImageProcessingOptions } from "./imageProcessing";
@@ -84,6 +84,44 @@ export const UseFileUploadDefaultProps: Partial<UseFileUploadProps> = {
 
 export type UploadStatus = 'Pending' | 'Uploading' | 'Uploaded' | 'Failed' | 'Cancelled';
 
+const persistedFileToProgressReport = (file: ValuesObject, client: MicroMClient, thumbnailMaxSize?: number, thumbnailQuality?: number): UploadProgressReport => {
+    const guid = String(file.vc_fileguid ?? '');
+    const status = String(file.c_fileuploadstatus_id ?? '');
+
+    const common = {
+        status_id: guid,
+        file_name: String(file.vc_filename ?? ''),
+        file_size: Number(file.bi_filesize ?? 0),
+        vc_fileguid: guid
+    };
+
+    switch (status as UploadStatus) {
+        case 'Pending':
+            return { ...common, progress: 0 };
+        case 'Uploading':
+            return { ...common, progress: 0 };
+        case 'Uploaded':
+            return {
+                ...common,
+                progress: 100,
+                done: true,
+                documentURL: client.getDocumentURL(guid),
+                thumbnailURL: client.getThumbnailURL(guid, thumbnailMaxSize, thumbnailQuality)
+            };
+        case 'Failed':
+            return { ...common, progress: 0, done: true, errorMessage: 'Upload failed' };
+        case 'Cancelled':
+            return { ...common, progress: 0, done: true, cancelled: true };
+        default:
+            return {
+                ...common,
+                progress: 0,
+                done: true,
+                errorMessage: `Unknown upload status: ${status || '(empty)'}`
+            };
+    }
+};
+
 export function useFileUpload(props: UseFileUploadProps): UseFileUploadReturnType {
     const {
         client, maxIndividualFileSize, maxTotalFilesSize, maxFilesCount,
@@ -116,22 +154,23 @@ export function useFileUpload(props: UseFileUploadProps): UseFileUploadReturnTyp
         }
 
         const fileStore = new FileStoreClient(client);
-        const files = await fileStore.listFiles(fileProcessColumn.value, thumbnailMaxSize, thumbnailQuality, abort_signal);
+        const data = await fileStore.API.executeView(
+            fileStore.def.views.fcc_brwFiles,
+            { c_fileprocess_id: fileProcessColumn.value },
+            null,
+            null,
+            abort_signal
+        );
+        const files = data.flatMap(result => convertRecordsToArrayOfValuesObject(result, null));
         const refreshed: Record<string, UploadProgressReport> = {};
         let totalSize = 0;
 
         files.forEach(file => {
-            refreshed[file.vc_fileguid] = {
-                status_id: file.vc_fileguid,
-                file_name: file.vc_filename,
-                file_size: file.bi_filesize,
-                progress: 100,
-                done: true,
-                documentURL: file.documentURL,
-                thumbnailURL: file.thumbnailURL,
-                vc_fileguid: file.vc_fileguid
-            };
-            totalSize += file.bi_filesize;
+            const report = persistedFileToProgressReport(file, client, thumbnailMaxSize, thumbnailQuality);
+            if (!report.vc_fileguid) return;
+
+            refreshed[report.vc_fileguid] = report;
+            if (file.c_fileuploadstatus_id === 'Uploaded') totalSize += report.file_size;
         });
 
         setUploadProgress(refreshed);
@@ -223,9 +262,10 @@ export function useFileUpload(props: UseFileUploadProps): UseFileUploadReturnTyp
 
     const uploadFiles = async (selectedFiles: File[]) => {
         const reports: UploadProgressReport[] = [];
+        const countedFiles = Object.values(uploadProgress).filter(report => !report.errorMessage && !report.cancelled).length;
 
         // Check against maxFilesCount.
-        if ((Object.keys(uploadProgress).length + selectedFiles.length) > maxFilesCount!) {
+        if ((countedFiles + selectedFiles.length) > maxFilesCount!) {
             setErrorNotification(`${youCanUploadAMaximumOfText} ${maxFilesCount} ${filesText}.`);
             return reports;
         }
@@ -277,32 +317,7 @@ export function useFileUpload(props: UseFileUploadProps): UseFileUploadReturnTyp
                 break;
             }
 
-            if (onUploadComplete && result.vc_fileguid) {
-                try {
-                    const completion = await onUploadComplete(result);
-                    if (completion?.error) {
-                        const message = completion.message || unspecifiedErrorWhenUploadingFileText;
-                        result.errorMessage = message;
-                        result.progress = 0;
-                        updateProgress(result.status_id, result);
-                        setErrorNotification(message);
-                        break;
-                    }
-                    if (completion?.removeFromQueue) {
-                        setUploadProgress(prev => {
-                            const updated = { ...prev };
-                            delete updated[result.vc_fileguid!];
-                            return updated;
-                        });
-                        uploadedSize.current = Math.max(0, uploadedSize.current - result.file_size);
-                    }
-                }
-                catch (e: unknown) {
-                    const message = e instanceof Error ? e.message : String(e);
-                    setErrorNotification(message);
-                    break;
-                }
-            }
+            if (!await completeUpload(result)) break;
         }
 
         setUploadingNotification(false);
@@ -330,6 +345,35 @@ export function useFileUpload(props: UseFileUploadProps): UseFileUploadReturnTyp
                 return { ...prev, [statusId]: newStatus };
             }
         });
+    };
+
+    const completeUpload = async (report: UploadProgressReport) => {
+        if (!onUploadComplete || !report.vc_fileguid) return true;
+
+        try {
+            const completion = await onUploadComplete(report);
+            if (completion?.error) {
+                const message = completion.message || unspecifiedErrorWhenUploadingFileText;
+                report.errorMessage = message;
+                report.progress = 0;
+                updateProgress(report.status_id, report);
+                setErrorNotification(message);
+                return false;
+            }
+            if (completion?.removeFromQueue) {
+                setUploadProgress(prev => {
+                    const updated = { ...prev };
+                    delete updated[report.vc_fileguid!];
+                    return updated;
+                });
+                uploadedSize.current = Math.max(0, uploadedSize.current - report.file_size);
+            }
+            return true;
+        }
+        catch (e: unknown) {
+            setErrorNotification(e instanceof Error ? e.message : String(e));
+            return false;
+        }
     };
 
     const uploadFile = async (file: File) => {
@@ -411,7 +455,8 @@ export function useFileUpload(props: UseFileUploadProps): UseFileUploadReturnTyp
         try {
             setLoadingNotification(true);
             const fileStore = new FileStoreClient(client);
-            const result = await fileStore.deleteFile(fileGUID, abort_signal);
+            fileStore.def.columns.vc_fileguid.value = fileGUID;
+            const result = await fileStore.API.deleteData(undefined, abort_signal);
 
             setLoadingNotification(false);
             if (!result.Failed) {
@@ -494,34 +539,15 @@ export function useFileUpload(props: UseFileUploadProps): UseFileUploadReturnTyp
                 const refreshed = await refreshFiles();
                 if (!refreshed[replacement.vc_fileguid] || refreshed[report.vc_fileguid]) {
                     setErrorNotification('The replacement was uploaded, but the refreshed file list is inconsistent.');
+                    return null;
                 }
             }
             catch (e: unknown) {
                 setErrorNotification(`The replacement was uploaded, but the file list could not be refreshed: ${e instanceof Error ? e.message : String(e)}`);
+                return null;
             }
 
-            if (onUploadComplete) {
-                try {
-                    const completion = await onUploadComplete(replacement);
-                    if (completion?.error) {
-                        replacement.errorMessage = completion.message || unspecifiedErrorWhenUploadingFileText;
-                        replacement.progress = 0;
-                        updateProgress(replacement.status_id, replacement);
-                        setErrorNotification(replacement.errorMessage);
-                    }
-                    if (completion?.removeFromQueue) {
-                        setUploadProgress(prev => {
-                            const updated = { ...prev };
-                            delete updated[replacement.vc_fileguid!];
-                            return updated;
-                        });
-                        uploadedSize.current = Math.max(0, uploadedSize.current - replacement.file_size);
-                    }
-                }
-                catch (e: unknown) {
-                    setErrorNotification(e instanceof Error ? e.message : String(e));
-                }
-            }
+            if (!await completeUpload(replacement)) return null;
 
             return replacement;
         }
