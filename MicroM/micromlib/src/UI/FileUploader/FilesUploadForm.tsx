@@ -6,13 +6,12 @@ import { UploadProgressReport, useFileUpload, UseFileUploadProps, UseFileUploadR
 
 export interface FilesUploadFormProps extends UseFileUploadProps {
     fileProcessColumn: EntityColumn<string>,
-    onOK?: (fileprocess_id: string, uploadProgress: Record<string, UploadProgressReport>) => void,
+    onOK?: (fileprocess_id: string, files: readonly UploadProgressReport[]) => void,
     onDelete?: (fileGUID: string) => boolean | Promise<boolean>,
     helpMessage?: string,
     uploaderProps?: Omit<FileUploaderProps, 'uploadAPI' | 'editor'>,
     okLabel?: string,
     showOKButton?: boolean,
-    /** Reuse an existing hook instance instead of creating an uploader owned by this form. */
     uploadAPI?: UseFileUploadReturnType,
 }
 
@@ -28,7 +27,7 @@ interface FilesUploadFormContentProps {
     uploadAPI: UseFileUploadReturnType,
     uploaderProps?: Omit<FileUploaderProps, 'uploadAPI' | 'editor'>,
     onDelete?: (fileGUID: string) => boolean | Promise<boolean>,
-    onOK?: (fileprocess_id: string, uploadProgress: Record<string, UploadProgressReport>) => void,
+    onOK?: (fileprocess_id: string, files: readonly UploadProgressReport[]) => void,
     helpMessage?: string,
     okLabel?: string,
     showOKButton?: boolean,
@@ -39,7 +38,7 @@ function FilesUploadFormContent({
 }: FilesUploadFormContentProps) {
     const theme = useMantineTheme();
     const uploadState = useFileUploadSnapshot(uploadAPI);
-    const handleOK = () => onOK?.(uploadState.fileProcessID, uploadState.uploadProgress);
+    const handleOK = () => onOK?.(uploadState.fileProcessID, uploadState.files);
 
     return (
         <>

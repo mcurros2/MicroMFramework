@@ -4,9 +4,9 @@ import { IconCircleX, IconDownload, IconEdit, IconEye, IconFileTypePdf, IconPhot
 import { ReactNode } from "react";
 import { NotifyError, NotifyInfo, useModal } from "../Core";
 import { UseEntityFormReturnType } from "../Form/useEntityForm";
+import { isSupportedImageFile } from "../ImageEditor/imageProcessing";
 import { getFileType } from "./getFileType";
 import { ImagePreview } from "./ImagePreview";
-import { isSupportedImageFile } from "./imageProcessing";
 import { PDFPreview } from "./PDFPreview";
 import { UploadProgressReport, UseFileUploadReturnType, useFileUploadSnapshot } from "./useFileUpload";
 

@@ -11,7 +11,7 @@ import { UploadProgressReport, UseFileUploadReturnType } from "./useFileUpload";
 export interface ModalFileUploadProps {
     client: MicroMClient,
     fileProcessColumn: EntityColumn<string>,
-    onOK?: (fileprocess_id: string, uploadProgress: Record<string, UploadProgressReport>) => void,
+    onOK?: (fileprocess_id: string, files: readonly UploadProgressReport[]) => void,
     onCancel?: () => void,
     onClosed?: () => void,
     modalProps?: ModalSettings,
@@ -36,11 +36,11 @@ export function useFilesUploadForm() {
 
         buttonResult.current = 'Quit';
 
-        const handleOK = async (fileprocess_id: string, uploadProgress: Record<string, UploadProgressReport>) => {
+        const handleOK = async (fileprocess_id: string, files: readonly UploadProgressReport[]) => {
             buttonResult.current = 'OK';
             await modals.close();
             if (onOK) {
-                await onOK(fileprocess_id, uploadProgress);
+                await onOK(fileprocess_id, files);
             }
         };
 
@@ -69,7 +69,7 @@ export function useFilesUploadForm() {
                         uploadAPI={uploadAPI}
                         uploaderProps={uploaderProps}
                         client={client}
-                        onOK={async (fileprocess_id: string, uploadProgress: Record<string, UploadProgressReport>) => await handleOK(fileprocess_id, uploadProgress)}
+                        onOK={async (fileprocess_id: string, files: readonly UploadProgressReport[]) => await handleOK(fileprocess_id, files)}
                         onCancel={() => handleCancel()}
                         showOKButton
                         {...filesUploadFormProps}

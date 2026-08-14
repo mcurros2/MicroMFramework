@@ -5,8 +5,8 @@ import { FileStoreClient } from "../../DataDictionary/FileStoreClient/FileStoreC
 import { FileStoreProcess } from "../../DataDictionary/FileStoreProcess/FileStoreProcess";
 import { convertRecordsToArrayOfValuesObject, EntityColumn } from "../../Entity";
 import { MicroMModalSettings, useModal } from "../Core";
-import { ImageEditor, ImageEditorProps } from "./ImageEditor";
-import { BrowserImageProcessingOptions, getImageOutputSettings, getSupportedImageMimeType, isSupportedImageFile, processImageFileAutomatically, resolveImageProcessingOptions } from "./imageProcessing";
+import { ImageEditor, ImageEditorProps } from "../ImageEditor";
+import { BrowserImageProcessingOptions, getImageOutputSettings, getSupportedImageMimeType, isSupportedImageFile, processImageFileAutomatically, resolveImageProcessingOptions } from "../ImageEditor/imageProcessing";
 
 export interface UploadProgressReport {
     errorMessage?: string,
@@ -23,8 +23,6 @@ export interface UploadProgressReport {
 
 export interface UseFileUploadSnapshot {
     files: readonly UploadProgressReport[],
-    /** @deprecated Use files instead. */
-    uploadProgress: Record<string, UploadProgressReport>,
     fileProcessID: string,
     maxIndividualFileSize?: number,
     maxTotalFilesSize?: number,
@@ -742,7 +740,6 @@ export function useFileUpload(props: UseFileUploadProps): UseFileUploadReturnTyp
 
     const snapshot = useMemo<UseFileUploadSnapshot>(() => ({
         files,
-        uploadProgress: filesByID,
         fileProcessID: fileProcessColumn.value,
         maxFilesCount,
         maxIndividualFileSize,
@@ -753,7 +750,7 @@ export function useFileUpload(props: UseFileUploadProps): UseFileUploadReturnTyp
         loadingNotification,
         processing: operation !== 'idle',
         editorEnabled: editor === true
-    }), [cancelledNotification, editor, errorNotification, fileProcessColumn.value, files, filesByID, loadingNotification, maxFilesCount, maxIndividualFileSize, maxTotalFilesSize, operation, uploadingNotification]);
+    }), [cancelledNotification, editor, errorNotification, fileProcessColumn.value, files, loadingNotification, maxFilesCount, maxIndividualFileSize, maxTotalFilesSize, operation, uploadingNotification]);
 
     const snapshotRef = useRef(snapshot);
     const subscribersRef = useRef(new Set<() => void>());

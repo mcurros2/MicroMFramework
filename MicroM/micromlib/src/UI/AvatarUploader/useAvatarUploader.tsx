@@ -3,8 +3,9 @@ import { useCallback, useMemo } from "react";
 import { MicroMClient } from "../../client";
 import { EntityColumn } from "../../Entity";
 import { ConfirmAndExecutePanel, useModal } from "../Core";
-import { BrowserImageProcessingOptions, UploadProgressReport, useFilesUploadForm, useFileUpload } from "../FileUploader";
+import { UploadProgressReport, useFilesUploadForm, useFileUpload } from "../FileUploader";
 import { UseEntityFormReturnType } from "../Form";
+import { BrowserImageProcessingOptions } from "../ImageEditor";
 
 export type AvatarImageProcessingOptions = BrowserImageProcessingOptions;
 
