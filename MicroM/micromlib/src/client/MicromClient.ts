@@ -869,6 +869,7 @@ export class MicroMClient {
             headers: { ...(this.#TOKEN ? { "Authorization": `Bearer ${this.#TOKEN.access_token}` } : {}) },
             mode: this.#REQUEST_MODE,
             credentials: 'include',
+            cache: 'force-cache',
             referrerPolicy: 'strict-origin-when-cross-origin',
             signal: abort_signal
         });

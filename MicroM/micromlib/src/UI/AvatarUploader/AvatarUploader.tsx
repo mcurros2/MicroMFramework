@@ -1,5 +1,5 @@
 import { ActionIcon, Alert, Avatar, AvatarProps, Group, Loader, Stack, useMantineTheme } from "@mantine/core";
-import { IconEdit, IconTrash, IconUpload, IconX } from "@tabler/icons-react";
+import { IconEdit, IconTrash, IconUpload } from "@tabler/icons-react";
 import { AvatarUploaderAPI } from "./useAvatarUploader";
 
 export interface AvatarUploaderProps extends Omit<AvatarProps, 'src'> {
@@ -74,7 +74,7 @@ export function AvatarUploader(props: AvatarUploaderProps) {
                 </Group>
             }
             {errorNotification &&
-                <Alert color="red" withCloseButton onClose={clearNotifications} icon={<IconX size="1rem" />}>
+                <Alert color="red" withCloseButton onClose={clearNotifications}>
                     {errorNotification}
                 </Alert>
             }
