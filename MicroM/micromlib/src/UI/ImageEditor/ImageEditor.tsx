@@ -15,7 +15,9 @@ export interface ImageEditorProps {
     sourceFile?: File,
     options: ResolvedBrowserImageProcessingOptions,
     onSave: (file: File) => Promise<void> | void,
+    onBeforeSave?: (file: File) => boolean | Promise<boolean>,
     onCancel: () => Promise<void> | void,
+    initiallyDirty?: boolean,
     saveLabel?: string,
     cancelLabel?: string,
     rotateClockwiseLabel?: string,
@@ -30,13 +32,14 @@ export const ImageEditorDefaultProps: Partial<ImageEditorProps> = {
     rotateClockwiseLabel: 'Rotate right',
     rotateCounterClockwiseLabel: 'Rotate left',
     takePhotoLabel: 'Take photo',
-    camera: true
+    camera: true,
+    initiallyDirty: true
 }
 
 export const ImageEditor = (props: ImageEditorProps) => {
     const {
-        sourceFile, options, onSave, onCancel, saveLabel, cancelLabel, rotateClockwiseLabel,
-        rotateCounterClockwiseLabel, takePhotoLabel, camera
+        sourceFile, options, onSave, onBeforeSave, onCancel, initiallyDirty, saveLabel, cancelLabel,
+        rotateClockwiseLabel, rotateCounterClockwiseLabel, takePhotoLabel, camera
     } = useComponentDefaultProps('ImageEditor', ImageEditorDefaultProps, props);
 
     const [editorSource, setEditorSource] = useState<File | undefined>(sourceFile);
@@ -49,8 +52,18 @@ export const ImageEditor = (props: ImageEditorProps) => {
     const [ready, setReady] = useState(false);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string>();
+
     const cropEnabled = options.crop !== false;
     const manualRotation = options.manualRotation;
+
+    const dirty = !!editorSource && (
+        initiallyDirty === true
+        || editorSource !== sourceFile
+        || crop.x !== 0
+        || crop.y !== 0
+        || zoom !== 1
+        || rotationDegrees !== 0
+    );
 
     useEffect(() => {
         setEditorSource(sourceFile);
@@ -104,7 +117,7 @@ export const ImageEditor = (props: ImageEditorProps) => {
     }, [cropEnabled, manualRotation]);
 
     const save = useCallback(async () => {
-        if (!editorSource || !preparedImage || (cropEnabled && !croppedAreaPixels)) return;
+        if (!dirty || !editorSource || !preparedImage || (cropEnabled && !croppedAreaPixels)) return;
 
         setSaving(true);
         setError(undefined);
@@ -116,7 +129,10 @@ export const ImageEditor = (props: ImageEditorProps) => {
                 rotationDegrees,
                 options
             );
+
             const file = await canvasToProcessedFile(canvas, editorSource, options);
+
+            if (onBeforeSave && !await onBeforeSave(file)) return;
             await onSave(file);
         }
         catch (e: unknown) {
@@ -125,7 +141,7 @@ export const ImageEditor = (props: ImageEditorProps) => {
         finally {
             setSaving(false);
         }
-    }, [cropEnabled, croppedAreaPixels, editorSource, onSave, options, preparedImage, rotationDegrees]);
+    }, [cropEnabled, croppedAreaPixels, dirty, editorSource, onBeforeSave, onSave, options, preparedImage, rotationDegrees]);
 
     const cameraProps = typeof camera === 'object' ? camera : {};
 
@@ -222,7 +238,7 @@ export const ImageEditor = (props: ImageEditorProps) => {
                     <Button variant="light" onClick={() => void onCancel()} disabled={saving} leftIcon={<IconX size="1rem" />}>
                         {cancelLabel}
                     </Button>
-                    <Button onClick={() => void save()} loading={saving} disabled={!editorSource || !ready} leftIcon={<IconCheck size="1rem" />}>
+                    <Button onClick={() => void save()} loading={saving} disabled={!dirty || !ready} leftIcon={<IconCheck size="1rem" />}>
                         {saveLabel}
                     </Button>
                 </Group>

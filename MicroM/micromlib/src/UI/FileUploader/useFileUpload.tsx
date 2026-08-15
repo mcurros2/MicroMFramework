@@ -39,7 +39,7 @@ interface UseFileUploadActions {
     uploadFiles: (selectedFiles: File[]) => Promise<UploadProgressReport[]>,
     replaceFile: (fileGUID: string, replacementFile: File) => Promise<UploadProgressReport | null>,
     editImage: (file: string | UploadProgressReport) => Promise<UploadProgressReport | null>,
-    openImageEditor: (file?: File) => Promise<File | null>,
+    openImageEditor: (file?: File, options?: OpenImageEditorOptions) => Promise<File | null>,
     captureImage: () => Promise<UploadProgressReport | null>,
     canEditImage: (file: string | UploadProgressReport) => boolean,
     refreshFiles: () => Promise<Record<string, UploadProgressReport>>,
@@ -65,6 +65,11 @@ export type UploadCompletionResult = ValidateFileReturnType;
 export type ImageEditorConfigurationProps = Partial<Pick<ImageEditorProps,
     'saveLabel' | 'cancelLabel' | 'rotateClockwiseLabel' | 'rotateCounterClockwiseLabel' |
     'takePhotoLabel' | 'camera'>>;
+
+export interface OpenImageEditorOptions {
+    initiallyDirty?: boolean,
+    onBeforeSave?: NonNullable<ImageEditorProps['onBeforeSave']>,
+}
 
 export interface UseFileUploadProps {
     client: MicroMClient,
@@ -300,7 +305,7 @@ export function useFileUpload(props: UseFileUploadProps): UseFileUploadReturnTyp
 
     useEffect(() => () => activeControllerRef.current?.abort(), []);
 
-    const openImageEditor = useCallback(async (file?: File) => {
+    const openImageEditor = useCallback(async (file?: File, options?: OpenImageEditorOptions) => {
         if (!editor) return null;
 
         if (file) getImageOutputSettings(file, processingOptions);
@@ -320,6 +325,8 @@ export function useFileUpload(props: UseFileUploadProps): UseFileUploadReturnTyp
                     sourceFile={file}
                     options={processingOptions}
                     {...imageEditorProps}
+                    initiallyDirty={options?.initiallyDirty ?? !!file}
+                    onBeforeSave={options?.onBeforeSave}
                     onSave={result => settle(result)}
                     onCancel={() => settle(null)}
                 />,
@@ -341,15 +348,21 @@ export function useFileUpload(props: UseFileUploadProps): UseFileUploadReturnTyp
         });
     }, [editor, imageEditorModalProps, imageEditorProps, imageEditorTitle, modals, processingOptions]);
 
-    const processSelectedFile = useCallback(async (file: File) => {
+    const processSelectedFile = useCallback(async (file: File, editorOptions?: OpenImageEditorOptions) => {
         if (editorProcessedFilesRef.current.has(file)) {
             editorProcessedFilesRef.current.delete(file);
             return onProcessFile ? await onProcessFile(file) : file;
         }
-        if (onProcessFile) return await onProcessFile(file);
-        if (editor) return await openImageEditor(file);
-        if (imageProcessing) return await processImageFileAutomatically(file, processingOptions);
-        return file;
+        if (onProcessFile) {
+            return await onProcessFile(file);
+        }
+        if (editor) return await openImageEditor(file, editorOptions);
+
+        const processedFile = imageProcessing
+            ? await processImageFileAutomatically(file, processingOptions)
+            : file;
+
+        return processedFile;
     }, [editor, imageProcessing, onProcessFile, openImageEditor, processingOptions]);
 
     const validateFileSize = useCallback((file: File, excludedGUIDs: readonly string[] = []) => {
@@ -370,7 +383,11 @@ export function useFileUpload(props: UseFileUploadProps): UseFileUploadReturnTyp
         return true;
     }, [exceedMaximumIndividualSizeText, files, maxIndividualFileSize, maxTotalFilesSize, totalUploadExceedsMaximumSizeText]);
 
-    const prepareSelectedFile = useCallback(async (file: File, excludedGUIDs: readonly string[] = []) => {
+    const prepareSelectedFile = useCallback(async (
+        file: File,
+        excludedGUIDs: readonly string[] = [],
+        editorOptions?: OpenImageEditorOptions
+    ) => {
         if (onValidateFile) {
             const validation = await onValidateFile(file);
             if (validation.error) {
@@ -379,12 +396,16 @@ export function useFileUpload(props: UseFileUploadProps): UseFileUploadReturnTyp
             }
         }
 
-        const processedFile = await processSelectedFile(file);
+        const saveGuardRunsInEditor = editor === true
+            && !onProcessFile
+            && !editorProcessedFilesRef.current.has(file);
+        const processedFile = await processSelectedFile(file, editorOptions);
         if (!processedFile || !validateFileSize(processedFile, excludedGUIDs)) return null;
 
         if (onBeforeUpload && !await onBeforeUpload(processedFile)) return null;
+        if (!saveGuardRunsInEditor && editorOptions?.onBeforeSave && !await editorOptions.onBeforeSave(processedFile)) return null;
         return processedFile;
-    }, [onBeforeUpload, onValidateFile, processSelectedFile, validateFileSize]);
+    }, [editor, onBeforeUpload, onProcessFile, onValidateFile, processSelectedFile, validateFileSize]);
 
     const uploadFile = useCallback(async (file: File, signal: AbortSignal) => {
         const statusID = createStatusID(file);
@@ -428,6 +449,7 @@ export function useFileUpload(props: UseFileUploadProps): UseFileUploadReturnTyp
 
             const errorMessage = result?.ErrorMessage
                 || (!result?.vc_fileguid ? 'The upload did not return a file GUID.' : undefined);
+
             return setReport(statusID, {
                 file_name: file.name,
                 file_size: file.size,
@@ -442,6 +464,7 @@ export function useFileUpload(props: UseFileUploadProps): UseFileUploadReturnTyp
         }
         catch (error: unknown) {
             const cancelled = error instanceof Error && error.name === 'AbortError';
+
             return setReport(statusID, {
                 file_name: file.name,
                 file_size: file.size,
@@ -477,6 +500,7 @@ export function useFileUpload(props: UseFileUploadProps): UseFileUploadReturnTyp
 
         try {
             const countedFiles = files.filter(file => !file.errorMessage && !file.cancelled).length;
+
             if ((countedFiles + selectedFiles.length) > maxFilesCount!) {
                 setErrorNotification(`${youCanUploadAMaximumOfText} ${maxFilesCount} ${filesText}.`);
                 return reports;
@@ -500,6 +524,7 @@ export function useFileUpload(props: UseFileUploadProps): UseFileUploadReturnTyp
 
                 const projectedSize = projectedFiles.filter(isSuccessfulFile)
                     .reduce((total, item) => total + item.file_size, 0);
+
                 if ((projectedSize + file.size) > maxTotalFilesSize!) {
                     setErrorNotification(`${totalUploadExceedsMaximumSizeText} ${maxTotalFilesSize! / (1024 ** 2)}MB`);
                     continue;
@@ -570,9 +595,19 @@ export function useFileUpload(props: UseFileUploadProps): UseFileUploadReturnTyp
             && isSupportedImageFile(report.file_name);
     }, [editor, findFile]);
 
-    const performReplacement = useCallback(async (currentFile: UploadProgressReport, replacementSource: File, signal: AbortSignal) => {
+    const performReplacement = useCallback(async (
+        currentFile: UploadProgressReport,
+        replacementSource: File,
+        signal: AbortSignal,
+        initiallyDirty = true
+    ) => {
         const currentGUID = currentFile.vc_fileguid!;
-        const preparedFile = await prepareSelectedFile(replacementSource, [currentGUID]);
+
+        const preparedFile = await prepareSelectedFile(replacementSource, [currentGUID], {
+            initiallyDirty,
+            onBeforeSave: async candidateFile => !onBeforeReplace || await onBeforeReplace(currentFile, candidateFile)
+        });
+
         if (!preparedFile) return null;
 
         const replacement = await uploadFile(preparedFile, signal);
@@ -646,7 +681,7 @@ export function useFileUpload(props: UseFileUploadProps): UseFileUploadReturnTyp
         }
 
         return await completeUpload(replacement) ? replacement : null;
-    }, [completeUpload, deleteStoredFile, loadFilesFromServer, prepareSelectedFile, unspecifiedErrorWhenUploadingFileText, uploadFile]);
+    }, [completeUpload, deleteStoredFile, loadFilesFromServer, onBeforeReplace, prepareSelectedFile, unspecifiedErrorWhenUploadingFileText, uploadFile]);
 
     const replaceFile = useCallback(async (fileGUID: string, replacementFile: File) => {
         const currentFile = findFile(fileGUID);
@@ -658,7 +693,6 @@ export function useFileUpload(props: UseFileUploadProps): UseFileUploadReturnTyp
         try {
             setErrorNotification(undefined);
             setCancelledNotification(false);
-            if (onBeforeReplace && !await onBeforeReplace(currentFile, replacementFile)) return null;
             return await performReplacement(currentFile, replacementFile, controller.signal);
         }
         catch (error: unknown) {
@@ -670,7 +704,7 @@ export function useFileUpload(props: UseFileUploadProps): UseFileUploadReturnTyp
         finally {
             finishOperation(controller);
         }
-    }, [beginOperation, findFile, finishOperation, onBeforeReplace, performReplacement]);
+    }, [beginOperation, findFile, finishOperation, performReplacement]);
 
     const editImage = useCallback(async (file: string | UploadProgressReport) => {
         const currentFile = findFile(file);
@@ -682,10 +716,10 @@ export function useFileUpload(props: UseFileUploadProps): UseFileUploadReturnTyp
         try {
             setErrorNotification(undefined);
             setCancelledNotification(false);
-            if (onBeforeReplace && !await onBeforeReplace(currentFile)) return null;
 
             const blob = await client.downloadBlob(currentFile.documentURL!, controller.signal);
             const imageType = getSupportedImageMimeType(currentFile.file_name, blob.type);
+
             if (!imageType) {
                 throw new Error(`The image format "${blob.type || currentFile.file_name}" cannot be processed in the browser.`);
             }
@@ -694,7 +728,8 @@ export function useFileUpload(props: UseFileUploadProps): UseFileUploadReturnTyp
                 type: imageType,
                 lastModified: Date.now()
             });
-            return await performReplacement(currentFile, sourceFile, controller.signal);
+
+            return await performReplacement(currentFile, sourceFile, controller.signal, false);
         }
         catch (error: unknown) {
             if (!(error instanceof Error && error.name === 'AbortError')) {
@@ -705,14 +740,16 @@ export function useFileUpload(props: UseFileUploadProps): UseFileUploadReturnTyp
         finally {
             finishOperation(controller);
         }
-    }, [beginOperation, canEditImage, client, findFile, finishOperation, onBeforeReplace, performReplacement]);
+    }, [beginOperation, canEditImage, client, findFile, finishOperation, performReplacement]);
 
     const captureImage = useCallback(async () => {
         const capturedFile = await openImageEditor();
         if (!capturedFile) return null;
 
         editorProcessedFilesRef.current.add(capturedFile);
+
         const reports = await uploadFiles([capturedFile]);
+
         return reports.find(report => !!report.vc_fileguid && !report.errorMessage && !report.cancelled) ?? null;
     }, [openImageEditor, uploadFiles]);
 
@@ -730,6 +767,7 @@ export function useFileUpload(props: UseFileUploadProps): UseFileUploadReturnTyp
             }
 
             const blobUrl = URL.createObjectURL(blob);
+
             const linkElement = document.createElement('a');
             linkElement.setAttribute('download', filename);
             linkElement.setAttribute('href', blobUrl);
@@ -780,6 +818,7 @@ export function useFileUpload(props: UseFileUploadProps): UseFileUploadReturnTyp
         subscribersRef.current.add(listener);
         return () => subscribersRef.current.delete(listener);
     }, []);
+
     const getSnapshot = useCallback(() => snapshotRef.current, []);
 
     const actionsRef = useRef<UseFileUploadActions>();
@@ -801,7 +840,7 @@ export function useFileUpload(props: UseFileUploadProps): UseFileUploadReturnTyp
         uploadFiles: selectedFiles => actionsRef.current!.uploadFiles(selectedFiles),
         replaceFile: (fileGUID, replacementFile) => actionsRef.current!.replaceFile(fileGUID, replacementFile),
         editImage: file => actionsRef.current!.editImage(file),
-        openImageEditor: file => actionsRef.current!.openImageEditor(file),
+        openImageEditor: (file, options) => actionsRef.current!.openImageEditor(file, options),
         captureImage: () => actionsRef.current!.captureImage(),
         canEditImage: file => actionsRef.current!.canEditImage(file),
         refreshFiles: () => actionsRef.current!.refreshFiles(),
