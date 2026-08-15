@@ -1,15 +1,18 @@
 import "react-easy-crop/react-easy-crop.css";
 import "./ImageEditor.scss";
-import { Alert, Button, Group, Stack, useComponentDefaultProps } from "@mantine/core";
-import { IconCheck, IconRotate2, IconRotateClockwise2, IconX } from "@tabler/icons-react";
+import { Alert, Button, Group, Stack, Text, useComponentDefaultProps } from "@mantine/core";
+import { IconCamera, IconCheck, IconRotate2, IconRotateClockwise2, IconX } from "@tabler/icons-react";
 import { useCallback, useEffect, useState } from "react";
 import Cropper, { Area, Point } from "react-easy-crop";
+import { WebcamCapture, WebcamCaptureProps } from "../WebcamCapture";
 import { FullImagePreview } from "./FullImagePreview";
 import { prepareEditorImage, renderEditedImage } from "./imageEditorProcessing";
 import { canvasToProcessedFile, ResolvedBrowserImageProcessingOptions } from "./imageProcessing";
 
+export type ImageEditorCameraConfiguration = Omit<WebcamCaptureProps, 'onCapture' | 'onCancel'>;
+
 export interface ImageEditorProps {
-    sourceFile: File,
+    sourceFile?: File,
     options: ResolvedBrowserImageProcessingOptions,
     onSave: (file: File) => Promise<void> | void,
     onCancel: () => Promise<void> | void,
@@ -17,21 +20,27 @@ export interface ImageEditorProps {
     cancelLabel?: string,
     rotateClockwiseLabel?: string,
     rotateCounterClockwiseLabel?: string,
+    takePhotoLabel?: string,
+    camera?: boolean | ImageEditorCameraConfiguration,
 }
 
 export const ImageEditorDefaultProps: Partial<ImageEditorProps> = {
     saveLabel: 'Save',
     cancelLabel: 'Cancel',
-    rotateClockwiseLabel: 'Rotate clockwise',
-    rotateCounterClockwiseLabel: 'Rotate counter-clockwise'
+    rotateClockwiseLabel: 'Rotate right',
+    rotateCounterClockwiseLabel: 'Rotate left',
+    takePhotoLabel: 'Take photo',
+    camera: true
 }
 
 export const ImageEditor = (props: ImageEditorProps) => {
     const {
         sourceFile, options, onSave, onCancel, saveLabel, cancelLabel, rotateClockwiseLabel,
-        rotateCounterClockwiseLabel
+        rotateCounterClockwiseLabel, takePhotoLabel, camera
     } = useComponentDefaultProps('ImageEditor', ImageEditorDefaultProps, props);
 
+    const [editorSource, setEditorSource] = useState<File | undefined>(sourceFile);
+    const [cameraMode, setCameraMode] = useState(!sourceFile && camera !== false);
     const [preparedImage, setPreparedImage] = useState<Awaited<ReturnType<typeof prepareEditorImage>>>();
     const [crop, setCrop] = useState<Point>({ x: 0, y: 0 });
     const [zoom, setZoom] = useState(1);
@@ -42,6 +51,11 @@ export const ImageEditor = (props: ImageEditorProps) => {
     const [error, setError] = useState<string>();
     const cropEnabled = options.crop !== false;
     const manualRotation = options.manualRotation;
+
+    useEffect(() => {
+        setEditorSource(sourceFile);
+        setCameraMode(!sourceFile && camera !== false);
+    }, [camera, sourceFile]);
 
     useEffect(() => {
         let disposed = false;
@@ -56,7 +70,9 @@ export const ImageEditor = (props: ImageEditorProps) => {
         setSaving(false);
         setError(undefined);
 
-        void prepareEditorImage(sourceFile, options.exifOrientation)
+        if (!editorSource) return;
+
+        void prepareEditorImage(editorSource, options.exifOrientation)
             .then(result => {
                 prepared = result;
                 if (disposed) {
@@ -74,7 +90,7 @@ export const ImageEditor = (props: ImageEditorProps) => {
             disposed = true;
             if (prepared) URL.revokeObjectURL(prepared.previewURL);
         };
-    }, [cropEnabled, options.exifOrientation, sourceFile]);
+    }, [cropEnabled, editorSource, options.exifOrientation]);
 
     const rotate = useCallback((direction: 1 | -1) => {
         if (manualRotation === false) return;
@@ -88,7 +104,7 @@ export const ImageEditor = (props: ImageEditorProps) => {
     }, [cropEnabled, manualRotation]);
 
     const save = useCallback(async () => {
-        if (!preparedImage || (cropEnabled && !croppedAreaPixels)) return;
+        if (!editorSource || !preparedImage || (cropEnabled && !croppedAreaPixels)) return;
 
         setSaving(true);
         setError(undefined);
@@ -100,7 +116,7 @@ export const ImageEditor = (props: ImageEditorProps) => {
                 rotationDegrees,
                 options
             );
-            const file = await canvasToProcessedFile(canvas, sourceFile, options);
+            const file = await canvasToProcessedFile(canvas, editorSource, options);
             await onSave(file);
         }
         catch (e: unknown) {
@@ -109,19 +125,34 @@ export const ImageEditor = (props: ImageEditorProps) => {
         finally {
             setSaving(false);
         }
-    }, [cropEnabled, croppedAreaPixels, onSave, options, preparedImage, rotationDegrees, sourceFile]);
+    }, [cropEnabled, croppedAreaPixels, editorSource, onSave, options, preparedImage, rotationDegrees]);
+
+    const cameraProps = typeof camera === 'object' ? camera : {};
 
     return (
         <Stack className="image-editor" spacing="sm">
-            {manualRotation !== false &&
-                <Group spacing="xs">
+            <Group spacing="xs">
+                {camera !== false &&
+                    <Button
+                        variant="light"
+                        title={takePhotoLabel}
+                        aria-label={takePhotoLabel}
+                        onClick={() => setCameraMode(true)}
+                        disabled={saving || cameraMode}
+                        leftIcon={<IconCamera size="1rem" />}
+                    >
+                        {takePhotoLabel}
+                    </Button>
+                }
+                {manualRotation !== false && !cameraMode &&
+                    <>
                     <Button
                         variant="light"
                         title={rotateCounterClockwiseLabel}
                         aria-label={rotateCounterClockwiseLabel}
                         onClick={() => rotate(-1)}
                         disabled={!ready || saving}
-                        leftIcon={<IconRotate2 size="1rem" style={{ transform: 'scaleX(-1)' }} />}
+                        leftIcon={<IconRotate2 size="1rem" />}
                     >
                         {rotateCounterClockwiseLabel}
                     </Button>
@@ -135,9 +166,22 @@ export const ImageEditor = (props: ImageEditorProps) => {
                     >
                         {rotateClockwiseLabel}
                     </Button>
-                </Group>
+                    </>
+                }
+            </Group>
+
+            {cameraMode && camera !== false &&
+                <WebcamCapture
+                    {...cameraProps}
+                    onCapture={file => {
+                        setEditorSource(file);
+                        setCameraMode(false);
+                    }}
+                    onCancel={() => setCameraMode(false)}
+                />
             }
-            {preparedImage && cropEnabled && options.crop !== false &&
+
+            {!cameraMode && preparedImage && cropEnabled && options.crop !== false &&
                 <div className="image-editor__cropper">
                     <Cropper
                         image={preparedImage.previewURL}
@@ -155,28 +199,34 @@ export const ImageEditor = (props: ImageEditorProps) => {
                             setReady(true);
                         }}
                         mediaProps={{
-                            alt: sourceFile.name,
+                            alt: editorSource?.name,
                             onError: () => setError('The browser could not decode the image.')
                         }}
                     />
                 </div>
             }
-            {preparedImage && !cropEnabled &&
-                <FullImagePreview source={preparedImage.canvas} rotation={rotationDegrees} label={sourceFile.name} />
+            {!cameraMode && preparedImage && !cropEnabled && editorSource &&
+                <FullImagePreview source={preparedImage.canvas} rotation={rotationDegrees} label={editorSource.name} />
+            }
+
+            {!cameraMode && !editorSource &&
+                <div className="image-editor__empty">
+                    <Text color="dimmed">{takePhotoLabel}</Text>
+                </div>
             }
 
             {error && <Alert color="red">{error}</Alert>}
 
-            <Group position="right">
+            {!cameraMode && <Group position="right">
                 <Group spacing="xs">
                     <Button variant="light" onClick={() => void onCancel()} disabled={saving} leftIcon={<IconX size="1rem" />}>
                         {cancelLabel}
                     </Button>
-                    <Button onClick={() => void save()} loading={saving} disabled={!ready} leftIcon={<IconCheck size="1rem" />}>
+                    <Button onClick={() => void save()} loading={saving} disabled={!editorSource || !ready} leftIcon={<IconCheck size="1rem" />}>
                         {saveLabel}
                     </Button>
                 </Group>
-            </Group>
+            </Group>}
         </Stack>
     );
 };

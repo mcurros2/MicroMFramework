@@ -39,7 +39,8 @@ interface UseFileUploadActions {
     uploadFiles: (selectedFiles: File[]) => Promise<UploadProgressReport[]>,
     replaceFile: (fileGUID: string, replacementFile: File) => Promise<UploadProgressReport | null>,
     editImage: (file: string | UploadProgressReport) => Promise<UploadProgressReport | null>,
-    openImageEditor: (file: File) => Promise<File | null>,
+    openImageEditor: (file?: File) => Promise<File | null>,
+    captureImage: () => Promise<UploadProgressReport | null>,
     canEditImage: (file: string | UploadProgressReport) => boolean,
     refreshFiles: () => Promise<Record<string, UploadProgressReport>>,
     deleteFile: (fileGUID: string) => Promise<DBStatusResult>,
@@ -62,7 +63,8 @@ export type ValidateFileReturnType = { error: boolean, message?: string };
 export type UploadCompletionResult = ValidateFileReturnType;
 
 export type ImageEditorConfigurationProps = Partial<Pick<ImageEditorProps,
-    'saveLabel' | 'cancelLabel' | 'rotateClockwiseLabel' | 'rotateCounterClockwiseLabel'>>;
+    'saveLabel' | 'cancelLabel' | 'rotateClockwiseLabel' | 'rotateCounterClockwiseLabel' |
+    'takePhotoLabel' | 'camera'>>;
 
 export interface UseFileUploadProps {
     client: MicroMClient,
@@ -176,6 +178,7 @@ export function useFileUpload(props: UseFileUploadProps): UseFileUploadReturnTyp
 
     const operationRef = useRef<UploadOperation>('idle');
     const activeControllerRef = useRef<AbortController>();
+    const editorProcessedFilesRef = useRef(new WeakSet<File>());
     const modals = useModal();
 
     const files = useMemo(() => Object.values(filesByID), [filesByID]);
@@ -297,10 +300,10 @@ export function useFileUpload(props: UseFileUploadProps): UseFileUploadReturnTyp
 
     useEffect(() => () => activeControllerRef.current?.abort(), []);
 
-    const openImageEditor = useCallback(async (file: File) => {
+    const openImageEditor = useCallback(async (file?: File) => {
         if (!editor) return null;
 
-        getImageOutputSettings(file, processingOptions);
+        if (file) getImageOutputSettings(file, processingOptions);
 
         return await new Promise<File | null>(async resolveEditor => {
             let settled = false;
@@ -339,6 +342,10 @@ export function useFileUpload(props: UseFileUploadProps): UseFileUploadReturnTyp
     }, [editor, imageEditorModalProps, imageEditorProps, imageEditorTitle, modals, processingOptions]);
 
     const processSelectedFile = useCallback(async (file: File) => {
+        if (editorProcessedFilesRef.current.has(file)) {
+            editorProcessedFilesRef.current.delete(file);
+            return onProcessFile ? await onProcessFile(file) : file;
+        }
         if (onProcessFile) return await onProcessFile(file);
         if (editor) return await openImageEditor(file);
         if (imageProcessing) return await processImageFileAutomatically(file, processingOptions);
@@ -700,6 +707,15 @@ export function useFileUpload(props: UseFileUploadProps): UseFileUploadReturnTyp
         }
     }, [beginOperation, canEditImage, client, findFile, finishOperation, onBeforeReplace, performReplacement]);
 
+    const captureImage = useCallback(async () => {
+        const capturedFile = await openImageEditor();
+        if (!capturedFile) return null;
+
+        editorProcessedFilesRef.current.add(capturedFile);
+        const reports = await uploadFiles([capturedFile]);
+        return reports.find(report => !!report.vc_fileguid && !report.errorMessage && !report.cancelled) ?? null;
+    }, [openImageEditor, uploadFiles]);
+
     const downloadFile = useCallback(async (fileUrl: string, fileName?: string) => {
         const now = new Date();
         const datePart = now.toISOString().split('T')[0];
@@ -772,6 +788,7 @@ export function useFileUpload(props: UseFileUploadProps): UseFileUploadReturnTyp
         replaceFile,
         editImage,
         openImageEditor,
+        captureImage,
         canEditImage,
         refreshFiles,
         deleteFile,
@@ -785,6 +802,7 @@ export function useFileUpload(props: UseFileUploadProps): UseFileUploadReturnTyp
         replaceFile: (fileGUID, replacementFile) => actionsRef.current!.replaceFile(fileGUID, replacementFile),
         editImage: file => actionsRef.current!.editImage(file),
         openImageEditor: file => actionsRef.current!.openImageEditor(file),
+        captureImage: () => actionsRef.current!.captureImage(),
         canEditImage: file => actionsRef.current!.canEditImage(file),
         refreshFiles: () => actionsRef.current!.refreshFiles(),
         deleteFile: fileGUID => actionsRef.current!.deleteFile(fileGUID),

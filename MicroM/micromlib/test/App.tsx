@@ -1,7 +1,7 @@
-import { ActionIcon, AppShell, ColorScheme, ColorSchemeProvider, Group, Header, MantineProvider, NavLink, Navbar, Text } from '@mantine/core';
+import { ActionIcon, AppShell, ColorScheme, ColorSchemeProvider, Group, Header, MantineProvider, Navbar, NavLink, Text } from '@mantine/core';
 import { IconMoonStars, IconSun } from '@tabler/icons-react';
-import { ModalsManager } from 'UI';
 import { useState } from 'react';
+import { ModalsManager } from 'UI';
 import { AddressInputTest } from './AddressInputTest/AddressInputTest';
 import { AddressLookupTest } from './AddressInputTest/AddressLookupTest';
 import { AvatarUploaderTest } from './AvatarUploadTest/AvatarUploaderTest';
@@ -14,6 +14,7 @@ import { AddressSearchTest } from './GoogleMapsTest/AddressSearchTest';
 import { RegionSelectorTest } from './GoogleMapsTest/CountySelectorTest';
 import { GridTest } from './GridTest/GridTest';
 import { RingProgressFieldTest } from './StatsTest/RingProgressFieldTest';
+import { WebcamCaptureTest } from './WebcamCaptureTest/WebcamCaptureTest';
 
 export function App() {
     const [colorScheme, setColorScheme] = useState<ColorScheme>('light');
@@ -38,6 +39,7 @@ export function App() {
                                     <NavLink onClick={() => setContent(<AddressLookupTest />)} label="Address lookup" />
                                     <NavLink onClick={() => setContent(<FileUploaderTest></FileUploaderTest>)} label="File uploader" />
                                     <NavLink onClick={() => setContent(<AvatarUploaderTest></AvatarUploaderTest>)} label="Avatar uploader" />
+                                    <NavLink onClick={() => setContent(<WebcamCaptureTest />)} label="Webcam capture" />
                                     <NavLink onClick={() => setContent(<RegionSelectorTest />)} label="Google region selector" />
                                     <NavLink onClick={() => setContent(<RingProgressFieldTest />)} label="Stats test" />
                                     <NavLink onClick={() => setContent(<AncestorResizeTest />)} label="Ancestor resize test" />

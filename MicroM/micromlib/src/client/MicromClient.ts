@@ -44,7 +44,6 @@ const TIMEZONE_OFFSET_DATA_KEY = 'mm_server_timezone_offset';
 
 const LOCAL_DEVICE_ID_KEY = 'mm_ldid';
 
-
 export class MicroMClient {
     #API_URL;
     #TOKEN_STORAGE;
@@ -869,7 +868,7 @@ export class MicroMClient {
             headers: { ...(this.#TOKEN ? { "Authorization": `Bearer ${this.#TOKEN.access_token}` } : {}) },
             mode: this.#REQUEST_MODE,
             credentials: 'include',
-            cache: 'force-cache',
+            cache: 'no-store',
             referrerPolicy: 'strict-origin-when-cross-origin',
             signal: abort_signal
         });

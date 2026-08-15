@@ -1,5 +1,5 @@
 import { ActionIcon, Alert, Avatar, AvatarProps, Group, Loader, Stack, useMantineTheme } from "@mantine/core";
-import { IconEdit, IconTrash, IconUpload } from "@tabler/icons-react";
+import { IconCamera, IconTrash, IconUpload } from "@tabler/icons-react";
 import { AvatarUploaderAPI } from "./useAvatarUploader";
 
 export interface AvatarUploaderProps extends Omit<AvatarProps, 'src'> {
@@ -14,8 +14,8 @@ export function AvatarUploader(props: AvatarUploaderProps) {
     const { API, PlaceHolderIcon, readOnlyMode, showFullImage, ...others } = props;
 
     const {
-        imageURL, thumbnailURL, fileGUID, handleOpenFileUpload, handleEditImage, handleDeleteFile,
-        parentFormAPI, canEditImage, processing, errorNotification, clearNotifications, labels
+        imageURL, thumbnailURL, fileGUID, handleOpenFileUpload, handleEditImage, handleTakePhoto, handleDeleteFile,
+        parentFormAPI, canEditImage, canTakePhoto, processing, errorNotification, clearNotifications, labels
     } = API;
 
     const editable = !readOnlyMode && parentFormAPI?.formMode !== 'view';
@@ -39,16 +39,16 @@ export function AvatarUploader(props: AvatarUploaderProps) {
             </Avatar>
             {editable &&
                 <Group position="right">
-                    {canEditImage &&
+                    {canTakePhoto &&
                         <ActionIcon
                             color={theme.primaryColor}
                             variant="light"
-                            title={labels.editLabel}
-                            aria-label={labels.editLabel}
+                            title={labels.takePhotoLabel}
+                            aria-label={labels.takePhotoLabel}
                             disabled={processing}
-                            onClick={() => void handleEditImage()}
+                            onClick={() => void handleTakePhoto()}
                         >
-                            <IconEdit size="1rem" />
+                            <IconCamera size="1rem" />
                         </ActionIcon>
                     }
                     <ActionIcon

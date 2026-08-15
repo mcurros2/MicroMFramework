@@ -5,7 +5,7 @@ import { EntityColumn } from "../../Entity";
 import { ConfirmAndExecutePanel, useModal } from "../Core";
 import { UploadProgressReport, useFilesUploadForm, useFileUpload } from "../FileUploader";
 import { UseEntityFormReturnType } from "../Form";
-import { BrowserImageProcessingOptions } from "../ImageEditor";
+import { BrowserImageProcessingOptions, ImageEditorCameraConfiguration } from "../ImageEditor";
 
 export type AvatarImageProcessingOptions = BrowserImageProcessingOptions;
 
@@ -19,6 +19,7 @@ export interface useAvatarUploaderProps {
     maxFileSize?: number,
     editor?: boolean,
     imageProcessing?: AvatarImageProcessingOptions,
+    camera?: boolean | ImageEditorCameraConfiguration,
     onDeleteComplete?: (fileGUID: string) => Promise<void> | void,
     onUploadComplete?: (fileGUID: string) => Promise<void> | void
 }
@@ -27,6 +28,7 @@ export type AvatarUploaderLabels = {
     modalTitle?: string,
     editorTitle?: string,
     editLabel?: string,
+    takePhotoLabel?: string,
     uploadLabel?: string,
     deleteLabel?: string,
     saveLabel?: string,
@@ -43,12 +45,13 @@ const AvatarUploaderDefaultLabels: Required<AvatarUploaderLabels> = {
     modalTitle: 'Upload Image',
     editorTitle: 'Edit Image',
     editLabel: 'Edit image',
+    takePhotoLabel: 'Edit or take photo',
     uploadLabel: 'Upload image',
     deleteLabel: 'Delete image',
     saveLabel: 'Save',
     cancelLabel: 'Cancel',
-    rotateClockwiseLabel: 'Rotate clockwise',
-    rotateCounterClockwiseLabel: 'Rotate counter-clockwise',
+    rotateClockwiseLabel: 'Rotate right',
+    rotateCounterClockwiseLabel: 'Rotate left',
     replaceTitle: 'Replace image?',
     replaceMessage: 'The existing uploaded image will be deleted after the replacement is uploaded successfully.',
     replaceConfirmLabel: 'Replace image',
@@ -68,9 +71,11 @@ export interface AvatarUploaderAPI {
     fileGUID?: string,
     handleOpenFileUpload: () => Promise<void>,
     handleEditImage: () => Promise<void>,
+    handleTakePhoto: () => Promise<void>,
     handleDeleteFile: (fileGUID: string) => Promise<void>,
     parentFormAPI?: UseEntityFormReturnType,
     canEditImage: boolean,
+    canTakePhoto: boolean,
     processing: boolean,
     errorNotification?: string,
     clearNotifications: () => void,
@@ -80,7 +85,7 @@ export interface AvatarUploaderAPI {
 export function useAvatarUploader(props: useAvatarUploaderProps): AvatarUploaderAPI {
     const {
         client, fileProcessColumn, labels: suppliedLabels, initialImageURL, parentFormAPI,
-        fileGUIDColumn, maxFileSize, editor, imageProcessing, onDeleteComplete, onUploadComplete
+        fileGUIDColumn, maxFileSize, editor, imageProcessing, camera, onDeleteComplete, onUploadComplete
     } = useComponentDefaultProps('AvatarUploader', AvatarUploaderDefaultProps, props);
 
     const labels = useMemo(
@@ -158,7 +163,9 @@ export function useAvatarUploader(props: useAvatarUploaderProps): AvatarUploader
             saveLabel: labels.saveLabel,
             cancelLabel: labels.cancelLabel,
             rotateClockwiseLabel: labels.rotateClockwiseLabel,
-            rotateCounterClockwiseLabel: labels.rotateCounterClockwiseLabel
+            rotateCounterClockwiseLabel: labels.rotateCounterClockwiseLabel,
+            takePhotoLabel: labels.takePhotoLabel,
+            camera
         },
         imageEditorModalProps: {
             closeOnClickOutside: false,
@@ -211,6 +218,14 @@ export function useAvatarUploader(props: useAvatarUploaderProps): AvatarUploader
         await uploadAPI.editImage(currentFile.vc_fileguid);
     }, [currentFile?.vc_fileguid, uploadAPI]);
 
+    const handleTakePhoto = useCallback(async () => {
+        if (currentFile?.vc_fileguid) {
+            await uploadAPI.editImage(currentFile);
+            return;
+        }
+        await uploadAPI.captureImage();
+    }, [currentFile, uploadAPI]);
+
     const handleDeleteFile = useCallback(async (guid: string) => {
         if (!guid) return;
 
@@ -231,9 +246,11 @@ export function useAvatarUploader(props: useAvatarUploaderProps): AvatarUploader
         fileGUID,
         handleOpenFileUpload,
         handleEditImage,
+        handleTakePhoto,
         handleDeleteFile,
         parentFormAPI,
         canEditImage: !!currentFile && uploadAPI.canEditImage(currentFile),
+        canTakePhoto: uploadAPI.editorEnabled,
         processing: uploadAPI.processing,
         errorNotification: uploadAPI.errorNotification,
         clearNotifications: uploadAPI.clearNotifications!,
