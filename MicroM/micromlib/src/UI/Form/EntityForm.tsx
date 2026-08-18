@@ -26,6 +26,7 @@ export interface EntityFormProps extends PropsWithChildren {
     saveBeforeLocalNavigation?: boolean,
     saveBeforeRemoteNavigation?: boolean,
     disableOKIfNotDirty?: boolean,
+    formHeight?: string | number,
 }
 
 export const EntityFormDefaultProps: Partial<EntityFormProps> = {
@@ -43,12 +44,14 @@ export const EntityFormDefaultProps: Partial<EntityFormProps> = {
     isDirtyColor: 'green',
     cancelButtonVariant: 'light',
     okButtonVariant: 'filled',
+    formHeight: '100%',
 }
 
 export function EntityForm(props: EntityFormProps) {
     const {
         formAPI, children, showOK, showCancel, showErrors, showFormValidationNotification, showLoadingProgress, OKText, CancelText, invalidFieldsLabel,
-        showHelpButton, preventEnterSubmission, CloseText, buttons, isDirtyColor, cancelButtonVariant, okButtonVariant, disableOKIfNotDirty
+        showHelpButton, preventEnterSubmission, CloseText, buttons, isDirtyColor, cancelButtonVariant, okButtonVariant, disableOKIfNotDirty,
+        formHeight
     } = useComponentDefaultProps('EntityForm', EntityFormDefaultProps, props);
 
     const { entity } = formAPI;
@@ -78,7 +81,7 @@ export function EntityForm(props: EntityFormProps) {
                 </Group>
             }
             <FocusTrap active={status.loading === false}>
-                <form onSubmit={handleSubmit} onKeyDown={preventEnterSubmission ? handleKeyDown : undefined} onInvalid={() => setNotifyValidationError(true)}>
+                <form onSubmit={handleSubmit} onKeyDown={preventEnterSubmission ? handleKeyDown : undefined} style={{ height: formHeight }} onInvalid={() => setNotifyValidationError(true)}>
                     {showLoadingProgress && status.loading && <FakeProgressBar size="xs" />}
                     {showLoadingProgress && !status.loading && <Space h="0.1875rem" />}
                     {showFormValidationNotification && notifyValidationError &&
@@ -86,7 +89,7 @@ export function EntityForm(props: EntityFormProps) {
                             {`${invalidFieldsLabel}: ${Object.keys({ ...form.errors, ...asyncErrors }).map(formKey => `[${entity.def.columns[formKey].prompt}]`).join(', ')}`}
                         </Notification>
                     }
-                    <fieldset disabled={status.loading} style={{ borderWidth: 0, margin: 0, padding: 0, minInlineSize: 'unset' }}>
+                    <fieldset disabled={status.loading} style={{ borderWidth: 0, margin: 0, padding: 0, minInlineSize: 'unset', height: formHeight }}>
                         {children}
                     </fieldset>
                     {showErrors && status.error &&
