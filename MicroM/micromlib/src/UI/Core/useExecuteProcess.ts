@@ -42,7 +42,7 @@ export function useExecuteProcess(entity: Entity<EntityDefinition>, proc: Entity
         };
     }, []);
 
-    const execute = useCallback(async (values?: ValuesObject) => {
+    const execute = useCallback(async (values?: ValuesObject, force_refresh = false) => {
         const request: ExecuteProcRequest = {
             entity,
             proc,
@@ -56,7 +56,7 @@ export function useExecuteProcess(entity: Entity<EntityDefinition>, proc: Entity
             return statusRef.current;
         }
 
-        if (areExecuteProcRequestsEqual(lastSuccessfulRequest.current, request)) {
+        if (!force_refresh && areExecuteProcRequestsEqual(lastSuccessfulRequest.current, request)) {
             return;
         }
 

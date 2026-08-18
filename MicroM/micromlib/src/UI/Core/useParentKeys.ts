@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { ValuesObject } from "../../client";
 import { areValuesObjectsEqual, copyValuesObject, Entity, EntityDefinition } from "../../Entity";
 import { UseEntityFormReturnType } from "../Form";
@@ -42,18 +42,14 @@ const createParentKeysObject = (columnNames: string[], values: ValuesObject, ent
 export function useParentKeys(props: UseParentKeysProps) {
     const { formAPI, columnNames, entity } = props;
 
-    const [parentKeys, setParentKeys] = useState<ValuesObject>(createParentKeysObject(columnNames, formAPI.form.values, entity));
-    const previousParentKeys = useRef({});
+    const [parentKeys, setParentKeys] = useState<ValuesObject>(() => createParentKeysObject(columnNames, formAPI.form.values, entity));
+    const newParentKeys = createParentKeysObject(columnNames, formAPI.form.values, entity);
 
-
-    useEffect(() => {
-        const newParentKeys = createParentKeysObject(columnNames, formAPI.form.values, entity);
-        if (areValuesObjectsEqual(previousParentKeys.current, newParentKeys)) return;
-
-        setParentKeys(newParentKeys);
-        previousParentKeys.current = copyValuesObject(newParentKeys);
-
-    }, [formAPI.form, formAPI.form.values, columnNames, entity, entity.parentKeys]);
+    if (!areValuesObjectsEqual(parentKeys, newParentKeys)) {
+        const copiedParentKeys = copyValuesObject(newParentKeys);
+        setParentKeys(copiedParentKeys);
+        return copiedParentKeys;
+    }
 
     return parentKeys;
 }

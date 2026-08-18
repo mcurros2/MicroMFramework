@@ -38,7 +38,7 @@ export function mergeValuesObject(source?: ValuesObject, mergeAndOverride?: Valu
     const mergedValues: ValuesObject = {};
 
     Object.entries(source ?? {}).forEach(([name, value]) => {
-        if (hasValue(value)) mergedValues[name] = value;
+        mergedValues[name] = value;
     });
 
     Object.entries(mergeAndOverride ?? {}).forEach(([name, value]) => {

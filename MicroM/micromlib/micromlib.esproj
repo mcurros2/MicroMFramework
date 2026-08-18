@@ -31,12 +31,18 @@
     <Folder Include="src\DataDictionary\Status\" />
     <Folder Include="src\UI\AvatarUploader\" />
     <Folder Include="src\UI\AutoFiltersForm\" />
-    <Folder Include="src\UI\Tabs\" />
+    <Folder Include="src\UI\Events\" />
   </ItemGroup>
   <ItemGroup>
     <TypeScriptConfiguration Remove="dist\**" />
   </ItemGroup>
   <ItemGroup>
     <None Remove="dist\**" />
+  </ItemGroup>
+  <ItemGroup>
+    <TypeScriptConfiguration Remove="src\UI\Tabs\**" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Remove="src\UI\Tabs\**" />
   </ItemGroup>
 </Project>
