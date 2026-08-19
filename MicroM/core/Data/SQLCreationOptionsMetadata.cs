@@ -6,5 +6,6 @@ public enum SQLCreationOptionsMetadata : byte
     None = 0,
     WithIUpdate = 1,
     WithIDrop = 2,
-    WithIUpdateAndIDrop = 3
+    WithIUpdateAndIDrop = 3,
+    TableOnly = 4,
 }

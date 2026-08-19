@@ -125,7 +125,7 @@ export function DataGrid(props: DataGridProps) {
 
 
     const sectionStyle: React.CSSProperties = {
-        height: gridHeight === 'flex-grow' ? '100%' : undefined,
+        height: gridHeight === 'flex-grow' ? 'calc(100% - 2rem)' : undefined,
         display: gridHeight === 'flex-grow' ? 'flex' : undefined,
         flexDirection: gridHeight === 'flex-grow' ? 'column' : undefined,
         minHeight: effectiveMinGridHeight

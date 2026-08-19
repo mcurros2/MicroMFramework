@@ -73,6 +73,8 @@ export function EntityForm(props: EntityFormProps) {
     // and because when we edit/view the form, when performing get the fields are denied and can't be focused
     // be ware of queryStatus.loading === false as the initial queryStatus is {}, this is on purpose to avoid disabling the fields before loading data
 
+    const fieldsetHeight = formHeight === '100%' ? 'calc(100% - 3rem)' : 'unset';
+
     return (
         <>
             {showHelpButton &&
@@ -89,7 +91,7 @@ export function EntityForm(props: EntityFormProps) {
                             {`${invalidFieldsLabel}: ${Object.keys({ ...form.errors, ...asyncErrors }).map(formKey => `[${entity.def.columns[formKey].prompt}]`).join(', ')}`}
                         </Notification>
                     }
-                    <fieldset disabled={status.loading} style={{ borderWidth: 0, margin: 0, padding: 0, minInlineSize: 'unset', height: formHeight }}>
+                    <fieldset disabled={status.loading} style={{ borderWidth: 0, margin: 0, padding: 0, minInlineSize: 'unset', height: fieldsetHeight }}>
                         {children}
                     </fieldset>
                     {showErrors && status.error &&

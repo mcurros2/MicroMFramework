@@ -50,6 +50,10 @@ public static class DatabaseSchemaProcedures
         bool should_close = !(ec.ConnectionState == System.Data.ConnectionState.Open);
         try
         {
+            bool tableOnly = ent.Def.SQLCreationOptions.HasFlag(SQLCreationOptionsMetadata.TableOnly);
+
+            if (tableOnly) return;
+
             string update_proc_name = $"{ent.Def.Mneo}{_update}";
             string iupdate_proc_name = $"{ent.Def.Mneo}{_iupdate}";
             string get_proc_name = $"{ent.Def.Mneo}{_get}";
