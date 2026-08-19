@@ -60,7 +60,8 @@ export const DataGridDefaultProps: Partial<DataGridProps> = {
     doubleClickAction: "edit",
     showColumnsConfigMenu: true,
     withModalFullscreenButton: true,
-    showSelectRowsButton: true
+    showSelectRowsButton: true,
+    initialSelectRowsToggle: false
 }
 
 export function DataGrid(props: DataGridProps) {

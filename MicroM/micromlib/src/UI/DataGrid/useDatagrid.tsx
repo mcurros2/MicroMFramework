@@ -11,7 +11,7 @@ export function useDataGrid(props: DataGridProps, stateProps: DataGridStateProps
         entity, parentKeys, viewName, onSelectionChanged, modalFormSize,
         labels, saveFormBeforeAdd, parentFormAPI, allwaysRefreshOnEntityClose, onAddClick, onModalSaved,
         onDataRefresh, onActionExecuted, formMode, doubleClickAction, notExportableColumns, withModalFullscreenButton,
-        initialHiddenColumns, enableEdit, enableView
+        initialHiddenColumns, enableEdit, enableView, initialSelectRowsToggle
     } = props;
 
     const { setRefresh, setSearchText, executeViewState } = stateProps;
@@ -21,7 +21,7 @@ export function useDataGrid(props: DataGridProps, stateProps: DataGridStateProps
 
     const [selectedRowsCount, setSelectedRowsCount] = useState(0);
 
-    const [toggleSelectable, setToggleSelectable] = useState(false);
+    const [toggleSelectable, setToggleSelectable] = useState(initialSelectRowsToggle ?? false);
 
     const [isLoading, setIsLoading] = useState(false);
 

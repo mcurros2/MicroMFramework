@@ -76,6 +76,7 @@ export interface DataGridProps extends UseEntityUIProps {
     initialHiddenColumns?: number[],
 
     showSelectRowsButton?: boolean,
+    initialSelectRowsToggle?: boolean
 }
 
 export type DataGridSelectionKeys = ValuesObject[]

@@ -69,6 +69,7 @@ export function LookupFormAction(props: LookupFormActionProps) {
                     parentKeys: lookupEntity.parentKeys,
                     showActions: showActions,
                     modalFormSize: modalFormSize,
+                    initialSelectRowsToggle: true
                 }
             }
             onOK={

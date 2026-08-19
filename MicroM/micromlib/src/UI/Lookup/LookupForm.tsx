@@ -23,7 +23,7 @@ export const LookupFormDefaultProps: Partial<LookupFormProps> = {
 
 export function LookupForm(props: LookupFormProps) {
     const {
-        dataGridProps, onOK, onCancel, okLabel, cancelLabel, helpMessage, breadCrumbs
+        dataGridProps, onOK, onCancel, okLabel, cancelLabel, helpMessage, breadCrumbs,
     } = useComponentDefaultProps('LookupForm', LookupFormDefaultProps, props);
 
     const theme = useMantineTheme();
