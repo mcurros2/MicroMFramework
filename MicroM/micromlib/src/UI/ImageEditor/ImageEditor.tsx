@@ -207,7 +207,6 @@ export const ImageEditor = (props: ImageEditorProps) => {
                         aspect={options.crop.aspectRatio}
                         showGrid
                         roundCropAreaPixels
-                        disableAutomaticStylesInjection
                         onCropChange={setCrop}
                         onZoomChange={setZoom}
                         onCropComplete={(_, area) => {
