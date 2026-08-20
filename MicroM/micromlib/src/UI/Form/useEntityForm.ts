@@ -2,17 +2,18 @@ import { useComponentDefaultProps } from "@mantine/core";
 import { useForm, UseFormReturnType } from "@mantine/form";
 import { LooseKeys } from "@mantine/form/lib/types";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { DBStatus, DBStatusResult, OperationStatus, SQLType, toDBStatusMicroMError, toMicroMError, Value, ValuesObject } from "../../client";
+import { DBStatus, DBStatusResult, MicroMRequestOptions, OperationStatus, SQLType, toDBStatusMicroMError, toMicroMError, Value, ValuesObject } from "../../client";
 import { areValuesObjectsEqual, Entity, EntityColumn, EntityDefinition, isIn, setValues } from "../../Entity";
 import { ValidationRule } from "../../Validation";
 import { FormMode, FormOptions, useStateReturnType } from "../Core";
+import { useConfirmNavigation } from "../Router/useConfirmNavigation";
 import { getMantineInitialValuesObject, getMantineValuesObject } from "./MantineFormHelpers";
 
 export interface UseEntityFormOptions extends FormOptions<Entity<EntityDefinition>> {
     validateInputOnBlur?: boolean,
     validateInputOnChange?: boolean | LooseKeys<ValuesObject>[],
     forceDirty?: boolean,
-    saveAndGetOverride?: (get_data_if_saved: boolean, override_values?: ValuesObject) => Promise<OperationStatus<DBStatusResult>>,
+    saveAndGetOverride?: (get_data_if_saved: boolean, override_values?: ValuesObject, requestOptions?: MicroMRequestOptions) => Promise<OperationStatus<DBStatusResult>>,
     noSaveOnSubmit?: boolean,
     bindedColumnNames?: string[],
     saveAndGetOnSubmit?: boolean,
@@ -29,6 +30,8 @@ export type GetColumnInputPropsReturnType = {
     onBlur?: any
 }
 
+export type SilentSaveResult = 'saved' | 'unchanged' | 'invalid' | 'failed';
+
 export interface UseEntityFormReturnType {
     form: UseFormReturnType<ValuesObject>,
     status: OperationStatus<DBStatusResult | ValuesObject>,
@@ -36,7 +39,7 @@ export interface UseEntityFormReturnType {
     handleCancel: () => Promise<void> | void,
     handleSubmit: (event?: React.FormEvent<HTMLFormElement>) => Promise<void>,
     performGetData: () => Promise<boolean>,
-    saveAndGet: (get_data_if_saved: boolean, override_values?: ValuesObject) => Promise<OperationStatus<DBStatusResult>>,
+    saveAndGet: (get_data_if_saved: boolean, override_values?: ValuesObject, requestOptions?: MicroMRequestOptions) => Promise<OperationStatus<DBStatusResult>>,
     configureField: (column: EntityColumn<Value>, validation?: ValidationRule) => void,
     removeValidation: (column: EntityColumn<Value>) => void,
     notifyValidationErrorState: useStateReturnType<boolean>,
@@ -48,35 +51,21 @@ export interface UseEntityFormReturnType {
     clearAllAsyncErrors: () => void,
     isFormValid: () => boolean,
     isFormFieldValid: (column_name: string) => boolean,
-    silentSave: () => Promise<void>,
+    silentSave: (requestOptions?: MicroMRequestOptions) => Promise<SilentSaveResult>,
 }
 
 export const UseEntityFormDefaultProps: Partial<UseEntityFormOptions> = {
     validateInputOnBlur: true,
     initialShowDescriptionInFields: true,
     cancelGetOnUnmount: true,
-    cancelSaveOnUnmount: true
+    cancelSaveOnUnmount: true,
 }
 
 export function useEntityForm(props: UseEntityFormOptions): UseEntityFormReturnType {
     const {
-        entity,
-        initialFormMode,
-        validateInputOnBlur,
-        validateInputOnChange,
-        onSaved,
-        onCancel,
-        getDataOnInit,
-        forceDirty,
-        initialShowDescriptionInFields,
-        saveAndGetOverride,
-        noSaveOnSubmit,
-        bindedColumnNames,
-        saveAndGetOnSubmit,
-        cancelGetOnUnmount,
-        cancelSaveOnUnmount,
-        saveBeforeLocalNavigation,
-        saveBeforeRemoteNavigation,
+        entity, initialFormMode, validateInputOnBlur, validateInputOnChange, onSaved, onCancel,
+        getDataOnInit, forceDirty, initialShowDescriptionInFields, saveAndGetOverride, noSaveOnSubmit, bindedColumnNames,
+        saveAndGetOnSubmit, cancelGetOnUnmount, cancelSaveOnUnmount, navigationProtection,
     } = useComponentDefaultProps('', UseEntityFormDefaultProps, props);
 
     const [status, setStatus] = useState<OperationStatus<DBStatusResult | ValuesObject>>({}); // Initial queryStatus is empty on purpose to not disable fields before data is loaded
@@ -88,6 +77,10 @@ export function useEntityForm(props: UseEntityFormOptions): UseEntityFormReturnT
 
     const getAbortController = useRef<AbortController>(new AbortController);
     const saveAbortController = useRef<AbortController>(new AbortController);
+    const getInFlightRef = useRef(false);
+    const cancellableSaveInFlightRef = useRef(false);
+    const preserveSilentSaveOnUnmountRef = useRef(false);
+    const mountedRef = useRef(true);
 
     const validationObject = useRef<Record<string, ValidationRule>>({});
     const initialValues = useRef<ValuesObject>(getMantineInitialValuesObject(entity.def.columns, bindedColumnNames));
@@ -135,12 +128,18 @@ export function useEntityForm(props: UseEntityFormOptions): UseEntityFormReturnT
 
     // Form Handlers
     const performGetData = useCallback(async () => {
-        setStatus({ loading: true, operationType: "get" });
+        if (getAbortController.current.signal.aborted) getAbortController.current = new AbortController();
+
+        const abortController = getAbortController.current;
+
+        getInFlightRef.current = true;
+        if (mountedRef.current) setStatus({ loading: true, operationType: "get" });
 
         try {
             // MMC: this also sets the underlying entity values...
-            const ret = await entity.API.getData(getAbortController.current.signal);
-            if (ret) {
+            const ret = await entity.API.getData(abortController.signal);
+
+            if (ret && mountedRef.current) {
                 const new_values = getMantineValuesObject(form.values, entity.def.columns, true);
                 form.setValues(new_values);
                 lastGetValues.current = new_values;
@@ -149,19 +148,23 @@ export function useEntityForm(props: UseEntityFormOptions): UseEntityFormReturnT
                 form.resetDirty();
                 form.resetTouched();
             }
+
             return ret;
         }
         catch (e: any) {
-            if (e.name !== 'AbortError') {
+            if (e.name !== 'AbortError' && mountedRef.current) {
                 const new_status: OperationStatus<ValuesObject> = { loading: false, error: toMicroMError(e) };
                 setStatus(new_status);
             }
+        }
+        finally {
+            if (getAbortController.current === abortController) getInFlightRef.current = false;
         }
         return false;
     }, [entity.API, entity.def.columns, form])
 
 
-    const saveAndGet = useCallback(async (get_data_if_saved: boolean = true, override_values?: ValuesObject) => {
+    const saveAndGet = useCallback(async (get_data_if_saved: boolean = true, override_values?: ValuesObject, requestOptions?: MicroMRequestOptions) => {
         setValues(entity.def.columns, form.values, null, true);
         if (override_values) {
             setValues(entity.def.columns, override_values, null, true);
@@ -172,17 +175,29 @@ export function useEntityForm(props: UseEntityFormOptions): UseEntityFormReturnT
                 loading: false, data: { Results: [{ Status: 0, Message: 'OK' }] }
             } as OperationStatus<DBStatusResult>;
 
-        setStatus({ loading: true, operationType: "add" });
+        if (mountedRef.current) setStatus({ loading: true, operationType: formMode });
 
         // MMC: this also sets the underlying entity values if autonum...
+        const isKeepaliveSave = requestOptions?.keepalive === true;
+        if (!isKeepaliveSave && saveAbortController.current.signal.aborted) saveAbortController.current = new AbortController();
+
+        const abortController = saveAbortController.current;
+        if (!isKeepaliveSave) cancellableSaveInFlightRef.current = true;
+
         try {
-            const data = formMode === 'add' ? await entity.API.addData(saveAbortController.current.signal) : await entity.API.editData(saveAbortController.current.signal);
+            const abortSignal = isKeepaliveSave ? null : abortController.signal;
+
+            const data = formMode === 'add'
+                ? await entity.API.addData(abortSignal, undefined, undefined, requestOptions)
+                : await entity.API.editData(abortSignal, undefined, requestOptions);
 
             const new_status: OperationStatus<DBStatusResult> = { loading: false, data: data, operationType: formMode };
-            setStatus(new_status);
+
+            if (mountedRef.current) setStatus(new_status);
+
             if (data.Failed !== true) {
-                if (get_data_if_saved) await performGetData();
-                if (formMode === "add") setFormMode('edit');
+                if (get_data_if_saved && mountedRef.current) await performGetData();
+                if (formMode === "add" && mountedRef.current) setFormMode('edit');
             }
 
             return new_status;
@@ -190,14 +205,17 @@ export function useEntityForm(props: UseEntityFormOptions): UseEntityFormReturnT
         catch (e: any) {
             if (e.name !== 'AbortError') {
                 const new_status: OperationStatus<DBStatusResult> = { error: e.Errors ? toDBStatusMicroMError(e.Errors as DBStatus[], formMode) : toMicroMError(e), operationType: formMode };
-                setStatus(new_status);
+                if (mountedRef.current) setStatus(new_status);
                 return new_status;
             }
             else {
                 return { loading: false }
             }
         }
-    }, [entity.API, entity.def.columns, form.values, formMode, performGetData]);
+        finally {
+            if (!isKeepaliveSave && saveAbortController.current === abortController) cancellableSaveInFlightRef.current = false;
+        }
+    }, [entity.API, entity.def.columns, form.values, formMode, noSaveOnSubmit, performGetData]);
 
     const handleCancel = useCallback(async () => {
         getAbortController.current.abort();
@@ -289,22 +307,97 @@ export function useEntityForm(props: UseEntityFormOptions): UseEntityFormReturnT
         delete validationObject.current[column.name];
     }, []);
 
-    const silentSave = useCallback(async () => {
-        try {
-            form.validate();
-            if (!areValuesObjectsEqual(form.values, lastGetValues.current)) {
-                await saveAndGet();
+
+    // MMC: silentSave handling
+    const silentSaveInFlight = useRef<Promise<SilentSaveResult> | null>(null);
+
+    const silentSave = useCallback((requestOptions?: MicroMRequestOptions): Promise<SilentSaveResult> => {
+        if (requestOptions?.keepalive) preserveSilentSaveOnUnmountRef.current = true;
+        if (silentSaveInFlight.current) return silentSaveInFlight.current;
+
+        const savePromise = (async () => {
+            try {
+                if (formMode === 'view' || noSaveOnSubmit) return 'unchanged';
+
+                const validationResult = form.validate();
+                if (validationResult.hasErrors || Object.keys(asyncErrors.current).length > 0) {
+                    if (mountedRef.current) setNotifyValidationError(true);
+                    return 'invalid';
+                }
+
+                const savedValues = { ...form.values };
+                if (areValuesObjectsEqual(savedValues, lastGetValues.current)) return 'unchanged';
+
+                const getDataIfSaved = requestOptions?.keepalive !== true;
+                let saveResult: OperationStatus<DBStatusResult>;
+
+                if (saveAndGetOverride) {
+                    if (mountedRef.current) setStatus({ loading: true, operationType: formMode });
+                    saveResult = await saveAndGetOverride(getDataIfSaved, savedValues, requestOptions);
+                    if (mountedRef.current) setStatus(saveResult);
+                    if (mountedRef.current && saveResult.error === undefined && saveResult.data?.Failed !== true && formMode === "add") {
+                        setFormMode('edit');
+                    }
+                }
+                else {
+                    saveResult = await saveAndGet(getDataIfSaved, savedValues, requestOptions);
+                }
+
+                if (saveResult.error !== undefined || saveResult.data?.Failed === true) return 'failed';
+
+                if (!getDataIfSaved) {
+                    const newValues = formMode === "add"
+                        ? getMantineValuesObject(savedValues, entity.def.columns, true)
+                        : savedValues;
+
+                    lastGetValues.current = newValues;
+                    if (mountedRef.current && areValuesObjectsEqual(form.values, savedValues)) {
+                        if (!areValuesObjectsEqual(newValues, savedValues)) form.setValues(newValues);
+                        form.resetDirty(newValues);
+                    }
+                }
+
+                return 'saved';
             }
-        }
-        catch (ex) {
-            console.error('SilentSave', ex);
-        }
-    }, [form, saveAndGet]);
+            catch (ex: unknown) {
+                const errorObject = typeof ex === 'object' && ex !== null ? ex as { name?: string, Errors?: DBStatus[] } : undefined;
+                if (errorObject?.name !== 'AbortError') {
+                    if (mountedRef.current) setStatus({ error: errorObject?.Errors ? toDBStatusMicroMError(errorObject.Errors, formMode) : toMicroMError(ex), operationType: formMode });
+                    console.error('SilentSave', ex);
+                }
+                return 'failed';
+            }
+        })();
+
+        silentSaveInFlight.current = savePromise;
+        void savePromise.finally(() => {
+            if (silentSaveInFlight.current === savePromise) silentSaveInFlight.current = null;
+            preserveSilentSaveOnUnmountRef.current = false;
+        });
+
+        return savePromise;
+    }, [entity.def.columns, form, formMode, noSaveOnSubmit, saveAndGet, saveAndGetOverride, setNotifyValidationError]);
+
+    useConfirmNavigation({
+        mode: navigationProtection,
+        hasUnsavedChanges: () => formMode !== 'view'
+            && form.isDirty()
+            && !areValuesObjectsEqual(form.values, lastGetValues.current),
+        onSave: async (navigationType) => {
+            const result = await silentSave(navigationType === 'remote' ? { keepalive: true } : undefined);
+            return result === 'saved' || result === 'unchanged';
+        },
+    });
+
+    useEffect(() => {
+        mountedRef.current = true;
+        return () => {
+            mountedRef.current = false;
+        };
+    }, []);
 
     // getDataOnInit
     useEffect(() => {
-        const cancellation = getAbortController.current;
-
         if (getDataOnInit) {
             async function getData() {
                 await performGetData();
@@ -313,19 +406,18 @@ export function useEntityForm(props: UseEntityFormOptions): UseEntityFormReturnT
         }
 
         return () => {
-            if (getDataOnInit && cancelGetOnUnmount) {
+            if (getDataOnInit && cancelGetOnUnmount && getInFlightRef.current && !getAbortController.current.signal.aborted) {
                 console.log("useEntityForm performGetData aborted");
-                cancellation.abort("Effect cleanup");
+                getAbortController.current.abort("Effect cleanup");
             }
         }
     }, []);
 
     useEffect(() => {
-        const cancellation = saveAbortController.current;
         return () => {
-            if (cancelSaveOnUnmount) {
+            if (cancelSaveOnUnmount && cancellableSaveInFlightRef.current && !preserveSilentSaveOnUnmountRef.current && !saveAbortController.current.signal.aborted) {
                 console.log("useEntityForm Save aborted");
-                cancellation.abort("Effect cleanup");
+                saveAbortController.current.abort("Effect cleanup");
             }
         }
     }, []);
@@ -336,39 +428,6 @@ export function useEntityForm(props: UseEntityFormOptions): UseEntityFormReturnT
             form.setValues(initialValues.current);
         }
     }, [initialFormMode]);
-
-    // save before navigation
-    useEffect(() => {
-        const handleBeforeUnload = async () => {
-            if (saveBeforeRemoteNavigation) {
-                await silentSave();
-            }
-        };
-
-        window.addEventListener("beforeunload", handleBeforeUnload);
-
-        return () => {
-            window.removeEventListener("beforeunload", handleBeforeUnload);
-        };
-    }, [saveBeforeRemoteNavigation, silentSave]);
-
-    const prevLocationRef = useRef(window.location.hash);
-
-    // save before local navigation
-    useEffect(() => {
-        const handleLocalNavigation = async () => {
-            if (saveBeforeLocalNavigation && form.isDirty() && (prevLocationRef.current !== window.location.hash)) {
-                await silentSave();
-            }
-        }
-
-        window.addEventListener("hashchange", handleLocalNavigation);
-
-        return () => {
-            window.removeEventListener("hashchange", handleLocalNavigation);
-        }
-
-    }, [form, saveBeforeLocalNavigation, silentSave]);
 
     const result = useMemo(() => ({
         form: form,
@@ -389,7 +448,7 @@ export function useEntityForm(props: UseEntityFormOptions): UseEntityFormReturnT
         clearAllAsyncErrors: clearAllAsyncErrors,
         isFormValid: isFormValid,
         isFormFieldValid: isFormFieldValid,
-        silentSave
+        silentSave,
     }), [addValidation, clearAllAsyncErrors, clearAsyncError, entity, form, formMode, handleCancel, handleSubmit, isFormFieldValid, isFormValid, notifyValidationErrorState, performGetData,
         removeValidation, saveAndGet, saveAndGetOverride, setAsyncError, showDescriptionState, status, silentSave]);
 

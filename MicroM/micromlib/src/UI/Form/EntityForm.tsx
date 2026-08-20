@@ -23,8 +23,6 @@ export interface EntityFormProps extends PropsWithChildren {
     isDirtyColor?: DefaultMantineColor,
     cancelButtonVariant?: Variants<'filled' | 'outline' | 'light' | 'white' | 'default' | 'subtle' | 'gradient'>,
     okButtonVariant?: Variants<'filled' | 'outline' | 'light' | 'white' | 'default' | 'subtle' | 'gradient'>,
-    saveBeforeLocalNavigation?: boolean,
-    saveBeforeRemoteNavigation?: boolean,
     disableOKIfNotDirty?: boolean,
     formHeight?: string | number,
 }
@@ -51,7 +49,7 @@ export function EntityForm(props: EntityFormProps) {
     const {
         formAPI, children, showOK, showCancel, showErrors, showFormValidationNotification, showLoadingProgress, OKText, CancelText, invalidFieldsLabel,
         showHelpButton, preventEnterSubmission, CloseText, buttons, isDirtyColor, cancelButtonVariant, okButtonVariant, disableOKIfNotDirty,
-        formHeight
+        formHeight,
     } = useComponentDefaultProps('EntityForm', EntityFormDefaultProps, props);
 
     const { entity } = formAPI;

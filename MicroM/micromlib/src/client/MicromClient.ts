@@ -1,5 +1,5 @@
 import { isIn } from "../Entity/GenericFunctions";
-import { DataResult, DBStatusResult, ValuesObject } from "./client.types";
+import { DataResult, DBStatusResult, MicroMRequestOptions, ValuesObject } from "./client.types";
 import { DataStorage } from "./DataStorage";
 import { ImpDataResult } from "./ImpDataResult";
 import { JSONDateWithTimezoneReplacer } from "./JSONDateWithTimezoneReplacer";
@@ -956,22 +956,22 @@ export class MicroMClient {
         return this.#submitToAPI(entity_name, parent_keys, values, [], "get", abort_signal);
     }
 
-    async insert(entity_name: string, parent_keys: ValuesObject | null, values: ValuesObject, recordsSelection: ValuesObject[] | null, abort_signal: AbortSignal | null = null): Promise<DBStatusResult> {
+    async insert(entity_name: string, parent_keys: ValuesObject | null, values: ValuesObject, recordsSelection: ValuesObject[] | null, abort_signal: AbortSignal | null = null, requestOptions?: MicroMRequestOptions): Promise<DBStatusResult> {
         this.#recordAccess({ entityName: entity_name, access: AllowedRouteFlags.Insert });
 
         if (!this.#TOKEN && this.#isPublicAPI(entity_name, "insert")) {
-            return this.#submitToPublicAPI(entity_name, parent_keys, values, recordsSelection, "insert", abort_signal);
+            return this.#submitToPublicAPI(entity_name, parent_keys, values, recordsSelection, "insert", abort_signal, null, requestOptions);
         }
-        return this.#submitToAPI(entity_name, parent_keys, values, recordsSelection, "insert", abort_signal);
+        return this.#submitToAPI(entity_name, parent_keys, values, recordsSelection, "insert", abort_signal, null, requestOptions);
     }
 
-    async update(entity_name: string, parent_keys: ValuesObject | null, values: ValuesObject, recordsSelection: ValuesObject[] | null, abort_signal: AbortSignal | null = null): Promise<DBStatusResult> {
+    async update(entity_name: string, parent_keys: ValuesObject | null, values: ValuesObject, recordsSelection: ValuesObject[] | null, abort_signal: AbortSignal | null = null, requestOptions?: MicroMRequestOptions): Promise<DBStatusResult> {
         this.#recordAccess({ entityName: entity_name, access: AllowedRouteFlags.Update });
 
         if (!this.#TOKEN && this.#isPublicAPI(entity_name, "update")) {
-            return this.#submitToPublicAPI(entity_name, parent_keys, values, recordsSelection, "update", abort_signal);
+            return this.#submitToPublicAPI(entity_name, parent_keys, values, recordsSelection, "update", abort_signal, null, requestOptions);
         }
-        return this.#submitToAPI(entity_name, parent_keys, values, recordsSelection, "update", abort_signal);
+        return this.#submitToAPI(entity_name, parent_keys, values, recordsSelection, "update", abort_signal, null, requestOptions);
     }
 
     async delete(entity_name: string, parent_keys: ValuesObject | null, values: ValuesObject | null, recordsSelection: ValuesObject[] | null, abort_signal: AbortSignal | null = null): Promise<DBStatusResult> {
@@ -1103,7 +1103,8 @@ export class MicroMClient {
 
 
     async #submitToAPI(entity_name: string, parent_keys: ValuesObject | null, values: ValuesObject | null
-        , recordsSelection: ValuesObject[] | null, action: APIAction, abort_signal: AbortSignal | null = null, additional_route: string | null = null) {
+        , recordsSelection: ValuesObject[] | null, action: APIAction, abort_signal: AbortSignal | null = null
+        , additional_route: string | null = null, requestOptions?: MicroMRequestOptions) {
 
         const extra_route = (additional_route !== null) ? `/${additional_route}` : '';
         const route = `${this.#API_URL}/${this.#APP_ID}/ent/${entity_name}/${action}${extra_route}`;
@@ -1121,6 +1122,7 @@ export class MicroMClient {
                 credentials: 'include',
                 referrerPolicy: 'strict-origin-when-cross-origin',
                 signal: abort_signal,
+                keepalive: requestOptions?.keepalive ?? false,
                 body: body
             });
 
@@ -1148,7 +1150,8 @@ export class MicroMClient {
     }
 
     async #submitToPublicAPI(entity_name: string, parent_keys: ValuesObject | null, values: ValuesObject | null
-        , recordsSelection: ValuesObject[] | null, action: APIAction, abort_signal: AbortSignal | null = null, additional_route: string | null = null) {
+        , recordsSelection: ValuesObject[] | null, action: APIAction, abort_signal: AbortSignal | null = null
+        , additional_route: string | null = null, requestOptions?: MicroMRequestOptions) {
         const extra_route = (additional_route !== null) ? `/${additional_route}` : '';
         const route = `${this.#API_URL}/${this.#APP_ID}/public/${entity_name}/${action}${extra_route}`;
 
@@ -1161,6 +1164,7 @@ export class MicroMClient {
             credentials: 'include',
             referrerPolicy: 'strict-origin-when-cross-origin',
             signal: abort_signal,
+            keepalive: requestOptions?.keepalive ?? false,
             body: body
         });
 

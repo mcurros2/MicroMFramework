@@ -2,6 +2,10 @@ export type Value = string | number | Date | boolean | string[] | null;
 export type ValuesObject = Record<string, Value>;
 export type ValuesRecord = Value[];
 
+export interface MicroMRequestOptions {
+    keepalive?: boolean;
+}
+
 export type SQLType = 'char' | 'nchar' | 'varchar' | 'nvarchar' | 'text' | 'ntext' | 'tinyint' | 'smallint' | 'int' | 'bigint' | 'float' | 'decimal' | 'real' | 'bit' | 'money' | 'datetime2' | 'datetime' | 'smalldatetime' | 'date' | 'binary' | 'varbinary' | 'image' | 'time';
 
 export interface DataResult {

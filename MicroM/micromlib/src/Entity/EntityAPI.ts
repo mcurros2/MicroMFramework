@@ -1,4 +1,4 @@
-import { DataResult, DBStatusResult, ImpDataResult, MicroMClient, ValuesObject } from "../client";
+import { DataResult, DBStatusResult, ImpDataResult, MicroMClient, MicroMRequestOptions, ValuesObject } from "../client";
 import * as cf from "./ColumnsFunctions";
 import { EntityColumnFlags } from "./EntityColumn.types";
 import { ColumnsObject } from "./EntityColumnCollection.types";
@@ -39,10 +39,10 @@ export class EntityAPI {
     /**
      * Add the data for the current row and fill the key columns values with the returned auto-numeric (if any).
      */
-    async addData(abort_signal: AbortSignal | null = null, recordsSelection?: ValuesObject[], ignoreRecordExists?: boolean): Promise<DBStatusResult> {
+    async addData(abort_signal: AbortSignal | null = null, recordsSelection?: ValuesObject[], ignoreRecordExists?: boolean, requestOptions?: MicroMRequestOptions): Promise<DBStatusResult> {
 
         const values = cf.getValues(this.#columns, { flags: EntityColumnFlags.add, ignoreDefaults: false });
-        const result = await this.client.insert(this.#name, null, values, recordsSelection ?? [], abort_signal);
+        const result = await this.client.insert(this.#name, null, values, recordsSelection ?? [], abort_signal, requestOptions);
 
         if (result.Failed) {
             if (!ignoreRecordExists) {
@@ -68,10 +68,10 @@ export class EntityAPI {
     /**
      * Edits the data for the current row.
      */
-    async editData(abort_signal: AbortSignal | null = null, recordsSelection?: ValuesObject[]): Promise<DBStatusResult> {
+    async editData(abort_signal: AbortSignal | null = null, recordsSelection?: ValuesObject[], requestOptions?: MicroMRequestOptions): Promise<DBStatusResult> {
 
         const values = cf.getValues(this.#columns, { flags: EntityColumnFlags.edit, ignoreDefaults: false });
-        const result = await this.client.update(this.#name, null, values, recordsSelection ?? [], abort_signal);
+        const result = await this.client.update(this.#name, null, values, recordsSelection ?? [], abort_signal, requestOptions);
         if (result.Failed) throw { Errors: result.Results } as EntityError;
 
         return result;

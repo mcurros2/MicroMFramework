@@ -1,6 +1,7 @@
 import { DBStatusResult, OperationStatus } from "../../client";
 import { Entity, EntityDefinition } from "../../Entity";
 import { EntityFormProps } from "../Form";
+import { NavigationProtectionMode } from "../Router/NavigationGuards";
 
 export type FormMode = 'add' | 'edit' | 'view';
 
@@ -17,7 +18,8 @@ export interface FormOptions<T extends Entity<EntityDefinition>> extends Omit<En
     initialFormMode: FormMode,
     getDataOnInit?: boolean,
     onSaved?: (status: OperationStatus<DBStatusResult>) => void,
-    onCancel?: () => void
+    onCancel?: () => void,
+    navigationProtection?: NavigationProtectionMode,
 }
 
 export type useStateReturnType<T> = [T, React.Dispatch<React.SetStateAction<T>>];
