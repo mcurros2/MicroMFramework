@@ -50,7 +50,7 @@ public static class DatabaseSchemaProcedures
         bool should_close = !(ec.ConnectionState == System.Data.ConnectionState.Open);
         try
         {
-            bool tableOnly = ent.Def.SQLCreationOptions.HasFlag(SQLCreationOptionsMetadata.TableOnly);
+            bool tableOnly = ent.Def.SQLCreationOptions.HasFlag(SQLCreationOptionsMetadata.TableOnly) | ent.Def.SQLCreationOptions.HasFlag(SQLCreationOptionsMetadata.TableOnlyWithoutSystemColumns);
 
             if (tableOnly) return;
 

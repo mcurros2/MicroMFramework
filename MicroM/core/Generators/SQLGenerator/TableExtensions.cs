@@ -65,9 +65,13 @@ public static class TableExtensions
         HashSet<string> fk_indexes_keys = [];
         HashSet<string> indexes_keys = [];
 
+        bool no_system_tables = entity.Def.SQLCreationOptions.HasFlag(SQLCreationOptionsMetadata.TableOnlyWithoutSystemColumns);
+
         // PK and columns
         foreach (var col in entity.Def.Columns.Values)
         {
+            if (no_system_tables && col.Name.IsIn(DefaultColumns.SystemNames)) continue;
+
             if (!col.ColumnMetadata.HasFlag(ColumnFlags.Fake))
                 ret.AppendFormat(CultureInfo.InvariantCulture, "{0} {1},\n", col.Name, col.AsSQLTypeString());
 

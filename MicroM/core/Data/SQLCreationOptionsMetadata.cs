@@ -8,4 +8,5 @@ public enum SQLCreationOptionsMetadata : byte
     WithIDrop = 2,
     WithIUpdateAndIDrop = 3,
     TableOnly = 4,
+    TableOnlyWithoutSystemColumns = 8,
 }
