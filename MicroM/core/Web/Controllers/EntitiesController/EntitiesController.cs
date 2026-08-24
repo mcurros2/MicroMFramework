@@ -1,6 +1,7 @@
 ﻿using MicroM.Configuration;
 using MicroM.Data;
 using MicroM.Extensions;
+using MicroM.ImportData;
 using MicroM.Web.Authentication;
 using MicroM.Web.Services;
 using MicroM.Web.Services.Security;
@@ -147,7 +148,7 @@ public class EntitiesController() : ControllerBase, IEntitiesController
 
     [Authorize(policy: nameof(MicroMPermissionsConstants.MicroMPermissionsPolicy))]
     [HttpPost("{app_id}/ent/{entityName}/import/{import_proc?}")]
-    public async Task<ObjectResult> Import([FromServices] IAuthenticationProvider auth, [FromServices] IMicroMAppConfiguration app_config, [FromServices] IEntitiesService ents, string app_id, string entityName, string? import_proc, [FromBody] DataWebAPIRequest parms, CancellationToken ct)
+    public async Task<ObjectResult> Import([FromServices] IAuthenticationProvider auth, [FromServices] IMicroMAppConfiguration app_config, [FromServices] IEntitiesService ents, string app_id, string entityName, string? import_proc, [FromBody] ImportDataWebAPIRequest parms, CancellationToken ct)
     {
         try
         {

@@ -42,7 +42,7 @@ public interface IEntitiesService
 
     public Task<EntityActionResult?> HandleExecuteAction(ApplicationOption app, string entity_name, string entity_action, DataWebAPIRequest parms, IEntityClient ec, CancellationToken ct);
 
-    public Task<CSVImportResult?> HandleImportData(ApplicationOption app, string entity_name, string? import_proc, DataWebAPIRequest parms, IEntityClient ec, CancellationToken ct);
+    public Task<CSVImportResult?> HandleImportData(ApplicationOption app, string entity_name, string? import_proc, ImportDataWebAPIRequest parms, IEntityClient ec, CancellationToken ct);
 
     public Task<int> HandleGetTimeZoneOffset(ApplicationOption app, IEntityClient ec, CancellationToken ct);
 

@@ -609,7 +609,7 @@ public class EntitiesService : IEntitiesService
     }
 
 
-    public async Task<CSVImportResult?> HandleImportData(ApplicationOption app, string entity_name, string? import_proc, DataWebAPIRequest parms, IEntityClient ec, CancellationToken ct)
+    public async Task<CSVImportResult?> HandleImportData(ApplicationOption app, string entity_name, string? import_proc, ImportDataWebAPIRequest parms, IEntityClient ec, CancellationToken ct)
     {
         try
         {
@@ -717,7 +717,7 @@ public class EntitiesService : IEntitiesService
                             else
                             {
                                 var workbookType = ext.Equals(".xls", StringComparison.OrdinalIgnoreCase) ? ExcelWorkbookType.Excel : ExcelWorkbookType.ExcelXml;
-                                var result = await entity.ImportDataFromExcel(file_stream, workbookType, null, null, _options, parms.ServerClaims, _api, app_id, parms.ParentKeys, ct);
+                                var result = await entity.ImportDataFromExcel(file_stream, workbookType, parms.ExcelImportMapping, null, _options, parms.ServerClaims, _api, app_id, parms.ParentKeys, ct);
                                 if (result != null)
                                 {
                                     await import_process.UpdateStatus(nameof(ImportStatus.Completed), ct);

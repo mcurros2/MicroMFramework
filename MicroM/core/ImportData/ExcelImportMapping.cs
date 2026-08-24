@@ -1,6 +1,6 @@
 namespace MicroM.ImportData;
 
-public sealed record ImportDataMapping(string SourceHeader, int SourceIndex, string DestinationColumnName);
+public sealed record ImportDataMapping(string? SourceHeader, int? SourceIndex, string DestinationColumnName);
 
 public sealed class ExcelImportMapping
 {

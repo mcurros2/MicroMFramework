@@ -1,4 +1,5 @@
 ﻿using MicroM.Data;
+using MicroM.ImportData;
 using MicroM.Web.Authentication;
 using MicroM.Web.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -15,7 +16,7 @@ public interface IEntitiesController
     Task<ObjectResult> Update(IAuthenticationProvider auth, IMicroMAppConfiguration app_config, IEntitiesService ents, string app_id, string entityName, DataWebAPIRequest parms, CancellationToken ct);
     Task<ObjectResult> Delete(IAuthenticationProvider auth, IMicroMAppConfiguration app_config, IEntitiesService ents, string app_id, string entityName, DataWebAPIRequest parms, CancellationToken ct);
     Task<ObjectResult> Lookup(IAuthenticationProvider auth, IMicroMAppConfiguration app_config, IEntitiesService ents, string app_id, string entityName, string? lookupName, DataWebAPIRequest parms, CancellationToken ct);
-    Task<ObjectResult> Import(IAuthenticationProvider auth, IMicroMAppConfiguration app_config, IEntitiesService ents, string app_id, string entityName, string? import_proc, DataWebAPIRequest parms, CancellationToken ct);
+    Task<ObjectResult> Import(IAuthenticationProvider auth, IMicroMAppConfiguration app_config, IEntitiesService ents, string app_id, string entityName, string? import_proc, ImportDataWebAPIRequest parms, CancellationToken ct);
     Task<ObjectResult> View(IAuthenticationProvider auth, IMicroMAppConfiguration app_config, IEntitiesService ents, string app_id, string entityName, string viewName, DataWebAPIRequest parms, CancellationToken ct);
     Task<ObjectResult> Proc(IAuthenticationProvider auth, IMicroMAppConfiguration app_config, IEntitiesService ents, string app_id, string entityName, string procName, DataWebAPIRequest parms, CancellationToken ct);
     Task<ObjectResult> Process(IAuthenticationProvider auth, IMicroMAppConfiguration app_config, IEntitiesService ents, string app_id, string entityName, string procName, DataWebAPIRequest parms, CancellationToken ct);

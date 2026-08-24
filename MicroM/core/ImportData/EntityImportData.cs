@@ -13,6 +13,8 @@ namespace MicroM.ImportData;
 
 public static class EntityImportData
 {
+    internal sealed record ResolvedImportDataMapping(int SourceIndex, string DestinationColumnName);
+
     public static void MapCSVDataToEntity<T>(this T entity, Dictionary<string, string> data) where T : EntityBase
     {
         foreach (var kvp in data)
@@ -203,12 +205,12 @@ public static class EntityImportData
                     continue;
                 }
 
-                Dictionary<string, object> data = new(StringComparer.OrdinalIgnoreCase);
+                Dictionary<string, object?> data = new(StringComparer.OrdinalIgnoreCase);
                 if (useExplicitMapping)
                 {
                     foreach (var mapping in resolvedMapping)
                     {
-                        data[mapping.DestinationColumnName] = row[mapping.SourceIndex]!;
+                        data[mapping.DestinationColumnName] = row[mapping.SourceIndex];
                     }
                 }
                 else
@@ -216,13 +218,13 @@ public static class EntityImportData
                     for (int i = 0; i < headerRow.Length && i < row.Length; i++)
                     {
                         var key = headerRow[i]?.ToString() ?? $"Column{i}";
-                        data[key] = row[i]!;
+                        data[key] = row[i];
                     }
                 }
 
                 try
                 {
-                    entity.SetColumnValues(data);
+                    entity.MapExcelDataToEntity(data);
 
                     entity.SetColumnValues(api.entitiesService.GetApplicationKeys(app_id));
 
@@ -260,10 +262,7 @@ public static class EntityImportData
         return result;
     }
 
-    internal static IReadOnlyList<ResolvedImportDataMapping> ResolveExcelMapping<T>(
-        T entity,
-        object?[] headerRow,
-        ExcelImportMapping? importMapping) where T : EntityBase
+    internal static IReadOnlyList<ResolvedImportDataMapping> ResolveExcelMapping<T>(T entity, object?[] headerRow, ExcelImportMapping? importMapping) where T : EntityBase
     {
         if (importMapping?.Mapping == null || importMapping.Mapping.Length == 0) return [];
 
@@ -294,37 +293,49 @@ public static class EntityImportData
                 throw new InvalidDataException($"The destination column '{mapping.DestinationColumnName}' cannot be imported.");
             }
 
-            List<int> matchingHeaderIndexes = [];
-            for (int i = 0; i < headerRow.Length; i++)
-            {
-                if (string.Equals(headerRow[i]?.ToString(), mapping.SourceHeader, StringComparison.OrdinalIgnoreCase))
-                {
-                    matchingHeaderIndexes.Add(i);
-                }
-            }
-
             int sourceIndex;
-            if (matchingHeaderIndexes.Count == 1)
+            if (!string.IsNullOrWhiteSpace(mapping.SourceHeader))
             {
-                sourceIndex = matchingHeaderIndexes[0];
-            }
-            else if (matchingHeaderIndexes.Count > 1)
-            {
-                if (!matchingHeaderIndexes.Contains(mapping.SourceIndex))
+                List<int> matchingHeaderIndexes = [];
+                for (int i = 0; i < headerRow.Length; i++)
                 {
-                    throw new InvalidDataException($"The source header '{mapping.SourceHeader}' is duplicated and source index {mapping.SourceIndex} does not identify one of its columns.");
+                    if (string.Equals(headerRow[i]?.ToString(), mapping.SourceHeader, StringComparison.OrdinalIgnoreCase))
+                    {
+                        matchingHeaderIndexes.Add(i);
+                    }
                 }
 
-                sourceIndex = mapping.SourceIndex;
+                if (matchingHeaderIndexes.Count == 0)
+                {
+                    throw new InvalidDataException($"The source header '{mapping.SourceHeader}' was not found.");
+                }
+
+                if (matchingHeaderIndexes.Count == 1)
+                {
+                    sourceIndex = matchingHeaderIndexes[0];
+                }
+                else if (mapping.SourceIndex is int duplicateIndex && matchingHeaderIndexes.Contains(duplicateIndex))
+                {
+                    sourceIndex = duplicateIndex;
+                }
+                else
+                {
+                    throw new InvalidDataException($"The source header '{mapping.SourceHeader}' is duplicated and requires a source index that identifies one of its columns.");
+                }
             }
             else
             {
-                if (mapping.SourceIndex < 0 || mapping.SourceIndex >= headerRow.Length)
+                if (mapping.SourceIndex is not int index)
                 {
-                    throw new InvalidDataException($"The source header '{mapping.SourceHeader}' was not found and source index {mapping.SourceIndex} is outside the worksheet header.");
+                    throw new InvalidDataException("An Excel import mapping must specify a source header or source index.");
                 }
 
-                sourceIndex = mapping.SourceIndex;
+                if (index < 0 || index >= headerRow.Length)
+                {
+                    throw new InvalidDataException($"Source index {index} is outside the worksheet header.");
+                }
+
+                sourceIndex = index;
             }
 
             result.Add(new(sourceIndex, destinationColumn.Name));
@@ -333,6 +344,155 @@ public static class EntityImportData
         return result;
     }
 
-    internal sealed record ResolvedImportDataMapping(int SourceIndex, string DestinationColumnName);
+    internal static void MapExcelDataToEntity<T>(this T entity, IReadOnlyDictionary<string, object?> data) where T : EntityBase
+    {
+        foreach (var item in data)
+        {
+            if (entity.Def.Columns.TryGetValue(item.Key, out var column)
+                && column != null
+                && !column.ColumnMetadata.HasFlag(ColumnFlags.APIReadOnly))
+            {
+                column.ValueObject = ConvertExcelValue(column, item.Value);
+            }
+        }
+    }
+
+    internal static object? ConvertExcelValue(ColumnBase destinationColumn, object? sourceValue)
+    {
+        if (sourceValue == null || sourceValue == DBNull.Value) return null;
+        if (destinationColumn.SQLMetadata.SQLType.IsTypeAccepted(sourceValue.GetType())) return sourceValue;
+
+        return destinationColumn.SQLMetadata.SQLType switch
+        {
+            SqlDbType.DateTime or SqlDbType.DateTime2 or SqlDbType.Date or SqlDbType.SmallDateTime => ConvertExcelDateTime(sourceValue, destinationColumn.Name),
+            SqlDbType.Decimal or SqlDbType.Money or SqlDbType.SmallMoney => ConvertExcelDecimal(sourceValue, destinationColumn.Name),
+            SqlDbType.Int => ConvertExcelInt32(sourceValue, destinationColumn.Name),
+            SqlDbType.Bit => ConvertExcelBoolean(sourceValue, destinationColumn.Name),
+            SqlDbType.Float => ConvertExcelDouble(sourceValue, destinationColumn.Name),
+            _ => throw InvalidExcelConversion(sourceValue, destinationColumn)
+        };
+    }
+
+    private static DateTime ConvertExcelDateTime(object sourceValue, string destinationColumnName)
+    {
+        if (sourceValue is string text
+            && DateTime.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.AllowWhiteSpaces | DateTimeStyles.NoCurrentDateDefault | DateTimeStyles.RoundtripKind, out var parsed))
+        {
+            return parsed;
+        }
+
+        try
+        {
+            var serialValue = Convert.ToDouble(sourceValue, CultureInfo.InvariantCulture);
+            if (double.IsFinite(serialValue)) return DateTime.FromOADate(serialValue);
+        }
+        catch (Exception ex) when (ex is FormatException or InvalidCastException or ArgumentException or OverflowException)
+        {
+        }
+
+        throw new FormatException($"Excel value '{sourceValue}' cannot be converted to DateTime for column '{destinationColumnName}'.");
+    }
+
+    private static decimal ConvertExcelDecimal(object sourceValue, string destinationColumnName)
+    {
+        if (sourceValue is string text
+            && decimal.TryParse(text, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out var parsed))
+        {
+            return parsed;
+        }
+
+        try
+        {
+            return Convert.ToDecimal(sourceValue, CultureInfo.InvariantCulture);
+        }
+        catch (Exception ex) when (ex is FormatException or InvalidCastException or OverflowException)
+        {
+            throw new FormatException($"Excel value '{sourceValue}' cannot be converted to Decimal for column '{destinationColumnName}'.", ex);
+        }
+    }
+
+    private static int ConvertExcelInt32(object sourceValue, string destinationColumnName)
+    {
+        if (sourceValue is string text
+            && int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed))
+        {
+            return parsed;
+        }
+
+        try
+        {
+            var numericValue = Convert.ToDecimal(sourceValue, CultureInfo.InvariantCulture);
+            if (numericValue != decimal.Truncate(numericValue) || numericValue < int.MinValue || numericValue > int.MaxValue)
+            {
+                throw new OverflowException();
+            }
+
+            return decimal.ToInt32(numericValue);
+        }
+        catch (Exception ex) when (ex is FormatException or InvalidCastException or OverflowException)
+        {
+            throw new FormatException($"Excel value '{sourceValue}' must be an exact Int32 value for column '{destinationColumnName}'.", ex);
+        }
+    }
+
+    private static bool ConvertExcelBoolean(object sourceValue, string destinationColumnName)
+    {
+        if (sourceValue is string text)
+        {
+            text = text.Trim();
+            if (text.Equals(bool.TrueString, StringComparison.OrdinalIgnoreCase) || text == "1") return true;
+            if (text.Equals(bool.FalseString, StringComparison.OrdinalIgnoreCase) || text == "0") return false;
+        }
+        else
+        {
+            try
+            {
+                var numericValue = Convert.ToDecimal(sourceValue, CultureInfo.InvariantCulture);
+                if (numericValue == decimal.One) return true;
+                if (numericValue == decimal.Zero) return false;
+            }
+            catch (Exception ex) when (ex is FormatException or InvalidCastException or OverflowException)
+            {
+            }
+        }
+
+        throw new FormatException($"Excel value '{sourceValue}' must be true, false, 1, or 0 for column '{destinationColumnName}'.");
+    }
+
+    private static double ConvertExcelDouble(object sourceValue, string destinationColumnName)
+    {
+        double result;
+        if (sourceValue is string text)
+        {
+            if (!double.TryParse(text, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out result))
+            {
+                throw new FormatException($"Excel value '{sourceValue}' cannot be converted to Double for column '{destinationColumnName}'.");
+            }
+        }
+        else
+        {
+            try
+            {
+                result = Convert.ToDouble(sourceValue, CultureInfo.InvariantCulture);
+            }
+            catch (Exception ex) when (ex is FormatException or InvalidCastException or OverflowException)
+            {
+                throw new FormatException($"Excel value '{sourceValue}' cannot be converted to Double for column '{destinationColumnName}'.", ex);
+            }
+        }
+
+        if (!double.IsFinite(result))
+        {
+            throw new FormatException($"Excel value '{sourceValue}' must be finite for column '{destinationColumnName}'.");
+        }
+
+        return result;
+    }
+
+    private static FormatException InvalidExcelConversion(object sourceValue, ColumnBase destinationColumn)
+    {
+        return new FormatException($"Excel value '{sourceValue}' cannot be converted to {destinationColumn.SQLMetadata.SQLType} for column '{destinationColumn.Name}'.");
+    }
+
 
 }
