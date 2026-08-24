@@ -1,101 +1,68 @@
-﻿using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Spreadsheet;
-using System.Globalization;
+using Sylvan.Data.Excel;
+using System.Runtime.CompilerServices;
 
 namespace MicroM.Excel;
 
 public static class ExcelReader
 {
-    public static async IAsyncEnumerable<object?[]> ReadExcelAsync(Stream stream, string? sheetName, int initialRow = 1)
+    public static IAsyncEnumerable<object?[]> ReadExcelAsync(
+        Stream stream,
+        string? sheetName,
+        int initialRow = 1,
+        CancellationToken ct = default)
     {
-        using var document = SpreadsheetDocument.Open(stream, false);
-        var workbookPart = document.WorkbookPart;
+        return ReadExcelAsync(stream, ExcelWorkbookType.ExcelXml, sheetName, initialRow, ct);
+    }
 
-        if (workbookPart == null)
-            yield break;
+    public static async IAsyncEnumerable<object?[]> ReadExcelAsync(
+        Stream stream,
+        ExcelWorkbookType workbookType,
+        string? sheetName,
+        int initialRow = 1,
+        [EnumeratorCancellation] CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(stream);
+        if (initialRow < 1) throw new ArgumentOutOfRangeException(nameof(initialRow), "The initial row must be greater than zero.");
+        if (workbookType == ExcelWorkbookType.Unknown) throw new ArgumentException("The Excel workbook type must be specified.", nameof(workbookType));
 
-        var sheet = workbookPart.Workbook?.Sheets?.Elements<Sheet>()
-            .FirstOrDefault(s => (s.Name?.Value == sheetName) || sheetName == null);
-
-        if (sheet == null || sheet.Id == null)
-            yield break;
-
-        var worksheetPart = (WorksheetPart)workbookPart.GetPartById(sheet.Id!);
-        var rows = worksheetPart.Worksheet?.Descendants<Row>();
-
-        var sharedStringTable = workbookPart.SharedStringTablePart?.SharedStringTable;
-
-        var headerRow = rows?.FirstOrDefault(r => r.RowIndex?.Value == initialRow);
-        if (headerRow == null)
-            yield break;
-
-        var headers = headerRow.Elements<Cell>()
-            .Select(c => GetCellValue(c, sharedStringTable))
-            .ToArray();
-
-        yield return headers;
-        await Task.Yield();
-
-        if (rows != null)
+        ExcelDataReaderOptions readerOptions = new()
         {
-            foreach (var row in rows.Where(r => r.RowIndex?.Value > initialRow))
+            OwnsStream = false,
+            Schema = ExcelSchema.DynamicNoHeaders
+        };
+
+        await using var reader = await ExcelDataReader.CreateAsync(stream, workbookType, readerOptions, ct);
+
+        if (!string.IsNullOrEmpty(sheetName) && !reader.TryOpenWorksheet(sheetName))
+        {
+            throw new InvalidDataException($"The worksheet '{sheetName}' was not found.");
+        }
+
+        int columnCount = -1;
+        while (await reader.ReadAsync(ct))
+        {
+            if (reader.RowNumber < initialRow) continue;
+
+            if (columnCount < 0) columnCount = reader.RowFieldCount;
+
+            object?[] row = new object?[columnCount];
+            int valuesToRead = Math.Min(columnCount, reader.RowFieldCount);
+            for (int i = 0; i < valuesToRead; i++)
             {
-
-                var cellElements = row.Elements<Cell>().ToArray();
-                var rowData = new object?[headers.Length];
-
-                for (int i = 0; i < headers.Length; i++)
+                if (reader.RowNumber == initialRow)
                 {
-                    if (i < cellElements.Length)
-                        rowData[i] = GetTypedCellValue(cellElements[i], sharedStringTable);
-                    else
-                        rowData[i] = null;
+                    row[i] = reader.GetExcelDataType(i) == ExcelDataType.Null ? null : reader.GetString(i);
                 }
-
-                yield return rowData;
-                await Task.Yield();
+                else
+                {
+                    var value = reader.GetValue(i);
+                    row[i] = value == DBNull.Value
+                        ? reader.GetExcelDataType(i) == ExcelDataType.String ? reader.GetString(i) : null
+                        : value;
+                }
             }
+
+            yield return row;
         }
     }
-
-    public static object? GetTypedCellValue(Cell cell, SharedStringTable? sst)
-    {
-        var value = cell.CellValue?.Text;
-        if (value == null)
-            return null;
-
-        if (cell.DataType == null)
-            return double.TryParse(value, CultureInfo.InvariantCulture, out double numericValue) ? numericValue : value;
-
-        if (cell.DataType == CellValues.SharedString)
-            return int.TryParse(value, CultureInfo.InvariantCulture, out int index) && sst != null && index >= 0 && index < sst.Count()
-                ? sst.ElementAt(index).InnerText
-                : value;
-
-        if (cell.DataType == CellValues.Boolean)
-            return value == "1";
-
-        if (cell.DataType == CellValues.Number)
-            return double.TryParse(value, CultureInfo.InvariantCulture, out double numericValue) ? numericValue : value;
-
-        if (cell.DataType == CellValues.Date)
-            return DateTime.TryParse(value, CultureInfo.InvariantCulture, out DateTime dateValue) ? dateValue : value;
-
-        // Default to string
-        return value;
-    }
-
-    public static string? GetCellValue(Cell cell, SharedStringTable? sst)
-    {
-        var value = cell.CellValue?.Text;
-        if (cell.DataType != null && cell.DataType == CellValues.SharedString)
-        {
-            if (int.TryParse(value, out int index) && sst != null && index >= 0 && index < sst.Count())
-                return sst.ElementAt(index).InnerText;
-            return null;
-        }
-
-        return value;
-    }
-
 }

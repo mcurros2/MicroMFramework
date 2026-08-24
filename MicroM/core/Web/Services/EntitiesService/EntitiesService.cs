@@ -10,6 +10,7 @@ using MicroM.Web.Authentication.SSO;
 using MicroM.Web.Services.Security;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Sylvan.Data.Excel;
 using System.Collections.Concurrent;
 using System.Text.Json;
 
@@ -660,7 +661,7 @@ public class EntitiesService : IEntitiesService
 
                         // Get extension from file_path, only support .xls, .xlsx, .csv
                         var ext = Path.GetExtension(file_path);
-                        if (ext != ".csv" && ext != ".xls" && ext != ".xlsx")
+                        if (!ext.IsIn(parms: [".csv", ".xls", ".xlsx"], comparer: StringComparer.OrdinalIgnoreCase))
                         {
                             await import_process.UpdateStatus(nameof(ImportStatus.Error), ct);
                             _api.log.LogError("ImportData ERROR: {entity_name} {import_proc} invalid file extension: {ext}.", entity_name, import_proc, ext);
@@ -688,7 +689,7 @@ public class EntitiesService : IEntitiesService
                                 return null;
                             }
 
-                            if (ext == ".csv")
+                            if (ext.Equals(".csv", StringComparison.OrdinalIgnoreCase))
                             {
                                 var csv = await CSVParser.ParseFile(file_stream, ct);
 
@@ -715,7 +716,8 @@ public class EntitiesService : IEntitiesService
                             }
                             else
                             {
-                                var result = await entity.ImportDataFromExcel(file_stream, null, null, _options, parms.ServerClaims, _api, app_id, parms.ParentKeys, ct);
+                                var workbookType = ext.Equals(".xls", StringComparison.OrdinalIgnoreCase) ? ExcelWorkbookType.Excel : ExcelWorkbookType.ExcelXml;
+                                var result = await entity.ImportDataFromExcel(file_stream, workbookType, null, null, _options, parms.ServerClaims, _api, app_id, parms.ParentKeys, ct);
                                 if (result != null)
                                 {
                                     await import_process.UpdateStatus(nameof(ImportStatus.Completed), ct);
