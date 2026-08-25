@@ -4,3 +4,4 @@ export * from './MenuNavBarPanel';
 export * from './MenuItem';
 export * from './useMenuContent';
 export * from './caseInsensitveAccentInsensitiveFilter';
+export * from './getMainMenuId';

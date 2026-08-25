@@ -1,23 +1,34 @@
-import { useRef } from "react";
+import { Group, Loader, useComponentDefaultProps } from "@mantine/core";
 import { MicroMClient } from "../../client/MicromClient";
 import { MicromEntitiesTypes, MicromEntitiesTypesDef } from "../../DataDictionary";
-import { Entity, EntityDefinition, nameof } from "../../Entity";
-import { DataGrid, DataGridProps } from "../DataGrid";
+import { nameof } from "../../Entity";
+import { DataGridPanel, DataGridPanelProps } from "../DataGrid";
+import { EntityGridBuilderProps } from "../GetEntity/GetEntity";
 
-export interface DeveloperToolsPanelProps extends Omit<DataGridProps, 'entity' | 'title' | 'formMode'> {
-    client: MicroMClient,
+export interface DeveloperToolsPanelProps extends Omit<DataGridPanelProps, 'parentKeys'> {
 }
 
-export function DeveloperToolsPanel({ client, ...rest }: DeveloperToolsPanelProps) {
-    const entity = useRef<Entity<EntityDefinition>>(new MicromEntitiesTypes(client));
+export const DeveloperToolsPanelDefaultProps: Partial<DeveloperToolsPanelProps> = {
+    actionsButtonVariant: 'light',
+    toolbarIconVariant: 'light',
+    bgLight: 'gray.3',
+    bgDark: undefined,
+    gridHeight: 'flex-grow',
+    containerCardProps: { h: '100%', withBorder: true },
+    loadingComponent: <Group h="100%" align="flex-start"><Loader /></Group>,
+}
+
+export function DeveloperToolsPanel(props: DeveloperToolsPanelProps) {
+    const {
+        entityLoader, ...rest
+    } = useComponentDefaultProps("DeveloperToolsPanel", DeveloperToolsPanelDefaultProps, props);
 
     return (
-        <DataGrid
+        <DataGridPanel
             {...rest}
             formMode="view"
-            viewName={nameof<MicromEntitiesTypesDef>(v => v.views.mty_brwStandard)}
-            entity={entity.current}
-            gridHeight="flex-grow"
+            enableView={false}
+            entityConstructor={(client: MicroMClient) => ({ entity: new MicromEntitiesTypes(client), view: nameof<MicromEntitiesTypesDef>(v => v.views.mty_brwStandard) } as EntityGridBuilderProps)}
         />
     );
 }

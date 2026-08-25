@@ -30,7 +30,7 @@ public static class EntityImportData
                 if (!col.ColumnMetadata.HasFlag(ColumnFlags.Insert)) continue;
 
                 // skip system columns
-                if (col.Name.IsIn(SystemColumnNames.AsStringArray)) continue;
+                if (col.Name.IsIn(SystemColumnNames.AsStringArray) || col.ColumnMetadata.HasFlag(ColumnFlags.APIReadOnly)) continue;
 
                 if (!string.IsNullOrEmpty(value))
                 {
@@ -348,11 +348,15 @@ public static class EntityImportData
     {
         foreach (var item in data)
         {
-            if (entity.Def.Columns.TryGetValue(item.Key, out var column)
-                && column != null
-                && !column.ColumnMetadata.HasFlag(ColumnFlags.APIReadOnly))
+            if (entity.Def.Columns.TryGetValue(item.Key, out var col) && col != null)
             {
-                column.ValueObject = ConvertExcelValue(column, item.Value);
+                // skip columns that are not insertable
+                if (!col.ColumnMetadata.HasFlag(ColumnFlags.Insert) || col.ColumnMetadata.HasFlag(ColumnFlags.APIReadOnly) || !col.OverrideWith.IsNullOrEmpty()) continue;
+
+                // skip system columns
+                if (col.Name.IsIn(SystemColumnNames.AsStringArray)) continue;
+
+                col.ValueObject = ConvertExcelValue(col, item.Value);
             }
         }
     }
