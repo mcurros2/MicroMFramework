@@ -10,6 +10,7 @@ using Moq;
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Globalization;
 using System.IO;
 using System.Text.Json;
 using System.Threading;
@@ -306,6 +307,116 @@ public class ExcelImportTests
     }
 
     [TestMethod]
+    public void ConvertExcelValue_ConvertsSupportedScalarTypes()
+    {
+        TypedExcelImportEntity entity = new();
+        Guid expectedGuid = Guid.Parse("5f3f3391-e579-4736-a6e0-ec5fd982645c");
+
+        Assert.AreEqual(9223372036854775806L, EntityImportData.ConvertExcelValue(entity.Def.bi_value, "9223372036854775806"));
+        Assert.AreEqual(32767, EntityImportData.ConvertExcelValue(entity.Def.i_value, 32767m));
+        Assert.AreEqual((short)-123, EntityImportData.ConvertExcelValue(entity.Def.si_value, "-123"));
+        Assert.AreEqual((byte)255, EntityImportData.ConvertExcelValue(entity.Def.ti_value, "255"));
+        Assert.AreEqual(1234.5m, EntityImportData.ConvertExcelValue(entity.Def.n_value, "1,234.5"));
+        Assert.AreEqual(12.75d, EntityImportData.ConvertExcelValue(entity.Def.f_value, "12.75"));
+        Assert.AreEqual(12.75f, EntityImportData.ConvertExcelValue(entity.Def.r_value, 12.75m));
+        Assert.IsTrue((bool)EntityImportData.ConvertExcelValue(entity.Def.bt_value, "1")!);
+        Assert.AreEqual(expectedGuid, EntityImportData.ConvertExcelValue(entity.Def.ui_value, expectedGuid.ToString("B")));
+    }
+
+    [TestMethod]
+    [DoNotParallelize]
+    public void ConvertExcelValue_UsesInvariantCultureForNumbersAndText()
+    {
+        TypedExcelImportEntity entity = new();
+        CultureInfo originalCulture = CultureInfo.CurrentCulture;
+        CultureInfo originalUICulture = CultureInfo.CurrentUICulture;
+
+        try
+        {
+            CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("es-AR");
+            CultureInfo.CurrentUICulture = CultureInfo.GetCultureInfo("es-AR");
+
+            Assert.AreEqual(1234.5m, EntityImportData.ConvertExcelValue(entity.Def.n_value, "1234.5"));
+            Assert.AreEqual("1234.5", EntityImportData.ConvertExcelValue(entity.Def.vc_text, 1234.5m));
+            Assert.AreEqual("12.75", EntityImportData.ConvertExcelValue(entity.Def.vc_text, 12.75d));
+        }
+        finally
+        {
+            CultureInfo.CurrentCulture = originalCulture;
+            CultureInfo.CurrentUICulture = originalUICulture;
+        }
+    }
+
+    [TestMethod]
+    [DataRow("20260824")]
+    [DataRow("2026-08-24")]
+    [DataRow("2026/08/24")]
+    [DataRow("2026.08.24")]
+    public void ConvertExcelValue_AcceptsUnambiguousYearFirstDates(string sourceValue)
+    {
+        TypedExcelImportEntity entity = new();
+
+        Assert.AreEqual(
+            new DateTime(2026, 8, 24),
+            EntityImportData.ConvertExcelValue(entity.Def.dt_value, sourceValue));
+        Assert.AreEqual(
+            new DateOnly(2026, 8, 24),
+            EntityImportData.ConvertExcelValue(entity.Def.d_value, sourceValue));
+    }
+
+    [TestMethod]
+    public void ConvertExcelValue_ConvertsDateTimesTimesAndOffsets()
+    {
+        TypedExcelImportEntity entity = new();
+
+        Assert.AreEqual(
+            new DateTime(2026, 8, 24, 14, 30, 15, 123, DateTimeKind.Unspecified).AddTicks(4560),
+            EntityImportData.ConvertExcelValue(entity.Def.dt_value, "2026-08-24T14:30:15.123456"));
+
+        var utc = (DateTime)EntityImportData.ConvertExcelValue(entity.Def.dt_value, "2026-08-24T14:30:15Z")!;
+        Assert.AreEqual(DateTimeKind.Utc, utc.Kind);
+        Assert.AreEqual(new DateTime(2026, 8, 24, 14, 30, 15, DateTimeKind.Utc), utc);
+
+        Assert.AreEqual(new TimeOnly(14, 30, 15), EntityImportData.ConvertExcelValue(entity.Def.t_value, "14:30:15"));
+        Assert.AreEqual(new TimeOnly(12, 0), EntityImportData.ConvertExcelValue(entity.Def.t_value, 0.5d));
+
+        var expectedOffset = new DateTimeOffset(2026, 8, 24, 14, 30, 15, TimeSpan.FromHours(-3));
+        Assert.AreEqual(expectedOffset, EntityImportData.ConvertExcelValue(entity.Def.dto_value, "2026-08-24T14:30:15-03:00"));
+    }
+
+    [TestMethod]
+    public void ConvertExcelValue_FormatsScalarValuesAsInvariantText()
+    {
+        TypedExcelImportEntity entity = new();
+        DateTime dateTime = new(2026, 8, 24, 14, 30, 15, DateTimeKind.Utc);
+        DateTimeOffset dateTimeOffset = new(2026, 8, 24, 14, 30, 15, TimeSpan.FromHours(-3));
+        Guid guid = Guid.Parse("5f3f3391-e579-4736-a6e0-ec5fd982645c");
+
+        Assert.AreEqual("2026-08-24", EntityImportData.ConvertExcelValue(entity.Def.vc_text, new DateOnly(2026, 8, 24)));
+        Assert.AreEqual("2026-08-24T14:30:15.0000000Z", EntityImportData.ConvertExcelValue(entity.Def.vc_text, dateTime));
+        Assert.AreEqual("2026-08-24T14:30:15.0000000-03:00", EntityImportData.ConvertExcelValue(entity.Def.vc_text, dateTimeOffset));
+        Assert.AreEqual("14:30:15.0000000", EntityImportData.ConvertExcelValue(entity.Def.vc_text, new TimeOnly(14, 30, 15)));
+        Assert.AreEqual("True", EntityImportData.ConvertExcelValue(entity.Def.vc_text, true));
+        Assert.AreEqual(guid.ToString("D"), EntityImportData.ConvertExcelValue(entity.Def.vc_text, guid));
+    }
+
+    [TestMethod]
+    public void ConvertExcelValue_RejectsAmbiguousOrUnsafeConversions()
+    {
+        TypedExcelImportEntity entity = new();
+
+        Assert.ThrowsExactly<FormatException>(() => EntityImportData.ConvertExcelValue(entity.Def.dt_value, "08/09/2026"));
+        Assert.ThrowsExactly<FormatException>(() => EntityImportData.ConvertExcelValue(entity.Def.dto_value, "2026-08-24T14:30:15"));
+        Assert.ThrowsExactly<FormatException>(() => EntityImportData.ConvertExcelValue(entity.Def.i_value, 42.5d));
+        Assert.ThrowsExactly<FormatException>(() => EntityImportData.ConvertExcelValue(entity.Def.si_value, short.MaxValue + 1));
+        Assert.ThrowsExactly<FormatException>(() => EntityImportData.ConvertExcelValue(entity.Def.ti_value, -1));
+        Assert.ThrowsExactly<FormatException>(() => EntityImportData.ConvertExcelValue(entity.Def.f_value, double.PositiveInfinity));
+        Assert.ThrowsExactly<FormatException>(() => EntityImportData.ConvertExcelValue(entity.Def.r_value, double.MaxValue));
+        Assert.ThrowsExactly<FormatException>(() => EntityImportData.ConvertExcelValue(entity.Def.vb_value, "not implicitly encoded"));
+        Assert.ThrowsExactly<FormatException>(() => EntityImportData.ConvertExcelValue(entity.Def.x_value, 123));
+    }
+
+    [TestMethod]
     public async Task ReadExcelAsync_LargeWorkbookCanStopAfterHeader()
     {
         var path = Path.Combine(AppContext.BaseDirectory, "TestData", "1mb.xlsx");
@@ -412,6 +523,17 @@ public sealed class TypedExcelImportDef : EntityDefinition
     public readonly Column<int> i_value = new(sql_type: SqlDbType.Int);
     public readonly Column<bool> bt_value = new(sql_type: SqlDbType.Bit);
     public readonly Column<double> f_value = new(sql_type: SqlDbType.Float);
+    public readonly Column<long> bi_value = new(sql_type: SqlDbType.BigInt);
+    public readonly Column<short> si_value = new(sql_type: SqlDbType.SmallInt);
+    public readonly Column<byte> ti_value = new(sql_type: SqlDbType.TinyInt);
+    public readonly Column<float> r_value = new(sql_type: SqlDbType.Real);
+    public readonly Column<string> vc_text = new(sql_type: SqlDbType.VarChar);
+    public readonly Column<DateOnly> d_value = new(sql_type: SqlDbType.Date);
+    public readonly Column<TimeOnly> t_value = new(sql_type: SqlDbType.Time);
+    public readonly Column<DateTimeOffset> dto_value = new(sql_type: SqlDbType.DateTimeOffset);
+    public readonly Column<Guid> ui_value = new(sql_type: SqlDbType.UniqueIdentifier);
+    public readonly Column<byte[]> vb_value = new(sql_type: SqlDbType.VarBinary);
+    public readonly Column<string> x_value = new(sql_type: SqlDbType.Xml);
 }
 
 public sealed class TypedExcelImportEntity : Entity<TypedExcelImportDef>

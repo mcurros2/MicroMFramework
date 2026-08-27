@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { DBStatus, OperationStatus, toDBStatusMicroMError, toMicroMError } from "../../client";
+import { DBStatus, ExcelImportMapping, OperationStatus, toDBStatusMicroMError, toMicroMError } from "../../client";
 import { ImpDataResult } from "../../client/ImpDataResult";
 import { Entity, EntityDefinition } from "../../Entity";
 
@@ -10,7 +10,6 @@ export function useImportData(importEntity?: Entity<EntityDefinition>) {
 
     const [importStatus, setImportStatus] = useState<OperationStatus<ImpDataResult>>({ loading: false, operationType: 'import' });
 
-
     useEffect(() => {
         cancellation.current = new AbortController();
         done.current = false;
@@ -19,17 +18,17 @@ export function useImportData(importEntity?: Entity<EntityDefinition>) {
                 cancellation.current?.abort("ImportData Effect cleanup");
             }
         };
-    }, [importEntity]);
+    }, []);
 
 
-    const execute = useCallback(async (fileprocess_id: string) => {
+    const execute = useCallback(async (fileprocess_id: string, importProcedureName?: string, excelImportMapping?: ExcelImportMapping, initialRow?: number) => {
         if (!importEntity || !fileprocess_id) return;
 
         try {
             setImportStatus({ loading: true });
 
             done.current = false;
-            const result = await importEntity.API.importData(cancellation.current.signal, null, importEntity.parentKeys, fileprocess_id);
+            const result = await importEntity.API.importData(cancellation.current.signal, importProcedureName ?? null, importEntity.parentKeys, fileprocess_id, excelImportMapping, initialRow);
             done.current = true;
 
             const result_status: OperationStatus<ImpDataResult> = { data: result, operationType: 'import' };
@@ -37,9 +36,10 @@ export function useImportData(importEntity?: Entity<EntityDefinition>) {
 
             return result_status;
         }
-        catch (error: any) {
-            if (error.name !== 'AbortError') {
-                const new_status: OperationStatus<ImpDataResult> = { error: error.Errors ? toDBStatusMicroMError(error.Errors as DBStatus[], 'add') : toMicroMError(error), operationType: 'import' };
+        catch (error: unknown) {
+            const importError = error as { name?: string, Errors?: DBStatus[] };
+            if (importError.name !== 'AbortError') {
+                const new_status: OperationStatus<ImpDataResult> = { error: importError.Errors ? toDBStatusMicroMError(importError.Errors, 'add') : toMicroMError(error), operationType: 'import' };
                 setImportStatus(new_status);
                 return new_status;
             }

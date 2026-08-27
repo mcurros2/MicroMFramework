@@ -1,4 +1,4 @@
-import { DataResult, DBStatusResult, ImpDataResult, MicroMClient, MicroMRequestOptions, ValuesObject } from "../client";
+import { DataResult, DBStatusResult, ExcelImportMapping, ImpDataResult, MicroMClient, MicroMRequestOptions, ValuesObject } from "../client";
 import * as cf from "./ColumnsFunctions";
 import { EntityColumnFlags } from "./EntityColumn.types";
 import { ColumnsObject } from "./EntityColumnCollection.types";
@@ -107,9 +107,9 @@ export class EntityAPI {
     /**
      * Import data
      */
-    async importData(abort_signal: AbortSignal | null = null, import_procname: string | null = null, parentKeys: ValuesObject | null = null, fileprocess_id: string): Promise<ImpDataResult> {
+    async importData(abort_signal: AbortSignal | null = null, import_procname: string | null = null, parentKeys: ValuesObject | null = null, fileprocess_id: string, excelImportMapping?: ExcelImportMapping, initialRow?: number): Promise<ImpDataResult> {
         const values = { c_fileprocess_id: fileprocess_id };
-        const result = await this.client.import(this.#name, parentKeys, values, import_procname, abort_signal);
+        const result = await this.client.import(this.#name, parentKeys, values, import_procname, abort_signal, excelImportMapping, initialRow);
         return result;
     }
 

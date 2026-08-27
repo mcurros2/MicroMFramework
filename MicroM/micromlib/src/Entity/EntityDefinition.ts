@@ -75,7 +75,7 @@ export class EntityDefinition {
         const processes: Record<string, EntityProc> = {};
         for (const proc in entity_def.procs) {
             const source = entity_def.procs[proc];
-            processes[proc] = { name: source.name };
+            processes[proc] = { name: source.name, parms: source.parms ? { ...source.parms } : undefined };
         }
         const views: Record<string, EntityView> = {};
         for (const view in entity_def.views) {

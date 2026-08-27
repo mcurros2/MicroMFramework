@@ -6,6 +6,17 @@ export interface MicroMRequestOptions {
     keepalive?: boolean;
 }
 
+export interface ImportDataMapping {
+    SourceHeader: string | null,
+    SourceIndex: number | null,
+    DestinationColumnName: string,
+}
+
+export interface ExcelImportMapping {
+    SheetName: string | null,
+    Mapping: ImportDataMapping[],
+}
+
 export type SQLType = 'char' | 'nchar' | 'varchar' | 'nvarchar' | 'text' | 'ntext' | 'tinyint' | 'smallint' | 'int' | 'bigint' | 'float' | 'decimal' | 'real' | 'bit' | 'money' | 'datetime2' | 'datetime' | 'smalldatetime' | 'date' | 'binary' | 'varbinary' | 'image' | 'time';
 
 export interface DataResult {

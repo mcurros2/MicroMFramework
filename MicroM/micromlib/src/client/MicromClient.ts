@@ -1,5 +1,5 @@
 import { isIn } from "../Entity/GenericFunctions";
-import { DataResult, DBStatusResult, MicroMRequestOptions, ValuesObject } from "./client.types";
+import { DataResult, DBStatusResult, ExcelImportMapping, MicroMRequestOptions, ValuesObject } from "./client.types";
 import { DataStorage } from "./DataStorage";
 import { ImpDataResult } from "./ImpDataResult";
 import { JSONDateWithTimezoneReplacer } from "./JSONDateWithTimezoneReplacer";
@@ -1045,7 +1045,7 @@ export class MicroMClient {
         return this.#submitToAPI(entity_name, parent_keys, values, [], "action", abort_signal, action_name);
     }
 
-    async import(entity_name: string, parent_keys: ValuesObject | null, values: ValuesObject, import_procname: string | null, abort_signal: AbortSignal | null = null): Promise<ImpDataResult> {
+    async import(entity_name: string, parent_keys: ValuesObject | null, values: ValuesObject, import_procname: string | null, abort_signal: AbortSignal | null = null, excelImportMapping?: ExcelImportMapping, initialRow?: number): Promise<ImpDataResult> {
         if (!import_procname) {
             this.#recordAccess({ entityName: entity_name, access: AllowedRouteFlags.Import });
         }
@@ -1053,7 +1053,10 @@ export class MicroMClient {
             this.#recordAccess({ entityName: entity_name, access: AllowedRouteFlags.Import, procs: [import_procname] });
         }
 
-        return this.#submitToAPI(entity_name, parent_keys, values, [], "import", abort_signal, import_procname);
+        return this.#submitToAPI(entity_name, parent_keys, values, [], "import", abort_signal, import_procname, undefined, {
+            ExcelImportMapping: excelImportMapping,
+            initialRow
+        });
     }
 
     async #submitToAPIBlob(entity_name: string, parent_keys: ValuesObject | null, values: ValuesObject | null
@@ -1104,7 +1107,7 @@ export class MicroMClient {
 
     async #submitToAPI(entity_name: string, parent_keys: ValuesObject | null, values: ValuesObject | null
         , recordsSelection: ValuesObject[] | null, action: APIAction, abort_signal: AbortSignal | null = null
-        , additional_route: string | null = null, requestOptions?: MicroMRequestOptions) {
+        , additional_route: string | null = null, requestOptions?: MicroMRequestOptions, additionalRequestData?: Record<string, unknown>) {
 
         const extra_route = (additional_route !== null) ? `/${additional_route}` : '';
         const route = `${this.#API_URL}/${this.#APP_ID}/ent/${entity_name}/${action}${extra_route}`;
@@ -1113,7 +1116,7 @@ export class MicroMClient {
             await this.#checkAndRefreshToken();
             if (!this.#TOKEN) { throw { status: 401, statusMessage: `Can't execute request: Not logged in`, url: route } as MicroMError; }
 
-            const body = JSON.stringify({ ParentKeys: parent_keys, Values: values, RecordsSelection: recordsSelection }, JSONDateWithTimezoneReplacer);
+            const body = JSON.stringify({ ParentKeys: parent_keys, Values: values, RecordsSelection: recordsSelection, ...additionalRequestData }, JSONDateWithTimezoneReplacer);
             const res = await fetch(route, {
                 method: 'POST',
                 headers: { "Content-Type": "application/json; charset=utf-8", "Authorization": `Bearer ${this.#TOKEN.access_token}` },

@@ -22,10 +22,11 @@ begin try
 		select	1 
 		from	[dbo].[file_store] 
 		where	c_fileprocess_id=@fileprocess_id
-				and vc_fileguid not like '%.csv'
+				and 
+                (vc_fileguid not like '%.csv' and vc_fileguid not like '%.xls' and vc_fileguid not like '%.xlsx')
 		)
 	begin
-		select	11, 'You can only import .CSV files'
+		select	11, 'You can only import .CSV, .XLS or XLSX files'
 		return
 	end
 
@@ -33,10 +34,12 @@ begin try
 		select	1 
 		from	[dbo].[file_store] 
 		where	c_fileprocess_id=@fileprocess_id
-				and vc_fileguid like '%.csv'
+				and
+                (vc_fileguid not like '%.csv' or vc_fileguid not like '%.xls' or vc_fileguid not like '%.xlsx')
+
 		)
 	begin
-		select	11, 'You need to upload a .CSV file'
+		select	11, 'You need to upload a .CSV, .XLS or XLSX file'
 		return
 	end
 

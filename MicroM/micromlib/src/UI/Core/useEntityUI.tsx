@@ -47,13 +47,16 @@ export interface UseEntityUIProps {
     onDeleteClick?: (keys: ValuesObject[], element?: HTMLElement) => void,
     onActionExecuted?: (actionName: string, result?: boolean) => void,
     onModalClosed?: (cancelled?: boolean) => void,
+    entityProcName?: string,
+    excludedImportDestinations?: string[],
+    onImportSuccess?: () => void,
 }
 
 export function useEntityUI(props: UseEntityUIProps) {
     const {
         entity, onModalCancelled, onModalSaved, modalFormSize, parentFormAPI, saveFormBeforeAdd, onModalClosed,
         parentKeys, labels, onRecordsDeleted, onActionRefreshOnClose, onAddClick, onEditClick, onDeleteClick, onActionExecuted,
-        withModalFullscreenButton,
+        withModalFullscreenButton, entityProcName, excludedImportDestinations, onImportSuccess,
     } = props;
 
     const modals = useModal();
@@ -96,6 +99,7 @@ export function useEntityUI(props: UseEntityUIProps) {
         modalFormSize: 'xl',
         handleModalCancel,
         handleModalSaved,
+        handleImportSuccess: async () => { await onImportSuccess?.(); },
     });
 
     const handleSaveBeforeAdd = useCallback(async () => {
@@ -126,24 +130,28 @@ export function useEntityUI(props: UseEntityUIProps) {
     const handleImportDataClick = useCallback(async () => {
         if (!entity) return;
 
+        if (entityProcName && !entity.def.procs[entityProcName]) {
+            console.warn(`DataGrid import: procedure '${entityProcName}' was not found in entity '${entity.name}'.`);
+            return;
+        }
+
         const saveResult = await handleSaveBeforeAdd();
         if (saveResult !== 'error') {
             const importEntity = Entity.clone(entity);
 
             // Set parentKeys
-            const local_parentkeys = parentKeys ? parentKeys : {};
-            const mergedParentKeys = {
-                ...cf.getValues(importEntity.def.columns, { flags: EntityColumnFlags.pk, ignoreDefaults: false }),
-                ...Object.fromEntries(
-                    Object.entries(local_parentkeys).filter(([key, value]) => value != null && value !== "")
-                )
-            };
+            const mergedParentKeys = Object.fromEntries(
+                Object.entries({
+                    ...entity.parentKeys,
+                    ...parentKeys
+                }).filter(([, value]) => value != null && value !== "")
+            );
 
             importEntity.parentKeys = mergedParentKeys;
 
-            await importData.openImportDataForm(importEntity);
+            await importData.openImportDataForm(importEntity, entityProcName, excludedImportDestinations);
         }
-    }, [entity, handleSaveBeforeAdd, importData, parentKeys]);
+    }, [entity, entityProcName, excludedImportDestinations, handleSaveBeforeAdd, importData, parentKeys]);
 
 
     const internalAddClick = useCallback(async (element?: HTMLElement, onClosed?: (cancelled?: boolean) => void) => {
@@ -291,7 +299,7 @@ export function useEntityUI(props: UseEntityUIProps) {
                     </>
             });
         }
-    }, [entity, modals, labels, parentKeys]);
+    }, [entity, modals, labels, parentKeys, onRecordsDeleted]);
 
     const handleDeleteRecord = useCallback(async (keys: ValuesObject, element?: HTMLElement) => {
         await handleDeleteClick([keys], element);
@@ -375,7 +383,7 @@ export function useEntityUI(props: UseEntityUIProps) {
                     </>
             });
         }
-    }, [entity, parentFormAPI, handleSaveBeforeAdd, modals, labels]);
+    }, [entity, parentFormAPI, handleSaveBeforeAdd, modals, labels, onActionRefreshOnClose, onActionExecuted, parentKeys]);
 
     return {
         handleAddClick,

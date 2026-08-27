@@ -55,6 +55,7 @@ export function DataGridPanel(props: DataGridPanelProps) {
                 <DataGrid
                     {...rest}
                     {...retainedSearchProps}
+                    parentKeys={parentKeys}
                     formMode={formMode}
                     enableAdd={enableAdd !== undefined ? enableAdd : (formMode === "view" ? false : undefined)}
                     enableEdit={enableEdit !== undefined ? enableEdit : (formMode === "view" ? false : undefined)}

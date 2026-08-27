@@ -364,82 +364,250 @@ public static class EntityImportData
     internal static object? ConvertExcelValue(ColumnBase destinationColumn, object? sourceValue)
     {
         if (sourceValue == null || sourceValue == DBNull.Value) return null;
-        if (destinationColumn.SQLMetadata.SQLType.IsTypeAccepted(sourceValue.GetType())) return sourceValue;
+
+        if (destinationColumn.SQLMetadata.SQLType.IsTypeAccepted(sourceValue.GetType()))
+        {
+            if (sourceValue is double doubleValue && !double.IsFinite(doubleValue))
+            {
+                throw InvalidExcelConversion(sourceValue, destinationColumn, "The value must be finite.");
+            }
+
+            if (sourceValue is float singleValue && !float.IsFinite(singleValue))
+            {
+                throw InvalidExcelConversion(sourceValue, destinationColumn, "The value must be finite.");
+            }
+
+            return sourceValue;
+        }
 
         return destinationColumn.SQLMetadata.SQLType switch
         {
-            SqlDbType.DateTime or SqlDbType.DateTime2 or SqlDbType.Date or SqlDbType.SmallDateTime => ConvertExcelDateTime(sourceValue, destinationColumn.Name),
-            SqlDbType.Decimal or SqlDbType.Money or SqlDbType.SmallMoney => ConvertExcelDecimal(sourceValue, destinationColumn.Name),
-            SqlDbType.Int => ConvertExcelInt32(sourceValue, destinationColumn.Name),
-            SqlDbType.Bit => ConvertExcelBoolean(sourceValue, destinationColumn.Name),
-            SqlDbType.Float => ConvertExcelDouble(sourceValue, destinationColumn.Name),
+            SqlDbType.Char or SqlDbType.NChar or SqlDbType.NText or SqlDbType.NVarChar or SqlDbType.Text or SqlDbType.VarChar => ConvertExcelString(sourceValue, destinationColumn),
+            SqlDbType.BigInt => ConvertExcelInt64(sourceValue, destinationColumn),
+            SqlDbType.Int => ConvertExcelInt32(sourceValue, destinationColumn),
+            SqlDbType.SmallInt => ConvertExcelInt16(sourceValue, destinationColumn),
+            SqlDbType.TinyInt => ConvertExcelByte(sourceValue, destinationColumn),
+            SqlDbType.Decimal or SqlDbType.Money or SqlDbType.SmallMoney => ConvertExcelDecimal(sourceValue, destinationColumn),
+            SqlDbType.Float => ConvertExcelDouble(sourceValue, destinationColumn),
+            SqlDbType.Real => ConvertExcelSingle(sourceValue, destinationColumn),
+            SqlDbType.Bit => ConvertExcelBoolean(sourceValue, destinationColumn),
+            SqlDbType.DateTime or SqlDbType.DateTime2 or SqlDbType.SmallDateTime => ConvertExcelDateTime(sourceValue, destinationColumn),
+            SqlDbType.Date => ConvertExcelDate(sourceValue, destinationColumn),
+            SqlDbType.Time => ConvertExcelTime(sourceValue, destinationColumn),
+            SqlDbType.DateTimeOffset => ConvertExcelDateTimeOffset(sourceValue, destinationColumn),
+            SqlDbType.UniqueIdentifier => ConvertExcelGuid(sourceValue, destinationColumn),
             _ => throw InvalidExcelConversion(sourceValue, destinationColumn)
         };
     }
 
-    private static DateTime ConvertExcelDateTime(object sourceValue, string destinationColumnName)
+    private static readonly string[] ExcelDateFormats =
+    [
+        "yyyyMMdd",
+        "yyyy-MM-dd",
+        "yyyy/MM/dd",
+        "yyyy.MM.dd"
+    ];
+
+    private static readonly string[] ExcelDateTimeFormats = CreateExcelDateTimeFormats();
+    private static readonly string[] ExcelUtcDateTimeFormats = CreateExcelDateTimeFormats("'Z'");
+    private static readonly string[] ExcelOffsetDateTimeFormats = CreateExcelDateTimeFormats("zzz");
+
+    private static string[] CreateExcelDateTimeFormats(string suffix = "")
     {
-        if (sourceValue is string text
-            && DateTime.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.AllowWhiteSpaces | DateTimeStyles.NoCurrentDateDefault | DateTimeStyles.RoundtripKind, out var parsed))
-        {
-            return parsed;
-        }
+        string[] dateFormats = ["yyyyMMdd", "yyyy-MM-dd", "yyyy/MM/dd", "yyyy.MM.dd"];
+        string[] dateTimeSeparators = ["'T'", " "];
+        string[] timeFormats = ["HH:mm", "HH:mm:ss", "HH:mm:ss.FFFFFFF"];
+        List<string> formats = new(dateFormats.Length * dateTimeSeparators.Length * timeFormats.Length);
 
-        try
+        foreach (var dateFormat in dateFormats)
         {
-            var serialValue = Convert.ToDouble(sourceValue, CultureInfo.InvariantCulture);
-            if (double.IsFinite(serialValue)) return DateTime.FromOADate(serialValue);
-        }
-        catch (Exception ex) when (ex is FormatException or InvalidCastException or ArgumentException or OverflowException)
-        {
-        }
-
-        throw new FormatException($"Excel value '{sourceValue}' cannot be converted to DateTime for column '{destinationColumnName}'.");
-    }
-
-    private static decimal ConvertExcelDecimal(object sourceValue, string destinationColumnName)
-    {
-        if (sourceValue is string text
-            && decimal.TryParse(text, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out var parsed))
-        {
-            return parsed;
-        }
-
-        try
-        {
-            return Convert.ToDecimal(sourceValue, CultureInfo.InvariantCulture);
-        }
-        catch (Exception ex) when (ex is FormatException or InvalidCastException or OverflowException)
-        {
-            throw new FormatException($"Excel value '{sourceValue}' cannot be converted to Decimal for column '{destinationColumnName}'.", ex);
-        }
-    }
-
-    private static int ConvertExcelInt32(object sourceValue, string destinationColumnName)
-    {
-        if (sourceValue is string text
-            && int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed))
-        {
-            return parsed;
-        }
-
-        try
-        {
-            var numericValue = Convert.ToDecimal(sourceValue, CultureInfo.InvariantCulture);
-            if (numericValue != decimal.Truncate(numericValue) || numericValue < int.MinValue || numericValue > int.MaxValue)
+            foreach (var dateTimeSeparator in dateTimeSeparators)
             {
-                throw new OverflowException();
+                foreach (var timeFormat in timeFormats)
+                {
+                    formats.Add($"{dateFormat}{dateTimeSeparator}{timeFormat}{suffix}");
+                }
+            }
+        }
+
+        return [.. formats];
+    }
+
+    private static string ConvertExcelString(object sourceValue, ColumnBase destinationColumn)
+    {
+        return sourceValue switch
+        {
+            DateOnly value => value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+            DateTime value => value.ToString("O", CultureInfo.InvariantCulture),
+            DateTimeOffset value => value.ToString("O", CultureInfo.InvariantCulture),
+            TimeOnly value => value.ToString("O", CultureInfo.InvariantCulture),
+            TimeSpan value => value.ToString("c", CultureInfo.InvariantCulture),
+            Guid value => value.ToString("D"),
+            bool value => value ? bool.TrueString : bool.FalseString,
+            byte value => value.ToString(CultureInfo.InvariantCulture),
+            sbyte value => value.ToString(CultureInfo.InvariantCulture),
+            short value => value.ToString(CultureInfo.InvariantCulture),
+            ushort value => value.ToString(CultureInfo.InvariantCulture),
+            int value => value.ToString(CultureInfo.InvariantCulture),
+            uint value => value.ToString(CultureInfo.InvariantCulture),
+            long value => value.ToString(CultureInfo.InvariantCulture),
+            ulong value => value.ToString(CultureInfo.InvariantCulture),
+            decimal value => value.ToString(CultureInfo.InvariantCulture),
+            double value when double.IsFinite(value) => value.ToString("R", CultureInfo.InvariantCulture),
+            float value when float.IsFinite(value) => value.ToString("R", CultureInfo.InvariantCulture),
+            char value => value.ToString(),
+            _ => throw InvalidExcelConversion(sourceValue, destinationColumn, "Only scalar values can be converted to text.")
+        };
+    }
+
+    private static DateTime ConvertExcelDateTime(object sourceValue, ColumnBase destinationColumn)
+    {
+        if (sourceValue is DateOnly dateOnly)
+        {
+            return dateOnly.ToDateTime(TimeOnly.MinValue);
+        }
+
+        if (sourceValue is string text)
+        {
+            text = text.Trim();
+            if (DateTime.TryParseExact(text, ExcelDateFormats, CultureInfo.InvariantCulture, DateTimeStyles.None, out var date)
+                || DateTime.TryParseExact(text, ExcelDateTimeFormats, CultureInfo.InvariantCulture, DateTimeStyles.None, out date))
+            {
+                return date;
             }
 
-            return decimal.ToInt32(numericValue);
+            if (DateTime.TryParseExact(text, ExcelUtcDateTimeFormats, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out date))
+            {
+                return date;
+            }
         }
-        catch (Exception ex) when (ex is FormatException or InvalidCastException or OverflowException)
+
+        if (TryConvertExcelDouble(sourceValue, out var serialValue))
         {
-            throw new FormatException($"Excel value '{sourceValue}' must be an exact Int32 value for column '{destinationColumnName}'.", ex);
+            try
+            {
+                return DateTime.FromOADate(serialValue);
+            }
+            catch (ArgumentException)
+            {
+            }
         }
+
+        throw InvalidExcelConversion(sourceValue, destinationColumn, "Expected an unambiguous year-first date/date-time or a valid Excel serial date.");
     }
 
-    private static bool ConvertExcelBoolean(object sourceValue, string destinationColumnName)
+    private static DateOnly ConvertExcelDate(object sourceValue, ColumnBase destinationColumn)
+    {
+        if (sourceValue is string text
+            && DateOnly.TryParseExact(text.Trim(), ExcelDateFormats, CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsed))
+        {
+            return parsed;
+        }
+
+        if (TryConvertExcelDouble(sourceValue, out var serialValue))
+        {
+            try
+            {
+                return DateOnly.FromDateTime(DateTime.FromOADate(serialValue));
+            }
+            catch (ArgumentException)
+            {
+            }
+        }
+
+        throw InvalidExcelConversion(sourceValue, destinationColumn, "Expected yyyyMMdd, a separated year-first date, or a valid Excel serial date.");
+    }
+
+    private static TimeOnly ConvertExcelTime(object sourceValue, ColumnBase destinationColumn)
+    {
+        if (sourceValue is string text
+            && TimeOnly.TryParseExact(text.Trim(), ["HH:mm", "HH:mm:ss", "HH:mm:ss.FFFFFFF"], CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsed))
+        {
+            return parsed;
+        }
+
+        if (TryConvertExcelDouble(sourceValue, out var serialValue) && serialValue >= 0d && serialValue < 1d)
+        {
+            try
+            {
+                return TimeOnly.FromDateTime(DateTime.FromOADate(serialValue));
+            }
+            catch (ArgumentException)
+            {
+            }
+        }
+
+        throw InvalidExcelConversion(sourceValue, destinationColumn, "Expected an invariant 24-hour time or an Excel time fraction between 0 and 1.");
+    }
+
+    private static DateTimeOffset ConvertExcelDateTimeOffset(object sourceValue, ColumnBase destinationColumn)
+    {
+        if (sourceValue is DateTime dateTime && dateTime.Kind != DateTimeKind.Unspecified)
+        {
+            return new DateTimeOffset(dateTime);
+        }
+
+        if (sourceValue is string text)
+        {
+            text = text.Trim();
+            if (DateTimeOffset.TryParseExact(text, ExcelOffsetDateTimeFormats, CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsed))
+            {
+                return parsed;
+            }
+
+            if (DateTimeOffset.TryParseExact(text, ExcelUtcDateTimeFormats, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out parsed))
+            {
+                return parsed;
+            }
+        }
+
+        throw InvalidExcelConversion(sourceValue, destinationColumn, "Expected a year-first date-time with Z or an explicit offset.");
+    }
+
+    private static decimal ConvertExcelDecimal(object sourceValue, ColumnBase destinationColumn)
+    {
+        if (TryConvertExcelDecimal(sourceValue, out var result)) return result;
+        throw InvalidExcelConversion(sourceValue, destinationColumn, "Expected an invariant numeric value.");
+    }
+
+    private static long ConvertExcelInt64(object sourceValue, ColumnBase destinationColumn)
+    {
+        var value = ConvertExcelWholeNumber(sourceValue, destinationColumn, "Int64", long.MinValue, long.MaxValue);
+        return decimal.ToInt64(value);
+    }
+
+    private static int ConvertExcelInt32(object sourceValue, ColumnBase destinationColumn)
+    {
+        var value = ConvertExcelWholeNumber(sourceValue, destinationColumn, "Int32", int.MinValue, int.MaxValue);
+        return decimal.ToInt32(value);
+    }
+
+    private static short ConvertExcelInt16(object sourceValue, ColumnBase destinationColumn)
+    {
+        var value = ConvertExcelWholeNumber(sourceValue, destinationColumn, "Int16", short.MinValue, short.MaxValue);
+        return decimal.ToInt16(value);
+    }
+
+    private static byte ConvertExcelByte(object sourceValue, ColumnBase destinationColumn)
+    {
+        var value = ConvertExcelWholeNumber(sourceValue, destinationColumn, "Byte", byte.MinValue, byte.MaxValue);
+        return decimal.ToByte(value);
+    }
+
+    private static decimal ConvertExcelWholeNumber(object sourceValue, ColumnBase destinationColumn, string typeName, decimal minimum, decimal maximum)
+    {
+        if (TryConvertExcelDecimal(sourceValue, out var value)
+            && value == decimal.Truncate(value)
+            && value >= minimum
+            && value <= maximum)
+        {
+            return value;
+        }
+
+        throw InvalidExcelConversion(sourceValue, destinationColumn, $"The value must be an exact {typeName} value within range.");
+    }
+
+    private static bool ConvertExcelBoolean(object sourceValue, ColumnBase destinationColumn)
     {
         if (sourceValue is string text)
         {
@@ -460,43 +628,97 @@ public static class EntityImportData
             }
         }
 
-        throw new FormatException($"Excel value '{sourceValue}' must be true, false, 1, or 0 for column '{destinationColumnName}'.");
+        throw InvalidExcelConversion(sourceValue, destinationColumn, "Expected true, false, 1, or 0.");
     }
 
-    private static double ConvertExcelDouble(object sourceValue, string destinationColumnName)
+    private static double ConvertExcelDouble(object sourceValue, ColumnBase destinationColumn)
     {
-        double result;
+        if (TryConvertExcelDouble(sourceValue, out var result)) return result;
+        throw InvalidExcelConversion(sourceValue, destinationColumn, "Expected a finite invariant numeric value.");
+    }
+
+    private static float ConvertExcelSingle(object sourceValue, ColumnBase destinationColumn)
+    {
+        if (TryConvertExcelDouble(sourceValue, out var value))
+        {
+            var result = (float)value;
+            if (float.IsFinite(result)) return result;
+        }
+
+        throw InvalidExcelConversion(sourceValue, destinationColumn, "Expected a finite invariant Single value within range.");
+    }
+
+    private static Guid ConvertExcelGuid(object sourceValue, ColumnBase destinationColumn)
+    {
+        if (sourceValue is string text && Guid.TryParse(text.Trim(), out var result)) return result;
+        throw InvalidExcelConversion(sourceValue, destinationColumn, "Expected a valid GUID.");
+    }
+
+    private static bool TryConvertExcelDecimal(object sourceValue, out decimal result)
+    {
         if (sourceValue is string text)
         {
-            if (!double.TryParse(text, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out result))
+            return decimal.TryParse(text.Trim(), NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out result);
+        }
+
+        if (IsNumericExcelValue(sourceValue))
+        {
+            try
             {
-                throw new FormatException($"Excel value '{sourceValue}' cannot be converted to Double for column '{destinationColumnName}'.");
+                result = Convert.ToDecimal(sourceValue, CultureInfo.InvariantCulture);
+                return true;
+            }
+            catch (Exception ex) when (ex is InvalidCastException or OverflowException)
+            {
             }
         }
-        else
+
+        result = default;
+        return false;
+    }
+
+    private static bool TryConvertExcelDouble(object sourceValue, out double result)
+    {
+        bool converted;
+        if (sourceValue is string text)
+        {
+            converted = double.TryParse(text.Trim(), NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out result);
+        }
+        else if (IsNumericExcelValue(sourceValue))
         {
             try
             {
                 result = Convert.ToDouble(sourceValue, CultureInfo.InvariantCulture);
+                converted = true;
             }
-            catch (Exception ex) when (ex is FormatException or InvalidCastException or OverflowException)
+            catch (Exception ex) when (ex is InvalidCastException or OverflowException)
             {
-                throw new FormatException($"Excel value '{sourceValue}' cannot be converted to Double for column '{destinationColumnName}'.", ex);
+                result = default;
+                converted = false;
             }
         }
-
-        if (!double.IsFinite(result))
+        else
         {
-            throw new FormatException($"Excel value '{sourceValue}' must be finite for column '{destinationColumnName}'.");
+            result = default;
+            converted = false;
         }
 
-        return result;
+        return converted && double.IsFinite(result);
     }
 
-    private static FormatException InvalidExcelConversion(object sourceValue, ColumnBase destinationColumn)
+    private static bool IsNumericExcelValue(object value)
     {
-        return new FormatException($"Excel value '{sourceValue}' cannot be converted to {destinationColumn.SQLMetadata.SQLType} for column '{destinationColumn.Name}'.");
+        return value is byte or sbyte or short or ushort or int or uint or long or ulong or decimal or double or float;
     }
 
+    private static FormatException InvalidExcelConversion(object sourceValue, ColumnBase destinationColumn, string? requirement = null)
+    {
+        var displayValue = sourceValue is IFormattable formattable
+            ? formattable.ToString(null, CultureInfo.InvariantCulture)
+            : sourceValue.ToString();
+        var message = $"Excel value '{displayValue}' ({sourceValue.GetType().Name}) cannot be converted to {destinationColumn.SQLMetadata.SQLType} for column '{destinationColumn.Name}'.";
+        if (!string.IsNullOrWhiteSpace(requirement)) message += $" {requirement}";
+        return new FormatException(message);
+    }
 
 }

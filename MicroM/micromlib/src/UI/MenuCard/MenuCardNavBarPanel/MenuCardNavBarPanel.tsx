@@ -25,9 +25,9 @@ export interface MenuCardNavBarPanelProps extends Omit<NavbarProps, 'children' |
     searchLabel?: string,
     brandColor?: DefaultMantineColor,
     /** Navbar width in icons mode */
-    widthIcons?: number,
+    widthIcons?: string | number,
     /** Navbar width in text mode */
-    widthText?: number,
+    widthText?: string | number,
     /** Icon for the home item */
     homeIcon?: ReactNode,
     /** Icon for the search item */
@@ -46,8 +46,8 @@ export const MenuCardNavBarPanelDefaultProps: Partial<MenuCardNavBarPanelProps> 
     logoTooltip: '',
     homeLabel: 'Home',
     searchLabel: 'Search the menu',
-    widthIcons: 60,
-    widthText: 240,
+    widthIcons: '3.75rem',
+    widthText: '15rem',
     homeIcon: <IconHome />,
     searchIcon: <IconSearch size="1.3rem" />,
     searchItemProps: { radius: 'xl', mb: 'xs' },

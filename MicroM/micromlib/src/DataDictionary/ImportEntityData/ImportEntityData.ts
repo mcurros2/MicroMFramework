@@ -13,7 +13,7 @@ export interface ImportEntityDataLabels {
 export const ImportEntityDataLabels: Partial<ImportEntityDataLabels> = {
     Icon: IconCloudUpload,
     Title: 'Import Data',
-    HelpText: 'Import a CSV file with data for this entity.'
+    HelpText: 'Import a CSV or Excel file with data for this entity.'
 }
 
 export class ImportEntityData extends Entity<ImportEntityDataDef> {

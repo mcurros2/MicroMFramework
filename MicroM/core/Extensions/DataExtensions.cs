@@ -292,4 +292,17 @@ public static class DataExtensions
         if (status.Failed) throw new DataAbstractionException(message ?? "DB operation failed", status.Results!);
     }
 
+    public static string ToDBStatusResultString(this DBStatusResult? status)
+    {
+        if (status == null) return "null";
+        return $"{(status.Failed ? "failed" : "success")}\n{status.Results.ToDBStatusListString()}";
+    }
+
+    public static string ToDBStatusListString(this List<DBStatus>? status_list)
+    {
+        if (status_list == null) return "null";
+
+        return string.Join(", ", status_list.Select(s => $"{s.Status} - {s.Message}"));
+    }
+
 }

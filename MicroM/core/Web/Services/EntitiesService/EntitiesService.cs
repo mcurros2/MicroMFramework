@@ -638,7 +638,12 @@ public class EntitiesService : IEntitiesService
                     import_process.Def.vc_import_procname.Value = import_proc;
 
                     var procresult = await import_process.InsertData(ct, options: _options, server_claims: parms.ServerClaims, api: _api, app_id: app_id);
-                    if (!procresult.Failed)
+                    if (procresult == null || procresult.Failed)
+                    {
+                        _api.log.LogError("ImportData ERROR: Entity: {entity_name} Import proc: {import_proc} failed to insert import process record: {error}", entity_name, import_proc, procresult.ToDBStatusResultString());
+                        return null;
+                    }
+                    else
                     {
                         // get the file guid
                         await import_process.GetData(ct);
@@ -674,11 +679,9 @@ public class EntitiesService : IEntitiesService
                             EnsureApplicationKeys(app_id, parms.ParentKeys);
                         }
 
-
                         try
                         {
                             await import_process.UpdateStatus(nameof(ImportStatus.Importing), ct);
-
 
                             await using var file_stream = await _api.upload.GetFileStream(ec, app, file_details, ct);
 

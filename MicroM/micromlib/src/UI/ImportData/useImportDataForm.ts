@@ -17,18 +17,24 @@ export interface UseImportDataProps {
     handleModalSaved: (newStatus: OperationStatus<DBStatusResult | null>) => Promise<void>,
     handleModalCancel: () => Promise<void>,
     handleModalClosed?: () => void,
+    handleImportSuccess?: () => Promise<void>,
 }
 
 
 export function useImportDataForm({
     initialFormMode, title, element, getDataOnInit, modalFormSize,
-    handleModalCancel, handleModalClosed, handleModalSaved
+    handleModalCancel, handleModalClosed, handleModalSaved, handleImportSuccess
 }: UseImportDataProps) {
     const modals = useModal();
 
 
-    const openImportDataForm = useCallback(async (importEntity: Entity<EntityDefinition>) => {
+    const openImportDataForm = useCallback(async (importEntity: Entity<EntityDefinition>, entityProcName?: string, excludedImportDestinations?: string[]) => {
         if (!importEntity) return;
+
+        if (entityProcName && !importEntity.def.procs[entityProcName]) {
+            console.warn(`DataGrid import: procedure '${entityProcName}' was not found in entity '${importEntity.name}'.`);
+            return;
+        }
 
         const importData = new ImportEntityData(importEntity.API.client);
 
@@ -44,10 +50,13 @@ export function useImportDataForm({
                 entity: importData,
                 initialFormMode,
                 getDataOnInit,
-                importEntity
+                importEntity,
+                entityProcName,
+                excludedImportDestinations,
+                onImportSuccess: handleImportSuccess
             }
         });
-    }, [element, getDataOnInit, handleModalCancel, handleModalClosed, handleModalSaved, initialFormMode, modalFormSize, modals, title]);
+    }, [element, getDataOnInit, handleImportSuccess, handleModalCancel, handleModalClosed, handleModalSaved, initialFormMode, modalFormSize, modals, title]);
 
     return {
         openImportDataForm

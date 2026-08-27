@@ -1,7 +1,7 @@
 import { Accordion, Button, Card, Group, List, Stack, Table, Text, Title, useComponentDefaultProps, useMantineTheme } from "@mantine/core";
 import { IconCheck, IconCircleCheck, IconCircleNumber1, IconCircleNumber2, IconCircleX, IconX } from "@tabler/icons-react";
-import { useCallback, useMemo, useState } from "react";
-import { Value } from "../../client";
+import { useCallback, useMemo, useRef, useState } from "react";
+import { ExcelImportMapping, Value } from "../../client";
 import { Entity, EntityColumn, EntityDefinition, getRequiredColumns } from "../../Entity";
 import { AlertError } from "../../UI/Core/AlertError";
 import { CircleFilledIcon } from "../../UI/Core/CircleFilledIcon";
@@ -9,11 +9,14 @@ import { FakeProgressBar } from "../../UI/Core/FakeProgressBar";
 import { FormOptions } from "../../UI/Core/types";
 import { FilesUploadForm, FileUploaderDefaultProps } from "../../UI/FileUploader";
 import { EntityForm, EntityFormDefaultProps, useEntityForm } from "../../UI/Form";
-import { useEntityCSVImportValidation, useImportData } from "../../UI/ImportData";
+import { ExcelImportMappingEditor, useEntityCSVImportValidation, useImportData } from "../../UI/ImportData";
 import { ImportEntityData } from "./ImportEntityData";
 
 export interface ImportEntityDataFormProps extends FormOptions<ImportEntityData> {
     importEntity?: Entity<EntityDefinition>,
+    entityProcName?: string,
+    excludedImportDestinations?: string[],
+    onImportSuccess?: () => Promise<void>,
     importInfoLabel?: string,
     csvInstructionsLabel?: string,
     columnHeaderLabel?: string,
@@ -38,8 +41,8 @@ export interface ImportEntityDataFormProps extends FormOptions<ImportEntityData>
 
 export const ImportEntityDataFormDefaultProps: Partial<ImportEntityDataFormProps> = {
     initialFormMode: "view",
-    importInfoLabel: "Import a CSV file with data for",
-    csvInstructionsLabel: "The CSV file must contain a header with these column names:",
+    importInfoLabel: "Import a CSV or Excel file with data for",
+    csvInstructionsLabel: "CSV files must contain a header with these column names. Excel columns can be mapped after selecting a file:",
     columnHeaderLabel: "Column Header",
     dataNameLabel: "Data Name",
     contentLabel: "Content",
@@ -54,7 +57,7 @@ export const ImportEntityDataFormDefaultProps: Partial<ImportEntityDataFormProps
     importHelpAndInstructionsLabel: "Help and Instructions",
     recordsImportedSusccessfullyLabel: "Records imported successfully",
     recordsNotImportedDueToErrorsLabel: "Records not imported due to errors",
-    importTheCSVFileLabel: "Import the CSV file, clicking or dragging the file, then click",
+    importTheCSVFileLabel: "Select a CSV or Excel file by clicking or dragging it, then click",
     importedFileLabel: "Imported file",
     errorColumnTitle: "Error",
     rowColumnTitle: "Row",
@@ -68,7 +71,7 @@ export function ImportEntityDataForm(props: ImportEntityDataFormProps) {
         errorReadingFileLabel, emptyCSVFileLabel, missingColumnsLabel, importEntity,
         dateFormatLabel, numberFormatLabel, downloadSampleLabel, importButtonLabel, CancelText, importHelpAndInstructionsLabel,
         recordsImportedSusccessfullyLabel, recordsNotImportedDueToErrorsLabel, CloseText, importTheCSVFileLabel,
-        importedFileLabel, errorColumnTitle, rowColumnTitle
+        importedFileLabel, errorColumnTitle, rowColumnTitle, entityProcName, excludedImportDestinations, onImportSuccess
     } = useComponentDefaultProps('ImportEntityDataForm', ImportEntityDataFormDefaultProps, props);
 
     const theme = useMantineTheme();
@@ -81,17 +84,75 @@ export function ImportEntityDataForm(props: ImportEntityDataFormProps) {
 
     const required = useMemo(() => importEntity?.def.importColumns || getRequiredColumns(importEntity), [importEntity]);
 
+    const importDestinations = useMemo(() => {
+        const entityProc = entityProcName ? importEntity?.def.procs[entityProcName] : undefined;
+        const destinations = entityProcName ? Object.keys(entityProc?.parms ?? {}) : required;
+        const excluded = new Set((excludedImportDestinations ?? []).map(destination => destination.toLowerCase()));
+        return destinations.filter(destination => !excluded.has(destination.toLowerCase()));
+    }, [entityProcName, excludedImportDestinations, importEntity, required]);
+
     const [lastProcessedFile, setLastProcessedFile] = useState<string | null>(null);
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const [excelMapping, setExcelMapping] = useState<ExcelImportMapping>();
+    const [excelInitialRow, setExcelInitialRow] = useState(1);
+    const [toggleAccordion, setToggleAccordion] = useState<string | null>(null);
+    const importSuccessNotified = useRef(false);
+
+    const selectedFileExtension = selectedFile?.name.slice(selectedFile.name.lastIndexOf('.')).toLocaleLowerCase();
+    const isExcelFile = selectedFileExtension === '.xlsx' || selectedFileExtension === '.xls';
 
     const handleValidateFile = useCallback(
         async (file: File) => {
-            const result = await validation.validateEntityImportCSVFile({ file, requiredColumns: required });
-            if (!result.error) setLastProcessedFile(file.name);
+            const extension = file.name.slice(file.name.lastIndexOf('.')).toLocaleLowerCase();
+            const result = extension === '.csv'
+                ? await validation.validateEntityImportCSVFile({ file, requiredColumns: required })
+                : extension === '.xlsx' || extension === '.xls'
+                    ? { error: false }
+                    : { error: true, message: errorReadingFileLabel };
+
+            if (!result.error) {
+                setLastProcessedFile(file.name);
+                setSelectedFile(file);
+                setExcelMapping(undefined);
+                setExcelInitialRow(1);
+                importSuccessNotified.current = false;
+            }
             return result;
         }
-        , [required, validation])
+        , [errorReadingFileLabel, required, validation])
 
-    const [toggleAccordion, setToggleAccordion] = useState<string | null>(null);
+    const handleDeleteFile = useCallback(() => {
+        setSelectedFile(null);
+        setLastProcessedFile(null);
+        setExcelMapping(undefined);
+        setExcelInitialRow(1);
+        importSuccessNotified.current = false;
+        return true;
+    }, []);
+
+    const handleExcelMappingChange = useCallback((mapping: ExcelImportMapping | undefined, initialRow: number) => {
+        setExcelMapping(mapping);
+        setExcelInitialRow(initialRow);
+    }, []);
+
+    const handleImport = useCallback(async () => {
+        if (!entity.def.columns.c_fileprocess_id.value) {
+            setToggleAccordion('help');
+            return;
+        }
+
+        const result = await importData.execute(
+            entity.def.columns.c_fileprocess_id.value,
+            entityProcName,
+            isExcelFile ? excelMapping : undefined,
+            isExcelFile ? excelInitialRow : undefined
+        );
+
+        if (result?.data && !importSuccessNotified.current) {
+            importSuccessNotified.current = true;
+            await onImportSuccess?.();
+        }
+    }, [entity.def.columns.c_fileprocess_id.value, entityProcName, excelInitialRow, excelMapping, importData, isExcelFile, onImportSuccess]);
 
     const generateSampleCSV = useCallback(() => {
         if (!importEntity) return;
@@ -171,9 +232,29 @@ export function ImportEntityDataForm(props: ImportEntityDataFormProps) {
                             fileProcessColumn={entity.def.columns.c_fileprocess_id}
                             client={entity.API.client}
                             maxFilesCount={1}
-                            uploaderProps={{ ...FileUploaderDefaultProps, disabled: importData.importStatus.loading || importData.importStatus.data !== undefined, accept: ['text/csv'] }}
+                            uploaderProps={{
+                                ...FileUploaderDefaultProps,
+                                disabled: importData.importStatus.loading || importData.importStatus.data !== undefined,
+                                accept: [
+                                    '.csv',
+                                    '.xls',
+                                    '.xlsx',
+                                    'text/csv',
+                                    'application/vnd.ms-excel',
+                                    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                                ]
+                            }}
                             onValidateFile={handleValidateFile}
+                            onDelete={handleDeleteFile}
                         />
+                        {selectedFile && isExcelFile &&
+                            <ExcelImportMappingEditor
+                                key={`${selectedFile.name}-${selectedFile.size}-${selectedFile.lastModified}`}
+                                file={selectedFile}
+                                destinations={importDestinations}
+                                onChange={handleExcelMappingChange}
+                            />
+                        }
                     </>
                 }
                 {importData.importStatus.loading &&
@@ -203,7 +284,7 @@ export function ImportEntityDataForm(props: ImportEntityDataFormProps) {
                                     <tbody>
                                         {Object.entries(importData.importStatus.data.Errors)
                                             .slice(0, 10)
-                                            .map(([key, value], index) => (
+                                            .map(([key, value]) => (
                                                 <tr key={key}>
                                                     <td>{key}</td>
                                                     <td>{value}</td>
@@ -226,17 +307,10 @@ export function ImportEntityDataForm(props: ImportEntityDataFormProps) {
                                 {CloseText || EntityFormDefaultProps.CloseText}
                             </Button>
                             <Button
-                                onClick={
-                                    async () => {
-                                        if (!entity.def.columns.c_fileprocess_id.value) {
-                                            setToggleAccordion('help');
-                                        }
-                                        await importData.execute(entity.def.columns.c_fileprocess_id.value)
-                                    }
-                                }
+                                onClick={handleImport}
                                 loading={importData.importStatus.loading}
                                 leftIcon={<IconCircleCheck size="1.5rem" />}
-                                disabled={importData.importStatus.data !== undefined}
+                                disabled={importData.importStatus.data !== undefined || (isExcelFile && !excelMapping)}
                             >
                                 {importButtonLabel}
                             </Button>
