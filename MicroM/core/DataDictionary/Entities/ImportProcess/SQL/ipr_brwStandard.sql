@@ -21,3 +21,4 @@ from    [dbo].[import_process] a
         join file_store d
         on(d.c_fileprocess_id=a.c_fileprocess_id)
 where   a.vc_assemblytypename=@assemblytypename
+order by 1 desc
