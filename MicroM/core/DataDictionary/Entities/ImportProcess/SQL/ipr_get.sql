@@ -4,6 +4,8 @@
 
 select  [c_import_process_id] = rtrim(a.c_import_process_id)
         , [c_fileprocess_id] = rtrim(a.c_fileprocess_id)
+        , a.i_total_records
+        , a.i_errors
         , a.vc_assemblytypename
         , a.vc_import_procname
         , [c_import_status_id] = rtrim(b.c_statusvalue_id)

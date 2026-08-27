@@ -188,8 +188,6 @@ public static class EntityImportData
         var resolvedMapping = ResolveExcelMapping(entity, headerRow, importMapping);
         bool useExplicitMapping = importMapping?.Mapping?.Length > 0;
 
-        // Preserve the existing Excel import result semantics, which count the header row.
-        result.ProcessedCount++;
         int rowIndex = 0;
 
         try

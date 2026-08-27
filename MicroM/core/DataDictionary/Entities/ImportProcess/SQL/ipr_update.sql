@@ -1,6 +1,8 @@
 ﻿create or alter proc [dbo].ipr_update
         @import_process_id Char(20)
         , @fileprocess_id Char(20)
+        , @total_records int
+        , @errors int
         , @assemblytypename VarChar(2048)
         , @import_procname VarChar(2048)
         , @import_status_id Char(20)
@@ -61,6 +63,8 @@ begin try
             (
             @import_process_id
             , @fileprocess_id
+            , 0 -- total_records
+            , 0 -- errors
             , @assemblytypename
             , @import_procname
             , @now
@@ -93,6 +97,20 @@ begin try
         select    15, rtrim(@import_process_id)
         return
     end
+
+    if @cu<>@lu or @lu is null
+    begin
+        select 4, 'Record changed'
+        return
+    end
+
+    update  [dbo].[import_process]
+    set     i_total_records = @total_records
+            , i_errors = @errors
+            , vc_webluuser = @webusr
+            , vc_luuser = @login
+            , dt_lu = @now
+    where   c_import_process_id = @import_process_id
 
     commit tran
     select 0, 'OK'

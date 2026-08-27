@@ -702,7 +702,7 @@ public class EntitiesService : IEntitiesService
 
                                     if (result != null)
                                     {
-                                        await import_process.UpdateStatus(nameof(ImportStatus.Completed), ct);
+                                        await import_process.UpdateStatus(nameof(ImportStatus.Completed), ct, result.ProcessedCount, result.ErrorCount);
                                         return result;
                                     }
                                     else
@@ -714,7 +714,7 @@ public class EntitiesService : IEntitiesService
                                 else
                                 {
                                     await import_process.UpdateStatus(nameof(ImportStatus.FormatError), ct);
-                                    _api.log.LogError("ImportData FormatERROR: {app_id} {entity_name} {import_proc}.", app_id, entity_name, import_proc);
+                                    _api.log.LogError("ImportData FormatERROR: Can't parse CSV file {app_id} {entity_name} {import_proc}.", app_id, entity_name, import_proc);
                                 }
                             }
                             else
@@ -723,7 +723,7 @@ public class EntitiesService : IEntitiesService
                                 var result = await entity.ImportDataFromExcel(file_stream, workbookType, parms.ExcelImportMapping, parms.initialRow, _options, parms.ServerClaims, _api, app_id, parms.ParentKeys, ct);
                                 if (result != null)
                                 {
-                                    await import_process.UpdateStatus(nameof(ImportStatus.Completed), ct);
+                                    await import_process.UpdateStatus(nameof(ImportStatus.Completed), ct, result.ProcessedCount, result.ErrorCount);
                                     return result;
                                 }
                                 else
@@ -737,7 +737,7 @@ public class EntitiesService : IEntitiesService
                         catch (Exception ex)
                         {
                             _api.log.LogError(ex, "ImportData ERROR: {app_id} {entity_name} {import_proc}.", app_id, entity_name, import_proc);
-                            await import_process.UpdateStatus(nameof(ImportStatus.FormatError), ct);
+                            await import_process.UpdateStatus(nameof(ImportStatus.Error), ct);
                         }
 
 
