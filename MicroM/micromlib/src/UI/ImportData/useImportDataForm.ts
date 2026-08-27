@@ -32,7 +32,7 @@ export function useImportDataForm({
         if (!importEntity) return;
 
         if (entityProcName && !importEntity.def.procs[entityProcName]) {
-            console.warn(`DataGrid import: procedure '${entityProcName}' was not found in entity '${importEntity.name}'.`);
+            console.warn(`Import data: procedure '${entityProcName}' was not found in entity '${importEntity.name}'.`);
             return;
         }
 
