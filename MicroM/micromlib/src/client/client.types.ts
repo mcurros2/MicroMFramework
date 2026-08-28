@@ -6,15 +6,15 @@ export interface MicroMRequestOptions {
     keepalive?: boolean;
 }
 
-export interface ImportDataMapping {
+export interface FileImportColumnMapping {
     SourceHeader: string | null,
     SourceIndex: number | null,
     DestinationColumnName: string,
 }
 
-export interface ExcelImportMapping {
+export interface FileImportMapping {
     SheetName: string | null,
-    Mapping: ImportDataMapping[],
+    Mapping: FileImportColumnMapping[],
 }
 
 export type SQLType = 'char' | 'nchar' | 'varchar' | 'nvarchar' | 'text' | 'ntext' | 'tinyint' | 'smallint' | 'int' | 'bigint' | 'float' | 'decimal' | 'real' | 'bit' | 'money' | 'datetime2' | 'datetime' | 'smalldatetime' | 'date' | 'binary' | 'varbinary' | 'image' | 'time';
@@ -43,8 +43,10 @@ export interface DBStatusResult {
     Results: DBStatus[];
 }
 
-export function isDBStatusResult(data: any): data is DBStatusResult {
-    return data
-        && typeof data.Failed === "boolean"
-        && typeof data.AutonumReturned === "boolean"
+export function isDBStatusResult(data: unknown): data is DBStatusResult {
+    if (!data || typeof data !== "object") return false;
+
+    const result = data as Partial<DBStatusResult>;
+    return typeof result.Failed === "boolean"
+        && typeof result.AutonumReturned === "boolean"
 }

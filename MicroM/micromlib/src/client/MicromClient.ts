@@ -1,5 +1,5 @@
 import { isIn } from "../Entity/GenericFunctions";
-import { DataResult, DBStatusResult, ExcelImportMapping, MicroMRequestOptions, ValuesObject } from "./client.types";
+import { DataResult, DBStatusResult, FileImportMapping, MicroMRequestOptions, ValuesObject } from "./client.types";
 import { DataStorage } from "./DataStorage";
 import { ImpDataResult } from "./ImpDataResult";
 import { JSONDateWithTimezoneReplacer } from "./JSONDateWithTimezoneReplacer";
@@ -1045,7 +1045,7 @@ export class MicroMClient {
         return this.#submitToAPI(entity_name, parent_keys, values, [], "action", abort_signal, action_name);
     }
 
-    async import(entity_name: string, parent_keys: ValuesObject | null, values: ValuesObject, import_procname: string | null, abort_signal: AbortSignal | null = null, excelImportMapping?: ExcelImportMapping, initialRow?: number): Promise<ImpDataResult> {
+    async import(entity_name: string, parent_keys: ValuesObject | null, values: ValuesObject, import_procname: string | null, abort_signal: AbortSignal | null = null, fileImportMapping?: FileImportMapping, initialRow?: number): Promise<ImpDataResult> {
         if (!import_procname) {
             this.#recordAccess({ entityName: entity_name, access: AllowedRouteFlags.Import });
         }
@@ -1054,7 +1054,7 @@ export class MicroMClient {
         }
 
         return this.#submitToAPI(entity_name, parent_keys, values, [], "import", abort_signal, import_procname, undefined, {
-            ExcelImportMapping: excelImportMapping,
+            FileImportMapping: fileImportMapping,
             initialRow
         });
     }

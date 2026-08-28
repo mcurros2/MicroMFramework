@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { DBStatus, ExcelImportMapping, OperationStatus, toDBStatusMicroMError, toMicroMError } from "../../client";
+import { DBStatus, FileImportMapping, OperationStatus, toDBStatusMicroMError, toMicroMError } from "../../client";
 import { ImpDataResult } from "../../client/ImpDataResult";
 import { Entity, EntityDefinition } from "../../Entity";
 
@@ -21,14 +21,15 @@ export function useImportData(importEntity?: Entity<EntityDefinition>) {
     }, []);
 
 
-    const execute = useCallback(async (fileprocess_id: string, importProcedureName?: string, excelImportMapping?: ExcelImportMapping, initialRow?: number) => {
+    const execute = useCallback(async (fileprocess_id: string, importProcedureName?: string, fileImportMapping?: FileImportMapping, initialRow?: number) => {
         if (!importEntity || !fileprocess_id) return;
 
         try {
+            if (cancellation.current.signal.aborted) cancellation.current = new AbortController();
             setImportStatus({ loading: true });
 
             done.current = false;
-            const result = await importEntity.API.importData(cancellation.current.signal, importProcedureName ?? null, importEntity.parentKeys, fileprocess_id, excelImportMapping, initialRow);
+            const result = await importEntity.API.importData(cancellation.current.signal, importProcedureName ?? null, importEntity.parentKeys, fileprocess_id, fileImportMapping, initialRow);
             done.current = true;
 
             const result_status: OperationStatus<ImpDataResult> = { data: result, operationType: 'import' };
@@ -51,10 +52,15 @@ export function useImportData(importEntity?: Entity<EntityDefinition>) {
         }
     }, [importEntity]);
 
+    const cancel = useCallback(() => cancellation.current.abort(), []);
+
     return {
         execute,
         importStatus,
-        cancellation: cancellation.current
+        get cancellation() {
+            return cancellation.current;
+        },
+        cancel
     };
 }
 

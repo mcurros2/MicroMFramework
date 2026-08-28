@@ -694,11 +694,11 @@ public class EntitiesService : IEntitiesService
 
                             if (ext.Equals(".csv", StringComparison.OrdinalIgnoreCase))
                             {
-                                var csv = await CSVParser.ParseFile(file_stream, ct);
+                                var csv = await CSVParser.ParseFileTable(file_stream, parms.initialRow ?? 1, ct);
 
                                 if (csv != null)
                                 {
-                                    var result = await entity.ImportDataFromCSV(csv, _options, parms.ServerClaims, _api, app_id, parms.ParentKeys, ct);
+                                    var result = await entity.ImportDataFromCSV(csv, parms.FileImportMapping, _options, parms.ServerClaims, _api, app_id, parms.ParentKeys, ct);
 
                                     if (result != null)
                                     {
@@ -720,7 +720,7 @@ public class EntitiesService : IEntitiesService
                             else
                             {
                                 var workbookType = ext.Equals(".xls", StringComparison.OrdinalIgnoreCase) ? ExcelWorkbookType.Excel : ExcelWorkbookType.ExcelXml;
-                                var result = await entity.ImportDataFromExcel(file_stream, workbookType, parms.ExcelImportMapping, parms.initialRow, _options, parms.ServerClaims, _api, app_id, parms.ParentKeys, ct);
+                                var result = await entity.ImportDataFromExcel(file_stream, workbookType, parms.FileImportMapping, parms.initialRow, _options, parms.ServerClaims, _api, app_id, parms.ParentKeys, ct);
                                 if (result != null)
                                 {
                                     await import_process.UpdateStatus(nameof(ImportStatus.Completed), ct, result.ProcessedCount, result.ErrorCount);

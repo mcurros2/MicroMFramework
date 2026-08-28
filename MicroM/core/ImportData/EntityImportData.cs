@@ -76,26 +76,67 @@ public static class EntityImportData
         }
     }
 
-    public static async Task<CSVImportResult> ImportDataFromCSV<T>(this T entity, List<Dictionary<string, string>> data, MicroMOptions options, Dictionary<string, object>? claims, IWebAPIServices api, string app_id, Dictionary<string, object>? parentKeys, CancellationToken ct) where T : EntityBase
+    public static Task<CSVImportResult> ImportDataFromCSV<T>(this T entity, List<Dictionary<string, string>> data, MicroMOptions options, Dictionary<string, object>? claims, IWebAPIServices api, string app_id, Dictionary<string, object>? parentKeys, CancellationToken ct) where T : EntityBase
+    {
+        if (data.Count == 0) return Task.FromResult(new CSVImportResult());
+
+        string[] headers = [.. data[0].Keys];
+        List<string[]> rows = [.. data.Select(row => headers.Select(header => row.GetValueOrDefault(header, string.Empty)).ToArray())];
+
+        return entity.ImportDataFromCSV(new CSVTable(headers, rows), null, options, claims, api, app_id, parentKeys, ct);
+    }
+
+    public static async Task<CSVImportResult> ImportDataFromCSV<T>(
+        this T entity,
+        CSVTable table,
+        FileImportMapping? importMapping,
+        MicroMOptions options,
+        Dictionary<string, object>? claims,
+        IWebAPIServices api,
+        string app_id,
+        Dictionary<string, object>? parentKeys,
+        CancellationToken ct) where T : EntityBase
     {
 
         CSVImportResult result = new();
-        if (data.Count == 0)
+        if (table.Headers.Length == 0 || table.Rows.Count == 0)
         {
             return result;
         }
 
         var client = entity.Client;
+        object?[] headerRow = [.. table.Headers];
+        var resolvedMapping = ResolveImportMapping(entity, headerRow, importMapping);
+        bool useExplicitMapping = importMapping?.Mapping?.Length > 0;
 
         try
         {
             await client.Connect(ct);
 
-            foreach (var row in data)
+            foreach (string[] row in table.Rows)
             {
                 try
                 {
-                    entity.MapCSVDataToEntity(row);
+                    Dictionary<string, string> data = new(StringComparer.OrdinalIgnoreCase);
+                    if (useExplicitMapping)
+                    {
+                        foreach (var mapping in resolvedMapping)
+                        {
+                            data[mapping.DestinationColumnName] = mapping.SourceIndex < row.Length
+                                ? row[mapping.SourceIndex]
+                                : string.Empty;
+                        }
+                    }
+                    else
+                    {
+                        for (int index = 0; index < table.Headers.Length && index < row.Length; index++)
+                        {
+                            data[table.Headers[index]] = row[index];
+                        }
+                    }
+
+                    ClearImportDataValues(entity);
+                    entity.MapCSVDataToEntity(data);
 
                     // Override application keys
                     entity.SetColumnValues(api.entitiesService.GetApplicationKeys(app_id));
@@ -151,7 +192,7 @@ public static class EntityImportData
         return await entity.ImportDataFromExcel(
             excelStream,
             ExcelWorkbookType.ExcelXml,
-            new ExcelImportMapping { SheetName = sheetName },
+            new FileImportMapping { SheetName = sheetName },
             initialRow,
             options,
             claims,
@@ -165,7 +206,7 @@ public static class EntityImportData
         this T entity,
         Stream excelStream,
         ExcelWorkbookType workbookType,
-        ExcelImportMapping? importMapping,
+        FileImportMapping? importMapping,
         int? initialRow,
         MicroMOptions options,
         Dictionary<string, object>? claims,
@@ -185,7 +226,7 @@ public static class EntityImportData
         }
 
         object?[] headerRow = rowEnumerator.Current;
-        var resolvedMapping = ResolveExcelMapping(entity, headerRow, importMapping);
+        var resolvedMapping = ResolveImportMapping(entity, headerRow, importMapping);
         bool useExplicitMapping = importMapping?.Mapping?.Length > 0;
 
         int rowIndex = 0;
@@ -222,6 +263,7 @@ public static class EntityImportData
 
                 try
                 {
+                    ClearImportDataValues(entity);
                     entity.MapExcelDataToEntity(data);
 
                     entity.SetColumnValues(api.entitiesService.GetApplicationKeys(app_id));
@@ -260,7 +302,7 @@ public static class EntityImportData
         return result;
     }
 
-    internal static IReadOnlyList<ResolvedImportDataMapping> ResolveExcelMapping<T>(T entity, object?[] headerRow, ExcelImportMapping? importMapping) where T : EntityBase
+    internal static IReadOnlyList<ResolvedImportDataMapping> ResolveImportMapping<T>(T entity, object?[] headerRow, FileImportMapping? importMapping) where T : EntityBase
     {
         if (importMapping?.Mapping == null || importMapping.Mapping.Length == 0) return [];
 
@@ -271,7 +313,7 @@ public static class EntityImportData
         {
             if (string.IsNullOrWhiteSpace(mapping.DestinationColumnName))
             {
-                throw new InvalidDataException("An Excel import destination column name cannot be empty.");
+                throw new InvalidDataException("An import destination column name cannot be empty.");
             }
 
             if (!destinations.Add(mapping.DestinationColumnName))
@@ -325,12 +367,12 @@ public static class EntityImportData
             {
                 if (mapping.SourceIndex is not int index)
                 {
-                    throw new InvalidDataException("An Excel import mapping must specify a source header or source index.");
+                    throw new InvalidDataException("An import mapping must specify a source header or source index.");
                 }
 
                 if (index < 0 || index >= headerRow.Length)
                 {
-                    throw new InvalidDataException($"Source index {index} is outside the worksheet header.");
+                    throw new InvalidDataException($"Source index {index} is outside the file header.");
                 }
 
                 sourceIndex = index;
@@ -340,6 +382,23 @@ public static class EntityImportData
         }
 
         return result;
+    }
+
+    internal static void ClearImportDataValues<T>(T entity) where T : EntityBase
+    {
+        foreach (var col in entity.Def.Columns.Values)
+        {
+            if (col == null
+                || !col.ColumnMetadata.HasFlag(ColumnFlags.Insert)
+                || col.ColumnMetadata.HasFlag(ColumnFlags.APIReadOnly)
+                || !col.OverrideWith.IsNullOrEmpty()
+                || col.Name.IsIn(SystemColumnNames.AsStringArray))
+            {
+                continue;
+            }
+
+            col.ValueObject = null;
+        }
     }
 
     internal static void MapExcelDataToEntity<T>(this T entity, IReadOnlyDictionary<string, object?> data) where T : EntityBase

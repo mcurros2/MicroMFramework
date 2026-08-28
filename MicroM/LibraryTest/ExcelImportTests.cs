@@ -81,11 +81,11 @@ public class ExcelImportTests
     }
 
     [TestMethod]
-    public void ResolveExcelMapping_UsesOptionalIndexAndHeaderDisambiguation()
+    public void ResolveImportMapping_UsesOptionalIndexAndHeaderDisambiguation()
     {
         TestQueue entity = new();
         object?[] headers = ["Fallback", "Description", "Description"];
-        ExcelImportMapping mapping = new()
+        FileImportMapping mapping = new()
         {
             Mapping =
             [
@@ -95,7 +95,7 @@ public class ExcelImportTests
             ]
         };
 
-        var resolved = EntityImportData.ResolveExcelMapping(entity, headers, mapping);
+        var resolved = EntityImportData.ResolveImportMapping(entity, headers, mapping);
 
         Assert.HasCount(3, resolved);
         Assert.AreEqual(0, resolved[0].SourceIndex);
@@ -104,29 +104,29 @@ public class ExcelImportTests
     }
 
     [TestMethod]
-    public void ResolveExcelMapping_RejectsMissingHeaderEvenWhenIndexIsPresent()
+    public void ResolveImportMapping_RejectsMissingHeaderEvenWhenIndexIsPresent()
     {
         TestQueue entity = new();
 
-        Assert.ThrowsExactly<InvalidDataException>(() => EntityImportData.ResolveExcelMapping(
+        Assert.ThrowsExactly<InvalidDataException>(() => EntityImportData.ResolveImportMapping(
             entity,
             ["Source ID", "Description"],
-            new ExcelImportMapping
+            new FileImportMapping
             {
                 Mapping = [new("Missing", 0, entity.Def.c_queue_id.Name)]
             }));
     }
 
     [TestMethod]
-    public void ResolveExcelMapping_RejectsInvalidConfiguration()
+    public void ResolveImportMapping_RejectsInvalidConfiguration()
     {
         TestQueue entity = new();
         object?[] headers = ["Source ID", "Description"];
 
-        Assert.ThrowsExactly<InvalidDataException>(() => EntityImportData.ResolveExcelMapping(
+        Assert.ThrowsExactly<InvalidDataException>(() => EntityImportData.ResolveImportMapping(
             entity,
             headers,
-            new ExcelImportMapping
+            new FileImportMapping
             {
                 Mapping =
                 [
@@ -135,34 +135,34 @@ public class ExcelImportTests
                 ]
             }));
 
-        Assert.ThrowsExactly<InvalidDataException>(() => EntityImportData.ResolveExcelMapping(
+        Assert.ThrowsExactly<InvalidDataException>(() => EntityImportData.ResolveImportMapping(
             entity,
             headers,
-            new ExcelImportMapping
+            new FileImportMapping
             {
                 Mapping = [new(null, 10, entity.Def.vc_description.Name)]
             }));
 
-        Assert.ThrowsExactly<InvalidDataException>(() => EntityImportData.ResolveExcelMapping(
+        Assert.ThrowsExactly<InvalidDataException>(() => EntityImportData.ResolveImportMapping(
             entity,
             headers,
-            new ExcelImportMapping
+            new FileImportMapping
             {
                 Mapping = [new("Source ID", 0, "does_not_exist")]
             }));
 
-        Assert.ThrowsExactly<InvalidDataException>(() => EntityImportData.ResolveExcelMapping(
+        Assert.ThrowsExactly<InvalidDataException>(() => EntityImportData.ResolveImportMapping(
             entity,
             headers,
-            new ExcelImportMapping
+            new FileImportMapping
             {
                 Mapping = [new(null, null, entity.Def.vc_description.Name)]
             }));
 
-        Assert.ThrowsExactly<InvalidDataException>(() => EntityImportData.ResolveExcelMapping(
+        Assert.ThrowsExactly<InvalidDataException>(() => EntityImportData.ResolveImportMapping(
             entity,
             ["Description", "Description"],
-            new ExcelImportMapping
+            new FileImportMapping
             {
                 Mapping = [new("Description", null, entity.Def.vc_description.Name)]
             }));
@@ -177,12 +177,12 @@ public class ExcelImportTests
             """, options);
 
         Assert.IsNotNull(legacy);
-        Assert.IsNull(legacy.ExcelImportMapping);
+        Assert.IsNull(legacy.FileImportMapping);
 
         var mapped = JsonSerializer.Deserialize<ImportDataWebAPIRequest>("""
             {
               "values": {},
-              "excelImportMapping": {
+              "fileImportMapping": {
                 "sheetName": "Import",
                 "mapping": [
                   { "sourceHeader": "Amount", "destinationColumnName": "n_amount" },
@@ -192,12 +192,12 @@ public class ExcelImportTests
             }
             """, options);
 
-        Assert.IsNotNull(mapped?.ExcelImportMapping);
-        Assert.AreEqual("Import", mapped.ExcelImportMapping.SheetName);
-        Assert.HasCount(2, mapped.ExcelImportMapping.Mapping);
-        Assert.IsNull(mapped.ExcelImportMapping.Mapping[0].SourceIndex);
-        Assert.IsNull(mapped.ExcelImportMapping.Mapping[1].SourceHeader);
-        Assert.AreEqual(2, mapped.ExcelImportMapping.Mapping[1].SourceIndex);
+        Assert.IsNotNull(mapped?.FileImportMapping);
+        Assert.AreEqual("Import", mapped.FileImportMapping.SheetName);
+        Assert.HasCount(2, mapped.FileImportMapping.Mapping);
+        Assert.IsNull(mapped.FileImportMapping.Mapping[0].SourceIndex);
+        Assert.IsNull(mapped.FileImportMapping.Mapping[1].SourceHeader);
+        Assert.AreEqual(2, mapped.FileImportMapping.Mapping[1].SourceIndex);
     }
 
     [TestMethod]
@@ -207,6 +207,58 @@ public class ExcelImportTests
         AssertImportRequestParameter(typeof(EntitiesController), nameof(EntitiesController.Import));
         AssertImportRequestParameter(typeof(IEntitiesService), nameof(IEntitiesService.HandleImportData));
         AssertImportRequestParameter(typeof(EntitiesService), nameof(EntitiesService.HandleImportData));
+    }
+
+    [TestMethod]
+    public void ParseCSVTable_UsesConfiguredHeaderRowAndQuotedValues()
+    {
+        CSVTable table = CSVParser.ParseTable(
+            "Report title\r\nSource ID,Description\r\nQ1,\"First, quoted\"\r\nQ2,Second\r\n",
+            initialRow: 2,
+            CancellationToken.None);
+
+        CollectionAssert.AreEqual(new[] { "Source ID", "Description" }, table.Headers);
+        Assert.HasCount(2, table.Rows);
+        CollectionAssert.AreEqual(new[] { "Q1", "First, quoted" }, table.Rows[0]);
+        CollectionAssert.AreEqual(new[] { "Q2", "Second" }, table.Rows[1]);
+    }
+
+    [TestMethod]
+    public async Task ImportDataFromCSV_AppliesExplicitMappingAndNullsOmittedDestinations()
+    {
+        CSVTable table = new(
+            ["Source Amount", "Extra"],
+            [["1234.56", "ignored"]]);
+        FileImportMapping mapping = new()
+        {
+            Mapping = [new("Source Amount", null, nameof(TypedExcelImportDef.n_value))]
+        };
+        var (entity, api, entityData) = CreateTypedImportEntity();
+        entity.Def.i_value.ValueObject = 42;
+        decimal? insertedAmount = null;
+        object? insertedOmittedValue = 42;
+        entityData
+            .Setup(data => data.InsertData(It.IsAny<CancellationToken>(), It.IsAny<bool>(), It.IsAny<bool>()))
+            .Callback(() =>
+            {
+                insertedAmount = entity.Def.n_value.ValueObject as decimal?;
+                insertedOmittedValue = entity.Def.i_value.ValueObject;
+            })
+            .ReturnsAsync(DBStatusResult.SuccessStatus());
+
+        var result = await entity.ImportDataFromCSV(
+            table,
+            mapping,
+            new MicroMOptions(),
+            claims: null,
+            api.Object,
+            app_id: "test",
+            parentKeys: null,
+            CancellationToken.None);
+
+        Assert.AreEqual(1, result.SuccessCount);
+        Assert.AreEqual(1234.56m, insertedAmount);
+        Assert.IsNull(insertedOmittedValue);
     }
 
     [TestMethod]
@@ -452,9 +504,9 @@ public class ExcelImportTests
         return stream;
     }
 
-    private static ExcelImportMapping CreateTypedMapping()
+    private static FileImportMapping CreateTypedMapping()
     {
-        return new ExcelImportMapping
+        return new FileImportMapping
         {
             SheetName = "Import",
             Mapping =

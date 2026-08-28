@@ -4,6 +4,6 @@ namespace MicroM.ImportData;
 
 public sealed class ImportDataWebAPIRequest : DataWebAPIRequest
 {
-    public ExcelImportMapping? ExcelImportMapping { get; set; }
+    public FileImportMapping? FileImportMapping { get; set; }
     public int? initialRow { get; set; }
 }

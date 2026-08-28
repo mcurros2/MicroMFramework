@@ -1,5 +1,5 @@
 import { Button, Group, Stepper, StepperProps, useComponentDefaultProps } from "@mantine/core";
-import { IconCircleCheck } from "@tabler/icons-react";
+import { IconCircleCheck, IconCircleX } from "@tabler/icons-react";
 import { ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 import { DBStatusResult } from "../../client";
 import { EntityForm, EntityFormProps } from "./EntityForm";
@@ -27,6 +27,8 @@ export interface StepperFormProps extends EntityFormProps {
     completedContent?: ReactNode,
     hideNextAndBackWhenCompleted?: boolean
     onCompleted?: () => void,
+    onCancelSubmit?: () => void | Promise<void>,
+    cancelSubmitLabel?: ReactNode,
     stepperProps?: Omit<Partial<StepperProps>, 'children' | 'active'>
 }
 
@@ -52,7 +54,8 @@ export const StepperFormDefaultProps: Partial<StepperFormProps> = {
 export function StepperForm(props: StepperFormProps) {
     const {
         formAPI, onNextStep, onPrevStep, initialStep, nextStepLabel, prevStepLabel, allowStepClickForward,
-        steps, OKText, completedContent, hideNextAndBackWhenCompleted, stepperProps, onCompleted, ...rest
+        steps, OKText, CancelText, completedContent, hideNextAndBackWhenCompleted, stepperProps, onCompleted,
+        onCancelSubmit, cancelSubmitLabel, ...rest
     } = useComponentDefaultProps('StepperForm', StepperFormDefaultProps, props);
 
     const { status, formMode } = formAPI;
@@ -165,6 +168,7 @@ export function StepperForm(props: StepperFormProps) {
             <Button
                 key="stepper-back"
                 loading={stepValidating}
+                disabled={status.loading}
                 variant="default"
                 type="button"
                 onClick={prevStep}
@@ -181,8 +185,20 @@ export function StepperForm(props: StepperFormProps) {
             >
                 {activeStepItem.nextStepLabel || nextStepLabel}
             </Button>
+            {status.loading && onCancelSubmit && activeStep === steps.length - 1 &&
+                <Button
+                    key="stepper-cancel-submit"
+                    variant="light"
+                    type="button"
+                    leftIcon={<IconCircleX size="1.125rem" />}
+                    onClick={() => void onCancelSubmit()}
+                >
+                    {cancelSubmitLabel || CancelText}
+                </Button>
+            }
             <Button
                 loading={stepValidating}
+                disabled={status.loading}
                 key="stepper-next"
                 onClick={nextStep}
                 type="button"
@@ -193,7 +209,7 @@ export function StepperForm(props: StepperFormProps) {
                     : activeStepItem.nextStepLabel) || nextStepLabel}
             </Button>
         </Group>
-    ), [activeStep, activeStepItem, formMode, hideNextAndBackWhenCompleted, nextStep, nextStepLabel, prevStep, prevStepLabel, status?.loading, stepValid, stepValidating, steps.length]);
+    ), [CancelText, activeStep, activeStepItem, cancelSubmitLabel, formMode, hideNextAndBackWhenCompleted, nextStep, nextStepLabel, onCancelSubmit, prevStep, prevStepLabel, status.loading, stepValid, stepValidating, steps.length]);
 
     useEffect(() => {
         setStepValid((prev) => {
