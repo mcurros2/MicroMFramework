@@ -3,43 +3,9 @@ import { useCallback, useMemo } from "react";
 import { MicroMClient, ValuesObject } from "../../client";
 import { ImportProcess } from "../../DataDictionary/ImportProcess";
 import { DataGridPanel, DataGridPanelProps } from "../DataGrid";
-import { EntityGridBuilderProps, EntityGridSourceProps, useResolvedEntityBuilder } from "../GetEntity";
+import { EntityGridBuilderProps, useResolvedEntityBuilder } from "../GetEntity";
 
-type ControlledDataGridPanelProps =
-    'entityConstructor'
-    | 'entityLoader'
-    | 'parentKeys'
-    | 'enableImport'
-    | 'entityProcName'
-    | 'excludedImportDestinations'
-    | 'enableAdd'
-    | 'enableEdit'
-    | 'enableDelete'
-    | 'enableView'
-    | 'selectionMode'
-    | 'showActions'
-    | 'showActionsToolbar'
-    | 'doubleClickAction'
-    | 'autoSelectFirstRow'
-    | 'showSelectRowsButton'
-    | 'initialSelectRowsToggle';
-
-export type ImportDataPanelDestinationSourceProps =
-    | {
-        /** Builds the entity that receives the imported records synchronously. */
-        destinationEntityConstructor: NonNullable<EntityGridSourceProps['entityConstructor']>;
-        destinationEntityLoader?: never;
-    }
-    | {
-        destinationEntityConstructor?: never;
-        /** Loads the entity that receives the imported records asynchronously. */
-        destinationEntityLoader: NonNullable<EntityGridSourceProps['entityLoader']>;
-    };
-
-export type ImportDataPanelProps = Omit<DataGridPanelProps, ControlledDataGridPanelProps> & ImportDataPanelDestinationSourceProps & {
-    parentKeys?: ValuesObject,
-    entityProcName?: string,
-    excludedImportDestinations?: string[],
+export type ImportDataPanelProps = DataGridPanelProps & {
     importDataLabel?: string,
     downloadImportedFileLabel?: string,
 };
@@ -55,19 +21,19 @@ export function ImportDataPanel(props: ImportDataPanelProps) {
     const mergedProps = useComponentDefaultProps('ImportDataPanel', ImportDataPanelDefaultProps, props);
 
     const {
-        client, destinationEntityConstructor, destinationEntityLoader, parentKeys, entityProcName, excludedImportDestinations,
+        client, entityConstructor: _entityConstructor, entityLoader: _entityLoader, parentKeys, entityProcName, excludedImportDestinations,
         loadingComponent, importDataLabel, downloadImportedFileLabel, ...dataGridProps
     } = mergedProps;
 
     const { result: destinationEntityBuilder, ready: destinationEntityReady } = useResolvedEntityBuilder<EntityGridBuilderProps>(
         client,
         parentKeys,
-        destinationEntityConstructor ? { entityConstructor: destinationEntityConstructor } : { entityLoader: destinationEntityLoader! }
+        props // need entityLoader and entityConstructor to be passed in props, so that useResolvedEntityBuilder can resolve the destination entity
     );
 
     const destinationEntity = destinationEntityBuilder?.entity;
 
-    const historyEntityBuilder = useCallback((historyClient: MicroMClient, parentKeys?: ValuesObject) => {
+    const historyEntityBuilder = useCallback((historyClient: MicroMClient, parentKeys?: ValuesObject): EntityGridBuilderProps => {
         if (!destinationEntity) throw new Error('The import destination is not available.');
 
         const historyEntity = new ImportProcess(historyClient, parentKeys, {
@@ -82,7 +48,7 @@ export function ImportDataPanel(props: ImportDataPanelProps) {
         return {
             entity: historyEntity,
             view: historyEntity.def.views.ipr_brwStandard.name,
-        } as EntityGridBuilderProps;
+        };
 
     }, [destinationEntity, downloadImportedFileLabel, entityProcName, excludedImportDestinations, importDataLabel]);
 
@@ -91,27 +57,24 @@ export function ImportDataPanel(props: ImportDataPanelProps) {
         [destinationEntity]
     );
 
-    const historyEntityKey = useMemo(() => [
-        destinationEntity?.name,
-        entityProcName,
-        excludedImportDestinations?.join(','),
-        importDataLabel,
-        downloadImportedFileLabel,
-    ].join('|'), [destinationEntity, downloadImportedFileLabel, entityProcName, excludedImportDestinations, importDataLabel]);
+    return (
+        <>
+            {(!destinationEntityReady || !destinationEntity)
+                ? <>{loadingComponent}</>
+                : <DataGridPanel
+                    {...dataGridProps}
+                    client={client}
+                    parentKeys={historyParentKeys}
+                    entityConstructor={historyEntityBuilder}
+                    selectionMode="single"
+                    enableAdd={false}
+                    enableEdit={false}
+                    enableDelete={false}
+                    enableView={false}
+                    enableImport={false}
+                />
 
-    if (!destinationEntityReady || !destinationEntity) return <>{loadingComponent}</>;
-
-    return <DataGridPanel
-        {...dataGridProps}
-        key={historyEntityKey}
-        client={client}
-        parentKeys={historyParentKeys}
-        entityConstructor={historyEntityBuilder}
-        selectionMode="single"
-        enableAdd={false}
-        enableEdit={false}
-        enableDelete={false}
-        enableView={false}
-        enableImport={false}
-    />;
+            }
+        </>
+    )
 }
