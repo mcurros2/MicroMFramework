@@ -5,7 +5,7 @@ create or alter proc [dbo].ipr_brwStandard
         , @d Char(1)
         as
 
--- MMC: this is a special view used by importing by the data grid
+-- MMC: this is the import history view used by ImportDataPanel
 select  [Process ID] = rtrim(a.c_import_process_id)
         , [File name]=d.vc_filename
         , [Processed]=a.i_total_records
@@ -13,6 +13,7 @@ select  [Process ID] = rtrim(a.c_import_process_id)
         , [Status]=c.vc_description
         , [Imported at]=a.dt_inserttime
         , [Imported by]=a.vc_webinsuser
+        , [File GUID]=d.vc_fileguid
 from    [dbo].[import_process] a
         join [dbo].import_process_status b
 		on(b.c_import_process_id = a.c_import_process_id and b.c_status_id='ImportStatus')

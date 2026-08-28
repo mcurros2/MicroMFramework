@@ -23,8 +23,7 @@ public class ImportProcessDef : EntityDefinition
 
     public readonly Column<string> c_import_status_id = Column<string>.EmbedStatus(nameof(ImportStatus));
 
-    public readonly Column<string?> vc_fileguid = Column<string?>.Text(nullable: true, fake: true);
-
+    public readonly Column<string?> vc_fileguid = Column<string?>.Text(nullable: true, fake: true, column_flags: ColumnFlags.Insert | ColumnFlags.Update | ColumnFlags.FK);
 
     public readonly ViewDefinition ipr_brwStandard = new(nameof(c_import_process_id), nameof(vc_assemblytypename));
 

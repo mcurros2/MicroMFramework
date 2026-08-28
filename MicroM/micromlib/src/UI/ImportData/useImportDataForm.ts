@@ -28,7 +28,11 @@ export function useImportDataForm({
     const modals = useModal();
 
 
-    const openImportDataForm = useCallback(async (importEntity: Entity<EntityDefinition>, entityProcName?: string, excludedImportDestinations?: string[]) => {
+    const openImportDataForm = useCallback(async (
+        importEntity: Entity<EntityDefinition>,
+        entityProcName?: string,
+        excludedImportDestinations?: string[]
+    ) => {
         if (!importEntity) return;
 
         if (entityProcName && !importEntity.def.procs[entityProcName]) {

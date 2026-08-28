@@ -2,7 +2,7 @@ import { Button, Group, Text } from "@mantine/core";
 import { IconAlertCircle, IconAlertTriangle } from "@tabler/icons-react";
 import { useCallback, useRef } from "react";
 import { DBStatusResult, OperationStatus, ValuesObject } from "../../client";
-import { Entity, EntityClientAction, EntityColumnFlags, EntityDefinition, setValues } from "../../Entity";
+import { Entity, EntityClientAction, EntityClientActionOnClickProps, EntityColumnFlags, EntityDefinition, setValues } from "../../Entity";
 import * as cf from "../../Entity/ColumnsFunctions";
 import { UseEntityFormReturnType } from "../Form";
 import { useImportDataForm } from "../ImportData";
@@ -50,13 +50,14 @@ export interface UseEntityUIProps {
     entityProcName?: string,
     excludedImportDestinations?: string[],
     onImportSuccess?: () => void,
+    clientActionOthers?: EntityClientActionOnClickProps['others'],
 }
 
 export function useEntityUI(props: UseEntityUIProps) {
     const {
         entity, onModalCancelled, onModalSaved, modalFormSize, parentFormAPI, saveFormBeforeAdd, onModalClosed,
         parentKeys, labels, onRecordsDeleted, onActionRefreshOnClose, onAddClick, onEditClick, onDeleteClick, onActionExecuted,
-        withModalFullscreenButton, entityProcName, excludedImportDestinations, onImportSuccess,
+        withModalFullscreenButton, entityProcName, excludedImportDestinations, onImportSuccess, clientActionOthers,
     } = props;
 
     const modals = useModal();
@@ -131,7 +132,7 @@ export function useEntityUI(props: UseEntityUIProps) {
         if (!entity) return;
 
         if (entityProcName && !entity.def.procs[entityProcName]) {
-            console.warn(`DataGrid import: procedure '${entityProcName}' was not found in entity '${entity.name}'.`);
+            console.warn(`Import data: procedure '${entityProcName}' was not found in entity '${entity.name}'.`);
             return;
         }
 
@@ -340,11 +341,13 @@ export function useEntityUI(props: UseEntityUIProps) {
             }
 
             return await action.onClick({
-                entity: execEntity, modal: modals, selectedKeys: keys, element: element, onClose: async (result?: boolean) => {
+                entity: execEntity, modal: modals, selectedKeys: keys, element: element, others: clientActionOthers,
+                onClose: async (result?: boolean) => {
                     if (onActionExecuted) await onActionExecuted(action.name, result);
                     if (action.refreshOnClose && onActionRefreshOnClose) await onActionRefreshOnClose();
                     return Promise.resolve(result ?? false);
-                }
+                },
+
             });
 
         }
@@ -383,7 +386,7 @@ export function useEntityUI(props: UseEntityUIProps) {
                     </>
             });
         }
-    }, [entity, parentFormAPI, handleSaveBeforeAdd, modals, labels, onActionRefreshOnClose, onActionExecuted, parentKeys]);
+    }, [entity, parentFormAPI, handleSaveBeforeAdd, modals, labels, onActionRefreshOnClose, onActionExecuted, parentKeys, clientActionOthers]);
 
     return {
         handleAddClick,

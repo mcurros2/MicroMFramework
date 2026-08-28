@@ -20,6 +20,4 @@ export * from "./ColumnsMapping"
 export * from "./CompoundKeyFunctions"
 export * from "./EntityColumnCollection.types"
 export * from "./ValuesObjectFunctions"
-
-
-
+export * from "./EntityClientActionImportDataOnClickProps"

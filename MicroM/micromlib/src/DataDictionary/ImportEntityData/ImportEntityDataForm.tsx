@@ -88,6 +88,7 @@ export function ImportEntityDataForm(props: ImportEntityDataFormProps) {
         const entityProc = entityProcName ? importEntity?.def.procs[entityProcName] : undefined;
         const destinations = entityProcName ? Object.keys(entityProc?.parms ?? {}) : required;
         const excluded = new Set((excludedImportDestinations ?? []).map(destination => destination.toLowerCase()));
+
         return destinations.filter(destination => !excluded.has(destination.toLowerCase()));
     }, [entityProcName, excludedImportDestinations, importEntity, required]);
 
@@ -96,6 +97,7 @@ export function ImportEntityDataForm(props: ImportEntityDataFormProps) {
     const [excelMapping, setExcelMapping] = useState<ExcelImportMapping>();
     const [excelInitialRow, setExcelInitialRow] = useState(1);
     const [toggleAccordion, setToggleAccordion] = useState<string | null>(null);
+
     const importSuccessNotified = useRef(false);
 
     const selectedFileExtension = selectedFile?.name.slice(selectedFile.name.lastIndexOf('.')).toLocaleLowerCase();
@@ -161,11 +163,14 @@ export function ImportEntityDataForm(props: ImportEntityDataFormProps) {
         const csvContent = `data:text/csv;charset=utf-8,${headers}\n`;
         const encodedUri = encodeURI(csvContent);
         const link = document.createElement("a");
+
         link.setAttribute("href", encodedUri);
         link.setAttribute("download", `${importEntity.name}_sample.csv`);
+
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+
     }, [importEntity, required]);
 
     const RequiredColumns = useMemo(() => {
@@ -220,7 +225,9 @@ export function ImportEntityDataForm(props: ImportEntityDataFormProps) {
                                                         <Text size="xs" color="dimmed">{dateFormatLabel}</Text>
                                                         <Text size="xs" color="dimmed">{numberFormatLabel}</Text>
                                                     </Stack>
-                                                    <Button maw="12rem" size="sm" variant="outline" onClick={generateSampleCSV}>{downloadSampleLabel}</Button>
+                                                    <Group>
+                                                        <Button size="sm" variant="outline" onClick={generateSampleCSV}>{downloadSampleLabel}</Button>
+                                                    </Group>
                                                 </Stack>
                                             </List.Item>
                                         </List>

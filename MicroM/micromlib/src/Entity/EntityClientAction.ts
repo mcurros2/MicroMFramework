@@ -8,7 +8,8 @@ export interface EntityClientActionOnClickProps {
     modal?: ModalContextType,
     selectedKeys?: ValuesObject[],
     element?: HTMLElement,
-    onClose?: (result?: boolean) => Promise<boolean>
+    onClose?: (result?: boolean) => Promise<boolean>,
+    others?: any
 }
 
 export interface EntityClientAction {

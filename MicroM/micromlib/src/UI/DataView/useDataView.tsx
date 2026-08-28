@@ -40,7 +40,7 @@ export function useDataView(props: DataViewProps, stateProps: DataGridStateProps
         entity, parentKeys, viewName, limit, onSelectionChanged, modalFormSize, onModalSaved,
         labels, saveFormBeforeAdd, parentFormAPI, allwaysRefreshOnEntityClose, notExportableColumns, itemsPerPage, onActionExecuted,
         convertResultToLocaleString, withModalFullscreenButton,
-        onDataRefresh
+        onDataRefresh, clientActionOthers
     } = props;
 
     const localeFormat = useLocaleFormat({ timeZoneOffset: entity?.API.client.TIMEZONE_OFFSET || 0 });
@@ -86,7 +86,7 @@ export function useDataView(props: DataViewProps, stateProps: DataGridStateProps
     const UIAPI = useEntityUI({
         entity, parentKeys, modalFormSize, parentFormAPI, saveFormBeforeAdd, withModalFullscreenButton, onModalSaved: handleModalSaved,
         onModalClosed: handleAllwaysRefreshOnClose,
-        onRecordsDeleted: internalRefresh, onActionRefreshOnClose: internalRefresh, labels, onActionExecuted
+        onRecordsDeleted: internalRefresh, onActionRefreshOnClose: internalRefresh, labels, onActionExecuted, clientActionOthers
     });
 
     const getRecordKeys = useCallback((record: ValuesRecord): ValuesObject => {
