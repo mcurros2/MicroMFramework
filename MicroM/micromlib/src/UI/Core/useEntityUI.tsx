@@ -2,7 +2,7 @@ import { Button, Group, Text } from "@mantine/core";
 import { IconAlertCircle, IconAlertTriangle } from "@tabler/icons-react";
 import { useCallback, useRef } from "react";
 import { DBStatusResult, OperationStatus, ValuesObject } from "../../client";
-import { Entity, EntityClientAction, EntityClientActionOnClickProps, EntityColumnFlags, EntityDefinition, setValues } from "../../Entity";
+import { Entity, EntityClientAction, EntityColumnFlags, EntityDefinition, setValues } from "../../Entity";
 import * as cf from "../../Entity/ColumnsFunctions";
 import { UseEntityFormReturnType } from "../Form";
 import { useImportDataForm } from "../ImportData";
@@ -50,14 +50,13 @@ export interface UseEntityUIProps {
     entityProcName?: string,
     excludedImportDestinations?: string[],
     onImportSuccess?: () => void,
-    clientActionOthers?: EntityClientActionOnClickProps['others'],
 }
 
 export function useEntityUI(props: UseEntityUIProps) {
     const {
         entity, onModalCancelled, onModalSaved, modalFormSize, parentFormAPI, saveFormBeforeAdd, onModalClosed,
         parentKeys, labels, onRecordsDeleted, onActionRefreshOnClose, onAddClick, onEditClick, onDeleteClick, onActionExecuted,
-        withModalFullscreenButton, entityProcName, excludedImportDestinations, onImportSuccess, clientActionOthers,
+        withModalFullscreenButton, entityProcName, excludedImportDestinations, onImportSuccess,
     } = props;
 
     const modals = useModal();
@@ -341,7 +340,7 @@ export function useEntityUI(props: UseEntityUIProps) {
             }
 
             return await action.onClick({
-                entity: execEntity, modal: modals, selectedKeys: keys, element: element, others: clientActionOthers,
+                entity: execEntity, modal: modals, selectedKeys: keys, element: element,
                 onClose: async (result?: boolean) => {
                     if (onActionExecuted) await onActionExecuted(action.name, result);
                     if (action.refreshOnClose && onActionRefreshOnClose) await onActionRefreshOnClose();
@@ -386,7 +385,7 @@ export function useEntityUI(props: UseEntityUIProps) {
                     </>
             });
         }
-    }, [entity, parentFormAPI, handleSaveBeforeAdd, modals, labels, onActionRefreshOnClose, onActionExecuted, parentKeys, clientActionOthers]);
+    }, [entity, parentFormAPI, handleSaveBeforeAdd, modals, labels, onActionRefreshOnClose, onActionExecuted, parentKeys]);
 
     return {
         handleAddClick,

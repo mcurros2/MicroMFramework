@@ -11,8 +11,7 @@ export function useDataGrid(props: DataGridProps, stateProps: DataGridStateProps
         entity, parentKeys, viewName, onSelectionChanged, modalFormSize,
         labels, saveFormBeforeAdd, parentFormAPI, allwaysRefreshOnEntityClose, onAddClick, onModalSaved,
         onDataRefresh, onActionExecuted, formMode, doubleClickAction, notExportableColumns, withModalFullscreenButton,
-        initialHiddenColumns, enableEdit, enableView, initialSelectRowsToggle, entityProcName, excludedImportDestinations,
-        clientActionOthers
+        initialHiddenColumns, enableEdit, enableView, initialSelectRowsToggle, entityProcName, excludedImportDestinations
     } = props;
 
     const { setRefresh, setSearchText, executeViewState } = stateProps;
@@ -50,7 +49,7 @@ export function useDataGrid(props: DataGridProps, stateProps: DataGridStateProps
     const UIAPI = useEntityUI({
         entity, parentKeys, modalFormSize, parentFormAPI, saveFormBeforeAdd, onModalSaved: handleModalSaved, onModalClosed: handleAlwaysRefreshOnClose,
         onRecordsDeleted: internalRefresh, onActionRefreshOnClose: internalRefresh, labels, onAddClick, onActionExecuted, withModalFullscreenButton,
-        entityProcName, excludedImportDestinations, onImportSuccess: internalRefresh, clientActionOthers
+        entityProcName, excludedImportDestinations, onImportSuccess: internalRefresh
     });
 
 

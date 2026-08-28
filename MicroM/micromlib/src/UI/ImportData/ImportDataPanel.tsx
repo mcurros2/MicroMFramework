@@ -2,7 +2,6 @@ import { Group, Loader, useComponentDefaultProps } from "@mantine/core";
 import { useCallback, useMemo } from "react";
 import { MicroMClient, ValuesObject } from "../../client";
 import { ImportProcess } from "../../DataDictionary/ImportProcess";
-import { ImportDataDestinationProps } from "../../Entity";
 import { DataGridPanel, DataGridPanelProps } from "../DataGrid";
 import { EntityGridBuilderProps, EntityGridSourceProps, useResolvedEntityBuilder } from "../GetEntity";
 
@@ -13,7 +12,6 @@ type ControlledDataGridPanelProps =
     | 'enableImport'
     | 'entityProcName'
     | 'excludedImportDestinations'
-    | 'clientActionOthers'
     | 'enableAdd'
     | 'enableEdit'
     | 'enableDelete'
@@ -70,7 +68,13 @@ export function ImportDataPanel(props: ImportDataPanelProps) {
     const destinationEntity = destinationEntityBuilder?.entity;
 
     const historyEntityBuilder = useCallback((historyClient: MicroMClient, parentKeys?: ValuesObject) => {
-        const historyEntity = new ImportProcess(historyClient, parentKeys);
+        if (!destinationEntity) throw new Error('The import destination is not available.');
+
+        const historyEntity = new ImportProcess(historyClient, parentKeys, {
+            destinationEntity,
+            entityProcName,
+            excludedImportDestinations,
+        });
 
         historyEntity.def.clientActions.ACTDownloadImportedFile.label = downloadImportedFileLabel;
         historyEntity.def.clientActions.ACTImportData.label = importDataLabel;
@@ -80,28 +84,29 @@ export function ImportDataPanel(props: ImportDataPanelProps) {
             view: historyEntity.def.views.ipr_brwStandard.name,
         } as EntityGridBuilderProps;
 
-    }, [downloadImportedFileLabel, importDataLabel]);
+    }, [destinationEntity, downloadImportedFileLabel, entityProcName, excludedImportDestinations, importDataLabel]);
 
     const historyParentKeys = useMemo(
         () => destinationEntity ? { vc_assemblytypename: destinationEntity.name } : undefined,
         [destinationEntity]
     );
 
-    const clientActionOthers = useMemo(() => ({
-        destinationEntity: destinationEntity!,
+    const historyEntityKey = useMemo(() => [
+        destinationEntity?.name,
         entityProcName,
-        excludedImportDestinations,
-    } satisfies ImportDataDestinationProps), [destinationEntity, entityProcName, excludedImportDestinations]);
+        excludedImportDestinations?.join(','),
+        importDataLabel,
+        downloadImportedFileLabel,
+    ].join('|'), [destinationEntity, downloadImportedFileLabel, entityProcName, excludedImportDestinations, importDataLabel]);
 
     if (!destinationEntityReady || !destinationEntity) return <>{loadingComponent}</>;
 
     return <DataGridPanel
         {...dataGridProps}
-        key={destinationEntity.name}
+        key={historyEntityKey}
         client={client}
         parentKeys={historyParentKeys}
         entityConstructor={historyEntityBuilder}
-        clientActionOthers={clientActionOthers}
         selectionMode="single"
         enableAdd={false}
         enableEdit={false}

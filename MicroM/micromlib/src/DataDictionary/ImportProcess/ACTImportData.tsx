@@ -1,10 +1,10 @@
 import { Group, Text } from "@mantine/core";
 import { IconCloudUpload } from "@tabler/icons-react";
-import { Entity, EntityClientAction, ImportDataDestinationProps } from "../../Entity";
+import { Entity, EntityClientAction } from "../../Entity";
 import { openEntityForm } from "../../UI/Core/openEntityForm";
 import { ImportEntityData } from "../ImportEntityData/ImportEntityData";
 import { ImportEntityDataFormProps } from "../ImportEntityData/ImportEntityDataForm";
-import { ACTDownloadImportedFileLabels } from "./ACTDownloadImportedFile";
+import type { ImportProcessDef } from "./ImportProcessDef";
 
 export const ACTImportDataLabels = {
     label: 'Import data',
@@ -12,23 +12,16 @@ export const ACTImportDataLabels = {
 
 export const ACTImportData: EntityClientAction = {
     name: 'ACTImportData',
-    title: <Group spacing="xs"><IconCloudUpload size="1rem" /><Text fw={700}>{ACTDownloadImportedFileLabels.label}</Text></Group>,
+    title: <Group spacing="xs"><IconCloudUpload size="1rem" /><Text fw={700}>{ACTImportDataLabels.label}</Text></Group>,
     label: ACTImportDataLabels.label,
     icon: <IconCloudUpload size="1rem" />,
     dontRequireSelection: true,
     refreshOnClose: true,
     showActionInViewMode: false,
     views: ['ipr_brwStandard'],
-    onClick: async ({ modal, element, onClose, others }) => {
-        const importProps = others as ImportDataDestinationProps | undefined;
-        const destinationEntity = importProps?.destinationEntity;
-
-        if (!destinationEntity) {
-            console.warn('Import data action: destination entity was not provided.');
-            return false;
-        }
-
-        const { entityProcName, excludedImportDestinations } = importProps;
+    onClick: async ({ entity, modal, element, onClose }) => {
+        const { destinationEntity, entityProcName, excludedImportDestinations } =
+            (entity.def as ImportProcessDef).destinationProps;
 
         if (entityProcName && !destinationEntity.def.procs[entityProcName]) {
             console.warn(`Import data action: procedure '${entityProcName}' was not found in entity '${destinationEntity.name}'.`);

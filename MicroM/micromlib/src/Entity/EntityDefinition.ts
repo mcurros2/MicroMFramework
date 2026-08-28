@@ -66,38 +66,48 @@ export class EntityDefinition {
     }
 
 
-    static clone(entity_def: EntityDefinition) {
+    static clone<TDefinition extends EntityDefinition>(entity_def: TDefinition): TDefinition {
         const columns: Record<string, EntityColumn<Value>> = {};
         for (const colname in entity_def.columns) {
             const source = entity_def.columns[colname];
             columns[colname] = EntityColumn.clone(source);
         }
+
         const processes: Record<string, EntityProc> = {};
         for (const proc in entity_def.procs) {
             const source = entity_def.procs[proc];
             processes[proc] = { name: source.name, parms: source.parms ? { ...source.parms } : undefined };
         }
+
         const views: Record<string, EntityView> = {};
         for (const view in entity_def.views) {
             const source = entity_def.views[view];
             views[view] = { ...source };
         }
+
         const lookups: Record<string, EntityLookup> = {};
         for (const lkp in entity_def.lookups) {
             const source = entity_def.lookups[lkp];
             lookups[lkp] = { ...source };
         }
+
         const serverActions: Record<string, EntityServerAction> = {};
         for (const act in entity_def.serverActions) {
             const source = entity_def.serverActions[act];
             serverActions[act] = { ...source };
         }
+
         const clientActions: Record<string, EntityClientAction> = {};
         for (const act in entity_def.clientActions) {
             const source = entity_def.clientActions[act];
             clientActions[act] = source;
         }
-        const new_def = new EntityDefinition(entity_def.name);
+
+        const new_def = Object.assign(
+            Object.create(Object.getPrototypeOf(entity_def)) as TDefinition,
+            entity_def
+        );
+
         new_def.columns = columns;
         new_def.procs = processes;
         new_def.views = views;
@@ -105,6 +115,7 @@ export class EntityDefinition {
         new_def.serverActions = serverActions;
         new_def.clientActions = clientActions;
         new_def.importColumns = entity_def.importColumns ? [...entity_def.importColumns] : null;
+
         return new_def;
     };
 

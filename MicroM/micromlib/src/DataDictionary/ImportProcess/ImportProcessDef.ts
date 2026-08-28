@@ -1,4 +1,4 @@
-import { CommonFlags as c, DefaultColumns, EntityColumn, EntityColumnFlags, EntityDefinition } from "../../Entity";
+import { CommonFlags as c, DefaultColumns, EntityColumn, EntityColumnFlags, EntityDefinition, ImportDataDestinationProps } from "../../Entity";
 import { ACTDownloadImportedFile } from "./ACTDownloadImportedFile";
 import { ACTImportData } from "./ACTImportData";
 
@@ -19,16 +19,18 @@ const views = () => ({
 });
 
 const clientActions = () => ({
-    ACTImportData,
-    ACTDownloadImportedFile,
+    ACTImportData: ACTImportData,
+    ACTDownloadImportedFile: ACTDownloadImportedFile,
 });
 
 export class ImportProcessDef extends EntityDefinition {
+    destinationProps: ImportDataDestinationProps;
     columns = columns();
     views = views();
     clientActions = clientActions();
 
-    constructor() {
+    constructor(destinationProps: ImportDataDestinationProps) {
         super('ImportProcess');
+        this.destinationProps = destinationProps;
     }
 }

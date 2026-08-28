@@ -9,7 +9,6 @@ export interface EntityClientActionOnClickProps {
     selectedKeys?: ValuesObject[],
     element?: HTMLElement,
     onClose?: (result?: boolean) => Promise<boolean>,
-    others?: any
 }
 
 export interface EntityClientAction {
