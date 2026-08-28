@@ -2,7 +2,7 @@ import { Group, Loader, useComponentDefaultProps } from "@mantine/core";
 import { useCallback, useMemo } from "react";
 import { MicroMClient, ValuesObject } from "../../client";
 import { ImportProcess } from "../../DataDictionary/ImportProcess";
-import { EntityClientActionImportDataOnClickProps } from "../../Entity";
+import { ImportDataDestinationProps } from "../../Entity";
 import { DataGridPanel, DataGridPanelProps } from "../DataGrid";
 import { EntityGridBuilderProps, EntityGridSourceProps, useResolvedEntityBuilder } from "../GetEntity";
 
@@ -91,7 +91,7 @@ export function ImportDataPanel(props: ImportDataPanelProps) {
         destinationEntity: destinationEntity!,
         entityProcName,
         excludedImportDestinations,
-    } satisfies EntityClientActionImportDataOnClickProps), [destinationEntity, entityProcName, excludedImportDestinations]);
+    } satisfies ImportDataDestinationProps), [destinationEntity, entityProcName, excludedImportDestinations]);
 
     if (!destinationEntityReady || !destinationEntity) return <>{loadingComponent}</>;
 

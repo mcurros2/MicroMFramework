@@ -1,6 +1,6 @@
 import { Group, Text } from "@mantine/core";
 import { IconCloudUpload } from "@tabler/icons-react";
-import { Entity, EntityClientAction, EntityClientActionImportDataOnClickProps } from "../../Entity";
+import { Entity, EntityClientAction, ImportDataDestinationProps } from "../../Entity";
 import { openEntityForm } from "../../UI/Core/openEntityForm";
 import { ImportEntityData } from "../ImportEntityData/ImportEntityData";
 import { ImportEntityDataFormProps } from "../ImportEntityData/ImportEntityDataForm";
@@ -20,7 +20,7 @@ export const ACTImportData: EntityClientAction = {
     showActionInViewMode: false,
     views: ['ipr_brwStandard'],
     onClick: async ({ modal, element, onClose, others }) => {
-        const importProps = others as EntityClientActionImportDataOnClickProps | undefined;
+        const importProps = others as ImportDataDestinationProps | undefined;
         const destinationEntity = importProps?.destinationEntity;
 
         if (!destinationEntity) {
