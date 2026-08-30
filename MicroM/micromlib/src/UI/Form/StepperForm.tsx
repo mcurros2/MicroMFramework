@@ -24,7 +24,6 @@ export interface StepperFormProps extends EntityFormProps {
     initialStep: number,
     nextStepLabel?: string,
     prevStepLabel?: string,
-    allowStepClickForward?: boolean,
     completedContent?: ReactNode,
     hideNextAndBackWhenCompleted?: boolean
     onCompleted?: () => void,
@@ -47,15 +46,14 @@ export const StepperFormDefaultProps: Partial<StepperFormProps> = {
     invalidFieldsLabel: "Some fields are invalid, please review the form",
     showHelpButton: false,
     preventEnterSubmission: true,
-    allowStepClickForward: false,
     hideNextAndBackWhenCompleted: true
 };
 
 
 export function StepperForm(props: StepperFormProps) {
     const {
-        formAPI, onNextStep, onPrevStep, initialStep, nextStepLabel, prevStepLabel, allowStepClickForward,
-        steps, OKText, CancelText, completedContent, hideNextAndBackWhenCompleted, stepperProps, onCompleted,
+        formAPI, onNextStep, onPrevStep, initialStep, nextStepLabel, prevStepLabel, steps,
+        OKText, CancelText, completedContent, hideNextAndBackWhenCompleted, stepperProps, onCompleted,
         onCancelSubmit, cancelSubmitLabel, ...rest
     } = useComponentDefaultProps('StepperForm', StepperFormDefaultProps, props);
 
@@ -152,16 +150,12 @@ export function StepperForm(props: StepperFormProps) {
         }
     }, [activeStep, onPrevStep, steps]);
 
-    const handleStepClick = useCallback(async (stepIndex: number) => {
-        if (stepIndex < activeStep) {
+    const handleStepClick = useCallback((stepIndex: number) => {
+        const isValid = validateCurrentStepFields();
+        if (isValid) {
             setActiveStep(stepIndex);
-        } else if (steps[stepIndex]?.allowStepSelect ?? allowStepClickForward) {
-            const isValid = validateCurrentStepFields();
-            if (isValid) {
-                setActiveStep(stepIndex);
-            }
         }
-    }, [activeStep, allowStepClickForward, steps, validateCurrentStepFields]);
+    }, [validateCurrentStepFields]);
 
     const buttons = useMemo(() => (
         !(hideNextAndBackWhenCompleted && activeStep === steps.length) &&
@@ -237,15 +231,15 @@ export function StepperForm(props: StepperFormProps) {
 
     return (
         <EntityForm {...rest} buttons={buttons} formAPI={formAPI} showCancel={false} showOK={false} OKText={OKText}>
-            <Stepper active={activeStep} onStepClick={handleStepClick} {...stepperProps}>
-                {steps.map((step, index) =>
+            <Stepper allowNextStepsSelect={false} {...stepperProps} active={activeStep} onStepClick={handleStepClick}>
+                {steps.map((step) =>
                 (
                     <Stepper.Step
                         key={step.name}
                         label={step.label}
                         description={step.description}
                         icon={step.icon}
-                        allowStepSelect={index <= activeStep || (step.allowStepSelect ?? allowStepClickForward)}
+                        allowStepSelect={step.allowStepSelect}
                     >
                         {step.content}
                     </Stepper.Step>
