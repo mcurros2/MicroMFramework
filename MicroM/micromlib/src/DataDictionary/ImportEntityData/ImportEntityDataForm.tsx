@@ -1,16 +1,17 @@
-import { Button, Card, Group, Stack, Table, Title, useComponentDefaultProps, useMantineTheme } from "@mantine/core";
-import { IconCheck, IconCircleX, IconX } from "@tabler/icons-react";
+import { useComponentDefaultProps } from "@mantine/core";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { DBStatusResult, OperationStatus } from "../../client";
 import { Entity, EntityDefinition, getRequiredColumns } from "../../Entity";
-import { CircleFilledIcon } from "../../UI/Core/CircleFilledIcon";
 import { FormOptions } from "../../UI/Core/types";
 import { UploadCompletionResult, UploadProgressReport, ValidateFileReturnType } from "../../UI/FileUploader";
 import { StepperForm, StepperFormStep, useEntityForm } from "../../UI/Form";
-import { ImportDataMappingState, useImportData } from "../../UI/ImportData";
+import { useImportData, useImportDataMapping } from "../../UI/ImportData";
+import { ImportCompletedContent } from "./ImportCompletedContent";
+import { ImportDataMappingStep } from "./ImportDataMappingStep";
 import { ImportEntityData } from "./ImportEntityData";
 import { ImportFileStep } from "./ImportFileStep";
 import { ImportInstructionsStep } from "./ImportInstructionsStep";
+import { ImportSampleDataStep } from "./ImportSampleDataStep";
 import { ImportSummaryStep } from "./ImportSummaryStep";
 
 export interface ImportEntityDataFormProps extends FormOptions<ImportEntityData> {
@@ -22,6 +23,10 @@ export interface ImportEntityDataFormProps extends FormOptions<ImportEntityData>
     instructionsStepDescription?: string,
     uploadStepLabel?: string,
     uploadStepDescription?: string,
+    dataMappingStepLabel?: string,
+    dataMappingStepDescription?: string,
+    sampleDataStepLabel?: string,
+    sampleDataStepDescription?: string,
     summaryStepLabel?: string,
     summaryStepDescription?: string,
     instructionsLabel?: string,
@@ -37,7 +42,10 @@ export interface ImportEntityDataFormProps extends FormOptions<ImportEntityData>
     emptyFileLabel?: string,
     uploadRequiredLabel?: string,
     mappingRequiredLabel?: string,
+    confirmDataMappingLabel?: string,
     importButtonLabel?: string,
+    submitAndImportLabel?: string,
+    importingDataLabel?: string,
     importedFileLabel?: string,
     recordsImportedSuccessfullyLabel?: string,
     recordsNotImportedDueToErrorsLabel?: string,
@@ -50,7 +58,11 @@ export const ImportEntityDataFormDefaultProps: Partial<ImportEntityDataFormProps
     instructionsStepLabel: "Instructions",
     instructionsStepDescription: "Review the required columns",
     uploadStepLabel: "Upload file",
-    uploadStepDescription: "Upload and map columns",
+    uploadStepDescription: "Upload the import file",
+    dataMappingStepLabel: "Data mapping",
+    dataMappingStepDescription: "Review and edit mapped columns",
+    sampleDataStepLabel: "View sample data",
+    sampleDataStepDescription: "Confirm data mapping",
     summaryStepLabel: "Summary",
     summaryStepDescription: "Review and import",
     instructionsLabel: "CSV and Excel files must include a header row. These columns can be mapped after selecting a file:",
@@ -66,87 +78,37 @@ export const ImportEntityDataFormDefaultProps: Partial<ImportEntityDataFormProps
     emptyFileLabel: "The selected file is empty.",
     uploadRequiredLabel: "Wait for the selected file to finish uploading before continuing.",
     mappingRequiredLabel: "Map at least one file column before continuing.",
+    confirmDataMappingLabel: "Confirm that the data mapping matches the sample data before continuing.",
     importButtonLabel: "Import data",
+    submitAndImportLabel: "Submit and import",
+    importingDataLabel: "Importing data",
     importedFileLabel: "Imported file",
     recordsImportedSuccessfullyLabel: "Records imported successfully",
     recordsNotImportedDueToErrorsLabel: "Records not imported due to errors",
     errorColumnTitle: "Error",
     rowColumnTitle: "Row",
-}
-
-interface ImportCompletedContentProps {
-    fileName: string,
-    result: NonNullable<ReturnType<typeof useImportData>['importStatus']['data']>,
-    onClose?: () => void | Promise<void>,
-    importedFileLabel?: string,
-    recordsImportedSuccessfullyLabel?: string,
-    recordsNotImportedDueToErrorsLabel?: string,
-    errorColumnTitle?: string,
-    rowColumnTitle?: string,
-    closeLabel?: React.ReactNode,
-}
-
-function ImportCompletedContent({
-    fileName, result, onClose, importedFileLabel, recordsImportedSuccessfullyLabel,
-    recordsNotImportedDueToErrorsLabel, errorColumnTitle, rowColumnTitle, closeLabel
-}: ImportCompletedContentProps) {
-    const theme = useMantineTheme();
-
-    return (
-        <Stack>
-            <Card withBorder>
-                <Stack>
-                    <Title order={6}>{importedFileLabel} {fileName}</Title>
-                    {result.SuccessCount > 0 &&
-                        <Group spacing={0}>
-                            <CircleFilledIcon icon={<IconCheck size="0.75rem" />} backColor={theme.colors.green[8]} />
-                            {result.SuccessCount} {recordsImportedSuccessfullyLabel}
-                        </Group>
-                    }
-                    {result.ErrorCount > 0 &&
-                        <Group spacing={0}>
-                            <CircleFilledIcon icon={<IconX size="0.75rem" />} backColor={theme.colors.red[8]} />
-                            {result.ErrorCount} {recordsNotImportedDueToErrorsLabel}
-                        </Group>
-                    }
-                    {result.ErrorCount > 0 &&
-                        <Table withBorder striped width="100%">
-                            <thead><tr><th>{rowColumnTitle}</th><th>{errorColumnTitle}</th></tr></thead>
-                            <tbody>
-                                {Object.entries(result.Errors).slice(0, 10).map(([key, value]) => (
-                                    <tr key={key}><td>{key}</td><td>{value}</td></tr>
-                                ))}
-                            </tbody>
-                        </Table>
-                    }
-                </Stack>
-            </Card>
-            <Group position="right">
-                <Button variant="light" leftIcon={<IconCircleX size="1.5rem" />} onClick={() => void onClose?.()}>
-                    {closeLabel}
-                </Button>
-            </Group>
-        </Stack>
-    );
-}
+};
 
 export function ImportEntityDataForm(props: ImportEntityDataFormProps) {
     const {
         entity, initialFormMode, getDataOnInit, onCancel, importEntity, entityProcName,
         excludedImportDestinations, onImportSuccess, instructionsStepLabel, instructionsStepDescription,
-        uploadStepLabel, uploadStepDescription, summaryStepLabel, summaryStepDescription,
+        uploadStepLabel, uploadStepDescription, dataMappingStepLabel, dataMappingStepDescription,
+        sampleDataStepLabel, sampleDataStepDescription, summaryStepLabel, summaryStepDescription,
         instructionsLabel, columnHeaderLabel, dataNameLabel, contentLabel, dataTypeLabel,
         dateFormatLabel, numberFormatLabel, downloadExcelSampleLabel, downloadCSVSampleLabel,
         errorReadingFileLabel, emptyFileLabel, uploadRequiredLabel, mappingRequiredLabel,
-        importButtonLabel, importedFileLabel, recordsImportedSuccessfullyLabel,
+        confirmDataMappingLabel, importButtonLabel, submitAndImportLabel, importingDataLabel,
+        importedFileLabel, recordsImportedSuccessfullyLabel,
         recordsNotImportedDueToErrorsLabel, errorColumnTitle, rowColumnTitle, CancelText, CloseText
     } = useComponentDefaultProps('ImportEntityDataForm', ImportEntityDataFormDefaultProps, props);
 
     const importData = useImportData(importEntity);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [uploadCompleted, setUploadCompleted] = useState(false);
-    const [mappingState, setMappingState] = useState<ImportDataMappingState>();
     const [uploadValidationError, setUploadValidationError] = useState<string>();
+    const [mappingValidationError, setMappingValidationError] = useState<string>();
+    const [reviewedMappingRevision, setReviewedMappingRevision] = useState<number>();
     const importSuccessNotified = useRef(false);
 
     const requiredColumns = useMemo(
@@ -158,16 +120,27 @@ export function ImportEntityDataForm(props: ImportEntityDataFormProps) {
         const entityProc = entityProcName ? importEntity?.def.procs[entityProcName] : undefined;
         const destinations = entityProcName ? Object.keys(entityProc?.parms ?? {}) : requiredColumns;
         const excluded = new Set((excludedImportDestinations ?? []).map(destination => destination.toLowerCase()));
+
         return destinations.filter(destination => !excluded.has(destination.toLowerCase()));
     }, [entityProcName, excludedImportDestinations, importEntity, requiredColumns]);
 
     const effectiveRequiredColumns = useMemo(() => {
         const allowed = new Set(importDestinations.map(destination => destination.toLowerCase()));
+
         return requiredColumns.filter(column => allowed.has(column.toLowerCase()));
     }, [importDestinations, requiredColumns]);
 
+    const mappingAPI = useImportDataMapping({
+        destinations: importDestinations,
+        requiredDestinations: effectiveRequiredColumns,
+        fileErrorLabel: errorReadingFileLabel
+    });
+    const mappingState = mappingAPI.mappingState;
+    const sampleReviewed = mappingState?.isValid && reviewedMappingRevision === mappingAPI.revision;
+
     const executeImport = useCallback(async (): Promise<OperationStatus<DBStatusResult>> => {
         const fileProcessID = entity.def.columns.c_fileprocess_id.value;
+
         if (!fileProcessID || !mappingState?.isValid) {
             return {
                 error: { name: 'ImportMappingError', status: 400, message: mappingRequiredLabel || 'The import mapping is not ready.' },
@@ -206,27 +179,36 @@ export function ImportEntityDataForm(props: ImportEntityDataFormProps) {
 
     const handleValidateFile = useCallback(async (file: File): Promise<ValidateFileReturnType> => {
         const extension = file.name.slice(file.name.lastIndexOf('.')).toLowerCase();
+
         if (!['.csv', '.xls', '.xlsx'].includes(extension)) {
             return { error: true, message: errorReadingFileLabel };
         }
+
         if (file.size === 0) return { error: true, message: emptyFileLabel };
 
         setSelectedFile(file);
         setUploadCompleted(false);
-        setMappingState(undefined);
         setUploadValidationError(undefined);
+        setMappingValidationError(undefined);
+        setReviewedMappingRevision(undefined);
         importSuccessNotified.current = false;
+
+        void mappingAPI.loadFile(file);
+
         return { error: false };
-    }, [emptyFileLabel, errorReadingFileLabel]);
+    }, [emptyFileLabel, errorReadingFileLabel, mappingAPI]);
 
     const handleDeleteFile = useCallback(() => {
         setSelectedFile(null);
         setUploadCompleted(false);
-        setMappingState(undefined);
         setUploadValidationError(undefined);
+        setMappingValidationError(undefined);
+        setReviewedMappingRevision(undefined);
         importSuccessNotified.current = false;
+        mappingAPI.reset();
+
         return true;
-    }, []);
+    }, [mappingAPI]);
 
     const handleUploadComplete = useCallback(async (_report: UploadProgressReport): Promise<UploadCompletionResult> => {
         setUploadCompleted(true);
@@ -238,19 +220,35 @@ export function ImportEntityDataForm(props: ImportEntityDataFormProps) {
             setUploadValidationError(uploadRequiredLabel);
             return false;
         }
-        if (!mappingState?.isValid) {
-            setUploadValidationError(mappingRequiredLabel);
-            return false;
-        }
+
         setUploadValidationError(undefined);
         return true;
-    }, [entity.def.columns.c_fileprocess_id.value, mappingRequiredLabel, mappingState?.isValid, selectedFile, uploadCompleted, uploadRequiredLabel]);
+    }, [entity.def.columns.c_fileprocess_id.value, selectedFile, uploadCompleted, uploadRequiredLabel]);
+
+    const validateMappingStep = useCallback(() => {
+        if (!mappingState?.isValid) {
+            setMappingValidationError(mappingRequiredLabel);
+            return false;
+        }
+
+        setMappingValidationError(undefined);
+        return true;
+    }, [mappingRequiredLabel, mappingState?.isValid]);
+
+    const validateSampleDataStep = useCallback(() => {
+        if (!mappingState?.isValid) return false;
+        setReviewedMappingRevision(mappingAPI.revision);
+        return true;
+    }, [mappingAPI.revision, mappingState?.isValid]);
+
+    const mappingStepUnlocked = !!selectedFile && uploadCompleted && !!entity.def.columns.c_fileprocess_id.value;
 
     const steps = useMemo<StepperFormStep[]>(() => [
         {
             name: 'instructions',
             label: instructionsStepLabel!,
             description: instructionsStepDescription,
+            allowStepSelect: true,
             content: <ImportInstructionsStep
                 importEntity={importEntity}
                 requiredColumns={effectiveRequiredColumns}
@@ -269,35 +267,66 @@ export function ImportEntityDataForm(props: ImportEntityDataFormProps) {
             name: 'upload',
             label: uploadStepLabel!,
             description: uploadStepDescription,
+            allowStepSelect: true,
             nextStepValidation: validateUploadStep,
             content: <ImportFileStep
                 entity={entity}
-                selectedFile={selectedFile}
-                destinations={importDestinations}
-                requiredDestinations={effectiveRequiredColumns}
                 disabled={formAPI.status.loading}
-                validationError={uploadValidationError}
+                validationError={mappingStepUnlocked ? undefined : uploadValidationError}
                 onValidateFile={handleValidateFile}
                 onDelete={handleDeleteFile}
                 onUploadComplete={handleUploadComplete}
-                onMappingChange={setMappingState}
+            />
+        },
+        {
+            name: 'mapping',
+            label: dataMappingStepLabel!,
+            description: dataMappingStepDescription,
+            allowStepSelect: mappingStepUnlocked,
+            nextStepValidation: validateMappingStep,
+            content: <ImportDataMappingStep
+                mappingAPI={mappingAPI}
+                destinations={importDestinations}
+                validationError={mappingState?.isValid ? undefined : mappingValidationError}
+            />
+        },
+        {
+            name: 'sample',
+            label: sampleDataStepLabel!,
+            description: sampleDataStepDescription,
+            allowStepSelect: !!mappingState?.isValid,
+            nextStepValidation: validateSampleDataStep,
+            content: <ImportSampleDataStep
+                mappingAPI={mappingAPI}
+                confirmationLabel={confirmDataMappingLabel}
             />
         },
         {
             name: 'summary',
             label: summaryStepLabel!,
             description: summaryStepDescription,
+            allowStepSelect: !!sampleReviewed,
             nextStepLabel: importButtonLabel,
-            content: <ImportSummaryStep file={selectedFile} mappingState={mappingState} />
+            content: <ImportSummaryStep
+                file={selectedFile}
+                mappingState={mappingState}
+                importStatus={importData.importStatus}
+                submitAndImportLabel={submitAndImportLabel}
+                importingDataLabel={importingDataLabel}
+            />
         }
     ], [
-        columnHeaderLabel, contentLabel, dataNameLabel, dataTypeLabel, dateFormatLabel,
+        columnHeaderLabel, confirmDataMappingLabel, contentLabel, dataMappingStepDescription,
+        dataMappingStepLabel, dataNameLabel, dataTypeLabel, dateFormatLabel,
         downloadCSVSampleLabel, downloadExcelSampleLabel, effectiveRequiredColumns, entity,
         formAPI.status.loading, handleDeleteFile, handleUploadComplete, handleValidateFile,
-        importButtonLabel, importDestinations, importEntity, instructionsLabel,
-        instructionsStepDescription, instructionsStepLabel, mappingState, numberFormatLabel,
-        selectedFile, summaryStepDescription, summaryStepLabel, uploadStepDescription,
-        uploadStepLabel, uploadValidationError, validateUploadStep
+        importButtonLabel, importData.importStatus, importDestinations, importEntity, importingDataLabel,
+        instructionsLabel, instructionsStepDescription, instructionsStepLabel, mappingAPI,
+        mappingState, mappingStepUnlocked, mappingValidationError, numberFormatLabel,
+        sampleDataStepDescription, sampleDataStepLabel, sampleReviewed, selectedFile,
+        submitAndImportLabel, summaryStepDescription, summaryStepLabel, uploadStepDescription,
+        uploadStepLabel, uploadValidationError, validateMappingStep, validateSampleDataStep,
+        validateUploadStep
     ]);
 
     const completedContent = importData.importStatus.data && selectedFile

@@ -1,10 +1,15 @@
-import { Card, Group, Stack, Text, Title, useComponentDefaultProps } from "@mantine/core";
+import { Box, List, Stack, Text, Title, useComponentDefaultProps, useMantineTheme } from "@mantine/core";
+import { IconCircleCheck, IconCircleDashed } from "@tabler/icons-react";
+import { OperationStatus } from "../../client";
+import { ImpDataResult } from "../../client/ImpDataResult";
+import { FakeProgressBar } from "../../UI/Core";
 import { ImportDataMappingState } from "../../UI/ImportData";
 import { getImportFileExtension } from "../../UI/ImportData/ImportFileParser";
 
 export interface ImportSummaryStepProps {
     file: File | null,
     mappingState?: ImportDataMappingState,
+    importStatus?: OperationStatus<ImpDataResult>,
     summaryTitleLabel?: string,
     fileLabel?: string,
     formatLabel?: string,
@@ -16,6 +21,8 @@ export interface ImportSummaryStepProps {
     ignoredSourceColumnsLabel?: string,
     omittedRequiredColumnsLabel?: string,
     noneLabel?: string,
+    submitAndImportLabel?: string,
+    importingDataLabel?: string,
 }
 
 export const ImportSummaryStepDefaultProps: Partial<ImportSummaryStepProps> = {
@@ -30,6 +37,8 @@ export const ImportSummaryStepDefaultProps: Partial<ImportSummaryStepProps> = {
     ignoredSourceColumnsLabel: "Ignored source columns",
     omittedRequiredColumnsLabel: "Omitted required columns",
     noneLabel: "None",
+    submitAndImportLabel: "Submit and import",
+    importingDataLabel: "Importing data",
 };
 
 function getFileFormatLabel(file: File, unknownFormatLabel?: string) {
@@ -37,29 +46,67 @@ function getFileFormatLabel(file: File, unknownFormatLabel?: string) {
     return extension || unknownFormatLabel;
 }
 
+interface SummaryItemProps {
+    label?: string,
+    value?: React.ReactNode,
+    icon: React.ReactNode,
+}
+
+function SummaryItem({ label, value, icon }: SummaryItemProps) {
+    return (
+        <List.Item icon={icon}>
+            <Text size="sm"><Text span fw={500}>{label}: </Text>{value}</Text>
+        </List.Item>
+    );
+}
+
 export function ImportSummaryStep(props: ImportSummaryStepProps) {
     const {
-        file, mappingState, summaryTitleLabel, fileLabel, formatLabel, unknownFormatLabel,
-        worksheetLabel, headerRowLabel, mappedColumnsLabel, ofLabel,
-        ignoredSourceColumnsLabel, omittedRequiredColumnsLabel, noneLabel
+        file, mappingState, importStatus, summaryTitleLabel, fileLabel, formatLabel, unknownFormatLabel,
+        worksheetLabel, headerRowLabel, mappedColumnsLabel, ofLabel, ignoredSourceColumnsLabel,
+        omittedRequiredColumnsLabel, noneLabel, submitAndImportLabel, importingDataLabel
     } = useComponentDefaultProps('ImportSummaryStep', ImportSummaryStepDefaultProps, props);
+    const theme = useMantineTheme();
 
     if (!file || !mappingState) return null;
 
+    const completedIcon = <IconCircleCheck size="1rem" color={theme.colors.green[6]} />;
+    const submitIcon = <IconCircleDashed size="1rem" color={theme.colors[theme.primaryColor][6]} />;
+
     return (
-        <Card withBorder>
-            <Stack spacing="xs">
-                <Title order={5}>{summaryTitleLabel}</Title>
-                <Group position="apart"><Text size="sm" fw={500}>{fileLabel}</Text><Text size="sm">{file.name}</Text></Group>
-                <Group position="apart"><Text size="sm" fw={500}>{formatLabel}</Text><Text size="sm">{getFileFormatLabel(file, unknownFormatLabel)}</Text></Group>
+        <Stack spacing="sm">
+            <Title order={5}>{summaryTitleLabel}</Title>
+            <List spacing="xs" center styles={{ itemWrapper: { width: '100%' } }}>
+                <SummaryItem icon={completedIcon} label={fileLabel} value={file.name} />
+                <SummaryItem icon={completedIcon} label={formatLabel} value={getFileFormatLabel(file, unknownFormatLabel)} />
                 {mappingState.mapping.SheetName &&
-                    <Group position="apart"><Text size="sm" fw={500}>{worksheetLabel}</Text><Text size="sm">{mappingState.mapping.SheetName}</Text></Group>
+                    <SummaryItem icon={completedIcon} label={worksheetLabel} value={mappingState.mapping.SheetName} />
                 }
-                <Group position="apart"><Text size="sm" fw={500}>{headerRowLabel}</Text><Text size="sm">{mappingState.initialRow}</Text></Group>
-                <Group position="apart"><Text size="sm" fw={500}>{mappedColumnsLabel}</Text><Text size="sm">{mappingState.mappedColumnCount} {ofLabel} {mappingState.sourceColumnCount}</Text></Group>
-                <Group position="apart"><Text size="sm" fw={500}>{ignoredSourceColumnsLabel}</Text><Text size="sm">{mappingState.ignoredSourceColumns.join(', ') || noneLabel}</Text></Group>
-                <Group position="apart"><Text size="sm" fw={500}>{omittedRequiredColumnsLabel}</Text><Text size="sm">{mappingState.omittedRequiredDestinations.join(', ') || noneLabel}</Text></Group>
-            </Stack>
-        </Card>
+                <SummaryItem icon={completedIcon} label={headerRowLabel} value={mappingState.initialRow} />
+                <SummaryItem
+                    icon={completedIcon}
+                    label={mappedColumnsLabel}
+                    value={`${mappingState.mappedColumnCount} ${ofLabel} ${mappingState.sourceColumnCount}`}
+                />
+                <SummaryItem
+                    icon={completedIcon}
+                    label={ignoredSourceColumnsLabel}
+                    value={mappingState.ignoredSourceColumns.join(', ') || noneLabel}
+                />
+                <SummaryItem
+                    icon={completedIcon}
+                    label={omittedRequiredColumnsLabel}
+                    value={mappingState.omittedRequiredDestinations.join(', ') || noneLabel}
+                />
+                <List.Item icon={submitIcon}>
+                    <Box w="100%">
+                        <Text size="sm" fw={500}>
+                            {importStatus?.loading ? importingDataLabel : submitAndImportLabel}
+                        </Text>
+                        {importStatus?.loading && <FakeProgressBar size="xs" mt={4} w="100%" />}
+                    </Box>
+                </List.Item>
+            </List>
+        </Stack>
     );
 }
