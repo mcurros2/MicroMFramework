@@ -1,4 +1,4 @@
-import { Alert, Stack } from "@mantine/core";
+import { Alert, Stack, useComponentDefaultProps } from "@mantine/core";
 import { IconAlertTriangle } from "@tabler/icons-react";
 import { FilesUploadForm, FilesUploadFormProps, UploadCompletionResult, UploadProgressReport, ValidateFileReturnType } from "../../UI/FileUploader";
 import { ImportEntityData } from "./ImportEntityData";
@@ -18,9 +18,13 @@ export interface ImportFileStepProps extends ImportFileStepCustomizationProps {
     onUploadComplete: (report: UploadProgressReport) => Promise<UploadCompletionResult | void>,
 }
 
-export function ImportFileStep({
-    entity, disabled, validationError, onValidateFile, onDelete, onUploadComplete, ...rest
-}: ImportFileStepProps) {
+export const ImportFileStepDefaultProps: Partial<ImportFileStepProps> = {};
+
+export function ImportFileStep(props: ImportFileStepProps) {
+    const {
+        entity, disabled, validationError, onValidateFile, onDelete, onUploadComplete, ...rest
+    } = useComponentDefaultProps('ImportFileStep', ImportFileStepDefaultProps, props);
+
     const { uploaderProps, ...filesUploadFormProps } = rest;
 
     return (

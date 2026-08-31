@@ -113,20 +113,11 @@ export function ImportEntityDataForm(props: ImportEntityDataFormProps) {
         [importEntity]
     );
 
-    const resolvedDestinationEntityExportViewName = useMemo(() => {
-        if (!importEntity) return undefined;
-
-        if (destinationEntityExportViewName) {
-            return importEntity.def.views[destinationEntityExportViewName]
-                ? destinationEntityExportViewName
-                : undefined;
-        }
-
-        const standardViewName = importEntity.def.standardView();
-        return standardViewName && importEntity.def.views[standardViewName]
-            ? standardViewName
-            : undefined;
-    }, [destinationEntityExportViewName, importEntity]);
+    const requestedDestinationEntityExportViewName = destinationEntityExportViewName || importEntity?.def.standardView();
+    const resolvedDestinationEntityExportViewName = requestedDestinationEntityExportViewName &&
+        importEntity?.def.views[requestedDestinationEntityExportViewName]
+        ? requestedDestinationEntityExportViewName
+        : undefined;
 
     useEffect(() => {
         if (destinationEntityExportViewName && importEntity && !importEntity.def.views[destinationEntityExportViewName]) {
