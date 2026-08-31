@@ -371,6 +371,7 @@ export function ImportEntityDataForm(props: ImportEntityDataFormProps) {
             onCancelSubmit={importData.cancel}
             cancelSubmitLabel={CancelText || 'Cancel'}
             showErrors
+            showLoadingProgress={false}
         />
     );
 }
