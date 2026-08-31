@@ -22,10 +22,12 @@ begin try
 
     if exists(
 		select	1 
-		from	[dbo].[file_store] 
-		where	c_fileprocess_id=@fileprocess_id
+		from	[dbo].[file_store] a
+                join [dbo].file_store_status e
+                on(e.c_file_id=a.c_file_id and e.c_status_id='FileUpload' and e.c_statusvalue_id='Uploaded')
+		where	a.c_fileprocess_id=@fileprocess_id
 				and 
-                (vc_fileguid not like '%.csv' and vc_fileguid not like '%.xls' and vc_fileguid not like '%.xlsx')
+                (a.vc_fileguid not like '%.csv' and a.vc_fileguid not like '%.xls' and a.vc_fileguid not like '%.xlsx')
 		)
 	begin
 		select	11, 'You can only import .CSV, .XLS or XLSX files'
@@ -34,10 +36,12 @@ begin try
 
     if not exists(
 		select	1 
-		from	[dbo].[file_store] 
-		where	c_fileprocess_id=@fileprocess_id
+		from	[dbo].[file_store] a
+                join [dbo].file_store_status e
+                on(e.c_file_id=a.c_file_id and e.c_status_id='FileUpload' and e.c_statusvalue_id='Uploaded')
+		where	a.c_fileprocess_id=@fileprocess_id
 				and
-                (vc_fileguid not like '%.csv' or vc_fileguid not like '%.xls' or vc_fileguid not like '%.xlsx')
+                (a.vc_fileguid not like '%.csv' or a.vc_fileguid not like '%.xls' or a.vc_fileguid not like '%.xlsx')
 
 		)
 	begin

@@ -22,4 +22,6 @@ from    [dbo].[import_process] a
         and b.c_status_id = 'ImportStatus')
         join [dbo].file_store c
         on(a.c_fileprocess_id = c.c_fileprocess_id)
+        join [dbo].file_store_status e
+        on(e.c_file_id=c.c_file_id and e.c_status_id='FileUpload' and e.c_statusvalue_id='Uploaded')
 where   a.c_import_process_id = @import_process_id

@@ -363,14 +363,13 @@ export function ImportEntityDataForm(props: ImportEntityDataFormProps) {
 
     return (
         <StepperForm
+            stepperProps={{ pt: 'xs' }}
             formAPI={formAPI}
             steps={steps}
             initialStep={0}
             completedContent={completedContent}
             onCancelSubmit={importData.cancel}
             cancelSubmitLabel={CancelText || 'Cancel'}
-            nextStepLabel="Next step"
-            prevStepLabel="Back"
             showErrors
         />
     );

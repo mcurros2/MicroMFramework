@@ -42,6 +42,7 @@ export function ImportSummaryStep(props: ImportSummaryStepProps) {
         headerRowLabel, columnMappingCorrectLabel, columnMappingIncorrectLabel,
         viewSampleDataLabel, sampleDataModalTitle, submitAndImportLabel, importingDataLabel
     } = useComponentDefaultProps('ImportSummaryStep', ImportSummaryStepDefaultProps, props);
+
     const mappingState = props.mappingState ?? mappingAPI?.mappingState;
     const theme = useMantineTheme();
     const modals = useModal();

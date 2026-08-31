@@ -19,7 +19,9 @@ from    [dbo].[import_process] a
 		on(b.c_import_process_id = a.c_import_process_id and b.c_status_id='ImportStatus')
         join [dbo].status_values c
         on(c.c_status_id=b.c_status_id and c.c_statusvalue_id=b.c_statusvalue_id)
-        join file_store d
+        join [dbo].file_store d
         on(d.c_fileprocess_id=a.c_fileprocess_id)
+        join [dbo].file_store_status e
+        on(e.c_file_id=d.c_file_id and e.c_status_id='FileUpload' and e.c_statusvalue_id='Uploaded')
 where   a.vc_assemblytypename=@assemblytypename
 order by 1 desc
