@@ -1,0 +1,128 @@
+﻿create or alter proc [dbo].ipr_update
+        @import_process_id Char(20)
+        , @fileprocess_id Char(20)
+        , @total_records int
+        , @errors int
+        , @assemblytypename VarChar(2048)
+        , @import_procname VarChar(2048)
+        , @import_status_id Char(20)
+        , @fileguid VarChar(255)
+        , @lu DateTime
+        , @webusr VarChar(255)
+        as
+
+if (@fileprocess_id is null or trim(@fileprocess_id) = '') begin select 11, 'The parameter @fileprocess_id cannot be null or empty' return end
+if (@assemblytypename is null or trim(@assemblytypename) = '') begin select 11, 'The parameter @assemblytypename cannot be null or empty' return end
+
+set @import_procname = NULLIF(@import_procname,'')
+set @fileguid = NULLIF(@fileguid,'')
+
+begin try
+    declare @cu datetime, @now datetime=getdate(), @login sysname=original_login()
+
+    if exists(
+		select	1 
+		from	[dbo].[file_store] 
+		where	c_fileprocess_id=@fileprocess_id
+				and 
+                (vc_fileguid not like '%.csv' and vc_fileguid not like '%.xls' and vc_fileguid not like '%.xlsx')
+		)
+	begin
+		select	11, 'You can only import .CSV, .XLS or XLSX files'
+		return
+	end
+
+    if not exists(
+		select	1 
+		from	[dbo].[file_store] 
+		where	c_fileprocess_id=@fileprocess_id
+				and
+                (vc_fileguid not like '%.csv' or vc_fileguid not like '%.xls' or vc_fileguid not like '%.xlsx')
+
+		)
+	begin
+		select	11, 'You need to upload a .CSV, .XLS or XLSX file'
+		return
+	end
+
+
+    begin tran
+
+    select  @cu=dt_lu
+    from    [dbo].[import_process] with (rowlock, holdlock, updlock)
+    where   c_import_process_id = @import_process_id
+
+    if @cu is null
+    begin
+        declare @id bigint
+        exec [dbo].num_iGetNewNumber 'ipr', @nextnumber = @id out
+        select @import_process_id = right('0000000000'+rtrim(@id),10)
+
+        insert  [dbo].[import_process]
+        values
+            (
+            @import_process_id
+            , @fileprocess_id
+            , 0 -- total_records
+            , 0 -- errors
+            , @assemblytypename
+            , @import_procname
+            , @now
+            , @now
+            , @webusr
+            , @webusr
+            , @login
+            , @login
+            )
+
+        insert  [dbo].[import_process_status]
+        select  @import_process_id
+                , a.c_status_id
+                , a.c_statusvalue_id
+                , @now
+                , @now
+                , @webusr
+                , @webusr
+                , @login
+                , @login
+        from    [dbo].status_values a
+                join [dbo].objects_status b
+                on(b.c_status_id = a.c_status_id)
+                join [dbo].[objects] c
+                on(c.c_object_id = b.c_object_id)
+        where   c.c_mneo_id = 'ipr' and
+                a.bt_initial_value = 1
+
+        commit tran
+        select    15, rtrim(@import_process_id)
+        return
+    end
+
+    if @cu<>@lu or @lu is null
+    begin
+        select 4, 'Record changed'
+        return
+    end
+
+    update  [dbo].[import_process]
+    set     i_total_records = @total_records
+            , i_errors = @errors
+            , vc_webluuser = @webusr
+            , vc_luuser = @login
+            , dt_lu = @now
+    where   c_import_process_id = @import_process_id
+
+    commit tran
+    select 0, 'OK'
+
+end try
+begin catch
+
+    if @@TRANCOUNT > 0
+    begin
+        rollback
+    end;
+
+    throw;
+
+end catch

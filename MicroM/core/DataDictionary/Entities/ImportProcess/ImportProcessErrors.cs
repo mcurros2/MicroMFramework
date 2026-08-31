@@ -11,6 +11,7 @@ public class ImportProcessErrorsDef : EntityDefinition
 
     public readonly Column<string> c_import_process_id = Column<string>.PK();
     public readonly Column<string> c_import_process_error_id = Column<string>.PK(autonum: true);
+    public readonly Column<int> i_row_number = new();
 
     public readonly Column<string> vc_error = Column<string>.Text(size: 0);
 

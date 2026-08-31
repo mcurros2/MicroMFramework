@@ -1,6 +1,7 @@
 import { CommonFlags as c, DefaultColumns, EntityColumn, EntityColumnFlags, EntityDefinition, ImportDataDestinationProps } from "../../Entity";
 import { ACTDownloadImportedFile } from "./ACTDownloadImportedFile";
 import { ACTImportData } from "./ACTImportData";
+import { ACTViewImportErrors } from "./ACTViewImportErrors";
 
 const columns = () => ({
     c_import_process_id: new EntityColumn<string>({ name: 'c_import_process_id', type: 'char', length: 20, flags: c.PKAutonum, prompt: 'Import process ID' }),
@@ -21,6 +22,7 @@ const views = () => ({
 const clientActions = () => ({
     ACTImportData: ACTImportData,
     ACTDownloadImportedFile: ACTDownloadImportedFile,
+    ACTViewImportErrors: ACTViewImportErrors
 });
 
 export class ImportProcessDef extends EntityDefinition {

@@ -28,6 +28,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Folder Include="src\DataDictionary\FileStore\" />
+    <Folder Include="src\DataDictionary\ImportProcessErrors\" />
     <Folder Include="src\DataDictionary\Status\" />
     <Folder Include="src\UI\AvatarUploader\" />
     <Folder Include="src\UI\AutoFiltersForm\" />

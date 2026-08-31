@@ -6,6 +6,7 @@ export interface ImportDataMappingRow {
     SourceHeader: string,
     SourceIndex: number,
     DestinationColumnName: string | null,
+    IsOmitted: boolean,
 }
 
 export interface ImportDataMappingState {
@@ -17,11 +18,14 @@ export interface ImportDataMappingState {
     mappedColumnCount: number,
     ignoredSourceColumns: string[],
     omittedRequiredDestinations: string[],
+    unresolvedSourceColumns: string[],
+    unmappedRequiredDestinations: string[],
 }
 
 export interface UseImportDataMappingProps {
     destinations: readonly string[],
     requiredDestinations: readonly string[],
+    omittableRequiredDestinations?: readonly string[],
     initialRow?: number,
     sampleRowCount?: number,
     fileErrorLabel?: string,
@@ -37,11 +41,15 @@ export interface ImportDataMappingAPI {
     loading: boolean,
     error?: string,
     revision: number,
+    omittableRequiredDestinations: readonly string[],
+    omittedRequiredDestinations: readonly string[],
     loadFile: (file: File) => Promise<void>,
     reset: () => void,
     selectSheet: (sheetName: string) => void,
     selectHeaderRow: (headerRow: number) => void,
     updateMappingRow: (rowIndex: number, destination: string | null) => void,
+    setMappingRowOmitted: (rowIndex: number, omitted: boolean) => void,
+    setRequiredDestinationOmitted: (destination: string, omitted: boolean) => void,
 }
 
 function buildMappingRows(headers: readonly string[], destinations: readonly string[]) {
@@ -57,7 +65,8 @@ function buildMappingRows(headers: readonly string[], destinations: readonly str
         return {
             SourceHeader: sourceHeader,
             SourceIndex: sourceIndex,
-            DestinationColumnName: canUseDestination ? matchingDestination : null
+            DestinationColumnName: canUseDestination ? matchingDestination : null,
+            IsOmitted: false
         };
     });
 }
@@ -75,6 +84,7 @@ export function getImportSourceColumnLabel(row: ImportDataMappingRow) {
 export function useImportDataMapping({
     destinations,
     requiredDestinations,
+    omittableRequiredDestinations = [],
     initialRow = 1,
     sampleRowCount = 10,
     fileErrorLabel = "The selected file could not be read."
@@ -88,6 +98,7 @@ export function useImportDataMapping({
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string>();
     const [revision, setRevision] = useState(0);
+    const [omittedRequiredDestinations, setOmittedRequiredDestinations] = useState<string[]>([]);
 
     const parseToken = useRef<symbol>();
 
@@ -95,7 +106,13 @@ export function useImportDataMapping({
         parseToken.current = undefined;
     }, []);
 
-    const emitChange = useCallback((rows: ImportDataMappingRow[], currentParsedFile: ParsedImportFile, currentSheetName: string, currentHeaderRow: number) => {
+    const emitChange = useCallback((
+        rows: ImportDataMappingRow[],
+        currentParsedFile: ParsedImportFile,
+        currentSheetName: string,
+        currentHeaderRow: number,
+        currentOmittedRequiredDestinations: readonly string[]
+    ) => {
         const contractRows = rows
             .filter(row => !!row.DestinationColumnName)
             .map<FileImportColumnMapping>(row => ({
@@ -108,13 +125,25 @@ export function useImportDataMapping({
         const uniqueDestinations = new Set(normalizedDestinations);
 
         const isValid = contractRows.length > 0 && uniqueDestinations.size === normalizedDestinations.length;
-        const allSourceColumnsMapped = rows.length > 0 && rows.every(row => !!row.DestinationColumnName);
+        const allSourceColumnsResolved = rows.length > 0 && rows.every(row => !!row.DestinationColumnName || row.IsOmitted);
         const allowedDestinations = new Set(destinations.map(destination => destination.toLowerCase()));
 
         const effectiveRequired = requiredDestinations.filter(required => allowedDestinations.has(required.toLowerCase()));
+        const effectiveOmittable = new Set(
+            omittableRequiredDestinations
+                .filter(destination => allowedDestinations.has(destination.toLowerCase()))
+                .map(destination => destination.toLowerCase())
+        );
         const mappedDestinations = new Set(normalizedDestinations);
-
-        const allRequiredDestinationsMapped = effectiveRequired.every(required => mappedDestinations.has(required.toLowerCase()));
+        const explicitOmittedRequired = currentOmittedRequiredDestinations.filter(destination => {
+            const normalizedDestination = destination.toLowerCase();
+            return effectiveOmittable.has(normalizedDestination) && !mappedDestinations.has(normalizedDestination);
+        });
+        const omittedRequired = new Set(explicitOmittedRequired.map(destination => destination.toLowerCase()));
+        const unmappedRequired = effectiveRequired.filter(required => {
+            const normalizedRequired = required.toLowerCase();
+            return !mappedDestinations.has(normalizedRequired) && !omittedRequired.has(normalizedRequired);
+        });
 
         setMappingState({
             mapping: {
@@ -123,15 +152,19 @@ export function useImportDataMapping({
             },
             initialRow: currentHeaderRow,
             isValid,
-            isSuccessful: isValid && (allSourceColumnsMapped || allRequiredDestinationsMapped),
+            isSuccessful: isValid && allSourceColumnsResolved && unmappedRequired.length === 0,
             sourceColumnCount: rows.length,
             mappedColumnCount: contractRows.length,
-            ignoredSourceColumns: rows.filter(row => !row.DestinationColumnName).map(getImportSourceColumnLabel),
-            omittedRequiredDestinations: effectiveRequired.filter(required => !mappedDestinations.has(required.toLowerCase()))
+            ignoredSourceColumns: rows.filter(row => row.IsOmitted).map(getImportSourceColumnLabel),
+            omittedRequiredDestinations: explicitOmittedRequired,
+            unresolvedSourceColumns: rows
+                .filter(row => !row.DestinationColumnName && !row.IsOmitted)
+                .map(getImportSourceColumnLabel),
+            unmappedRequiredDestinations: unmappedRequired
         });
 
         setRevision(current => current + 1);
-    }, [destinations, requiredDestinations]);
+    }, [destinations, omittableRequiredDestinations, requiredDestinations]);
 
     const applySheet = useCallback((currentParsedFile: ParsedImportFile, currentSheetName: string, currentHeaderRow: number) => {
         const sheet = getSheet(currentParsedFile, currentSheetName);
@@ -145,8 +178,9 @@ export function useImportDataMapping({
 
         setMappingRows(rows);
         setSampleRows(samples);
+        setOmittedRequiredDestinations([]);
 
-        emitChange(rows, currentParsedFile, currentSheetName, currentHeaderRow);
+        emitChange(rows, currentParsedFile, currentSheetName, currentHeaderRow, []);
     }, [destinations, emitChange, sampleRowCount]);
 
     const reset = useCallback(() => {
@@ -159,6 +193,7 @@ export function useImportDataMapping({
         setMappingState(undefined);
         setLoading(false);
         setError(undefined);
+        setOmittedRequiredDestinations([]);
         setRevision(current => current + 1);
     }, [initialRow]);
 
@@ -174,6 +209,7 @@ export function useImportDataMapping({
         setMappingState(undefined);
         setLoading(true);
         setError(undefined);
+        setOmittedRequiredDestinations([]);
 
         setRevision(current => current + 1);
 
@@ -213,12 +249,38 @@ export function useImportDataMapping({
         if (!parsedFile) return;
 
         const rows = mappingRows.map((row, index) => index === rowIndex
-            ? { ...row, DestinationColumnName: destination }
+            ? { ...row, DestinationColumnName: destination, IsOmitted: false }
+            : row);
+        const nextOmittedRequiredDestinations = destination
+            ? omittedRequiredDestinations.filter(required => required.toLowerCase() !== destination.toLowerCase())
+            : omittedRequiredDestinations;
+
+        setMappingRows(rows);
+        setOmittedRequiredDestinations(nextOmittedRequiredDestinations);
+        emitChange(rows, parsedFile, sheetName, headerRow, nextOmittedRequiredDestinations);
+    }, [emitChange, headerRow, mappingRows, omittedRequiredDestinations, parsedFile, sheetName]);
+
+    const setMappingRowOmitted = useCallback((rowIndex: number, omitted: boolean) => {
+        if (!parsedFile) return;
+
+        const rows = mappingRows.map((row, index) => index === rowIndex
+            ? { ...row, DestinationColumnName: omitted ? null : row.DestinationColumnName, IsOmitted: omitted }
             : row);
 
         setMappingRows(rows);
-        emitChange(rows, parsedFile, sheetName, headerRow);
-    }, [emitChange, headerRow, mappingRows, parsedFile, sheetName]);
+        emitChange(rows, parsedFile, sheetName, headerRow, omittedRequiredDestinations);
+    }, [emitChange, headerRow, mappingRows, omittedRequiredDestinations, parsedFile, sheetName]);
+
+    const setRequiredDestinationOmitted = useCallback((destination: string, omitted: boolean) => {
+        if (!parsedFile || !omittableRequiredDestinations.some(required => required.toLowerCase() === destination.toLowerCase())) return;
+
+        const nextOmittedRequiredDestinations = omitted
+            ? [...omittedRequiredDestinations.filter(required => required.toLowerCase() !== destination.toLowerCase()), destination]
+            : omittedRequiredDestinations.filter(required => required.toLowerCase() !== destination.toLowerCase());
+
+        setOmittedRequiredDestinations(nextOmittedRequiredDestinations);
+        emitChange(mappingRows, parsedFile, sheetName, headerRow, nextOmittedRequiredDestinations);
+    }, [emitChange, headerRow, mappingRows, omittedRequiredDestinations, omittableRequiredDestinations, parsedFile, sheetName]);
 
     return {
         parsedFile,
@@ -230,10 +292,14 @@ export function useImportDataMapping({
         loading,
         error,
         revision,
+        omittableRequiredDestinations,
+        omittedRequiredDestinations,
         loadFile,
         reset,
         selectSheet,
         selectHeaderRow,
-        updateMappingRow
+        updateMappingRow,
+        setMappingRowOmitted,
+        setRequiredDestinationOmitted
     };
 }

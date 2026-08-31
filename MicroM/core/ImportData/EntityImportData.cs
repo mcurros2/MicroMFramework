@@ -1,6 +1,7 @@
 ﻿using MicroM.Configuration;
 using MicroM.Core;
 using MicroM.Data;
+using MicroM.DataDictionary.Entities;
 using MicroM.Excel;
 using MicroM.Extensions;
 using MicroM.Web.Services;
@@ -300,6 +301,29 @@ public static class EntityImportData
         }
 
         return result;
+    }
+
+    public static async Task PersistImportErrors(
+        ImportProcessErrors errors_entity,
+        string import_process_id,
+        CSVImportResult importResult,
+        CancellationToken ct,
+        MicroMOptions? options = null, Dictionary<string, object>? server_claims = null, IWebAPIServices? api = null, string? app_id = null
+        )
+    {
+        if (importResult.ErrorCount == 0) return;
+
+        errors_entity.Def.c_import_process_id.Value = import_process_id;
+
+        foreach (var error in importResult.Errors)
+        {
+            errors_entity.Def.c_import_process_error_id.Value = null!;
+            errors_entity.Def.i_row_number.Value = error.Key;
+            errors_entity.Def.vc_error.Value = error.Value;
+            await errors_entity.InsertData(ct, throw_dbstat_exception: true, options: options, server_claims: server_claims, api: api, app_id: app_id);
+        }
+
+        return;
     }
 
     internal static IReadOnlyList<ResolvedImportDataMapping> ResolveImportMapping<T>(T entity, object?[] headerRow, FileImportMapping? importMapping) where T : EntityBase

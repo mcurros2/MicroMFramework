@@ -21,7 +21,7 @@ export function ImportSampleDataStep(props: ImportSampleDataStepProps) {
 
     return (
         <Stack spacing="sm">
-            <Text size="sm">{confirmationLabel}</Text>
+            {<Text size="sm">{confirmationLabel}</Text>}
             {mappingAPI.sampleRows.length === 0
                 ? <Text size="sm" color="dimmed">{noSampleDataLabel}</Text>
                 : <ScrollArea type="auto">

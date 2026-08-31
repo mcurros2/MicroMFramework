@@ -608,7 +608,6 @@ public class EntitiesService : IEntitiesService
         }
     }
 
-
     public async Task<CSVImportResult?> HandleImportData(ApplicationOption app, string entity_name, string? import_proc, ImportDataWebAPIRequest parms, IEntityClient ec, CancellationToken ct)
     {
         try
@@ -617,6 +616,7 @@ public class EntitiesService : IEntitiesService
 
             // validate entity
             var entity = CreateEntity(app, entity_name, parms.ServerClaims, ec);
+            var errors_entity = CreateEntity(app, nameof(ImportProcessErrors), parms.ServerClaims, ec);
             if (entity != null)
             {
 
@@ -638,6 +638,7 @@ public class EntitiesService : IEntitiesService
                     import_process.Def.vc_import_procname.Value = import_proc;
 
                     var procresult = await import_process.InsertData(ct, options: _options, server_claims: parms.ServerClaims, api: _api, app_id: app_id);
+
                     if (procresult == null || procresult.Failed)
                     {
                         _api.log.LogError("ImportData ERROR: Entity: {entity_name} Import proc: {import_proc} failed to insert import process record: {error}", entity_name, import_proc, procresult.ToDBStatusResultString());
@@ -703,6 +704,14 @@ public class EntitiesService : IEntitiesService
                                     if (result != null)
                                     {
                                         await import_process.UpdateStatus(nameof(ImportStatus.Completed), ct, result.ProcessedCount, result.ErrorCount);
+                                        try
+                                        {
+                                            await EntityImportData.PersistImportErrors((ImportProcessErrors)errors_entity!, import_process.Def.c_import_process_id.Value, result, ct, _options, parms.ServerClaims, _api, app_id);
+                                        }
+                                        catch (Exception ex)
+                                        {
+                                            _api.log.LogError(ex, "ImportData Error while persisting errors: {app_id} {entity_name} {import_proc} {ex}.", app_id, entity_name, import_proc, ex);
+                                        }
                                         return result;
                                     }
                                     else
@@ -724,6 +733,14 @@ public class EntitiesService : IEntitiesService
                                 if (result != null)
                                 {
                                     await import_process.UpdateStatus(nameof(ImportStatus.Completed), ct, result.ProcessedCount, result.ErrorCount);
+                                    try
+                                    {
+                                        await EntityImportData.PersistImportErrors((ImportProcessErrors)errors_entity!, import_process.Def.c_import_process_id.Value, result, ct, _options, parms.ServerClaims, _api, app_id);
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        _api.log.LogError(ex, "ImportData Error while persisting errors: {app_id} {entity_name} {import_proc} {ex}.", app_id, entity_name, import_proc, ex);
+                                    }
                                     return result;
                                 }
                                 else

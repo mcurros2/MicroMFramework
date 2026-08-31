@@ -13,6 +13,7 @@ export interface StepperFormStep {
     nextStepLabel?: string,
     nextStepValidLabel?: string,
     nextStepValidation?: () => boolean | Promise<boolean>,
+    submitDisabled?: boolean,
     allowStepSelect?: boolean,
     icon?: ReactNode,
 }
@@ -175,6 +176,7 @@ export function StepperForm(props: StepperFormProps) {
                 type="submit"
                 key="stepper-submit"
                 loading={status?.loading}
+                disabled={activeStepItem.submitDisabled}
                 leftIcon={<IconCircleCheck size="1.125rem" />}
                 display={formMode !== "view" && activeStep === steps.length - 1 ? 'inline-block' : 'none'}
             >
