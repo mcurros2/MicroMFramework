@@ -318,7 +318,7 @@ public static class EntityImportData
         foreach (var error in importResult.Errors)
         {
             errors_entity.Def.c_import_process_error_id.Value = null!;
-            errors_entity.Def.i_row_number.Value = error.Key;
+            errors_entity.Def.i_row_number.Value = error.Key + 1;
             errors_entity.Def.vc_error.Value = error.Value;
             await errors_entity.InsertData(ct, throw_dbstat_exception: true, options: options, server_claims: server_claims, api: api, app_id: app_id);
         }
