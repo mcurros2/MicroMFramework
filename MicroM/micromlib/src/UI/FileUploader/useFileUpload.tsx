@@ -409,16 +409,20 @@ export function useFileUpload(props: UseFileUploadProps): UseFileUploadReturnTyp
 
     const uploadFile = useCallback(async (file: File, signal: AbortSignal) => {
         const statusID = createStatusID(file);
+        const initialReport = setReport(statusID, {
+            status_id: statusID,
+            file_name: file.name,
+            file_size: file.size,
+            progress: 0
+        });
 
         if (signal.aborted) {
-            return {
-                status_id: statusID,
-                file_name: file.name,
-                file_size: file.size,
+            return setReport(statusID, {
+                ...initialReport,
                 progress: 0,
                 done: true,
                 cancelled: true
-            } as UploadProgressReport;
+            });
         }
 
         try {
