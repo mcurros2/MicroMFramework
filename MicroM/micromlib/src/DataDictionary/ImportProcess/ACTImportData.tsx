@@ -6,21 +6,21 @@ import { ImportEntityData } from "../ImportEntityData/ImportEntityData";
 import { ImportEntityDataFormProps } from "../ImportEntityData/ImportEntityDataForm";
 import type { ImportProcessDef } from "./ImportProcessDef";
 
-export const ACTImportDataLabels = {
-    label: 'Import data',
+export const ACTImportDataDefaultProps = {
+    importDataLabel: 'Import data',
 };
 
 export const ACTImportData: EntityClientAction = {
     name: 'ACTImportData',
-    title: <Group spacing="xs"><IconCloudUpload size="1rem" /><Text fw={700}>{ACTImportDataLabels.label}</Text></Group>,
-    label: ACTImportDataLabels.label,
+    title: <Group spacing="xs"><IconCloudUpload size="1rem" /><Text fw={700}>{ACTImportDataDefaultProps.importDataLabel}</Text></Group>,
+    label: ACTImportDataDefaultProps.importDataLabel,
     icon: <IconCloudUpload size="1rem" />,
     dontRequireSelection: true,
     refreshOnClose: true,
     showActionInViewMode: false,
     views: ['ipr_brwStandard'],
     onClick: async ({ entity, modal, element, onClose }) => {
-        const { destinationEntity, entityProcName, excludedImportDestinations } =
+        const { destinationEntity, destinationEntityExportViewName, entityProcName, excludedImportDestinations, importFileStepProps } =
             (entity.def as ImportProcessDef).destinationProps;
 
         if (entityProcName && !destinationEntity.def.procs[entityProcName]) {
@@ -47,8 +47,10 @@ export const ACTImportData: EntityClientAction = {
                 entity: importData,
                 initialFormMode: 'add',
                 importEntity,
+                destinationEntityExportViewName,
                 entityProcName,
                 excludedImportDestinations,
+                importFileStepProps,
                 onImportSuccess: async () => {
                     await onClose?.(true);
                 },

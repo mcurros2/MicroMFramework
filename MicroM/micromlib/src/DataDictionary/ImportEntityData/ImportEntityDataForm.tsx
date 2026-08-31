@@ -1,5 +1,5 @@
 import { useComponentDefaultProps } from "@mantine/core";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DBStatusResult, OperationStatus } from "../../client";
 import { Entity, EntityColumnFlags, EntityDefinition, getRequiredColumns } from "../../Entity";
 import { FormOptions } from "../../UI/Core/types";
@@ -9,14 +9,16 @@ import { useImportData, useImportDataMapping } from "../../UI/ImportData";
 import { ImportCompletedContent } from "./ImportCompletedContent";
 import { ImportDataMappingStep } from "./ImportDataMappingStep";
 import { ImportEntityData } from "./ImportEntityData";
-import { ImportFileStep } from "./ImportFileStep";
+import { ImportFileStep, ImportFileStepCustomizationProps } from "./ImportFileStep";
 import { ImportInstructionsStep } from "./ImportInstructionsStep";
 import { ImportSummaryStep } from "./ImportSummaryStep";
 
 export interface ImportEntityDataFormProps extends FormOptions<ImportEntityData> {
     importEntity?: Entity<EntityDefinition>,
+    destinationEntityExportViewName?: string,
     entityProcName?: string,
     excludedImportDestinations?: string[],
+    importFileStepProps?: ImportFileStepCustomizationProps,
     onImportSuccess?: () => Promise<void>,
     instructionsStepLabel?: string,
     instructionsStepDescription?: string,
@@ -35,6 +37,8 @@ export interface ImportEntityDataFormProps extends FormOptions<ImportEntityData>
     numberFormatLabel?: string,
     downloadExcelSampleLabel?: string,
     downloadCSVSampleLabel?: string,
+    exportExistingDataLabel?: string,
+    exportExistingDataErrorLabel?: string,
     errorReadingFileLabel?: string,
     emptyFileLabel?: string,
     uploadRequiredLabel?: string,
@@ -84,12 +88,13 @@ export const ImportEntityDataFormDefaultProps: Partial<ImportEntityDataFormProps
 
 export function ImportEntityDataForm(props: ImportEntityDataFormProps) {
     const {
-        entity, initialFormMode, getDataOnInit, onCancel, importEntity, entityProcName,
-        excludedImportDestinations, onImportSuccess, instructionsStepLabel, instructionsStepDescription,
+        entity, initialFormMode, getDataOnInit, onCancel, importEntity, destinationEntityExportViewName, entityProcName,
+        excludedImportDestinations, importFileStepProps, onImportSuccess, instructionsStepLabel, instructionsStepDescription,
         uploadStepLabel, uploadStepDescription, dataMappingStepLabel, dataMappingStepDescription,
         summaryStepLabel, summaryStepDescription,
         instructionsLabel, columnHeaderLabel, dataNameLabel, contentLabel, dataTypeLabel,
         dateFormatLabel, numberFormatLabel, downloadExcelSampleLabel, downloadCSVSampleLabel,
+        exportExistingDataLabel, exportExistingDataErrorLabel,
         errorReadingFileLabel, emptyFileLabel, uploadRequiredLabel, mappingRequiredLabel,
         importButtonLabel, submitAndImportLabel, importingDataLabel,
         importedFileLabel, recordsImportedSuccessfullyLabel,
@@ -107,6 +112,29 @@ export function ImportEntityDataForm(props: ImportEntityDataFormProps) {
         () => importEntity?.def.importColumns || getRequiredColumns(importEntity),
         [importEntity]
     );
+
+    const resolvedDestinationEntityExportViewName = useMemo(() => {
+        if (!importEntity) return undefined;
+
+        if (destinationEntityExportViewName) {
+            return importEntity.def.views[destinationEntityExportViewName]
+                ? destinationEntityExportViewName
+                : undefined;
+        }
+
+        const standardViewName = importEntity.def.standardView();
+        return standardViewName && importEntity.def.views[standardViewName]
+            ? standardViewName
+            : undefined;
+    }, [destinationEntityExportViewName, importEntity]);
+
+    useEffect(() => {
+        if (destinationEntityExportViewName && importEntity && !importEntity.def.views[destinationEntityExportViewName]) {
+            console.warn(
+                `Export existing data: view '${destinationEntityExportViewName}' was not found in entity '${importEntity.name}'.`
+            );
+        }
+    }, [destinationEntityExportViewName, importEntity]);
 
     const primaryKeyColumns = useMemo(
         () => Object.values(importEntity?.def.columns ?? {})
@@ -257,6 +285,7 @@ export function ImportEntityDataForm(props: ImportEntityDataFormProps) {
             content: <ImportInstructionsStep
                 importEntity={importEntity}
                 requiredColumns={effectiveRequiredColumns}
+                exportViewName={resolvedDestinationEntityExportViewName}
                 instructionsLabel={instructionsLabel}
                 columnHeaderLabel={columnHeaderLabel}
                 dataNameLabel={dataNameLabel}
@@ -266,6 +295,8 @@ export function ImportEntityDataForm(props: ImportEntityDataFormProps) {
                 numberFormatLabel={numberFormatLabel}
                 downloadExcelSampleLabel={downloadExcelSampleLabel}
                 downloadCSVSampleLabel={downloadCSVSampleLabel}
+                exportExistingDataLabel={exportExistingDataLabel}
+                exportExistingDataErrorLabel={exportExistingDataErrorLabel}
             />
         },
         {
@@ -275,6 +306,7 @@ export function ImportEntityDataForm(props: ImportEntityDataFormProps) {
             allowStepSelect: true,
             nextStepValidation: validateUploadStep,
             content: <ImportFileStep
+                {...importFileStepProps}
                 entity={entity}
                 disabled={formAPI.status.loading}
                 validationError={mappingStepUnlocked ? undefined : uploadValidationError}
@@ -314,10 +346,12 @@ export function ImportEntityDataForm(props: ImportEntityDataFormProps) {
         columnHeaderLabel, contentLabel, dataMappingStepDescription,
         dataMappingStepLabel, dataNameLabel, dataTypeLabel, dateFormatLabel,
         downloadCSVSampleLabel, downloadExcelSampleLabel, effectiveRequiredColumns, entity,
+        exportExistingDataErrorLabel, exportExistingDataLabel,
         formAPI.status.loading, handleDeleteFile, handleUploadComplete, handleValidateFile,
-        importButtonLabel, importData.importStatus, importDestinations, importEntity, importingDataLabel,
+        importButtonLabel, importData.importStatus, importDestinations, importEntity, importFileStepProps, importingDataLabel,
         instructionsLabel, instructionsStepDescription, instructionsStepLabel, mappingAPI,
-        mappingState, mappingStepUnlocked, mappingValidationError, numberFormatLabel, selectedFile,
+        mappingState, mappingStepUnlocked, mappingValidationError, numberFormatLabel,
+        resolvedDestinationEntityExportViewName, selectedFile,
         submitAndImportLabel, summaryStepDescription, summaryStepLabel, uploadStepDescription,
         uploadStepLabel, uploadValidationError, validateMappingStep, validateUploadStep
     ]);

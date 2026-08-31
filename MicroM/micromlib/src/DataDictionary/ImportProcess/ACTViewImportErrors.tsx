@@ -15,6 +15,7 @@ export const ACTViewImportErrors: EntityClientAction = {
     dontRequireSelection: false,
     minSelectedRecords: 1,
     maxSelectedRecords: 1,
+    showActionInViewMode: true,
     views: ['ipr_brwStandard'],
     onClick: async ({ entity, modal, selectedKeys, element }) => {
         if (!modal) {
