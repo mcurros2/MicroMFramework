@@ -79,6 +79,7 @@
     <None Remove="DataDictionary\Entities\EmailService\SQL\EmailServiceQueue\emq_SubmitToQueueProcess.sql" />
     <None Remove="DataDictionary\Entities\FileStore\SQL\FileStoreContent\fsc_InsertFileContent.sql" />
     <None Remove="DataDictionary\Entities\ImportProcess\SQL\ImportProcessErrors\ipe_brwStandard.sql" />
+    <None Remove="DataDictionary\Entities\ImportProcess\SQL\ImportProcess\ipr_drop.sql" />
     <None Remove="DataDictionary\Entities\ImportProcess\SQL\ipr_brwStandard.sql" />
     <None Remove="DataDictionary\Entities\ImportProcess\SQL\ipr_get.sql" />
     <None Remove="DataDictionary\Entities\ImportProcess\SQL\ipr_update.sql" />
@@ -146,6 +147,7 @@
     <EmbeddedResource Include="DataDictionary\Entities\FileStore\SQL\FileStore\fst_iupdate.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\ImportProcess\SQL\ImportProcessErrors\ipe_brwStandard.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\ImportProcess\SQL\ImportProcess\ipr_brwStandard.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\ImportProcess\SQL\ImportProcess\ipr_drop.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\ImportProcess\SQL\ImportProcess\ipr_get.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\ImportProcess\SQL\ImportProcess\ipr_update.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\ImportProcess\SQL\ImportProcess\ipr_UpdateStatus.sql" />

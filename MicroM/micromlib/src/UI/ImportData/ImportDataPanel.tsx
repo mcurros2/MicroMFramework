@@ -15,6 +15,7 @@ export type ImportDataPanelProps = DataGridPanelProps & {
 export const ImportDataPanelDefaultProps: Partial<ImportDataPanelProps> = {
     gridHeight: 'flex-grow',
     loadingComponent: <Group h="100%" align="flex-start"><Loader /></Group>,
+    selectionMode: 'multi',
     stepperProps: { mih: '50vh' },
 };
 
@@ -73,7 +74,6 @@ export function ImportDataPanel(props: ImportDataPanelProps) {
                     client={client}
                     parentKeys={historyParentKeys}
                     entityConstructor={historyEntityBuilder}
-                    selectionMode="single"
                     enableAdd={false}
                     enableEdit={false}
                     enableDelete={false}

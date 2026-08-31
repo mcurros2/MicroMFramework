@@ -43,7 +43,7 @@
         , @certificate_blob varbinary(max)
         , @certificate_password varchar(2048)
 		, @lu DateTime
-		, @webusr VarChar(80)
+		, @webusr VarChar(255)
         , @result int output
         , @msg varchar(255) output
         as

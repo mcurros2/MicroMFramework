@@ -3,7 +3,7 @@
 		, @assemblytype_id Char(20)
 		, @assemblytypename VarChar(2048)
 		, @lu DateTime
-		, @webusr VarChar(80)
+		, @webusr VarChar(255)
         , @result int output
         , @msg varchar(255) output
         as

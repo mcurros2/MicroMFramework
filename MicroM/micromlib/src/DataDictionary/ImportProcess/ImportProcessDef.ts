@@ -1,4 +1,5 @@
 import { CommonFlags as c, DefaultColumns, EntityColumn, EntityColumnFlags, EntityDefinition, ImportDataDestinationProps } from "../../Entity";
+import { ACTDeleteHistory } from "./ACTDeleteHistory";
 import { ACTDownloadImportedFile } from "./ACTDownloadImportedFile";
 import { ACTImportData } from "./ACTImportData";
 import { ACTViewImportErrors } from "./ACTViewImportErrors";
@@ -21,6 +22,7 @@ const views = () => ({
 
 const clientActions = () => ({
     ACTImportData: ACTImportData,
+    ACTDeleteHistory: ACTDeleteHistory,
     ACTDownloadImportedFile: ACTDownloadImportedFile,
     ACTViewImportErrors: ACTViewImportErrors
 });

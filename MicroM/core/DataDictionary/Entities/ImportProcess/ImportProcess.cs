@@ -9,7 +9,7 @@ namespace MicroM.DataDictionary.Entities;
 
 public class ImportProcessDef : EntityDefinition
 {
-    public ImportProcessDef() : base("ipr", nameof(ImportProcess)) { }
+    public ImportProcessDef() : base("ipr", nameof(ImportProcess), webusr_delete_flag: true) { }
 
     public readonly Column<string> c_import_process_id = Column<string>.PK(autonum: true);
     public readonly Column<string> c_fileprocess_id = Column<string>.FK();
@@ -28,7 +28,6 @@ public class ImportProcessDef : EntityDefinition
     public readonly ViewDefinition ipr_brwStandard = new(nameof(c_import_process_id), nameof(vc_assemblytypename));
 
     public readonly ProcedureDefinition ipr_UpdateStatus = new(nameof(c_import_process_id), nameof(c_import_status_id), nameof(i_total_records), nameof(i_errors), nameof(webusr));
-
 
     public readonly EntityForeignKey<FileStoreProcess, ImportProcess> FKImportProcessProcess = new();
 

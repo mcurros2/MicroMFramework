@@ -7,7 +7,7 @@
         , @refresh_expiration DateTime
         , @refreshcount Int
         , @lu DateTime
-        , @webusr VarChar(80)
+        , @webusr VarChar(255)
         , @result int output
         , @msg varchar(255) output
         as
