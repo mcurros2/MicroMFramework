@@ -20,7 +20,7 @@ export const ACTImportData: EntityClientAction = {
     showActionInViewMode: false,
     views: ['ipr_brwStandard'],
     onClick: async ({ entity, modal, element, onClose }) => {
-        const { destinationEntity, destinationEntityExportViewName, entityProcName, excludedImportDestinations, importFileStepProps } =
+        const { destinationEntity, destinationEntityExportViewName, entityProcName, excludedImportDestinations, importFileStepProps, stepperProps } =
             (entity.def as ImportProcessDef).destinationProps;
 
         if (entityProcName && !destinationEntity.def.procs[entityProcName]) {
@@ -51,6 +51,7 @@ export const ACTImportData: EntityClientAction = {
                 entityProcName,
                 excludedImportDestinations,
                 importFileStepProps,
+                stepperProps,
                 onImportSuccess: async () => {
                     await onClose?.(true);
                 },

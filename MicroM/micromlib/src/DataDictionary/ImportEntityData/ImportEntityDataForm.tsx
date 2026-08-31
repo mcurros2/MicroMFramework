@@ -4,7 +4,7 @@ import { DBStatusResult, OperationStatus } from "../../client";
 import { Entity, EntityColumnFlags, EntityDefinition, getRequiredColumns } from "../../Entity";
 import { FormOptions } from "../../UI/Core/types";
 import { UploadCompletionResult, UploadProgressReport, ValidateFileReturnType } from "../../UI/FileUploader";
-import { StepperForm, StepperFormStep, useEntityForm } from "../../UI/Form";
+import { StepperForm, StepperFormProps, StepperFormStep, useEntityForm } from "../../UI/Form";
 import { useImportData, useImportDataMapping } from "../../UI/ImportData";
 import { ImportCompletedContent } from "./ImportCompletedContent";
 import { ImportDataMappingStep } from "./ImportDataMappingStep";
@@ -19,6 +19,7 @@ export interface ImportEntityDataFormProps extends FormOptions<ImportEntityData>
     entityProcName?: string,
     excludedImportDestinations?: string[],
     importFileStepProps?: ImportFileStepCustomizationProps,
+    stepperProps?: StepperFormProps['stepperProps'],
     onImportSuccess?: () => Promise<void>,
     instructionsStepLabel?: string,
     instructionsStepDescription?: string,
@@ -89,7 +90,7 @@ export const ImportEntityDataFormDefaultProps: Partial<ImportEntityDataFormProps
 export function ImportEntityDataForm(props: ImportEntityDataFormProps) {
     const {
         entity, initialFormMode, getDataOnInit, onCancel, importEntity, destinationEntityExportViewName, entityProcName,
-        excludedImportDestinations, importFileStepProps, onImportSuccess, instructionsStepLabel, instructionsStepDescription,
+        excludedImportDestinations, importFileStepProps, stepperProps, onImportSuccess, instructionsStepLabel, instructionsStepDescription,
         uploadStepLabel, uploadStepDescription, dataMappingStepLabel, dataMappingStepDescription,
         summaryStepLabel, summaryStepDescription,
         instructionsLabel, columnHeaderLabel, dataNameLabel, contentLabel, dataTypeLabel,
@@ -363,7 +364,7 @@ export function ImportEntityDataForm(props: ImportEntityDataFormProps) {
 
     return (
         <StepperForm
-            stepperProps={{ pt: 'xs' }}
+            stepperProps={stepperProps}
             formAPI={formAPI}
             steps={steps}
             initialStep={0}

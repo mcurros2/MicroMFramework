@@ -4,15 +4,18 @@ import { MicroMClient, ValuesObject } from "../../client";
 import { ImportFileStepCustomizationProps } from "../../DataDictionary/ImportEntityData";
 import { ImportProcess } from "../../DataDictionary/ImportProcess";
 import { DataGridPanel, DataGridPanelProps } from "../DataGrid";
+import { StepperFormProps } from "../Form";
 import { EntityGridBuilderProps, useResolvedEntityBuilder } from "../GetEntity";
 
 export type ImportDataPanelProps = DataGridPanelProps & {
     importFileStepProps?: ImportFileStepCustomizationProps,
+    stepperProps?: StepperFormProps['stepperProps'],
 };
 
 export const ImportDataPanelDefaultProps: Partial<ImportDataPanelProps> = {
     gridHeight: 'flex-grow',
     loadingComponent: <Group h="100%" align="flex-start"><Loader /></Group>,
+    stepperProps: { mih: '50vh' },
 };
 
 export function ImportDataPanel(props: ImportDataPanelProps) {
@@ -20,8 +23,13 @@ export function ImportDataPanel(props: ImportDataPanelProps) {
 
     const {
         client, entityConstructor: _entityConstructor, entityLoader: _entityLoader, parentKeys, entityProcName, excludedImportDestinations,
-        importFileStepProps, loadingComponent, ...dataGridProps
+        importFileStepProps, loadingComponent, stepperProps: suppliedStepperProps, ...dataGridProps
     } = mergedProps;
+
+    const stepperProps = useMemo(() => ({
+        ...ImportDataPanelDefaultProps.stepperProps,
+        ...suppliedStepperProps,
+    }), [suppliedStepperProps]);
 
     const { result: destinationEntityBuilder, ready: destinationEntityReady } = useResolvedEntityBuilder<EntityGridBuilderProps>(
         client,
@@ -41,6 +49,7 @@ export function ImportDataPanel(props: ImportDataPanelProps) {
             entityProcName,
             excludedImportDestinations,
             importFileStepProps,
+            stepperProps,
         });
 
         return {
@@ -48,7 +57,7 @@ export function ImportDataPanel(props: ImportDataPanelProps) {
             view: historyEntity.def.views.ipr_brwStandard.name,
         };
 
-    }, [destinationEntity, destinationEntityViewName, entityProcName, excludedImportDestinations, importFileStepProps]);
+    }, [destinationEntity, destinationEntityViewName, entityProcName, excludedImportDestinations, importFileStepProps, stepperProps]);
 
     const historyParentKeys = useMemo(
         () => destinationEntity ? { vc_assemblytypename: destinationEntity.name } : undefined,
