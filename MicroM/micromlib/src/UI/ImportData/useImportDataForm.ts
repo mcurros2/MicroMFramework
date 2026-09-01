@@ -30,8 +30,7 @@ export function useImportDataForm({
 
     const openImportDataForm = useCallback(async (
         importEntity: Entity<EntityDefinition>,
-        entityProcName?: string,
-        excludedImportDestinations?: string[]
+        entityProcName?: string
     ) => {
         if (!importEntity) return;
 
@@ -56,7 +55,6 @@ export function useImportDataForm({
                 getDataOnInit,
                 importEntity,
                 entityProcName,
-                excludedImportDestinations,
                 onImportSuccess: handleImportSuccess
             }
         });

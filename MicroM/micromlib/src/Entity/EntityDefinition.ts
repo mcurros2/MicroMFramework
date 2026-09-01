@@ -19,6 +19,11 @@ export class EntityDefinition {
     lookups: Record<string, EntityLookup> = {};
     serverActions: Record<string, EntityServerAction> = {};
     clientActions: Record<string, EntityClientAction> = {};
+    /**
+     * Ordered allowlist of columns available for data imports.
+     * A null value uses the import flow's inferred destinations; an empty array exposes no destinations.
+     * Values are expected to be lowercase and unique.
+     */
     importColumns: string[] | null = null;
 
     standardView() {

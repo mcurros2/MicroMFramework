@@ -48,7 +48,6 @@ export interface UseEntityUIProps {
     onActionExecuted?: (actionName: string, result?: boolean) => void,
     onModalClosed?: (cancelled?: boolean) => void,
     entityProcName?: string,
-    excludedImportDestinations?: string[],
     onImportSuccess?: () => void,
 }
 
@@ -56,7 +55,7 @@ export function useEntityUI(props: UseEntityUIProps) {
     const {
         entity, onModalCancelled, onModalSaved, modalFormSize, parentFormAPI, saveFormBeforeAdd, onModalClosed,
         parentKeys, labels, onRecordsDeleted, onActionRefreshOnClose, onAddClick, onEditClick, onDeleteClick, onActionExecuted,
-        withModalFullscreenButton, entityProcName, excludedImportDestinations, onImportSuccess,
+        withModalFullscreenButton, entityProcName, onImportSuccess,
     } = props;
 
     const modals = useModal();
@@ -149,9 +148,9 @@ export function useEntityUI(props: UseEntityUIProps) {
 
             importEntity.parentKeys = mergedParentKeys;
 
-            await importData.openImportDataForm(importEntity, entityProcName, excludedImportDestinations);
+            await importData.openImportDataForm(importEntity, entityProcName);
         }
-    }, [entity, entityProcName, excludedImportDestinations, handleSaveBeforeAdd, importData, parentKeys]);
+    }, [entity, entityProcName, handleSaveBeforeAdd, importData, parentKeys]);
 
 
     const internalAddClick = useCallback(async (element?: HTMLElement, onClosed?: (cancelled?: boolean) => void) => {

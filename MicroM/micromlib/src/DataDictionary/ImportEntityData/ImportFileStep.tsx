@@ -41,9 +41,6 @@ export function ImportFileStep(props: ImportFileStepProps) {
                     ...uploaderProps,
                     disabled,
                     accept: [
-                        '.csv',
-                        '.xls',
-                        '.xlsx',
                         'text/csv',
                         'application/vnd.ms-excel',
                         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'

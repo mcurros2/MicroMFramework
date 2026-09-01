@@ -1,5 +1,5 @@
 import { useComponentDefaultProps } from "@mantine/core";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { DBStatusResult, OperationStatus } from "../../client";
 import { Entity, EntityColumnFlags, EntityDefinition, getRequiredColumns } from "../../Entity";
 import { FormOptions } from "../../UI/Core/types";
@@ -17,7 +17,6 @@ export interface ImportEntityDataFormProps extends FormOptions<ImportEntityData>
     importEntity?: Entity<EntityDefinition>,
     destinationEntityExportViewName?: string,
     entityProcName?: string,
-    excludedImportDestinations?: string[],
     importFileStepProps?: ImportFileStepCustomizationProps,
     stepperProps?: StepperFormProps['stepperProps'],
     onImportSuccess?: () => Promise<void>,
@@ -90,7 +89,7 @@ export const ImportEntityDataFormDefaultProps: Partial<ImportEntityDataFormProps
 export function ImportEntityDataForm(props: ImportEntityDataFormProps) {
     const {
         entity, initialFormMode, getDataOnInit, onCancel, importEntity, destinationEntityExportViewName, entityProcName,
-        excludedImportDestinations, importFileStepProps, stepperProps, onImportSuccess, instructionsStepLabel, instructionsStepDescription,
+        importFileStepProps, stepperProps, onImportSuccess, instructionsStepLabel, instructionsStepDescription,
         uploadStepLabel, uploadStepDescription, dataMappingStepLabel, dataMappingStepDescription,
         summaryStepLabel, summaryStepDescription,
         instructionsLabel, columnHeaderLabel, dataNameLabel, contentLabel, dataTypeLabel,
@@ -103,16 +102,15 @@ export function ImportEntityDataForm(props: ImportEntityDataFormProps) {
     } = useComponentDefaultProps('ImportEntityDataForm', ImportEntityDataFormDefaultProps, props);
 
     const importData = useImportData(importEntity);
+
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [uploadCompleted, setUploadCompleted] = useState(false);
     const [uploadValidationError, setUploadValidationError] = useState<string>();
     const [mappingValidationError, setMappingValidationError] = useState<string>();
+
     const importSuccessNotified = useRef(false);
 
-    const requiredColumns = useMemo(
-        () => importEntity?.def.importColumns || getRequiredColumns(importEntity),
-        [importEntity]
-    );
+    const inferredRequiredColumns = getRequiredColumns(importEntity);
 
     const requestedDestinationEntityExportViewName = destinationEntityExportViewName || importEntity?.def.standardView();
     const resolvedDestinationEntityExportViewName = requestedDestinationEntityExportViewName &&
@@ -128,40 +126,32 @@ export function ImportEntityDataForm(props: ImportEntityDataFormProps) {
         }
     }, [destinationEntityExportViewName, importEntity]);
 
-    const primaryKeyColumns = useMemo(
-        () => Object.values(importEntity?.def.columns ?? {})
-            .filter(column => column.hasFlag(EntityColumnFlags.pk)),
-        [importEntity]
+    const primaryKeyColumns = Object.values(importEntity?.def.columns ?? {})
+        .filter(column => column.hasFlag(EntityColumnFlags.pk));
+
+    const importDestinations = importEntity?.def.importColumns ?? (
+        entityProcName
+            ? Object.keys(importEntity?.def.procs[entityProcName]?.parms ?? {})
+            : Array.from(new Set([
+                ...inferredRequiredColumns,
+                ...primaryKeyColumns.map(column => column.name)
+            ]))
     );
 
-    const importDestinations = useMemo(() => {
-        const entityProc = entityProcName ? importEntity?.def.procs[entityProcName] : undefined;
-        const destinations = entityProcName
-            ? Object.keys(entityProc?.parms ?? {})
-            : Array.from(new Set([...requiredColumns, ...primaryKeyColumns.map(column => column.name)]));
-        const excluded = new Set((excludedImportDestinations ?? []).map(destination => destination.toLowerCase()));
+    const allowedImportDestinations = new Set(importDestinations);
 
-        return destinations.filter(destination => !excluded.has(destination.toLowerCase()));
-    }, [entityProcName, excludedImportDestinations, importEntity, primaryKeyColumns, requiredColumns]);
+    const instructionColumns = importEntity?.def.importColumns ??
+        inferredRequiredColumns.filter(column => allowedImportDestinations.has(column));
 
-    const effectiveRequiredColumns = useMemo(() => {
-        const allowed = new Set(importDestinations.map(destination => destination.toLowerCase()));
+    const availablePrimaryKeyColumns = primaryKeyColumns
+        .filter(column => allowedImportDestinations.has(column.name));
 
-        return requiredColumns.filter(column => allowed.has(column.toLowerCase()));
-    }, [importDestinations, requiredColumns]);
-
-    const primaryKeyMapping = useMemo(() => {
-        const allowed = new Set(importDestinations.map(destination => destination.toLowerCase()));
-        const availablePrimaryKeyColumns = primaryKeyColumns
-            .filter(column => allowed.has(column.name.toLowerCase()));
-
-        return {
-            requiredDestinations: availablePrimaryKeyColumns.map(column => column.name),
-            omittableRequiredDestinations: availablePrimaryKeyColumns
-                .filter(column => column.hasFlag(EntityColumnFlags.autoNum))
-                .map(column => column.name)
-        };
-    }, [importDestinations, primaryKeyColumns]);
+    const primaryKeyMapping = {
+        requiredDestinations: availablePrimaryKeyColumns.map(column => column.name),
+        omittableRequiredDestinations: availablePrimaryKeyColumns
+            .filter(column => column.hasFlag(EntityColumnFlags.autoNum))
+            .map(column => column.name)
+    };
 
     const mappingAPI = useImportDataMapping({
         destinations: importDestinations,
@@ -268,7 +258,7 @@ export function ImportEntityDataForm(props: ImportEntityDataFormProps) {
 
     const mappingStepUnlocked = !!selectedFile && uploadCompleted && !!entity.def.columns.c_fileprocess_id.value;
 
-    const steps = useMemo<StepperFormStep[]>(() => [
+    const steps: StepperFormStep[] = [
         {
             name: 'instructions',
             label: instructionsStepLabel!,
@@ -276,7 +266,7 @@ export function ImportEntityDataForm(props: ImportEntityDataFormProps) {
             allowStepSelect: true,
             content: <ImportInstructionsStep
                 importEntity={importEntity}
-                requiredColumns={effectiveRequiredColumns}
+                requiredColumns={instructionColumns}
                 exportViewName={resolvedDestinationEntityExportViewName}
                 instructionsLabel={instructionsLabel}
                 columnHeaderLabel={columnHeaderLabel}
@@ -334,19 +324,7 @@ export function ImportEntityDataForm(props: ImportEntityDataFormProps) {
                 importingDataLabel={importingDataLabel}
             />
         }
-    ], [
-        columnHeaderLabel, contentLabel, dataMappingStepDescription,
-        dataMappingStepLabel, dataNameLabel, dataTypeLabel, dateFormatLabel,
-        downloadCSVSampleLabel, downloadExcelSampleLabel, effectiveRequiredColumns, entity,
-        exportExistingDataErrorLabel, exportExistingDataLabel,
-        formAPI.status.loading, handleDeleteFile, handleUploadComplete, handleValidateFile,
-        importButtonLabel, importData.importStatus, importDestinations, importEntity, importFileStepProps, importingDataLabel,
-        instructionsLabel, instructionsStepDescription, instructionsStepLabel, mappingAPI,
-        mappingState, mappingStepUnlocked, mappingValidationError, numberFormatLabel,
-        resolvedDestinationEntityExportViewName, selectedFile,
-        submitAndImportLabel, summaryStepDescription, summaryStepLabel, uploadStepDescription,
-        uploadStepLabel, uploadValidationError, validateMappingStep, validateUploadStep
-    ]);
+    ];
 
     const completedContent = importData.importStatus.data && selectedFile
         ? <ImportCompletedContent

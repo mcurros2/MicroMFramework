@@ -121,28 +121,25 @@ export function useImportDataMapping({
                 DestinationColumnName: row.DestinationColumnName!
             }));
 
-        const normalizedDestinations = contractRows.map(row => row.DestinationColumnName.toLowerCase());
-        const uniqueDestinations = new Set(normalizedDestinations);
+        const mappedDestinationNames = contractRows.map(row => row.DestinationColumnName);
+        const uniqueDestinations = new Set(mappedDestinationNames);
 
-        const isValid = contractRows.length > 0 && uniqueDestinations.size === normalizedDestinations.length;
+        const isValid = contractRows.length > 0 && uniqueDestinations.size === mappedDestinationNames.length;
         const allSourceColumnsResolved = rows.length > 0 && rows.every(row => !!row.DestinationColumnName || row.IsOmitted);
-        const allowedDestinations = new Set(destinations.map(destination => destination.toLowerCase()));
+        const allowedDestinations = new Set(destinations);
 
-        const effectiveRequired = requiredDestinations.filter(required => allowedDestinations.has(required.toLowerCase()));
+        const effectiveRequired = requiredDestinations.filter(required => allowedDestinations.has(required));
         const effectiveOmittable = new Set(
             omittableRequiredDestinations
-                .filter(destination => allowedDestinations.has(destination.toLowerCase()))
-                .map(destination => destination.toLowerCase())
+                .filter(destination => allowedDestinations.has(destination))
         );
-        const mappedDestinations = new Set(normalizedDestinations);
+        const mappedDestinations = new Set(mappedDestinationNames);
         const explicitOmittedRequired = currentOmittedRequiredDestinations.filter(destination => {
-            const normalizedDestination = destination.toLowerCase();
-            return effectiveOmittable.has(normalizedDestination) && !mappedDestinations.has(normalizedDestination);
+            return effectiveOmittable.has(destination) && !mappedDestinations.has(destination);
         });
-        const omittedRequired = new Set(explicitOmittedRequired.map(destination => destination.toLowerCase()));
+        const omittedRequired = new Set(explicitOmittedRequired);
         const unmappedRequired = effectiveRequired.filter(required => {
-            const normalizedRequired = required.toLowerCase();
-            return !mappedDestinations.has(normalizedRequired) && !omittedRequired.has(normalizedRequired);
+            return !mappedDestinations.has(required) && !omittedRequired.has(required);
         });
 
         setMappingState({
@@ -252,7 +249,7 @@ export function useImportDataMapping({
             ? { ...row, DestinationColumnName: destination, IsOmitted: false }
             : row);
         const nextOmittedRequiredDestinations = destination
-            ? omittedRequiredDestinations.filter(required => required.toLowerCase() !== destination.toLowerCase())
+            ? omittedRequiredDestinations.filter(required => required !== destination)
             : omittedRequiredDestinations;
 
         setMappingRows(rows);
@@ -272,11 +269,11 @@ export function useImportDataMapping({
     }, [emitChange, headerRow, mappingRows, omittedRequiredDestinations, parsedFile, sheetName]);
 
     const setRequiredDestinationOmitted = useCallback((destination: string, omitted: boolean) => {
-        if (!parsedFile || !omittableRequiredDestinations.some(required => required.toLowerCase() === destination.toLowerCase())) return;
+        if (!parsedFile || !omittableRequiredDestinations.includes(destination)) return;
 
         const nextOmittedRequiredDestinations = omitted
-            ? [...omittedRequiredDestinations.filter(required => required.toLowerCase() !== destination.toLowerCase()), destination]
-            : omittedRequiredDestinations.filter(required => required.toLowerCase() !== destination.toLowerCase());
+            ? [...omittedRequiredDestinations.filter(required => required !== destination), destination]
+            : omittedRequiredDestinations.filter(required => required !== destination);
 
         setOmittedRequiredDestinations(nextOmittedRequiredDestinations);
         emitChange(mappingRows, parsedFile, sheetName, headerRow, nextOmittedRequiredDestinations);

@@ -62,7 +62,6 @@ export interface DataGridProps extends UseEntityUIProps {
     showActionsToolbar?: boolean,
     enableImport?: boolean,
     entityProcName?: string,
-    excludedImportDestinations?: string[],
 
     gridHeight?: string | number | 'auto' | 'flex-grow',
     minGridHeight?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'none',

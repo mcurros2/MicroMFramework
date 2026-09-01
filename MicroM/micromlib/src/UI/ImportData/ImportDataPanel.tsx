@@ -23,7 +23,7 @@ export function ImportDataPanel(props: ImportDataPanelProps) {
     const mergedProps = useComponentDefaultProps('ImportDataPanel', ImportDataPanelDefaultProps, props);
 
     const {
-        client, entityConstructor: _entityConstructor, entityLoader: _entityLoader, parentKeys, entityProcName, excludedImportDestinations,
+        client, entityConstructor: _entityConstructor, entityLoader: _entityLoader, parentKeys, entityProcName,
         importFileStepProps, loadingComponent, stepperProps: suppliedStepperProps, ...dataGridProps
     } = mergedProps;
 
@@ -48,7 +48,6 @@ export function ImportDataPanel(props: ImportDataPanelProps) {
             destinationEntity,
             destinationEntityExportViewName: destinationEntityViewName,
             entityProcName,
-            excludedImportDestinations,
             importFileStepProps,
             stepperProps,
         });
@@ -58,7 +57,7 @@ export function ImportDataPanel(props: ImportDataPanelProps) {
             view: historyEntity.def.views.ipr_brwStandard.name,
         };
 
-    }, [destinationEntity, destinationEntityViewName, entityProcName, excludedImportDestinations, importFileStepProps, stepperProps]);
+    }, [destinationEntity, destinationEntityViewName, entityProcName, importFileStepProps, stepperProps]);
 
     const historyParentKeys = useMemo(
         () => destinationEntity ? { vc_assemblytypename: destinationEntity.name } : undefined,

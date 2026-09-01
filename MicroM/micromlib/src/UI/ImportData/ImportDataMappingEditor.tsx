@@ -51,7 +51,7 @@ export function ImportDataMappingEditor(props: ImportDataMappingEditorProps) {
     );
 
     const usedDestinations = mappingAPI.mappingRows
-        .map(row => row.DestinationColumnName?.toLowerCase())
+        .map(row => row.DestinationColumnName)
         .filter((destination): destination is string => !!destination);
 
     if (!destinations.length) {
@@ -71,7 +71,7 @@ export function ImportDataMappingEditor(props: ImportDataMappingEditorProps) {
     const mappingComplete = mappingAPI.mappingState.isSuccessful;
     const mappedDestinations = new Set(usedDestinations);
     const unmappedOmittableRequiredDestinations = mappingAPI.omittableRequiredDestinations.filter(
-        destination => !mappedDestinations.has(destination.toLowerCase())
+        destination => !mappedDestinations.has(destination)
     );
     const accordionKey = `${mappingAPI.parsedFile.format}:${mappingAPI.sheetName}:${mappingAPI.headerRow}:${mappingComplete ? 'complete' : 'incomplete'}`;
 
@@ -137,8 +137,8 @@ export function ImportDataMappingEditor(props: ImportDataMappingEditorProps) {
                                                         disabled={row.IsOmitted}
                                                         data={destinationData.map(destination => ({
                                                             ...destination,
-                                                            disabled: destination.value.toLowerCase() !== row.DestinationColumnName?.toLowerCase()
-                                                                && usedDestinations.includes(destination.value.toLowerCase())
+                                                            disabled: destination.value !== row.DestinationColumnName
+                                                                && usedDestinations.includes(destination.value)
                                                         }))}
                                                         value={row.DestinationColumnName}
                                                         onChange={value => mappingAPI.updateMappingRow(rowIndex, value)}
@@ -167,7 +167,7 @@ export function ImportDataMappingEditor(props: ImportDataMappingEditorProps) {
                                             key={destination}
                                             label={`${omitAutonumPrimaryKeyLabel}: ${destination}`}
                                             checked={mappingAPI.omittedRequiredDestinations.some(
-                                                omitted => omitted.toLowerCase() === destination.toLowerCase()
+                                                omitted => omitted === destination
                                             )}
                                             onChange={event => mappingAPI.setRequiredDestinationOmitted(destination, event.currentTarget.checked)}
                                         />

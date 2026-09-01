@@ -7,7 +7,6 @@ export interface ImportDataDestinationProps {
     destinationEntity: Entity<EntityDefinition>,
     destinationEntityExportViewName?: string,
     entityProcName?: string,
-    excludedImportDestinations?: string[],
     importFileStepProps?: ImportFileStepCustomizationProps,
     stepperProps?: StepperFormProps['stepperProps'],
 }
