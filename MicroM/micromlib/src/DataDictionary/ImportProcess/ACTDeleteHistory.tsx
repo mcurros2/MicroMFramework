@@ -18,7 +18,7 @@ export const ACTDeleteHistory: EntityClientAction = {
     icon: <IconTrash size="1rem" />,
     refreshOnClose: true,
     minSelectedRecords: 1,
-    showActionInViewMode: true,
+    showActionInViewMode: false,
     views: ['ipr_brwStandard'],
     onClick: async ({ entity, modal, selectedKeys, element, onClose }) => {
         if (!modal) {

@@ -1,19 +1,16 @@
-import { Button, Card, Group, Stack, Table, Title, useComponentDefaultProps, useMantineTheme } from "@mantine/core";
-import { IconCheck, IconCircleX, IconX } from "@tabler/icons-react";
-import { ReactNode } from "react";
+import { Card, Group, Stack, Table, Title, useComponentDefaultProps, useMantineTheme } from "@mantine/core";
+import { IconCheck, IconX } from "@tabler/icons-react";
 import { ImpDataResult } from "../../client/ImpDataResult";
 import { CircleFilledIcon } from "../../UI/Core/CircleFilledIcon";
 
 export interface ImportCompletedContentProps {
     fileName: string,
     result: ImpDataResult,
-    onClose?: () => void | Promise<void>,
     importedFileLabel?: string,
     recordsImportedSuccessfullyLabel?: string,
     recordsNotImportedDueToErrorsLabel?: string,
     errorColumnTitle?: string,
     rowColumnTitle?: string,
-    closeLabel?: ReactNode,
 }
 
 export const ImportCompletedContentDefaultProps: Partial<ImportCompletedContentProps> = {
@@ -22,13 +19,12 @@ export const ImportCompletedContentDefaultProps: Partial<ImportCompletedContentP
     recordsNotImportedDueToErrorsLabel: "Records not imported due to errors",
     errorColumnTitle: "Error",
     rowColumnTitle: "Row",
-    closeLabel: "Close",
 };
 
 export function ImportCompletedContent(props: ImportCompletedContentProps) {
     const {
-        fileName, result, onClose, importedFileLabel, recordsImportedSuccessfullyLabel,
-        recordsNotImportedDueToErrorsLabel, errorColumnTitle, rowColumnTitle, closeLabel
+        fileName, result, importedFileLabel, recordsImportedSuccessfullyLabel,
+        recordsNotImportedDueToErrorsLabel, errorColumnTitle, rowColumnTitle,
     } = useComponentDefaultProps('ImportCompletedContent', ImportCompletedContentDefaultProps, props);
     const theme = useMantineTheme();
 
@@ -61,11 +57,6 @@ export function ImportCompletedContent(props: ImportCompletedContentProps) {
                     }
                 </Stack>
             </Card>
-            <Group position="right">
-                <Button variant="light" leftIcon={<IconCircleX size="1.5rem" />} onClick={() => void onClose?.()}>
-                    {closeLabel}
-                </Button>
-            </Group>
         </Stack>
     );
 }

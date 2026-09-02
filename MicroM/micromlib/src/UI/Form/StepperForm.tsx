@@ -29,8 +29,11 @@ export interface StepperFormProps extends EntityFormProps {
     hideNextAndBackWhenCompleted?: boolean
     onCompleted?: () => void,
     onCancelSubmit?: () => void | Promise<void>,
+    onCloseCompleted?: () => void | Promise<void>,
     cancelSubmitLabel?: ReactNode,
     stepperProps?: Omit<Partial<StepperProps>, 'children' | 'active'>
+    completedButtonLabel?: string,
+    showCompletedButton?: boolean
 }
 
 export const StepperFormDefaultProps: Partial<StepperFormProps> = {
@@ -47,7 +50,9 @@ export const StepperFormDefaultProps: Partial<StepperFormProps> = {
     invalidFieldsLabel: "Some fields are invalid, please review the form",
     showHelpButton: false,
     preventEnterSubmission: true,
-    hideNextAndBackWhenCompleted: true
+    hideNextAndBackWhenCompleted: true,
+    showCompletedButton: false,
+    completedButtonLabel: "Close",
 };
 
 
@@ -55,7 +60,7 @@ export function StepperForm(props: StepperFormProps) {
     const {
         formAPI, onNextStep, onPrevStep, initialStep, nextStepLabel, prevStepLabel, steps,
         OKText, CancelText, completedContent, hideNextAndBackWhenCompleted, stepperProps, onCompleted,
-        onCancelSubmit, cancelSubmitLabel, ...rest
+        onCancelSubmit, cancelSubmitLabel, showCompletedButton, completedButtonLabel, onCloseCompleted, ...rest
     } = useComponentDefaultProps('StepperForm', StepperFormDefaultProps, props);
 
     const { status, formMode } = formAPI;
@@ -159,54 +164,69 @@ export function StepperForm(props: StepperFormProps) {
     }, [validateCurrentStepFields]);
 
     const buttons = useMemo(() => (
-        !(hideNextAndBackWhenCompleted && activeStep === steps.length) &&
-        <Group position={activeStep > 0 ? 'apart' : 'right'} style={{ flex: 'auto' }}>
-            <Button
-                key="stepper-back"
-                loading={stepValidating}
-                disabled={status.loading}
-                variant="default"
-                type="button"
-                onClick={prevStep}
-                display={activeStep > 0 ? 'inline-block' : 'none'}
-            >
-                {prevStepLabel}
-            </Button>
-            <Button
-                type="submit"
-                key="stepper-submit"
-                loading={status?.loading}
-                disabled={activeStepItem.submitDisabled}
-                leftIcon={<IconCircleCheck size="1.125rem" />}
-                display={formMode !== "view" && activeStep === steps.length - 1 ? 'inline-block' : 'none'}
-            >
-                {activeStepItem.nextStepLabel || nextStepLabel}
-            </Button>
-            {status.loading && onCancelSubmit && activeStep === steps.length - 1 &&
+        <Group position={!(activeStep === steps.length) && activeStep > 0 ? 'apart' : 'right'} style={{ flex: 'auto' }}>
+            {!(hideNextAndBackWhenCompleted && activeStep === steps.length) &&
+                <>
+                    <Button
+                        key="stepper-back"
+                        loading={stepValidating}
+                        disabled={status.loading}
+                        variant="default"
+                        type="button"
+                        onClick={prevStep}
+                        display={activeStep > 0 ? 'inline-block' : 'none'}
+                    >
+                        {prevStepLabel}
+                    </Button>
+                    <Button
+                        type="submit"
+                        key="stepper-submit"
+                        loading={status?.loading}
+                        disabled={activeStepItem.submitDisabled}
+                        leftIcon={<IconCircleCheck size="1.125rem" />}
+                        display={formMode !== "view" && activeStep === steps.length - 1 ? 'inline-block' : 'none'}
+                    >
+                        {activeStepItem.nextStepLabel || nextStepLabel}
+                    </Button>
+                    {status.loading && onCancelSubmit && activeStep === steps.length - 1 &&
+                        <Button
+                            key="stepper-cancel-submit"
+                            variant="light"
+                            type="button"
+                            leftIcon={<IconCircleX size="1.125rem" />}
+                            onClick={() => void onCancelSubmit()}
+                        >
+                            {cancelSubmitLabel || CancelText}
+                        </Button>
+                    }
+                    <Button
+                        loading={stepValidating}
+                        disabled={status.loading}
+                        key="stepper-next"
+                        onClick={nextStep}
+                        type="button"
+                        display={activeStep < steps.length - 1 ? 'inline-block' : 'none'}
+                    >
+                        {(stepValid[activeStep]
+                            ? activeStepItem.nextStepValidLabel
+                            : activeStepItem.nextStepLabel) || nextStepLabel}
+                    </Button>
+
+                </>
+            }
+            {showCompletedButton && activeStep === steps.length &&
                 <Button
-                    key="stepper-cancel-submit"
-                    variant="light"
+                    disabled={status.loading}
+                    key="stepper-close-completed"
+                    onClick={onCloseCompleted}
                     type="button"
-                    leftIcon={<IconCircleX size="1.125rem" />}
-                    onClick={() => void onCancelSubmit()}
                 >
-                    {cancelSubmitLabel || CancelText}
+                    {completedButtonLabel}
                 </Button>
             }
-            <Button
-                loading={stepValidating}
-                disabled={status.loading}
-                key="stepper-next"
-                onClick={nextStep}
-                type="button"
-                display={activeStep < steps.length - 1 ? 'inline-block' : 'none'}
-            >
-                {(stepValid[activeStep]
-                    ? activeStepItem.nextStepValidLabel
-                    : activeStepItem.nextStepLabel) || nextStepLabel}
-            </Button>
         </Group>
-    ), [CancelText, activeStep, activeStepItem, cancelSubmitLabel, formMode, hideNextAndBackWhenCompleted, nextStep, nextStepLabel, onCancelSubmit, prevStep, prevStepLabel, status.loading, stepValid, stepValidating, steps.length]);
+    ), [activeStep, hideNextAndBackWhenCompleted, steps.length, stepValidating, status.loading, prevStep, prevStepLabel, activeStepItem,
+        formMode, nextStepLabel, onCancelSubmit, cancelSubmitLabel, CancelText, nextStep, stepValid, showCompletedButton, onCloseCompleted, completedButtonLabel]);
 
     useEffect(() => {
         setStepValid((prev) => {

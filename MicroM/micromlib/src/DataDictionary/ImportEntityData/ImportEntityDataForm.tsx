@@ -330,13 +330,11 @@ export function ImportEntityDataForm(props: ImportEntityDataFormProps) {
         ? <ImportCompletedContent
             fileName={selectedFile.name}
             result={importData.importStatus.data}
-            onClose={onCancel}
             importedFileLabel={importedFileLabel}
             recordsImportedSuccessfullyLabel={recordsImportedSuccessfullyLabel}
             recordsNotImportedDueToErrorsLabel={recordsNotImportedDueToErrorsLabel}
             errorColumnTitle={errorColumnTitle}
             rowColumnTitle={rowColumnTitle}
-            closeLabel={CloseText || 'Close'}
         />
         : undefined;
 
@@ -351,6 +349,8 @@ export function ImportEntityDataForm(props: ImportEntityDataFormProps) {
             cancelSubmitLabel={CancelText || 'Cancel'}
             showErrors
             showLoadingProgress={false}
+            showCompletedButton
+            onCloseCompleted={onCancel}
         />
     );
 }
