@@ -67,7 +67,7 @@ export interface DataGridToolbarOptions {
     initialColumnFilters?: ColumnsObject,
 
     filtersTitle?: string,
-    editFitersLabel?: string,
+    editFiltersLabel?: string,
     clearFiltersLabel?: string,
 
     filtersAccordionVariant?: AccordionVariant,
@@ -105,7 +105,7 @@ export const DataGridToolbarDefaultProps: Partial<DataGridToolbarOptions> = {
     filtersAccordionVariant: "contained",
     filtersBadgeVariant: "outline",
 
-    editFitersLabel: "Edit filters",
+    editFiltersLabel: "Edit filters",
     clearFiltersLabel: "Clear filters",
 
 }
@@ -123,7 +123,7 @@ export function DataGridToolbar(props: DataGridToolbarOptions) {
         enableImport, importTooltip, onImportClick, filtersBadgeSize,
         showAppliedFilters, showRefreshButton, showFiltersButton, visibleFilters,
         filtersDescription, setFiltersDescription, initialColumnFilters, filtersTitle,
-        editFitersLabel, clearFiltersLabel, filtersAccordionVariant, filtersBadgeVariant,
+        editFiltersLabel, clearFiltersLabel, filtersAccordionVariant, filtersBadgeVariant,
         showSearchInput, showSelectRowsButton, showColumnsConfig, configMenuOpened, setConfigMenuOpened,
         configMenuDropdown, maxSearchTerms
     } = useComponentDefaultProps('DataGridToolbar', DataGridToolbarDefaultProps, props);
@@ -266,7 +266,7 @@ export function DataGridToolbar(props: DataGridToolbarOptions) {
                                         </ActionIcon>
                                         <ActionIcon
                                             component="a"
-                                            size={actionIconSize} radius="xl" color={theme.primaryColor} variant={toolbarIconVariant} title={editFitersLabel}
+                                            size={actionIconSize} radius="xl" color={theme.primaryColor} variant={toolbarIconVariant} title={editFiltersLabel}
                                             onClick={filtersAPI.handleFilterButtonClick}
                                         >
                                             <IconPencil size={iconsSize} stroke="1.5" />

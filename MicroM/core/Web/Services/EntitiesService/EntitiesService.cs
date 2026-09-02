@@ -631,7 +631,7 @@ public class EntitiesService : IEntitiesService
                 else
                 {
                     await ec.Connect(ct);
-                    var import_process = new ImportProcess(ec);
+                    var import_process = new ImportProcess(ec, schema_name: app.SchemaConfiguration.DDSchema);
 
                     import_process.SetColumnValue(import_process.Def.c_fileprocess_id.Name, parms.Values);
                     import_process.Def.vc_assemblytypename.Value = entity_name;

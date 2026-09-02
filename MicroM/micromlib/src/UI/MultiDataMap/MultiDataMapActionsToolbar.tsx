@@ -29,7 +29,6 @@ export const MultiDataMapActionsToolbarDefaultProps: Partial<MultiDataMapActions
     size: "sm",
     toolbarIconVariant: "light",
     actionsButtonVariant: "light",
-    
 }
 
 export function MultiDataMapActionsToolbar(props: MultiDataMapActionsToolbarProps) {
