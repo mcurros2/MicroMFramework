@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DataResult, DBStatusResult, OperationStatus, SQLType, Value, ValuesObject, ValuesRecord } from "../../client";
 import { convertRecordToValuesObject, EntityClientAction, exportToExcel, toCamelCase } from "../../Entity";
-import { useEntityUI, useLocaleFormat } from "../Core";
+import { type EntityUIActionClosedCallback, useEntityUI, useLocaleFormat } from "../Core";
 import { DataGridStateProps } from "../DataGrid/DataGrid.types";
 import { DataViewProps, DataViewRecord, DataViewSelection, DataViewSelectionChangedHandler } from "./DataView.types";
 
@@ -9,9 +9,9 @@ export interface useDataViewReturnType {
     handleSelectionChanged: DataViewSelectionChangedHandler;
     handleDeleteRecord: (keys: ValuesObject, element?: HTMLElement) => Promise<void>;
     handleDeleteClick: (element?: HTMLElement) => Promise<void>;
-    handleEditClick: (keys: ValuesObject, element?: HTMLElement) => Promise<void>;
-    handleAddClick: (element?: HTMLElement) => Promise<void>;
-    handleViewClick: (keys: ValuesObject, element?: HTMLElement) => Promise<void>;
+    handleEditClick: (keys: ValuesObject, element?: HTMLElement, onClosed?: EntityUIActionClosedCallback) => Promise<void>;
+    handleAddClick: (element?: HTMLElement, onClosed?: EntityUIActionClosedCallback) => Promise<void>;
+    handleViewClick: (keys: ValuesObject, element?: HTMLElement, onClosed?: EntityUIActionClosedCallback) => Promise<void>;
     handleToggleSelectable: () => void;
     handleRefresh: (searchText: string[] | undefined) => void;
     handleExecuteAction: (action: EntityClientAction, recordIndex?: number, element?: HTMLElement) => Promise<boolean | undefined>;
@@ -32,6 +32,7 @@ export interface useDataViewReturnType {
     handleLoadMore: () => void;
     displayedItemsCount: number;
     recordsCount?: number;
+    mappedClientActionNames: string[];
 }
 
 
@@ -39,8 +40,9 @@ export function useDataView(props: DataViewProps, stateProps: DataGridStateProps
     const {
         entity, parentKeys, viewName, limit, onSelectionChanged, modalFormSize, onModalSaved,
         labels, saveFormBeforeAdd, parentFormAPI, allwaysRefreshOnEntityClose, notExportableColumns, itemsPerPage, onActionExecuted,
-        convertResultToLocaleString, withModalFullscreenButton,
-        onDataRefresh
+        convertResultToLocaleString, withModalFullscreenButton, onDataRefresh,
+        onAddClick, onEditClick, onDeleteClick, onViewClick,
+        addActionName, editActionName, deleteActionName, viewActionName
     } = props;
 
     const localeFormat = useLocaleFormat({ timeZoneOffset: entity?.API.client.TIMEZONE_OFFSET || 0 });
@@ -62,6 +64,11 @@ export function useDataView(props: DataViewProps, stateProps: DataGridStateProps
     const [displayedItemsCount, setDisplayedItemsCount] = useState(itemsPerPage!);
 
     const [viewResult, setViewResult] = useState<DataResult | null>(null);
+
+    const mappedClientActionNames = useMemo(() =>
+        [addActionName, editActionName, deleteActionName, viewActionName].filter((actionName): actionName is string => Boolean(actionName)),
+        [addActionName, deleteActionName, editActionName, viewActionName]
+    );
 
 
     // MMC: we can't use callbacks here because we need to use the latest values of the state variables
@@ -86,7 +93,8 @@ export function useDataView(props: DataViewProps, stateProps: DataGridStateProps
     const UIAPI = useEntityUI({
         entity, parentKeys, modalFormSize, parentFormAPI, saveFormBeforeAdd, withModalFullscreenButton, onModalSaved: handleModalSaved,
         onModalClosed: handleAllwaysRefreshOnClose,
-        onRecordsDeleted: internalRefresh, onActionRefreshOnClose: internalRefresh, labels, onActionExecuted
+        onRecordsDeleted: internalRefresh, onActionRefreshOnClose: internalRefresh, labels,
+        onAddClick, onEditClick, onDeleteClick, onViewClick, onActionExecuted
     });
 
     const getRecordKeys = useCallback((record: ValuesRecord): ValuesObject => {
@@ -164,30 +172,100 @@ export function useDataView(props: DataViewProps, stateProps: DataGridStateProps
         setToggleSelectable(prev => !prev);
     }, []);
 
-    const handleEditClick = useCallback(async (keys: ValuesObject, element?: HTMLElement) => {
-        if (!entity || entity.Form === null) return;
-        if (!keys) return;
+    const handleExecuteMappedAction = useCallback(async (buttonName: string, actionName: string, keys: ValuesObject[], element?: HTMLElement) => {
+        if (!entity) {
+            console.warn(`DataView ${buttonName}: cannot execute client action '${actionName}' because no entity is defined.`);
+            return;
+        }
 
-        await UIAPI.handleEditClick(keys, element);
+        const action = entity.def.clientActions[actionName];
+        if (!action) {
+            console.warn(`DataView ${buttonName}: client action '${actionName}' was not found in entity '${entity.name}'.`);
+            return;
+        }
+
+        await UIAPI.handleExecuteAction(action, keys, element);
     }, [UIAPI, entity]);
 
-    const handleViewClick = useCallback(async (keys: ValuesObject, element?: HTMLElement) => {
-        if (!entity || entity.Form === null) return;
+    const handleAddClick = useCallback(async (element?: HTMLElement, onClosed?: EntityUIActionClosedCallback) => {
+        if (onAddClick) {
+            await UIAPI.handleAddClick(element, onClosed);
+            return;
+        }
+
+        if (addActionName) {
+            await handleExecuteMappedAction('Add', addActionName, getSelectionKeys(), element);
+            return;
+        }
+
+        await UIAPI.handleAddClick(element, onClosed);
+    }, [UIAPI, addActionName, getSelectionKeys, handleExecuteMappedAction, onAddClick]);
+
+    const handleEditClick = useCallback(async (keys: ValuesObject, element?: HTMLElement, onClosed?: EntityUIActionClosedCallback) => {
         if (!keys) return;
 
-        await UIAPI.handleViewClick(keys, element);
-    }, [entity, UIAPI]);
+        if (onEditClick) {
+            await UIAPI.handleEditClick(keys, element, onClosed);
+            return;
+        }
+
+        if (editActionName) {
+            await handleExecuteMappedAction('Edit', editActionName, [keys], element);
+            return;
+        }
+
+        if (!entity || entity.Form === null) return;
+        await UIAPI.handleEditClick(keys, element, onClosed);
+    }, [UIAPI, editActionName, entity, handleExecuteMappedAction, onEditClick]);
+
+    const handleViewClick = useCallback(async (keys: ValuesObject, element?: HTMLElement, onClosed?: EntityUIActionClosedCallback) => {
+        if (!keys) return;
+
+        if (onViewClick) {
+            await UIAPI.handleViewClick(keys, element, onClosed);
+            return;
+        }
+
+        if (viewActionName) {
+            await handleExecuteMappedAction('View', viewActionName, [keys], element);
+            return;
+        }
+
+        if (!entity || entity.Form === null) return;
+        await UIAPI.handleViewClick(keys, element, onClosed);
+    }, [entity, UIAPI, handleExecuteMappedAction, onViewClick, viewActionName]);
 
     const handleDeleteClick = useCallback(async (element?: HTMLElement) => {
         const keys = getSelectionKeys();
+
+        if (onDeleteClick) {
+            await UIAPI.handleDeleteClick(keys, element);
+            return;
+        }
+
+        if (deleteActionName) {
+            await handleExecuteMappedAction('Delete', deleteActionName, keys, element);
+            return;
+        }
+
         await UIAPI.handleDeleteClick(keys, element);
-    }, [UIAPI, getSelectionKeys]);
+    }, [UIAPI, deleteActionName, getSelectionKeys, handleExecuteMappedAction, onDeleteClick]);
 
     const handleDeleteRecord = useCallback(async (keys: ValuesObject, element?: HTMLElement) => {
         if (!keys) return;
 
+        if (onDeleteClick) {
+            await UIAPI.handleDeleteClick([keys], element);
+            return;
+        }
+
+        if (deleteActionName) {
+            await handleExecuteMappedAction('Delete', deleteActionName, [keys], element);
+            return;
+        }
+
         await UIAPI.handleDeleteRecord(keys, element);
-    }, [UIAPI]);
+    }, [UIAPI, deleteActionName, handleExecuteMappedAction, onDeleteClick]);
 
     const handleExecuteAction = useCallback(async (action: EntityClientAction, recordIndex?: number, element?: HTMLElement) => {
         if (recordIndex !== undefined) {
@@ -245,7 +323,7 @@ export function useDataView(props: DataViewProps, stateProps: DataGridStateProps
         handleDeleteRecord,
         handleDeleteClick,
         handleEditClick,
-        handleAddClick: UIAPI.handleAddClick,
+        handleAddClick,
         handleViewClick,
         handleToggleSelectable,
         handleRefresh,
@@ -267,5 +345,6 @@ export function useDataView(props: DataViewProps, stateProps: DataGridStateProps
         handleLoadMore,
         displayedItemsCount,
         recordsCount: data.current.length,
+        mappedClientActionNames,
     }
 }

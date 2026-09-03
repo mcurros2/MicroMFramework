@@ -1,17 +1,19 @@
 import ExcelJS from 'exceljs';
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DBStatusResult, OperationStatus, Value, ValuesObject, ValuesRecord } from "../../client";
 import { EntityClientAction, extractCompoundRecordKeys } from "../../Entity";
-import { useEntityUI } from "../Core";
+import { type EntityUIActionClosedCallback, useEntityUI } from "../Core";
 import { GridColumn, GridDoubleClickCallback, GridSelection, GridSelectionChangedCallback } from "../Grid";
 import { DataGridProps, DataGridSelectionKeys, DataGridStateProps } from "./DataGrid.types";
 
 export function useDataGrid(props: DataGridProps, stateProps: DataGridStateProps) {
     const {
         entity, parentKeys, viewName, onSelectionChanged, modalFormSize,
-        labels, saveFormBeforeAdd, parentFormAPI, allwaysRefreshOnEntityClose, onAddClick, onModalSaved,
+        labels, saveFormBeforeAdd, parentFormAPI, allwaysRefreshOnEntityClose,
+        onAddClick, onEditClick, onDeleteClick, onViewClick, onModalSaved,
         onDataRefresh, onActionExecuted, formMode, doubleClickAction, notExportableColumns, withModalFullscreenButton,
-        initialHiddenColumns, enableEdit, enableView, initialSelectRowsToggle, entityProcName
+        initialHiddenColumns, enableEdit, enableView, initialSelectRowsToggle, entityProcName,
+        addActionName, editActionName, deleteActionName, viewActionName
     } = props;
 
     const { setRefresh, setSearchText, executeViewState } = stateProps;
@@ -27,6 +29,11 @@ export function useDataGrid(props: DataGridProps, stateProps: DataGridStateProps
 
     const [columns, setColumns] = useState<GridColumn[]>();
     const [rows, setRows] = useState<ValuesRecord[]>();
+
+    const mappedClientActionNames = useMemo(() =>
+        [addActionName, editActionName, deleteActionName, viewActionName].filter((actionName): actionName is string => Boolean(actionName)),
+        [addActionName, deleteActionName, editActionName, viewActionName]
+    );
 
     const internalRefresh = useCallback(() => {
         setRefresh((prev) => !prev);
@@ -48,7 +55,8 @@ export function useDataGrid(props: DataGridProps, stateProps: DataGridStateProps
 
     const UIAPI = useEntityUI({
         entity, parentKeys, modalFormSize, parentFormAPI, saveFormBeforeAdd, onModalSaved: handleModalSaved, onModalClosed: handleAlwaysRefreshOnClose,
-        onRecordsDeleted: internalRefresh, onActionRefreshOnClose: internalRefresh, labels, onAddClick, onActionExecuted, withModalFullscreenButton,
+        onRecordsDeleted: internalRefresh, onActionRefreshOnClose: internalRefresh, labels,
+        onAddClick, onEditClick, onDeleteClick, onViewClick, onActionExecuted, withModalFullscreenButton,
         entityProcName, onImportSuccess: internalRefresh
     });
 
@@ -69,8 +77,7 @@ export function useDataGrid(props: DataGridProps, stateProps: DataGridStateProps
                     keys[columnName] = record[record_properties[idx]] as Value;
                 }
                 const compound_key_groups = entity.def.views[viewName].compoundKeyGroups ?? {};
-                for (const groupName in compound_key_groups)
-                {
+                for (const groupName in compound_key_groups) {
                     const compoundGroup = compound_key_groups[groupName];
                     const compoundKeys = extractCompoundRecordKeys(record, compoundGroup);
                     if (!compoundKeys) {
@@ -98,31 +105,91 @@ export function useDataGrid(props: DataGridProps, stateProps: DataGridStateProps
     }, [onSelectionChanged, getSelectionKeys]);
 
 
-    const handleEditClick = useCallback(async (element?: HTMLElement) => {
-        if (entity?.Form === null) return;
-        const keys = selectionKeys.current;
-        if (keys.length) {
-            await UIAPI.handleEditClick(keys[0], element);
-        }
-    }, [entity?.Form, UIAPI]);
-
-    const handleViewClick = useCallback(async (element?: HTMLElement) => {
-        if (entity?.Form === null) return;
-        const keys = selectionKeys.current;
-        if (keys.length) {
-            await UIAPI.handleViewClick(keys[0], element);
-        }
-    }, [entity?.Form, UIAPI]);
-
-    const handleDeleteClick = useCallback(async (element?: HTMLElement) => {
-        const keys = selectionKeys.current;
-        await UIAPI.handleDeleteClick(keys, element);
-    }, [UIAPI]);
-
     const handleExecuteAction = useCallback(async (action: EntityClientAction, recordIndex?: number, element?: HTMLElement) => {
         const keys = selectionKeys.current;
         await UIAPI.handleExecuteAction(action, keys, element);
     }, [UIAPI]);
+
+    const handleExecuteMappedAction = useCallback(async (buttonName: string, actionName: string, element?: HTMLElement) => {
+        if (!entity) {
+            console.warn(`DataGrid ${buttonName}: cannot execute client action '${actionName}' because no entity is defined.`);
+            return;
+        }
+
+        const action = entity.def.clientActions[actionName];
+        if (!action) {
+            console.warn(`DataGrid ${buttonName}: client action '${actionName}' was not found in entity '${entity.name}'.`);
+            return;
+        }
+
+        await handleExecuteAction(action, undefined, element);
+    }, [entity, handleExecuteAction]);
+
+    const handleAddClick = useCallback(async (element?: HTMLElement, onClosed?: EntityUIActionClosedCallback) => {
+        if (onAddClick) {
+            await UIAPI.handleAddClick(element, onClosed);
+            return;
+        }
+
+        if (addActionName) {
+            await handleExecuteMappedAction('Add', addActionName, element);
+            return;
+        }
+
+        await UIAPI.handleAddClick(element, onClosed);
+    }, [UIAPI, addActionName, handleExecuteMappedAction, onAddClick]);
+
+    const handleEditClick = useCallback(async (element?: HTMLElement, onClosed?: EntityUIActionClosedCallback) => {
+        const keys = selectionKeys.current;
+
+        if (onEditClick) {
+            if (keys.length) await UIAPI.handleEditClick(keys[0], element, onClosed);
+            return;
+        }
+
+        if (editActionName) {
+            await handleExecuteMappedAction('Edit', editActionName, element);
+            return;
+        }
+
+        if (keys.length) {
+            await UIAPI.handleEditClick(keys[0], element, onClosed);
+        }
+    }, [UIAPI, editActionName, handleExecuteMappedAction, onEditClick]);
+
+    const handleViewClick = useCallback(async (element?: HTMLElement, onClosed?: EntityUIActionClosedCallback) => {
+        const keys = selectionKeys.current;
+
+        if (onViewClick) {
+            if (keys.length) await UIAPI.handleViewClick(keys[0], element, onClosed);
+            return;
+        }
+
+        if (viewActionName) {
+            await handleExecuteMappedAction('View', viewActionName, element);
+            return;
+        }
+
+        if (keys.length) {
+            await UIAPI.handleViewClick(keys[0], element, onClosed);
+        }
+    }, [UIAPI, handleExecuteMappedAction, onViewClick, viewActionName]);
+
+    const handleDeleteClick = useCallback(async (element?: HTMLElement) => {
+        const keys = selectionKeys.current;
+
+        if (onDeleteClick) {
+            await UIAPI.handleDeleteClick(keys, element);
+            return;
+        }
+
+        if (deleteActionName) {
+            await handleExecuteMappedAction('Delete', deleteActionName, element);
+            return;
+        }
+
+        await UIAPI.handleDeleteClick(keys, element);
+    }, [UIAPI, deleteActionName, handleExecuteMappedAction, onDeleteClick]);
 
     const handleDoubleClick = useCallback<GridDoubleClickCallback>(async (record) => {
         if (doubleClickAction === 'none' || doubleClickAction === undefined) return;
@@ -234,7 +301,7 @@ export function useDataGrid(props: DataGridProps, stateProps: DataGridStateProps
         handleDoubleClick,
         handleDeleteClick,
         handleEditClick,
-        handleAddClick: UIAPI.handleAddClick,
+        handleAddClick,
         handleViewClick,
         handleToggleSelectable,
         handleRefresh,
@@ -248,5 +315,6 @@ export function useDataGrid(props: DataGridProps, stateProps: DataGridStateProps
         isLoading,
         handleImportDataClick,
         setColumns,
+        mappedClientActionNames,
     }
 }

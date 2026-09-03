@@ -21,6 +21,7 @@ export interface DataGridActionsToolbarProps {
 
     showActions?: boolean,
     clientActions: Record<string, EntityClientAction>,
+    excludedClientActionNames?: readonly string[],
     actionsButtonVariant?: ButtonVariant,
     handleExecuteAction: (action: EntityClientAction, recordIndex?: number, element?: HTMLElement) => void,
 
@@ -44,7 +45,7 @@ export function DataGridActionsToolbar(props: DataGridActionsToolbarProps) {
         size, viewName,
         addLabel, editLabel, deleteLabel, viewLabel,
         enableAdd, enableEdit, enableDelete, enableView,
-        showActions, clientActions, actionsButtonVariant, handleExecuteAction,
+        showActions, clientActions, excludedClientActionNames, actionsButtonVariant, handleExecuteAction,
         onAddClick, onEditClick, onDeleteClick, onViewClick, parentFormMode
     } = useComponentDefaultProps('DataGridActionsToolbar', DataGridActionsToolbarDefaultProps, props);
 
@@ -56,6 +57,7 @@ export function DataGridActionsToolbar(props: DataGridActionsToolbarProps) {
     const actionElements = useRef<(HTMLButtonElement | null)[]>([]);
 
     const { buttonsSize } = getToolbarSizes(size!);
+    const excludedClientActions = new Set(excludedClientActionNames);
 
 
     return (
@@ -66,16 +68,18 @@ export function DataGridActionsToolbar(props: DataGridActionsToolbarProps) {
                 {enableDelete && onDeleteClick && parentFormMode !== 'view' && <Button size={buttonsSize} ref={deleteElement} variant={actionsButtonVariant} onClick={async () => await onDeleteClick(deleteElement.current as HTMLElement)}>{deleteLabel}</Button>}
                 {enableView && onViewClick && <Button size={buttonsSize} ref={viewElement} variant={actionsButtonVariant} onClick={async () => await onViewClick(viewElement.current as HTMLElement)}>{viewLabel}</Button>}
                 {showActions &&
-                    Object.values(clientActions).map(
-                        (action, index) => {
-                            if (parentFormMode === undefined) return null;
-                            if (parentFormMode === 'view' && !action.showActionInViewMode) return null;
-                            if (viewName && action.views && !action.views.includes(viewName)) return null;
-                            return (
-                                <Button leftIcon={action.icon} key={action.name} ref={(el) => (actionElements.current[index] = el)} size={buttonsSize} variant={actionsButtonVariant} onClick={() => handleExecuteAction(action, undefined, actionElements.current[index] ?? undefined)}>{action.label}</Button>
-                            )
-                        }
-                    )
+                    Object.entries(clientActions)
+                        .filter(([actionName]) => !excludedClientActions.has(actionName))
+                        .map(
+                            ([actionName, action], index) => {
+                                if (parentFormMode === undefined) return null;
+                                if (parentFormMode === 'view' && !action.showActionInViewMode) return null;
+                                if (viewName && action.views && !action.views.includes(viewName)) return null;
+                                return (
+                                    <Button leftIcon={action.icon} key={actionName} ref={(el) => (actionElements.current[index] = el)} size={buttonsSize} variant={actionsButtonVariant} onClick={() => handleExecuteAction(action, undefined, actionElements.current[index] ?? undefined)}>{action.label}</Button>
+                                )
+                            }
+                        )
                 }
             </Group>
         </Box>

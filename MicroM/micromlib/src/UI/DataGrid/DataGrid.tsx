@@ -204,6 +204,7 @@ export function DataGrid(props: DataGridProps) {
 
                                 actionsButtonVariant={actionsButtonVariant}
                                 clientActions={entity?.def.clientActions ?? {}}
+                                excludedClientActionNames={dataGridAPI.mappedClientActionNames}
                                 handleExecuteAction={dataGridAPI.handleExecuteAction}
                                 showActions={showActions}
 

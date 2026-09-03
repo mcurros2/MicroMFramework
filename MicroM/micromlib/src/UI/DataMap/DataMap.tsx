@@ -450,6 +450,7 @@ export function DataMap(props: DataMapProps) {
 
                             actionsButtonVariant={actionsButtonVariant}
                             clientActions={entity ? entity.def.clientActions : {}}
+                            excludedClientActionNames={dataGridAPI.mappedClientActionNames}
                             handleExecuteAction={dataGridAPI.handleExecuteAction}
                             showActions={showActions}
 

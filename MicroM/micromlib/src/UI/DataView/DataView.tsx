@@ -162,6 +162,7 @@ export const DataView = forwardRef(function DataView(props: DataViewProps, ref: 
 
                         actionsButtonVariant={actionsButtonVariant}
                         clientActions={entity ? entity.def.clientActions : {}}
+                        excludedClientActionNames={dataViewAPI.mappedClientActionNames}
 
                         handleExecuteAction={dataViewAPI.handleExecuteAction}
 

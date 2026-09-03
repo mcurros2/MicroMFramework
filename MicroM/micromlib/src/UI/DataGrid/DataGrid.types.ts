@@ -42,6 +42,14 @@ export interface DataGridProps extends UseEntityUIProps {
     enableEdit?: boolean,
     enableDelete?: boolean,
     enableView?: boolean,
+    /** Entity client action registry key used when onAddClick is not defined. */
+    addActionName?: string,
+    /** Entity client action registry key used when onEditClick is not defined. */
+    editActionName?: string,
+    /** Entity client action registry key used when onDeleteClick is not defined. */
+    deleteActionName?: string,
+    /** Entity client action registry key used when onViewClick is not defined. */
+    viewActionName?: string,
     enableExport?: boolean,
     filtersFormSize?: MantineNumberSize,
     showActions?: boolean,

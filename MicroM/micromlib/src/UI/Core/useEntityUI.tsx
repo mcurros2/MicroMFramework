@@ -30,6 +30,9 @@ export interface EntityUILabels {
     YouMustSelectMaximum: string,
 }
 
+export type EntityUIActionClosedCallback = (cancelled?: boolean) => void | Promise<void>;
+export type EntityUIAddClick = (element?: HTMLElement, onClosed?: EntityUIActionClosedCallback) => Promise<void>;
+
 export interface UseEntityUIProps {
     entity?: Entity<EntityDefinition>,
     parentKeys?: ValuesObject,
@@ -42,9 +45,10 @@ export interface UseEntityUIProps {
     onRecordsDeleted?: () => void,
     onActionRefreshOnClose?: () => void,
     labels?: EntityUILabels,
-    onAddClick?: (gridAddClick: (element?: HTMLElement) => void, element?: HTMLElement) => void,
-    onEditClick?: (keys: ValuesObject, element?: HTMLElement) => void,
-    onDeleteClick?: (keys: ValuesObject[], element?: HTMLElement) => void,
+    onAddClick?: (gridAddClick: EntityUIAddClick, element?: HTMLElement, onClosed?: EntityUIActionClosedCallback) => void | Promise<void>,
+    onEditClick?: (keys: ValuesObject, element?: HTMLElement, onClosed?: EntityUIActionClosedCallback) => void | Promise<void>,
+    onDeleteClick?: (keys: ValuesObject[], element?: HTMLElement) => void | Promise<void>,
+    onViewClick?: (keys: ValuesObject, element?: HTMLElement, onClosed?: EntityUIActionClosedCallback) => void | Promise<void>,
     onActionExecuted?: (actionName: string, result?: boolean) => void,
     onModalClosed?: (cancelled?: boolean) => void,
     entityProcName?: string,
@@ -54,7 +58,7 @@ export interface UseEntityUIProps {
 export function useEntityUI(props: UseEntityUIProps) {
     const {
         entity, onModalCancelled, onModalSaved, modalFormSize, parentFormAPI, saveFormBeforeAdd, onModalClosed,
-        parentKeys, labels, onRecordsDeleted, onActionRefreshOnClose, onAddClick, onEditClick, onDeleteClick, onActionExecuted,
+        parentKeys, labels, onRecordsDeleted, onActionRefreshOnClose, onAddClick, onEditClick, onDeleteClick, onViewClick, onActionExecuted,
         withModalFullscreenButton, entityProcName, onImportSuccess,
     } = props;
 
@@ -153,7 +157,7 @@ export function useEntityUI(props: UseEntityUIProps) {
     }, [entity, entityProcName, handleSaveBeforeAdd, importData, parentKeys]);
 
 
-    const internalAddClick = useCallback(async (element?: HTMLElement, onClosed?: (cancelled?: boolean) => void) => {
+    const internalAddClick = useCallback(async (element?: HTMLElement, onClosed?: EntityUIActionClosedCallback) => {
         if (entity?.Form === null) return;
 
         const addEntity = Entity.clone(entity!);
@@ -171,14 +175,14 @@ export function useEntityUI(props: UseEntityUIProps) {
     }, [entity, labels?.addLabel, openForm, parentFormAPI, parentKeys]);
 
 
-    const handleAddClick = useCallback(async (element?: HTMLElement, onClosed?: (cancelled?: boolean) => void) => {
+    const handleAddClick = useCallback(async (element?: HTMLElement, onClosed?: EntityUIActionClosedCallback) => {
         if (!onAddClick && (entity?.Form === null || entity === undefined)) return;
 
         const resultSaveBeforeAdd = await handleSaveBeforeAdd();
         if (resultSaveBeforeAdd === "error") return;
 
         if (onAddClick) {
-            await onAddClick(internalAddClick, element);
+            await onAddClick(internalAddClick, element, onClosed);
         }
         else {
             await internalAddClick(element, onClosed);
@@ -187,7 +191,7 @@ export function useEntityUI(props: UseEntityUIProps) {
     }, [onAddClick, entity, handleSaveBeforeAdd, internalAddClick]);
 
 
-    const handleEditClick = useCallback(async (keys: ValuesObject, element?: HTMLElement, onClosed?: (cancelled?: boolean) => void) => {
+    const internalEditClick = useCallback(async (keys: ValuesObject, element?: HTMLElement, onClosed?: EntityUIActionClosedCallback) => {
         if (entity?.Form === null) return;
         if (keys) {
             // MMC: handleSaveBeforeAdd special case, if the parentform is in add mode and the form is not saved, we save it before editing
@@ -211,7 +215,16 @@ export function useEntityUI(props: UseEntityUIProps) {
         }
     }, [entity, handleSaveBeforeAdd, parentKeys, openForm, labels?.editLabel, parentFormAPI]);
 
-    const handleViewClick = useCallback(async (keys: ValuesObject, element?: HTMLElement, onClosed?: (cancelled?: boolean) => void) => {
+    const handleEditClick = useCallback(async (keys: ValuesObject, element?: HTMLElement, onClosed?: EntityUIActionClosedCallback) => {
+        if (onEditClick) {
+            await onEditClick(keys, element, onClosed);
+            return;
+        }
+
+        await internalEditClick(keys, element, onClosed);
+    }, [internalEditClick, onEditClick]);
+
+    const internalViewClick = useCallback(async (keys: ValuesObject, element?: HTMLElement, onClosed?: EntityUIActionClosedCallback) => {
         if (entity?.Form === null) return;
         if (keys) {
             const viewEntity = Entity.clone(entity!);
@@ -227,7 +240,16 @@ export function useEntityUI(props: UseEntityUIProps) {
         }
     }, [entity, parentKeys, openForm, labels?.viewLabel]);
 
-    const handleDeleteClick = useCallback(async (keys: ValuesObject[], element?: HTMLElement) => {
+    const handleViewClick = useCallback(async (keys: ValuesObject, element?: HTMLElement, onClosed?: EntityUIActionClosedCallback) => {
+        if (onViewClick) {
+            await onViewClick(keys, element, onClosed);
+            return;
+        }
+
+        await internalViewClick(keys, element, onClosed);
+    }, [internalViewClick, onViewClick]);
+
+    const internalDeleteClick = useCallback(async (keys: ValuesObject[], element?: HTMLElement) => {
         if (!entity) return;
         if (keys.length) {
             const abort_controller = new AbortController();
@@ -299,6 +321,15 @@ export function useEntityUI(props: UseEntityUIProps) {
             });
         }
     }, [entity, modals, labels, parentKeys, onRecordsDeleted]);
+
+    const handleDeleteClick = useCallback(async (keys: ValuesObject[], element?: HTMLElement) => {
+        if (onDeleteClick) {
+            await onDeleteClick(keys, element);
+            return;
+        }
+
+        await internalDeleteClick(keys, element);
+    }, [internalDeleteClick, onDeleteClick]);
 
     const handleDeleteRecord = useCallback(async (keys: ValuesObject, element?: HTMLElement) => {
         await handleDeleteClick([keys], element);

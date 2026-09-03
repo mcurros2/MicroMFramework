@@ -83,7 +83,6 @@ export function useLookupForm() {
                         entity: entity,
                         parentKeys: parentKeys,
                         viewName: viewName,
-                        limit: "10000",
                         refreshOnInit: true,
                         selectionMode: (selectionMode) ? selectionMode : 'multi',
                         search: search,
