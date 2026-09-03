@@ -154,7 +154,7 @@ export const ModalsManager = ({ modalProps, animationDuration, children }: Modal
     }, [isClosing]);
 
     const getModalSize = useCallback((size?: MicroMModalSize): { size?: MantineNumberSize, fullscreen?: boolean } => {
-        if (size === 'fullscreen' || size === '100%' || (viewportWidth < 768 && (['md', 'lg', 'xl', 'fullscreen'] as MicroMModalSize[]).includes(size ?? ''))) return { fullscreen: true, size: undefined };
+        if (size === 'fullscreen' || size === '100%' || (viewportWidth < 768 && (['xs', 'sm', 'md', 'lg', 'xl', 'fullscreen'] as MicroMModalSize[]).includes(size ?? ''))) return { fullscreen: true, size: undefined };
 
         let new_size = size;
         if (size && NEW_SIZES[size]) {
