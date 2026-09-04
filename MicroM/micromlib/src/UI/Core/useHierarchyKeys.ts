@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Value } from "../../client";
 import { UseEntityFormReturnType } from "../Form";
 
@@ -36,74 +36,109 @@ const areParentKeysArraysEqual = (left: Record<string, Value>[], right: Record<s
     });
 };
 
+const areStringArraysEqual = (left: string[] | undefined, right: string[] | undefined) => {
+    if (left === undefined || right === undefined) return left === right;
+    return left.length === right.length && left.every((value, index) => value === right[index]);
+};
+
+interface HierarchyKeysState {
+    parentKeysArray: Record<string, Value>[];
+    hierarchyValues: Value[];
+    hierarchy: string[];
+    mappedHierarchy?: string[];
+    processedGetStatus?: UseEntityFormReturnType['status'];
+    changedIndex?: number;
+    changeRevision: number;
+}
+
 export function useHierarchyKeys(props: UseHierarchyKeysProps) {
     const { formAPI, hierarchy, mappedHierarchy } = props;
 
-    const [parentKeysArray, setParentKeysArray] = useState<Record<string, Value>[]>(() =>
-        generateParentKeysArray(hierarchy, mappedHierarchy, formAPI.form.values)
-    );
-    const parentKeysArrayRef = useRef(parentKeysArray);
+    const [hierarchyState, setHierarchyState] = useState<HierarchyKeysState>(() => ({
+        parentKeysArray: generateParentKeysArray(hierarchy, mappedHierarchy, formAPI.form.values),
+        hierarchyValues: hierarchy.map(name => formAPI.form.values[name]),
+        hierarchy: [...hierarchy],
+        mappedHierarchy: mappedHierarchy ? [...mappedHierarchy] : undefined,
+        changeRevision: 0,
+    }));
 
-    // Previous values are handled in hierarchy order and are not affected by mapping.
-    const previousHierarchyValues = useRef<Value[]>(hierarchy.map(name => formAPI.form.values[name]));
-    const processedGetStatus = useRef<typeof formAPI.status | undefined>(undefined);
+    const currentHierarchyValues = hierarchy.map(name => formAPI.form.values[name]);
 
-    useEffect(() => {
-        const currentHierarchyValues = hierarchy.map(name => formAPI.form.values[name]);
-        const isGetLoading = formAPI.status.operationType === 'get' && formAPI.status.loading === true;
+    const isGetLoading = formAPI.status.operationType === 'get' && formAPI.status.loading === true;
 
-        // Values applied by a get are authoritative. Wait for the get to finish, then
-        // synchronize the hierarchy without treating those values as user changes.
-        if (isGetLoading) return;
+    const isExistingRecordMode = formAPI.formMode === 'edit' || formAPI.formMode === 'view';
 
-        const isExistingRecordMode = formAPI.formMode === 'edit' || formAPI.formMode === 'view';
-        const isNewCompletedGet = isExistingRecordMode
-            && formAPI.status.operationType === 'get'
-            && formAPI.status.loading === false
-            && processedGetStatus.current !== formAPI.status;
+    const isNewCompletedGet = isExistingRecordMode
+        && formAPI.status.operationType === 'get'
+        && formAPI.status.loading === false
+        && hierarchyState.processedGetStatus !== formAPI.status;
 
-        if (isNewCompletedGet) {
-            const fetchedParentKeysArray = generateParentKeysArray(hierarchy, mappedHierarchy, formAPI.form.values);
+    const hierarchyConfigurationChanged = !areStringArraysEqual(hierarchyState.hierarchy, hierarchy)
+        || !areStringArraysEqual(hierarchyState.mappedHierarchy, mappedHierarchy);
 
-            if (!areParentKeysArraysEqual(parentKeysArrayRef.current, fetchedParentKeysArray)) {
-                // eslint-disable-next-line react-hooks/set-state-in-effect
-                setParentKeysArray(fetchedParentKeysArray);
-                parentKeysArrayRef.current = fetchedParentKeysArray;
-            }
-
-            previousHierarchyValues.current = currentHierarchyValues;
-            processedGetStatus.current = formAPI.status;
-            return;
-        }
-
+    let detectedChangedIndex = -1;
+    if (!isGetLoading && !isNewCompletedGet && !hierarchyConfigurationChanged) {
         // Use the deepest changed level so controls that update several valid hierarchy
         // levels together only invalidate values below the last value they supplied.
-        let changedIndex = -1;
         currentHierarchyValues.forEach((value, index) => {
-            if (previousHierarchyValues.current[index] !== value) {
-                changedIndex = index;
+            if (hierarchyState.hierarchyValues[index] !== value) {
+                detectedChangedIndex = index;
             }
         });
+    }
 
-        if (changedIndex === -1) return;
+    let resolvedHierarchyState = hierarchyState;
 
-        const newParentKeysArray = generateParentKeysArray(hierarchy, mappedHierarchy, formAPI.form.values, changedIndex);
+    if (!isGetLoading) {
+        const changedIndex = isNewCompletedGet || hierarchyConfigurationChanged
+            ? undefined
+            : detectedChangedIndex === -1 ? hierarchyState.changedIndex : detectedChangedIndex;
 
-        if (!areParentKeysArraysEqual(parentKeysArrayRef.current, newParentKeysArray)) {
-            // eslint-disable-next-line react-hooks/set-state-in-effect
-            setParentKeysArray(newParentKeysArray);
-            parentKeysArrayRef.current = newParentKeysArray;
+        const newParentKeysArray = generateParentKeysArray(
+            hierarchy,
+            mappedHierarchy,
+            formAPI.form.values,
+            changedIndex
+        );
+
+        const parentKeysChanged = !areParentKeysArraysEqual(hierarchyState.parentKeysArray, newParentKeysArray);
+
+        const hierarchyChanged = isNewCompletedGet || hierarchyConfigurationChanged || detectedChangedIndex !== -1;
+
+        if (parentKeysChanged || hierarchyChanged) {
+            // Reconcile before children render so callbacks and effects cannot capture
+            // form values from this render with parent keys from the previous render.
+            const newHierarchyState: HierarchyKeysState = {
+                parentKeysArray: parentKeysChanged ? newParentKeysArray : hierarchyState.parentKeysArray,
+                hierarchyValues: currentHierarchyValues,
+                hierarchy: [...hierarchy],
+                mappedHierarchy: mappedHierarchy ? [...mappedHierarchy] : undefined,
+                processedGetStatus: isNewCompletedGet ? formAPI.status : hierarchyState.processedGetStatus,
+                changedIndex,
+                changeRevision: detectedChangedIndex === -1
+                    ? hierarchyState.changeRevision
+                    : hierarchyState.changeRevision + 1,
+            };
+
+            setHierarchyState(newHierarchyState);
+            resolvedHierarchyState = newHierarchyState;
         }
+    }
 
-        previousHierarchyValues.current = currentHierarchyValues;
+    const committedChangedIndex = hierarchyState.changedIndex;
+    const committedChangeRevision = hierarchyState.changeRevision;
+    const committedHierarchy = hierarchyState.hierarchy;
+
+    useEffect(() => {
+        if (committedChangedIndex === undefined) return;
 
         // Changing the bound value is handled by the control. Descendants must be
         // changed through the form controls receive the update.
-        hierarchy.slice(changedIndex + 1).forEach((name) => {
+        committedHierarchy.slice(committedChangedIndex + 1).forEach((name) => {
             formAPI.form.setFieldValue(name, '');
         });
 
-    }, [formAPI.form, formAPI.form.values, formAPI.formMode, formAPI.status, hierarchy, mappedHierarchy]);
+    }, [committedChangedIndex, committedChangeRevision, committedHierarchy, formAPI.form]);
 
-    return parentKeysArray;
+    return resolvedHierarchyState.parentKeysArray;
 }

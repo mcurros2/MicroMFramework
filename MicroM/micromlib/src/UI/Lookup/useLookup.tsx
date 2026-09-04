@@ -1,7 +1,7 @@
 import { UseFormReturnType } from "@mantine/form";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { OperationStatus, toMicroMError, Value, ValuesObject } from "../../client";
-import { Entity, EntityDefinition, EntityLookup } from "../../Entity";
+import { areValuesObjectsEqual, copyValuesObject, Entity, EntityColumnFlags, EntityDefinition, EntityLookup } from "../../Entity";
 import * as cf from "../../Entity/ColumnsFunctions";
 import { UseEntityFormReturnType } from "../Form";
 import { useLookupForm } from "../Lookup";
@@ -38,10 +38,16 @@ export interface UseLookupReturnType {
     onBlur: (bindingColumn: string, force?: boolean, event?: React.FocusEvent | null) => void;
 }
 
+interface CachedLookup {
+    values: ValuesObject;
+    description: string;
+}
+
 export const useLookup = ({
     entityForm, entity, lookupDefName, column, parentKeys, required, HTMLDescriptionRef,
     enableAdd, enableEdit, enableDelete, enableView, transform
 }: UseLookupOptions): UseLookupReturnType => {
+
     const [status, setStatus] = useState<OperationStatus<ValuesObject>>({});
     const [previousLookupResult, setPreviousLookupResult] = useState<LookupResultState>();
     const [lookupResult, setLookupResult] = useState<LookupResultState>();
@@ -53,22 +59,41 @@ export const useLookup = ({
     const lookupDef = useRef<EntityLookup>();
     const isLooking = useRef<boolean>(false);
     const lastFocusedElement = useRef<Element>();
-    const lastValidLookup = useRef<{ key: Value, description: string }>();
+    const lastValidLookup = useRef<CachedLookup>();
 
 
     const performLookup = useCallback((bindingColumn: string, keyValue: Value, force: boolean = false): Promise<LookupResultState> => {
-        if (!lookupEntity.current) {
+        const currentLookupEntity = lookupEntity.current;
+        const currentLookupDef = lookupDef.current;
+        const currentViewName = viewName.current;
+
+        if (!currentLookupEntity || !currentLookupDef) {
             return Promise.resolve({ columnName: bindingColumn, key: '', description: '', cancel: false, error: false, updateParentKeys: true });
         }
-        const mappedKeyColumnName = lookupDef.current!.bindingColumnKey ?? bindingColumn;
-        lookupEntity.current.def.columns[mappedKeyColumnName].value = keyValue;
-        if (parentKeys) lookupEntity.current.parentKeys = parentKeys;
+
+        const mappedKeyColumnName = currentLookupDef.bindingColumnKey ?? bindingColumn;
+
+        const prepareLookupValues = (lookupKey: Value) => {
+            // Parent keys provide the lookup context, but the explicit typed or selected
+            // key must win when both sources contain the binding column.
+            cf.setValues(currentLookupEntity.def.columns, parentKeys, null, true, true);
+            currentLookupEntity.def.columns[mappedKeyColumnName].value = lookupKey;
+
+            return cf.getValuesObject(
+                currentLookupEntity.def.columns,
+                { flags: EntityColumnFlags.pk | EntityColumnFlags.fk, ignoreDefaults: false }
+            );
+        };
+
+        prepareLookupValues(keyValue);
+        if (parentKeys) currentLookupEntity.parentKeys = parentKeys;
 
         return new Promise<LookupResultState>(async (resolve, reject) => {
 
             const doLookup = async (lookupKey: Value = keyValue) => {
+                const requestValues = prepareLookupValues(lookupKey);
                 const cached = lastValidLookup.current;
-                if (cached && cached.key?.toString() === lookupKey?.toString()) {
+                if (cached && areValuesObjectsEqual(cached.values, requestValues)) {
                     const cachedStatus = {
                         data: { key: lookupKey, description: cached.description }
                     } as OperationStatus<ValuesObject>;
@@ -77,15 +102,18 @@ export const useLookup = ({
                 }
                 try {
                     setStatus({ loading: true });
-                    // Set parentKeys
-                    cf.setValues(lookupEntity.current!.def.columns, parentKeys, null, true, true);
 
-                    const result = await lookupEntity.current!.API.lookupData(null, null, lookupDef.current?.proc);
+                    const result = await currentLookupEntity.API.lookupData(null, null, currentLookupDef.proc);
                     const new_status = {
-                        data: { key: keyValue, description: result }
+                        data: { key: lookupKey, description: result }
                     } as OperationStatus<ValuesObject>;
                     setStatus(new_status);
-                    if (result) lastValidLookup.current = { key: lookupKey, description: result };
+                    if (result) {
+                        lastValidLookup.current = {
+                            values: copyValuesObject(requestValues),
+                            description: result,
+                        };
+                    }
                     return { description: result, status: new_status, errorDescription: '' };
                 }
                 catch (e: any) {
@@ -102,13 +130,12 @@ export const useLookup = ({
                     if (selectedKeys.length > 0) {
                         // MMC: map the binding column using binding column key or the column name
                         const selectedKeyValue = selectedKeys[0][mappedKeyColumnName];
-                        lookupEntity.current!.def.columns[mappedKeyColumnName].value = selectedKeyValue;
                         entityForm.form.setFieldValue(column, selectedKeyValue);
 
                         //lookupEntity.current!.def.columns[bindingColumn].value = selectedKeys[0][bindingColumn];
                         const result = await doLookup(selectedKeyValue);
                         if (result.status.error) {
-                            resolve({ columnName: bindingColumn, key: keyValue, description: '', cancel: false, error: true, updateParentKeys: true, errorDescription: result.errorDescription });
+                            resolve({ columnName: bindingColumn, key: selectedKeyValue, description: '', cancel: false, error: true, updateParentKeys: true, errorDescription: result.errorDescription });
                         }
                         else {
                             resolve({ columnName: bindingColumn, key: selectedKeyValue, description: result.description, cancel: false, error: false, updateParentKeys: true });
@@ -125,11 +152,11 @@ export const useLookup = ({
                 }
 
                 await lookupForm({
-                    entity: lookupEntity.current!,
+                    entity: currentLookupEntity,
                     parentKeys: parentKeys,
                     selectionMode: "single",
                     search: search,
-                    viewName: viewName.current,
+                    viewName: currentViewName,
                     onOK: onOK,
                     onCancel: onCancel,
                     modalProps: { size: "xl", trapFocus: true },
@@ -159,7 +186,7 @@ export const useLookup = ({
             }
 
         });
-    }, [column, entityForm.form, lookupForm, parentKeys, enableAdd, enableEdit, enableDelete, enableView]);
+    }, [column, enableAdd, enableDelete, enableEdit, enableView, entityForm.form, lookupForm, parentKeys]);
 
     const updateLookupType = useCallback((result: LookupResultState) => {
         if (!result.error && !result.cancel) {
@@ -189,6 +216,16 @@ export const useLookup = ({
 
     const lookupInputProps: ReturnType<UseFormReturnType<ValuesObject>['getInputProps']> = entityForm.form.getInputProps(column);
     const mantine_onblur = lookupInputProps.onBlur;
+    const bindingValue = entityForm.form.values[column];
+
+    let resolvedLookupResult = lookupResult;
+    if (lookupResult && !areValuesObjectsEqual({ key: lookupResult.key }, { key: bindingValue })) {
+        // The form can be changed outside this control (for example, when a hierarchy
+        // parent clears its descendants). Do not expose a description for another key.
+        setLookupResult(undefined);
+        setPreviousLookupResult(undefined);
+        resolvedLookupResult = undefined;
+    }
 
     const onBlur = useCallback(async (bindingColumn: string, force: boolean = false, event: React.FocusEvent | null = null, new_value: Value | undefined = undefined) => {
         if (isLooking.current === true) return;
@@ -271,7 +308,7 @@ export const useLookup = ({
 
     return {
         status,
-        lookupResult,
+        lookupResult: resolvedLookupResult,
         lookupInputProps,
         onBlur
     };

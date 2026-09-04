@@ -16,8 +16,11 @@ export function SingleLookup(props: SingleLookupProps) {
     } = useComponentDefaultProps('Lookup', LookupDefaultProps, props);
 
     const theme = useMantineTheme();
+
     const HTMLDescriptionRef = useRef(null);
+
     const textTransform = useTextTransform({ entityForm, column, transform, autoTrim });
+
     const lookupAPI = useLookup({
         entityForm, entity, lookupDefName, column: column.name, parentKeys, required, HTMLDescriptionRef,
         enableAdd, enableEdit, enableDelete, enableView, transform: textTransform,
@@ -30,15 +33,18 @@ export function SingleLookup(props: SingleLookupProps) {
 
     const controlSize = getSize({ size: size ?? "sm", sizes: theme.fontSizes });
     const descriptionSize = getSize({ size: size ?? "sm", sizes: theme.fontSizes });
+
     const labelColor = theme.colorScheme === 'dark' ? theme.colors.dark[0] : theme.colors.gray[9];
     const descriptionColor = theme.colorScheme === 'dark' ? theme.colors.dark[2] : theme.colors.gray[6];
 
-    useEffect(() => { column.valueDescription = lookupAPI.lookupResult?.description; }, [column, lookupAPI.lookupResult?.description]);
+    useEffect(() => { column.valueDescription = lookupAPI.lookupResult?.description ?? ''; }, [column, lookupAPI.lookupResult]);
     useEffect(() => { if (onLookupPerformed && lookupAPI.lookupResult) onLookupPerformed(lookupAPI.lookupResult); }, [lookupAPI.lookupResult, onLookupPerformed]);
 
     const { formMode, status } = entityForm;
+
     const addAutofocus = formMode === 'add' ? true : undefined;
     const editAutofocus = status.loading === false && formMode !== 'add' ? true : undefined;
+
     const readonlyCondition = readonly === undefined ? column.hasFlag(EntityColumnFlags.autoNum) || (entityForm.formMode !== 'add' && column.hasFlag(EntityColumnFlags.pk)) : readonly;
 
     return (
@@ -67,7 +73,7 @@ export function SingleLookup(props: SingleLookupProps) {
                 />
                 <Group style={{ flexGrow: 1 }}>
                     <TextInput size={size} readOnly key={`${entity.name}${column.name}description`}
-                        value={lookupAPI.lookupResult?.description} rightSection={lookupAPI.status.loading && <Loader size="xs" variant="bars" />}
+                        value={lookupAPI.lookupResult?.description ?? ''} rightSection={lookupAPI.status.loading && <Loader size="xs" variant="bars" />}
                         ref={HTMLDescriptionRef} sx={{ flexGrow: 1 }} />
                 </Group>
             </Group>
