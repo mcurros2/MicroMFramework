@@ -5,9 +5,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DBStatus, DBStatusResult, MicroMRequestOptions, OperationStatus, SQLType, toDBStatusMicroMError, toMicroMError, Value, ValuesObject } from "../../client";
 import { areValuesObjectsEqual, Entity, EntityColumn, EntityDefinition, isIn, setValues } from "../../Entity";
 import { ValidationRule } from "../../Validation";
-import { FormMode, FormOptions, useStateReturnType } from "../Core";
+import { FormMode, FormOptions, useStateReturnType, ValidateFormResult } from "../Core";
 import { useConfirmNavigation } from "../Router/useConfirmNavigation";
 import { getMantineInitialValuesObject, getMantineValuesObject } from "./MantineFormHelpers";
+import { useValidateFormModals, ValidateFormLabelsDefaultProps } from "./useValidateFormModals";
 
 export interface UseEntityFormOptions extends FormOptions<Entity<EntityDefinition>> {
     validateInputOnBlur?: boolean,
@@ -65,8 +66,10 @@ export function useEntityForm(props: UseEntityFormOptions): UseEntityFormReturnT
     const {
         entity, initialFormMode, validateInputOnBlur, validateInputOnChange, onSaved, onCancel,
         getDataOnInit, forceDirty, initialShowDescriptionInFields, saveAndGetOverride, noSaveOnSubmit, bindedColumnNames,
-        saveAndGetOnSubmit, cancelGetOnUnmount, cancelSaveOnUnmount, navigationProtection,
+        saveAndGetOnSubmit, cancelGetOnUnmount, cancelSaveOnUnmount, navigationProtection, validateForm,
     } = useComponentDefaultProps('', UseEntityFormDefaultProps, props);
+
+    const { confirmWarning, showValidationError } = useValidateFormModals();
 
     const [status, setStatus] = useState<OperationStatus<DBStatusResult | ValuesObject>>({}); // Initial queryStatus is empty on purpose to not disable fields before data is loaded
     const notifyValidationErrorState = useState<boolean>(false);
@@ -239,6 +242,30 @@ export function useEntityForm(props: UseEntityFormOptions): UseEntityFormReturnT
             setNotifyValidationError(true);
         }
         else {
+            if (validateForm) {
+                let validation: ValidateFormResult;
+                try {
+                    validation = await Promise.resolve(validateForm(form.values));
+                }
+                catch (e) {
+                    console.error('validateForm callback failed', e);
+                    validation = { error: ValidateFormLabelsDefaultProps.unexpectedErrorLabel };
+                }
+                if (validation?.error) {
+                    await showValidationError(validation.error);
+                    return;
+                }
+                else if (validation?.warning) {
+                    if (!await confirmWarning(validation.warning)) return;
+                }
+                else if (validation?.success !== true) {
+                    // a malformed result (e.g. undefined from untyped JS) must not be treated as success
+                    console.error('validateForm returned an invalid result', validation);
+                    await showValidationError(ValidateFormLabelsDefaultProps.unexpectedErrorLabel);
+                    return;
+                }
+            }
+
             let save_result: OperationStatus<DBStatusResult>;
             if (saveAndGetOverride) {
                 try {
@@ -290,7 +317,7 @@ export function useEntityForm(props: UseEntityFormOptions): UseEntityFormReturnT
             }
 
         }
-    }, [form, onSaved, saveAndGet, saveAndGetOverride, setNotifyValidationError, saveAndGetOnSubmit]);
+    }, [form, onSaved, saveAndGet, saveAndGetOverride, setNotifyValidationError, saveAndGetOnSubmit, validateForm, confirmWarning, showValidationError]);
 
     // Validation, InitialValues, InitialDirty
     const addValidation = useCallback((column: EntityColumn<Value>, validation?: ValidationRule) => {
