@@ -21,17 +21,17 @@ export function useValidateFormModals() {
         return new Promise<boolean>((resolve) => {
             let confirmed = false;
             void modals.open({
+                modalProps: {
+                    title: <Group><IconAlertTriangle size="1.5rem" /> <Text fw={700}>{ValidateFormLabelsDefaultProps.warningTitle}</Text></Group>,
+                },
                 content: <ConfirmAndExecutePanel
-                    content={<Stack spacing="xs">{warning}<Text size="sm" fw={700}>{ValidateFormLabelsDefaultProps.doYouWantToContinueLabel}</Text></Stack>}
+                    content={<Stack spacing="xs">{warning}<Text size="sm">{ValidateFormLabelsDefaultProps.doYouWantToContinueLabel}</Text></Stack>}
                     operation="other"
                     okButtonText={ValidateFormLabelsDefaultProps.continueLabel}
                     cancelButtonText={ValidateFormLabelsDefaultProps.cancelLabel}
                     onOK={async () => { confirmed = true; await modals.close(); }}
                     onCancel={async () => { await modals.close(); }}
                 />,
-                modalProps: {
-                    title: <Group spacing="xs"><IconAlertTriangle size="1.25rem" /><Text fw={700}>{ValidateFormLabelsDefaultProps.warningTitle}</Text></Group>,
-                },
                 // single resolution point: fires on any close, so an external close counts as cancel
                 onClosed: () => resolve(confirmed),
             });

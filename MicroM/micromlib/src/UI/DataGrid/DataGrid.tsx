@@ -71,7 +71,8 @@ export function DataGrid(props: DataGridProps) {
         enableAdd, enableEdit, enableDelete, enableView, enableExport, columnBorders, autoSizeColumnsOnLoad, rowBorders, withBorder,
         labels, columnsOverrides, toolbarSize, viewName, showActions, renderOnlyWhenVisible, filtersFormSize, parentKeys, search,
         limit, parentFormAPI, showToolbar, showActionsToolbar, enableImport, setInitialFiltersFromColumns, visibleFilters, formMode,
-        showColumnsConfigMenu, showSelectRowsButton, maxSearchTerms, minGridHeight, refreshOnInit, onSearch, onSearchTextChange
+        showColumnsConfigMenu, showSelectRowsButton, maxSearchTerms, minGridHeight, refreshOnInit, onSearch, onSearchTextChange,
+        addActionName, editActionName, deleteActionName, viewActionName
     } = props;
 
     const theme = useMantineTheme();
@@ -131,6 +132,19 @@ export function DataGrid(props: DataGridProps) {
         minHeight: effectiveMinGridHeight
     }
 
+    // change add, edit, delete, view labels if overriden by addActionName, editActionName, deleteActionName, viewActionName
+    const addLabel = addActionName && entity?.def.clientActions[addActionName] && typeof entity.def.clientActions[addActionName].label === 'string' ? entity.def.clientActions[addActionName].label : labels!.addLabel;
+    const editLabel = editActionName && entity?.def.clientActions[editActionName] && typeof entity.def.clientActions[editActionName].label === 'string' ? entity.def.clientActions[editActionName].label : labels!.editLabel;
+    const deleteLabel = deleteActionName && entity?.def.clientActions[deleteActionName] && typeof entity.def.clientActions[deleteActionName].label === 'string' ? entity.def.clientActions[deleteActionName].label : labels!.deleteLabel;
+    const viewLabel = viewActionName && entity?.def.clientActions[viewActionName] && typeof entity.def.clientActions[viewActionName].label === 'string' ? entity.def.clientActions[viewActionName].label : labels!.viewLabel;
+
+    const overridenLabels = {
+        ...labels,
+        addLabel,
+        editLabel,
+        deleteLabel,
+        viewLabel
+    }
 
     return (
         <>
@@ -188,7 +202,7 @@ export function DataGrid(props: DataGridProps) {
                         <>
                             <Space h="xs" />
                             <DataGridActionsToolbar
-                                {...labels!}
+                                {...overridenLabels!}
                                 size={toolbarSize}
                                 viewName={viewName}
 
