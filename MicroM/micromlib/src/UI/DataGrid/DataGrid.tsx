@@ -7,6 +7,7 @@ import { DataGridProps } from "./DataGrid.types";
 import { DataGridActionsToolbar } from "./DataGridActionsToolbar";
 import { DataGridColumnsMenu } from "./DataGridColumnsMenu";
 import { DataGridToolbar } from "./DataGridToolbar";
+import { getOverriddenActionLabels } from "./ToolBarFunctions";
 import { useDataGrid } from "./useDatagrid";
 
 export const DataGridDefaultProps: Partial<DataGridProps> = {
@@ -132,19 +133,12 @@ export function DataGrid(props: DataGridProps) {
         minHeight: effectiveMinGridHeight
     }
 
-    // change add, edit, delete, view labels if overriden by addActionName, editActionName, deleteActionName, viewActionName
-    const addLabel = addActionName && entity?.def.clientActions[addActionName] && typeof entity.def.clientActions[addActionName].label === 'string' ? entity.def.clientActions[addActionName].label : labels!.addLabel;
-    const editLabel = editActionName && entity?.def.clientActions[editActionName] && typeof entity.def.clientActions[editActionName].label === 'string' ? entity.def.clientActions[editActionName].label : labels!.editLabel;
-    const deleteLabel = deleteActionName && entity?.def.clientActions[deleteActionName] && typeof entity.def.clientActions[deleteActionName].label === 'string' ? entity.def.clientActions[deleteActionName].label : labels!.deleteLabel;
-    const viewLabel = viewActionName && entity?.def.clientActions[viewActionName] && typeof entity.def.clientActions[viewActionName].label === 'string' ? entity.def.clientActions[viewActionName].label : labels!.viewLabel;
-
-    const overridenLabels = {
-        ...labels,
-        addLabel,
-        editLabel,
-        deleteLabel,
-        viewLabel
-    }
+    const overriddenLabels = getOverriddenActionLabels(labels!, entity?.def.clientActions ?? {}, {
+        addActionName,
+        editActionName,
+        deleteActionName,
+        viewActionName,
+    });
 
     return (
         <>
@@ -202,7 +196,7 @@ export function DataGrid(props: DataGridProps) {
                         <>
                             <Space h="xs" />
                             <DataGridActionsToolbar
-                                {...overridenLabels!}
+                                {...overriddenLabels}
                                 size={toolbarSize}
                                 viewName={viewName}
 

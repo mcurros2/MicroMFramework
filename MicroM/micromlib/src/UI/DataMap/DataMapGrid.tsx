@@ -4,6 +4,7 @@ import { DataResult, OperationStatus } from "../../client";
 import { AlertError, FakeProgressBar, FormMode, useFirstVisible, useViewState } from "../Core";
 import { DataGridDefaultProps, DataGridProps } from "../DataGrid";
 import { DataGridActionsToolbar } from "../DataGrid/DataGridActionsToolbar";
+import { getOverriddenActionLabels } from "../DataGrid/ToolBarFunctions";
 import { useDataGrid } from "../DataGrid/useDatagrid";
 import { DataViewLimitData } from "../DataView";
 import { Grid, GridSelection } from "../Grid";
@@ -28,12 +29,20 @@ export function DataMapGrid(props: DataMapGridProps) {
         actionsButtonVariant, showActions, entity,
         renderOnlyWhenVisible, gridHeight,
         executeViewState, dataGridAPI, viewState, formMode,
+        addActionName, editActionName, deleteActionName, viewActionName,
     } = useComponentDefaultProps('DataMapGrid', DataMapGridDefaultProps, props);
 
     const visibilityDivRef = useRef<HTMLDivElement>(null);
     const isFirstVisible = useFirstVisible(visibilityDivRef);
 
     const { columns, rows, isLoading } = dataGridAPI;
+
+    const overriddenLabels = getOverriddenActionLabels(labels!, entity?.def.clientActions ?? {}, {
+        addActionName,
+        editActionName,
+        deleteActionName,
+        viewActionName,
+    });
 
     return (
         <>
@@ -42,7 +51,7 @@ export function DataMapGrid(props: DataMapGridProps) {
                 :
                 <section>
                     <DataGridActionsToolbar
-                        {...labels!}
+                        {...overriddenLabels}
                         size={toolbarSize}
                         viewName={viewName}
 

@@ -7,6 +7,7 @@ import { useGoogleMapsAPI } from "../../GoogleMapsAPI";
 import { FakeProgressBar, latLng, ModalContextType, useEntityUI, useExecuteView, useModal, useViewState } from "../Core";
 import { DataGridDefaultProps, DataGridProps, DataGridToolbar } from "../DataGrid";
 import { DataGridActionsToolbar } from "../DataGrid/DataGridActionsToolbar";
+import { getOverriddenActionLabels } from "../DataGrid/ToolBarFunctions";
 import { useDataGrid } from "../DataGrid/useDatagrid";
 import { DataViewLimitData } from "../DataView";
 import { DEFAULT_MAP_CENTER, MapOptions, MarkerProps } from "../GoogleMaps";
@@ -112,7 +113,8 @@ export function DataMap(props: DataMapProps) {
         enableAdd, enableEdit, enableDelete, enableView, enableExport,
         autoFocus, actionsButtonVariant, toolbarIconVariant, toolbarSize,
         showActions, filtersFormSize, renderOnlyWhenVisible, columnsOverrides,
-        setInitialFiltersFromColumns, visibleFilters
+        setInitialFiltersFromColumns, visibleFilters,
+        addActionName, editActionName, deleteActionName, viewActionName
     } = effectiveDatagridProps;
 
     const theme = useMantineTheme();
@@ -148,6 +150,13 @@ export function DataMap(props: DataMapProps) {
     const { isLoading, rows } = dataGridAPI;
 
     const { UIAPI } = dataGridAPI;
+
+    const overriddenLabels = getOverriddenActionLabels(labels!, entity?.def.clientActions ?? {}, {
+        addActionName,
+        editActionName,
+        deleteActionName,
+        viewActionName,
+    });
 
 
     const getMarkerOptions = useCreateMarkerOptions();
@@ -434,7 +443,7 @@ export function DataMap(props: DataMapProps) {
                 <Tabs.Panel value={TN.map} pt='xs'>
                     <Stack spacing="sm">
                         <DataGridActionsToolbar
-                            {...labels!}
+                            {...overriddenLabels}
                             size={toolbarSize}
                             viewName={viewName}
 

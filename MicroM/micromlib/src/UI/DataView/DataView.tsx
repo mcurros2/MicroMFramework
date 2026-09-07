@@ -3,6 +3,7 @@ import { ForwardedRef, forwardRef, useState } from "react";
 import { AlertError, getInitialSearchData, useExecuteView, useViewState } from "../Core";
 import { DataGridToolbar } from "../DataGrid";
 import { DataGridActionsToolbar } from "../DataGrid/DataGridActionsToolbar";
+import { getOverriddenActionLabels } from "../DataGrid/ToolBarFunctions";
 import { DataViewProps } from "./DataView.types";
 import { DataViewCardContainer } from "./DataViewCardContainer";
 import { useDataView } from "./useDataView";
@@ -67,7 +68,8 @@ export const DataView = forwardRef(function DataView(props: DataViewProps, ref: 
         showAppliedFilters, showRefreshButton, hideCheckboxToggle, showFiltersButton, searchPlaceholder,
         showActions, parentKeys, visibleFilters, setInitialFiltersFromColumns, cardHrefRootURL, cardHrefTarget,
         showSearchInput, showSelectRowsButton, showToolbar, showDeleteOnlyWhenMultiselect, parentFormAPI, formMode,
-        CardRowAlign, RowsContainer, refreshOnInit, RowsContainerProps, onSearch, onSearchTextChange
+        CardRowAlign, RowsContainer, refreshOnInit, RowsContainerProps, onSearch, onSearchTextChange,
+        addActionName, editActionName, deleteActionName, viewActionName
     } = props;
 
     const [searchData, setSearchData] = useState<SelectItem[]>(getInitialSearchData(search) ?? []);
@@ -90,6 +92,13 @@ export const DataView = forwardRef(function DataView(props: DataViewProps, ref: 
     const limit_number = parseInt(limit || '0');
 
     const effectiveFormMode = formMode || parentFormAPI?.formMode || 'add';
+
+    const overriddenLabels = getOverriddenActionLabels(labels!, entity?.def.clientActions ?? {}, {
+        addActionName,
+        editActionName,
+        deleteActionName,
+        viewActionName,
+    });
 
     if (entity?.def.views[viewName] === undefined) {
         console.warn(`DataView: View ${viewName} not found in entity ${entity?.def.name}`);
@@ -148,7 +157,7 @@ export const DataView = forwardRef(function DataView(props: DataViewProps, ref: 
                 }
                 {showActions &&
                     <DataGridActionsToolbar
-                        {...labels!}
+                        {...overriddenLabels}
 
                         viewName={viewName}
 
@@ -211,6 +220,7 @@ export const DataView = forwardRef(function DataView(props: DataViewProps, ref: 
                                     refreshView={() => viewState.setRefresh((prev) => !prev)}
                                     cardHrefRootURL={cardHrefRootURL}
                                     cardHrefTarget={cardHrefTarget}
+                                    labels={overriddenLabels}
                                 />
                             })
                         }

@@ -1,4 +1,28 @@
-import { DataGridToolbarSizes } from "./DataGridToolbar";
+import type { EntityClientAction } from "../../Entity";
+import type { EntityUILabels } from "../Core";
+import type { DataGridToolbarSizes } from "./DataGridToolbar";
+
+export interface EntityActionNames {
+    addActionName?: string,
+    editActionName?: string,
+    deleteActionName?: string,
+    viewActionName?: string,
+}
+
+function getActionLabel(clientActions: Record<string, EntityClientAction>, actionName: string | undefined, fallbackLabel: string) {
+    const actionLabel = actionName ? clientActions[actionName]?.label : undefined;
+    return typeof actionLabel === 'string' ? actionLabel : fallbackLabel;
+}
+
+export function getOverriddenActionLabels<T extends EntityUILabels>(labels: T, clientActions: Record<string, EntityClientAction>, actionNames: EntityActionNames): T {
+    return {
+        ...labels,
+        addLabel: getActionLabel(clientActions, actionNames.addActionName, labels.addLabel),
+        editLabel: getActionLabel(clientActions, actionNames.editActionName, labels.editLabel),
+        deleteLabel: getActionLabel(clientActions, actionNames.deleteActionName, labels.deleteLabel),
+        viewLabel: getActionLabel(clientActions, actionNames.viewActionName, labels.viewLabel),
+    };
+}
 
 export function getToolbarSizes(size: DataGridToolbarSizes) {
 

@@ -1,13 +1,15 @@
 import { Button, Card, CardProps, Checkbox, Group, useComponentDefaultProps, useMantineTheme } from "@mantine/core";
 import { ComponentType, useRef } from "react";
 import { ValuesObject } from "../../client";
+import type { EntityUILabels } from "../Core";
 import { EntityCardProps } from "../EntityCard";
 import { DataViewDefaultProps } from "./DataView";
 
 
 export interface DataViewCardContainerProps extends EntityCardProps<ValuesObject> {
     EntityCard?: ComponentType<EntityCardProps<ValuesObject>>,
-    CardProps?: Omit<CardProps, 'children'>
+    CardProps?: Omit<CardProps, 'children'>,
+    labels?: Pick<EntityUILabels, 'editLabel' | 'deleteLabel' | 'viewLabel'>,
 }
 
 export const DataViewCardContainerDefaultProps: Partial<DataViewCardContainerProps> = {
@@ -18,7 +20,7 @@ export function DataViewCardContainer(props: DataViewCardContainerProps) {
     const {
         recordIndex, selected, handleDeleteClick, handleDeselectRecord, handleEditClick, handleSelectRecord, handleViewClick,
         enableDelete, enableEdit, enableView, entity, record, toggleSelectable, EntityCard, CardProps, refreshView, handleCardClick,
-        cardHrefRootURL, cardHrefTarget, handleExecuteAction
+        cardHrefRootURL, cardHrefTarget, handleExecuteAction, labels
     } = useComponentDefaultProps('DataViewCardContainer', DataViewCardContainerDefaultProps, props);
 
     const theme = useMantineTheme();
@@ -60,13 +62,13 @@ export function DataViewCardContainer(props: DataViewCardContainerProps) {
                 <Card.Section mt="xs" p="xs" withBorder>
                     <Group position="right">
                         {enableView && !enableEdit && handleViewClick &&
-                            <Button size="xs" ref={viewElement} onClick={async () => await handleViewClick(record.keys, viewElement.current as HTMLElement)}>{DataViewDefaultProps.labels?.viewLabel}</Button>
+                            <Button size="xs" ref={viewElement} onClick={async () => await handleViewClick(record.keys, viewElement.current as HTMLElement)}>{labels?.viewLabel ?? DataViewDefaultProps.labels?.viewLabel}</Button>
                         }
                         {enableEdit && handleEditClick &&
-                            <Button size="xs" ref={editElement} onClick={async () => await handleEditClick(record.keys, editElement.current as HTMLElement)}>{DataViewDefaultProps.labels?.editLabel}</Button>
+                            <Button size="xs" ref={editElement} onClick={async () => await handleEditClick(record.keys, editElement.current as HTMLElement)}>{labels?.editLabel ?? DataViewDefaultProps.labels?.editLabel}</Button>
                         }
                         {enableDelete && handleDeleteClick &&
-                            <Button size="xs" ref={deleteElement} color="red" onClick={async () => await handleDeleteClick(record.keys, deleteElement.current as HTMLElement)}>{DataViewDefaultProps.labels?.deleteLabel}</Button>
+                            <Button size="xs" ref={deleteElement} color="red" onClick={async () => await handleDeleteClick(record.keys, deleteElement.current as HTMLElement)}>{labels?.deleteLabel ?? DataViewDefaultProps.labels?.deleteLabel}</Button>
                         }
                     </Group>
                 </Card.Section>
