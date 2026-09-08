@@ -9,18 +9,18 @@ export interface EntityActionNames {
     viewActionName?: string,
 }
 
-function getActionLabel(clientActions: Record<string, EntityClientAction>, actionName: string | undefined, fallbackLabel: string) {
+export function getClientActionStringLabel(clientActions: Record<string, EntityClientAction>, actionName: string | undefined) {
     const actionLabel = actionName ? clientActions[actionName]?.label : undefined;
-    return typeof actionLabel === 'string' ? actionLabel : fallbackLabel;
+    return typeof actionLabel === 'string' ? actionLabel : undefined;
 }
 
 export function getOverriddenActionLabels<T extends EntityUILabels>(labels: T, clientActions: Record<string, EntityClientAction>, actionNames: EntityActionNames): T {
     return {
         ...labels,
-        addLabel: getActionLabel(clientActions, actionNames.addActionName, labels.addLabel),
-        editLabel: getActionLabel(clientActions, actionNames.editActionName, labels.editLabel),
-        deleteLabel: getActionLabel(clientActions, actionNames.deleteActionName, labels.deleteLabel),
-        viewLabel: getActionLabel(clientActions, actionNames.viewActionName, labels.viewLabel),
+        addLabel: getClientActionStringLabel(clientActions, actionNames.addActionName) ?? labels.addLabel,
+        editLabel: getClientActionStringLabel(clientActions, actionNames.editActionName) ?? labels.editLabel,
+        deleteLabel: getClientActionStringLabel(clientActions, actionNames.deleteActionName) ?? labels.deleteLabel,
+        viewLabel: getClientActionStringLabel(clientActions, actionNames.viewActionName) ?? labels.viewLabel,
     };
 }
 

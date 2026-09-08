@@ -1,7 +1,8 @@
 import { ActionIcon, Button, DefaultMantineColor, FocusTrap, Group, Notification, Space, useComponentDefaultProps, useMantineTheme, Variants } from "@mantine/core";
 import { IconCircleCheck, IconCircleX, IconHelp, IconHelpOff, IconX } from "@tabler/icons-react";
-import { PropsWithChildren, ReactNode, useEffect } from "react";
+import { PropsWithChildren, ReactNode, useEffect, useRef } from "react";
 import { AlertError, FakeProgressBar, usePreventEnterSubmission } from "../Core";
+import { getClientActionStringLabel } from "../DataGrid/ToolBarFunctions";
 import { UseEntityFormReturnType } from "./useEntityForm";
 
 export interface EntityFormProps extends PropsWithChildren {
@@ -13,6 +14,8 @@ export interface EntityFormProps extends PropsWithChildren {
     OKText?: ReactNode,
     CancelText?: ReactNode,
     CloseText?: ReactNode,
+    OKActionName?: string,
+    CancelActionName?: string,
     formAPI: UseEntityFormReturnType,
     invalidFieldsLabel?: string,
     showHelpButton?: boolean,
@@ -48,17 +51,20 @@ export const EntityFormDefaultProps: Partial<EntityFormProps> = {
 }
 
 export function EntityForm(props: EntityFormProps) {
+    const explicitOKText = props.OKText;
+    const explicitCancelText = props.CancelText;
+
     const {
         formAPI, children, showOK, showCancel, showErrors, showFormValidationNotification, showLoadingProgress, OKText, CancelText, invalidFieldsLabel,
         showHelpButton, preventEnterSubmission, CloseText, buttons, isDirtyColor, cancelButtonVariant, okButtonVariant, disableOKIfNotDirty,
-        formHeight, disableOK, loadingOK
+        formHeight, disableOK, loadingOK, OKActionName, CancelActionName
     } = useComponentDefaultProps('EntityForm', EntityFormDefaultProps, props);
 
     const { entity } = formAPI;
 
     const theme = useMantineTheme();
 
-    const { handleCancel, handleSubmit, notifyValidationErrorState, status, form, formMode, showDescriptionState, isFormValid, asyncErrors } = formAPI;
+    const { handleCancel, handleSubmit, handleExecuteMappedAction, notifyValidationErrorState, status, form, formMode, showDescriptionState, isFormValid, asyncErrors } = formAPI;
     const [notifyValidationError, setNotifyValidationError] = notifyValidationErrorState;
     const [showDescription, setShowDescription] = showDescriptionState;
 
@@ -68,6 +74,39 @@ export function EntityForm(props: EntityFormProps) {
     }, [isFormValid, setNotifyValidationError]);
 
     const handleKeyDown = usePreventEnterSubmission();
+
+    const okElement = useRef<HTMLButtonElement>(null);
+    const cancelElement = useRef<HTMLButtonElement>(null);
+
+    const actionLabels = entity.def.clientActions;
+    const effectiveOKText = OKActionName && explicitOKText === undefined
+        ? getClientActionStringLabel(actionLabels, OKActionName) ?? OKText
+        : OKText;
+    const defaultCancelText = formMode === 'view' ? CloseText : CancelText;
+    const effectiveCancelText = CancelActionName
+        ? explicitCancelText !== undefined
+            ? explicitCancelText
+            : getClientActionStringLabel(actionLabels, CancelActionName) ?? defaultCancelText
+        : defaultCancelText;
+
+    const handleFormSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+        if (!OKActionName) {
+            await handleSubmit(event);
+            return;
+        }
+
+        event.preventDefault();
+        await handleExecuteMappedAction('OK', OKActionName, true, okElement.current ?? undefined);
+    };
+
+    const handleCancelClick = async () => {
+        if (!CancelActionName) {
+            await Promise.resolve(handleCancel());
+            return;
+        }
+
+        await handleExecuteMappedAction('Cancel', CancelActionName, false, cancelElement.current ?? undefined);
+    };
 
     // MMC: FocusTrap is present here because the FocusTrap that uses breaks with children when is an array
     // and because when we edit/view the form, when performing get the fields are denied and can't be focused
@@ -83,7 +122,7 @@ export function EntityForm(props: EntityFormProps) {
                 </Group>
             }
             <FocusTrap active={status.loading === false}>
-                <form onSubmit={handleSubmit} onKeyDown={preventEnterSubmission ? handleKeyDown : undefined} style={{ height: formHeight }} onInvalid={() => setNotifyValidationError(true)}>
+                <form onSubmit={handleFormSubmit} onKeyDown={preventEnterSubmission ? handleKeyDown : undefined} style={{ height: formHeight }} onInvalid={() => setNotifyValidationError(true)}>
                     {showLoadingProgress && status.loading && <FakeProgressBar size="xs" />}
                     {showLoadingProgress && !status.loading && <Space h="0.1875rem" />}
                     {showFormValidationNotification && notifyValidationError &&
@@ -101,8 +140,8 @@ export function EntityForm(props: EntityFormProps) {
                         {buttons}
                         {(showOK || showCancel) &&
                             <Group position="right" style={{ flex: 'auto' }}>
-                                {showCancel && <Button variant={cancelButtonVariant} leftIcon={<IconCircleX size="1.125rem" />} onClick={handleCancel} >{formMode === 'view' ? CloseText : CancelText}</Button>}
-                                {showOK && formMode != "view" && <Button variant={okButtonVariant} type="submit" color={form.isDirty() ? isDirtyColor : theme.primaryColor} loading={loadingOK || status?.loading} disabled={disableOK === true || (disableOKIfNotDirty && !form.isDirty())} leftIcon={<IconCircleCheck size="1.125rem" />}>{OKText}</Button>}
+                                {showCancel && <Button ref={cancelElement} type="button" variant={cancelButtonVariant} leftIcon={<IconCircleX size="1.125rem" />} onClick={handleCancelClick} >{effectiveCancelText}</Button>}
+                                {showOK && formMode != "view" && <Button ref={okElement} variant={okButtonVariant} type="submit" color={form.isDirty() ? isDirtyColor : theme.primaryColor} loading={loadingOK || status?.loading} disabled={disableOK === true || (disableOKIfNotDirty && !form.isDirty())} leftIcon={<IconCircleCheck size="1.125rem" />}>{effectiveOKText}</Button>}
                             </Group>
                         }
                     </Group>

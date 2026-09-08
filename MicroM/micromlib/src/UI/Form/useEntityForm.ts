@@ -3,9 +3,10 @@ import { useForm, UseFormReturnType } from "@mantine/form";
 import { LooseKeys } from "@mantine/form/lib/types";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DBStatus, DBStatusResult, MicroMRequestOptions, OperationStatus, SQLType, toDBStatusMicroMError, toMicroMError, Value, ValuesObject } from "../../client";
-import { areValuesObjectsEqual, Entity, EntityColumn, EntityDefinition, isIn, setValues } from "../../Entity";
+import { areValuesObjectsEqual, Entity, EntityColumn, EntityColumnFlags, EntityDefinition, getValues, isIn, setValues } from "../../Entity";
 import { ValidationRule } from "../../Validation";
 import { FormMode, FormOptions, useStateReturnType, ValidateFormResult } from "../Core";
+import { useModal } from "../Core/ModalsManager";
 import { useConfirmNavigation } from "../Router/useConfirmNavigation";
 import { getMantineInitialValuesObject, getMantineValuesObject } from "./MantineFormHelpers";
 import { useValidateFormModals, ValidateFormLabelsDefaultProps } from "./useValidateFormModals";
@@ -39,6 +40,7 @@ export interface UseEntityFormReturnType {
     formMode: FormMode,
     handleCancel: () => Promise<void> | void,
     handleSubmit: (event?: React.FormEvent<HTMLFormElement>) => Promise<void>,
+    handleExecuteMappedAction: (buttonName: 'OK' | 'Cancel', actionName: string, requireValidation: boolean, element?: HTMLElement) => Promise<void>,
     performGetData: () => Promise<boolean>,
     saveAndGet: (get_data_if_saved: boolean, override_values?: ValuesObject, requestOptions?: MicroMRequestOptions) => Promise<OperationStatus<DBStatusResult>>,
     configureField: (column: EntityColumn<Value>, validation?: ValidationRule) => void,
@@ -70,6 +72,7 @@ export function useEntityForm(props: UseEntityFormOptions): UseEntityFormReturnT
     } = useComponentDefaultProps('', UseEntityFormDefaultProps, props);
 
     const { confirmWarning, showValidationError } = useValidateFormModals();
+    const modal = useModal();
 
     const [status, setStatus] = useState<OperationStatus<DBStatusResult | ValuesObject>>({}); // Initial queryStatus is empty on purpose to not disable fields before data is loaded
     const notifyValidationErrorState = useState<boolean>(false);
@@ -226,13 +229,11 @@ export function useEntityForm(props: UseEntityFormOptions): UseEntityFormReturnT
         if (onCancel) await Promise.resolve(onCancel());
     }, [onCancel]);
 
-    const handleSubmit = useCallback(async (event?: React.FormEvent<HTMLFormElement>) => {
-        if (event) event.preventDefault();
-
+    const validateBeforeSubmit = useCallback(async () => {
         // Check if there are async errors
         if (Object.keys(asyncErrors.current).length > 0) {
             setNotifyValidationError(true);
-            return;
+            return false;
         }
 
         // Ensure all fields are validated, this will reset async field errors
@@ -240,84 +241,117 @@ export function useEntityForm(props: UseEntityFormOptions): UseEntityFormReturnT
 
         if (result.hasErrors) {
             setNotifyValidationError(true);
+            return false;
+        }
+
+        if (validateForm) {
+            let validation: ValidateFormResult;
+            try {
+                validation = await Promise.resolve(validateForm(form.values));
+            }
+            catch (e) {
+                console.error('validateForm callback failed', e);
+                validation = { error: ValidateFormLabelsDefaultProps.unexpectedErrorLabel };
+            }
+            if (validation?.error) {
+                await showValidationError(validation.error);
+                return false;
+            }
+            else if (validation?.warning) {
+                if (!await confirmWarning(validation.warning)) return false;
+            }
+            else if (validation?.success !== true) {
+                // a malformed result (e.g. undefined from untyped JS) must not be treated as success
+                console.error('validateForm returned an invalid result', validation);
+                await showValidationError(ValidateFormLabelsDefaultProps.unexpectedErrorLabel);
+                return false;
+            }
+        }
+
+        return true;
+    }, [confirmWarning, form, setNotifyValidationError, showValidationError, validateForm]);
+
+    const handleSubmit = useCallback(async (event?: React.FormEvent<HTMLFormElement>) => {
+        if (event) event.preventDefault();
+
+        if (!await validateBeforeSubmit()) return;
+
+        let save_result: OperationStatus<DBStatusResult>;
+        if (saveAndGetOverride) {
+            try {
+                if (noSaveOnSubmit) {
+                    save_result = {
+                        loading: false, data: { Results: [{ Status: 0, Message: 'OK' }] }
+                    } as OperationStatus<DBStatusResult>;
+                }
+                else {
+                    setStatus({ loading: true, operationType: "add" });
+
+                    const get_data_if_saved = saveAndGetOnSubmit || false;
+                    save_result = await saveAndGetOverride(get_data_if_saved);
+                    setStatus(save_result);
+                    if (save_result.data?.Failed !== true) {
+                        if (get_data_if_saved) await performGetData();
+                        if (formMode === "add") setFormMode('edit');
+                    }
+                }
+            }
+            catch (e: any) {
+                if (e.name !== 'AbortError') {
+                    const new_status: OperationStatus<DBStatusResult> = { error: e.Errors ? toDBStatusMicroMError(e.Errors as DBStatus[], formMode) : toMicroMError(e), operationType: formMode };
+                    setStatus(new_status);
+                    save_result = new_status;
+                }
+                else {
+                    save_result = { loading: false };
+                }
+            }
         }
         else {
-            if (validateForm) {
-                let validation: ValidateFormResult;
-                try {
-                    validation = await Promise.resolve(validateForm(form.values));
-                }
-                catch (e) {
-                    console.error('validateForm callback failed', e);
-                    validation = { error: ValidateFormLabelsDefaultProps.unexpectedErrorLabel };
-                }
-                if (validation?.error) {
-                    await showValidationError(validation.error);
-                    return;
-                }
-                else if (validation?.warning) {
-                    if (!await confirmWarning(validation.warning)) return;
-                }
-                else if (validation?.success !== true) {
-                    // a malformed result (e.g. undefined from untyped JS) must not be treated as success
-                    console.error('validateForm returned an invalid result', validation);
-                    await showValidationError(ValidateFormLabelsDefaultProps.unexpectedErrorLabel);
-                    return;
-                }
-            }
-
-            let save_result: OperationStatus<DBStatusResult>;
-            if (saveAndGetOverride) {
-                try {
-                    if (noSaveOnSubmit) {
-                        save_result = {
-                            loading: false, data: { Results: [{ Status: 0, Message: 'OK' }] }
-                        } as OperationStatus<DBStatusResult>;
-                    }
-                    else {
-                        setStatus({ loading: true, operationType: "add" });
-
-                        const get_data_if_saved = saveAndGetOnSubmit || false;
-                        save_result = await saveAndGetOverride(get_data_if_saved);
-                        setStatus(save_result);
-                        if (save_result.data?.Failed !== true) {
-                            if (get_data_if_saved) await performGetData();
-                            if (formMode === "add") setFormMode('edit');
-                        }
-                    }
-                }
-                catch (e: any) {
-                    if (e.name !== 'AbortError') {
-                        const new_status: OperationStatus<DBStatusResult> = { error: e.Errors ? toDBStatusMicroMError(e.Errors as DBStatus[], formMode) : toMicroMError(e), operationType: formMode };
-                        setStatus(new_status);
-                        save_result = new_status;
-                    }
-                    else {
-                        save_result = { loading: false };
-                    }
-                }
-            }
-            else {
-                save_result = await saveAndGet(saveAndGetOnSubmit || false);
-            }
-
-            if (save_result.error === undefined && save_result.data?.Failed !== true && onSaved) {
-                // MMC: fix for mantine DateInput bug "invalid date"
-                // check all form values for date columns and set them to null if invalid
-                // The bug happens when closing the form with invalid date values, after save
-                for (const c in entity.def.columns) {
-                    if (isIn<SQLType>(entity.def.columns[c].type, 'date', 'datetime', 'datetime2', 'smalldatetime')) {
-                        if (form.values[c]?.toString() === 'Invalid Date' || form.values[c]?.toString() === '') {
-                            form.values[c] = null;
-                            entity.def.columns[c].value = null;
-                        }
-                    }
-                }
-                onSaved(save_result);
-            }
-
+            save_result = await saveAndGet(saveAndGetOnSubmit || false);
         }
-    }, [form, onSaved, saveAndGet, saveAndGetOverride, setNotifyValidationError, saveAndGetOnSubmit, validateForm, confirmWarning, showValidationError]);
+
+        if (save_result.error === undefined && save_result.data?.Failed !== true && onSaved) {
+            // MMC: fix for mantine DateInput bug "invalid date"
+            // check all form values for date columns and set them to null if invalid
+            // The bug happens when closing the form with invalid date values, after save
+            for (const c in entity.def.columns) {
+                if (isIn<SQLType>(entity.def.columns[c].type, 'date', 'datetime', 'datetime2', 'smalldatetime')) {
+                    if (form.values[c]?.toString() === 'Invalid Date' || form.values[c]?.toString() === '') {
+                        form.values[c] = null;
+                        entity.def.columns[c].value = null;
+                    }
+                }
+            }
+            onSaved(save_result);
+        }
+
+    }, [entity.def.columns, form.values, formMode, noSaveOnSubmit, onSaved, performGetData, saveAndGet, saveAndGetOnSubmit, saveAndGetOverride, validateBeforeSubmit]);
+
+    const handleExecuteMappedAction = useCallback(async (buttonName: 'OK' | 'Cancel', actionName: string, requireValidation: boolean, element?: HTMLElement) => {
+        const action = entity.def.clientActions[actionName];
+        if (!action) {
+            console.warn(`EntityForm ${buttonName}: client action '${actionName}' was not found in entity '${entity.name}'.`);
+            return;
+        }
+
+        if (requireValidation && !await validateBeforeSubmit()) return;
+
+        // Keep the live form entity synchronized so the action can read and mutate its columns.
+        setValues(entity.def.columns, form.values, null, true);
+        const selectedKeys = [getValues(entity.def.columns, { flags: EntityColumnFlags.pk, ignoreDefaults: false })];
+
+        await action.onClick({
+            entity,
+            modal,
+            selectedKeys,
+            element,
+            onClose: async (result?: boolean) => {
+                if (action.refreshOnClose && mountedRef.current) await performGetData();
+                return result ?? false;
+            },
+        });
+    }, [entity, form.values, modal, performGetData, validateBeforeSubmit]);
 
     // Validation, InitialValues, InitialDirty
     const addValidation = useCallback((column: EntityColumn<Value>, validation?: ValidationRule) => {
@@ -463,6 +497,7 @@ export function useEntityForm(props: UseEntityFormOptions): UseEntityFormReturnT
         saveAndGet: saveAndGetOverride ?? saveAndGet,
         performGetData: performGetData,
         handleCancel: handleCancel,
+        handleExecuteMappedAction: handleExecuteMappedAction,
         configureField: addValidation,
         removeValidation: removeValidation,
         handleSubmit: handleSubmit,
@@ -476,7 +511,7 @@ export function useEntityForm(props: UseEntityFormOptions): UseEntityFormReturnT
         isFormValid: isFormValid,
         isFormFieldValid: isFormFieldValid,
         silentSave,
-    }), [addValidation, clearAllAsyncErrors, clearAsyncError, entity, form, formMode, handleCancel, handleSubmit, isFormFieldValid, isFormValid, notifyValidationErrorState, performGetData,
+    }), [addValidation, clearAllAsyncErrors, clearAsyncError, entity, form, formMode, handleCancel, handleExecuteMappedAction, handleSubmit, isFormFieldValid, isFormValid, notifyValidationErrorState, performGetData,
         removeValidation, saveAndGet, saveAndGetOverride, setAsyncError, showDescriptionState, status, silentSave]);
 
     return result;
