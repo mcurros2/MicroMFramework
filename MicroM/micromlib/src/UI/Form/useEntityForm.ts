@@ -346,12 +346,22 @@ export function useEntityForm(props: UseEntityFormOptions): UseEntityFormReturnT
             modal,
             selectedKeys,
             element,
-            onClose: async (result?: boolean) => {
+            onClose: async (result?: boolean, actionStatus?: OperationStatus<DBStatusResult>) => {
                 if (action.refreshOnClose && mountedRef.current) await performGetData();
+
+                // A successful action mapped to OK completes the same lifecycle as a regular submit.
+                if (buttonName === 'OK' && result === true && onSaved) {
+                    const completedStatus = actionStatus ?? {
+                        loading: false,
+                        operationType: formMode,
+                    };
+                    await Promise.resolve(onSaved(completedStatus));
+                }
+
                 return result ?? false;
             },
         });
-    }, [entity, form.values, modal, performGetData, validateBeforeSubmit]);
+    }, [entity, form.values, formMode, modal, onSaved, performGetData, validateBeforeSubmit]);
 
     // Validation, InitialValues, InitialDirty
     const addValidation = useCallback((column: EntityColumn<Value>, validation?: ValidationRule) => {

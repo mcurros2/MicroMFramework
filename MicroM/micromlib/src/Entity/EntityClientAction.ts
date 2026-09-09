@@ -1,5 +1,5 @@
 import { ReactNode } from "react";
-import { ValuesObject } from "../client";
+import { DBStatusResult, OperationStatus, ValuesObject } from "../client";
 import { ModalContextType } from "../UI";
 import { Entity } from "./Entity";
 
@@ -8,7 +8,7 @@ export interface EntityClientActionOnClickProps {
     modal?: ModalContextType,
     selectedKeys?: ValuesObject[],
     element?: HTMLElement,
-    onClose?: (result?: boolean) => Promise<boolean>,
+    onClose?: (result?: boolean, status?: OperationStatus<DBStatusResult>) => Promise<boolean>,
 }
 
 export interface EntityClientAction {
