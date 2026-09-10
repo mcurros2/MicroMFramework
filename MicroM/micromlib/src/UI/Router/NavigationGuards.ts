@@ -3,6 +3,7 @@ export interface LocalNavigationIntent {
     nextRoute: string;
 }
 
+/** `allways` skips dirty/value checks only in edit mode; add uses those checks and view is unprotected. */
 export type NavigationProtectionMode = 'save' | 'confirm' | 'allways';
 
 export type LocalNavigationGuard = (intent: LocalNavigationIntent) => boolean | Promise<boolean>;

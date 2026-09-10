@@ -281,8 +281,10 @@ export function useEntityForm(props: UseEntityFormOptions): UseEntityFormReturnT
         if (validation) validationObject.current[column.name] = validation;
         else delete validationObject.current[column.name];
 
+        // In formMode == 'add' this is to force existing default values bound to input controls to be validated. If not mantine takes them as valid
+        // and do not trigger validation
         if (initialFormMode === "add" || forceDirty) {
-            initialDirty.current[column.name] = (column.value !== '' || column.value !== null || column.value !== undefined) ? true : false;
+            initialDirty.current[column.name] = (column.value !== '' && column.value !== null && column.value !== undefined) ? true : false;
         }
         initialValues.current[column.name] = column.value ?? '';
     }, [forceDirty, initialFormMode]);
@@ -490,8 +492,9 @@ export function useEntityForm(props: UseEntityFormOptions): UseEntityFormReturnT
     }, [activeFormActions.Cancel, handleExecuteFormAction, onCancel]);
 
     const hasUnsavedChanges = useCallback(() => formMode !== 'view'
-        && form.isDirty()
-        && !areValuesObjectsEqual(form.values, lastGetValues.current), [form, formMode]);
+        && ((navigationProtection === 'allways' && formMode === 'edit')
+            || (form.isDirty()
+                && !areValuesObjectsEqual(form.values, lastGetValues.current))), [form, formMode, navigationProtection]);
 
     useConfirmNavigation({
         mode: navigationProtection,

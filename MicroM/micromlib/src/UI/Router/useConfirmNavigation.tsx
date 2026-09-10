@@ -119,7 +119,7 @@ export function useConfirmNavigation({ mode, hasUnsavedChanges, onSave, onLeave 
         if (!mode) return;
 
         return registerLocalNavigationGuard(() => {
-            if (mode !== 'allways' && !hasUnsavedChangesRef.current()) return true;
+            if (!hasUnsavedChangesRef.current()) return true;
             if (mode === 'save') return onSaveRef.current('local');
             return requestNavigationConfirmation('local');
         });
@@ -129,7 +129,7 @@ export function useConfirmNavigation({ mode, hasUnsavedChanges, onSave, onLeave 
         if (!mode) return;
 
         const handleBeforeUnload = (event: BeforeUnloadEvent) => {
-            if (externalNavigationBypassRef.current || (mode !== 'allways' && !hasUnsavedChangesRef.current())) return;
+            if (externalNavigationBypassRef.current || !hasUnsavedChangesRef.current()) return;
 
             if (mode === 'confirm' || mode === 'allways') {
                 event.preventDefault();
@@ -156,7 +156,7 @@ export function useConfirmNavigation({ mode, hasUnsavedChanges, onSave, onLeave 
 
             const anchor = event.target.closest<HTMLAnchorElement>('a[href]');
             if (!anchor || anchor.download || (anchor.target && anchor.target.toLowerCase() !== '_self')) return;
-            if (mode !== 'allways' && !hasUnsavedChangesRef.current()) return;
+            if (!hasUnsavedChangesRef.current()) return;
 
             const destination = new URL(anchor.href, window.location.href);
             if (destination.protocol !== 'http:' && destination.protocol !== 'https:') return;
