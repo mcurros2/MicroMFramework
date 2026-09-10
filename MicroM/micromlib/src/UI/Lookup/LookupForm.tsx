@@ -18,7 +18,7 @@ export interface LookupFormProps {
 export const LookupFormDefaultProps: Partial<LookupFormProps> = {
     helpMessage: "Select the records that you need and click OK",
     okLabel: "OK",
-    cancelLabel: "Cancel"
+    cancelLabel: "Cancel",
 }
 
 export function LookupForm(props: LookupFormProps) {

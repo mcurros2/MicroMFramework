@@ -284,8 +284,9 @@ export function useEntityForm(props: UseEntityFormOptions): UseEntityFormReturnT
         // In formMode == 'add' this is to force existing default values bound to input controls to be validated. If not mantine takes them as valid
         // and do not trigger validation
         if (initialFormMode === "add" || forceDirty) {
-            initialDirty.current[column.name] = (column.value !== '' && column.value !== null && column.value !== undefined) ? true : false;
+            if (column.value !== '' && column.value !== null && column.value !== undefined) initialDirty.current[column.name] = true;
         }
+
         initialValues.current[column.name] = column.value ?? '';
     }, [forceDirty, initialFormMode]);
 

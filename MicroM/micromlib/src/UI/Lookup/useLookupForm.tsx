@@ -91,6 +91,7 @@ export function useLookupForm() {
                         enableEdit: enableEdit,
                         enableDelete: enableDelete,
                         enableView: enableView,
+                        initialSelectRowsToggle: true
                     }}
                     onOK={async (selectedKeys: ValuesObject[]) => await handleOK(selectedKeys)}
                     onCancel={() => handleCancel()}
