@@ -108,9 +108,10 @@ export const {ENTITY_CLASSNAME}FormDefaultProps: Partial<FormOptions<{ENTITY_CLA
 
 export function {ENTITY_CLASSNAME}Form(props: FormOptions<{ENTITY_CLASSNAME}>) {
 
-    const { entity, initialFormMode, getDataOnInit, onSaved, onCancel } = useComponentDefaultProps('{ENTITY_CLASSNAME}', {ENTITY_CLASSNAME}FormDefaultProps, props);
-    const formAPI = useEntityForm({ entity: entity, initialFormMode, getDataOnInit: getDataOnInit!, onSaved, onCancel });
+    const mergedProps = useComponentDefaultProps('{ENTITY_CLASSNAME}', {ENTITY_CLASSNAME}FormDefaultProps, props);
+    const formAPI = useEntityForm(mergedProps);
     const { formMode, status } = formAPI;
+    const { entity } = mergedProps;
 
     const theme = useMantineTheme();
 
