@@ -1,7 +1,8 @@
 import { Group, Text } from '@mantine/core';
+import { randomId } from '@mantine/hooks';
 import { IconAlertTriangle } from '@tabler/icons-react';
 import { useCallback, useEffect, useRef } from 'react';
-import { useModal } from '../Core/ModalsManager';
+import { useModal, useModalScope } from '../Core/ModalsManager';
 import { ConfirmLeaveStaySave, ConfirmLeaveStaySaveDefaultProps, ConfirmLeaveStaySaveResult } from './ConfirmLeaveStaySave';
 import type { NavigationProtectionMode } from './NavigationGuards';
 import { registerLocalNavigationGuard } from './NavigationGuards';
@@ -19,6 +20,7 @@ export interface UseConfirmNavigationOptions {
 
 export function useConfirmNavigation({ mode, hasUnsavedChanges, onSave, onLeave }: UseConfirmNavigationOptions): void {
     const modals = useModal();
+    const modalScope = useModalScope();
 
     const hasUnsavedChangesRef = useRef(hasUnsavedChanges);
     const onSaveRef = useRef(onSave);
@@ -41,55 +43,40 @@ export function useConfirmNavigation({ mode, hasUnsavedChanges, onSave, onLeave 
 
         return new Promise<boolean>((resolve) => {
             let resultSelected = false;
-
-            const settle = async (canNavigate: boolean) => {
-                if (resultSelected) return;
-
-                resultSelected = true;
-                cancelPendingConfirmationRef.current = null;
-                await modals.close();
-                confirmationPendingRef.current = false;
-                resolve(canNavigate);
-            };
+            const confirmationId = randomId();
 
             const handleResult = async (result: ConfirmLeaveStaySaveResult) => {
-                if (result === 'save') {
-                    let saved = false;
-                    try {
-                        saved = await onSaveRef.current(navigationType);
+                if (resultSelected) return;
+                resultSelected = true;
+                cancelPendingConfirmationRef.current = null;
+                let canNavigate = false;
+                try {
+                    // Existing save/cancel callbacks may close the parent using close().
+                    await modals.close(confirmationId);
+                    if (result === 'save') canNavigate = await onSaveRef.current(navigationType);
+                    else if (result === 'leave') {
+                        canNavigate = navigationType === 'local' && onLeaveRef.current
+                            ? await onLeaveRef.current(navigationType) : true;
                     }
-                    catch {
-                        saved = false;
-                    }
-                    await settle(saved);
-                    return;
                 }
-
-                if (result === 'leave' && navigationType === 'local' && onLeaveRef.current) {
-                    let left = false;
-                    try {
-                        left = await onLeaveRef.current(navigationType);
-                    }
-                    catch {
-                        left = false;
-                    }
-                    await settle(left);
-                    return;
+                catch { canNavigate = false; }
+                finally {
+                    confirmationPendingRef.current = false;
+                    resolve(canNavigate);
                 }
-
-                await settle(result === 'leave');
             };
 
             cancelPendingConfirmationRef.current = () => {
                 if (resultSelected) return;
-
                 resultSelected = true;
                 cancelPendingConfirmationRef.current = null;
                 confirmationPendingRef.current = false;
-                void modals.close().finally(() => resolve(false));
+                void modals.close(confirmationId).finally(() => resolve(false));
             };
 
             void modals.open({
+                id: confirmationId,
+                history: false,
                 content: <ConfirmLeaveStaySave onResult={handleResult} />,
                 modalProps: {
                     title: <Group spacing="xs"><IconAlertTriangle size="1.25rem" /><Text fw={700}>{ConfirmLeaveStaySaveDefaultProps.title}</Text></Group>,
@@ -107,26 +94,30 @@ export function useConfirmNavigation({ mode, hasUnsavedChanges, onSave, onLeave 
                     confirmationPendingRef.current = false;
                     resolve(false);
                 },
+            }).catch(() => {
+                confirmationPendingRef.current = false;
+                cancelPendingConfirmationRef.current = null;
+                resolve(false);
             });
         });
     }, [modals]);
 
     useEffect(() => {
         return () => cancelPendingConfirmationRef.current?.();
-    }, []);
+    }, [mode]);
 
     useEffect(() => {
-        if (!mode) return;
+        if (!mode || mode === 'disabled') return;
 
         return registerLocalNavigationGuard(() => {
             if (!hasUnsavedChangesRef.current()) return true;
             if (mode === 'save') return onSaveRef.current('local');
             return requestNavigationConfirmation('local');
-        });
-    }, [mode, requestNavigationConfirmation]);
+        }, modalScope);
+    }, [mode, modalScope, requestNavigationConfirmation]);
 
     useEffect(() => {
-        if (!mode) return;
+        if (!mode || mode === 'disabled') return;
 
         const handleBeforeUnload = (event: BeforeUnloadEvent) => {
             if (externalNavigationBypassRef.current || !hasUnsavedChangesRef.current()) return;
@@ -148,7 +139,7 @@ export function useConfirmNavigation({ mode, hasUnsavedChanges, onSave, onLeave 
     }, [mode]);
 
     useEffect(() => {
-        if (!mode) return;
+        if (!mode || mode === 'disabled') return;
 
         const handleDocumentClick = (event: MouseEvent) => {
             if (event.defaultPrevented || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;

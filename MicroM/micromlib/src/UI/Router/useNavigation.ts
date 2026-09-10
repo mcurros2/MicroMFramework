@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { MicroMRouterState, navigateToRoute, NavigationState, normalizeRoutePath, splitRoute } from './MicroMRouterState';
+import { consumeModalNavigation } from './ModalNavigation';
 import { canNavigateLocally } from './NavigationGuards';
 
 export function useNavigation(): MicroMRouterState {
@@ -33,8 +34,9 @@ export function useNavigation(): MicroMRouterState {
         };
 
         const handleHashChange = async () => {
-            const newPath = normalizeRoutePath(window.location.hash.slice(1));
+            const newPath = normalizeRoutePath(window.location.hash.slice(1)) || '/';
             if (newPath === route) return;
+            if (consumeModalNavigation(true)) return;
 
             if (navigationPendingRef.current) {
                 restoreCurrentRoute();

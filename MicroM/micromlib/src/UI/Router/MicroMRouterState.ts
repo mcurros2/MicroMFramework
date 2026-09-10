@@ -1,3 +1,5 @@
+import { consumeModalNavigation } from './ModalNavigation';
+
 export interface NavigationState {
     navigated: boolean;
     route: string;
@@ -20,6 +22,7 @@ export const normalizeRoutePath = (path: string) => {
 }
 
 export const navigateToRoute = (newPath: string) => {
+    if (consumeModalNavigation()) return;
     window.location.hash = normalizeRoutePath(newPath);
 }
 

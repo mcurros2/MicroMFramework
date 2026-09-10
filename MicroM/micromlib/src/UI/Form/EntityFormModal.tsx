@@ -3,6 +3,7 @@ import { useEffect, useRef } from "react";
 import { DBStatusResult, MicroMClient, OperationStatus } from "../../client";
 import { Entity, EntityDefinition } from "../../Entity";
 import { FormMode, MicroMModalSize, useOpenForm } from "../Core";
+import type { NavigationProtectionMode } from "../Router/NavigationGuards";
 
 
 export interface EntityFormModalProps {
@@ -10,6 +11,7 @@ export interface EntityFormModalProps {
     entityConstructor: (client: MicroMClient) => Entity<EntityDefinition>,
     initialFormMode?: FormMode,
     getDataOnInit?: boolean,
+    navigationProtection?: NavigationProtectionMode,
     openState: boolean,
     setOpenState: (open: boolean) => void,
     onModalClosed?: () => void,
@@ -30,7 +32,7 @@ export const EntityFormModalDefaultProps: Partial<EntityFormModalProps> = {
 
 export function EntityFormModal(props: EntityFormModalProps) {
     const {
-        client, entityConstructor, openState, setOpenState, initialFormMode, getDataOnInit,
+        client, entityConstructor, openState, setOpenState, initialFormMode, getDataOnInit, navigationProtection,
         onModalClosed, onModalSaved, modalFormSize, withFullscreenButton, closeOnClickOutside, closeOnEscape
     } = useComponentDefaultProps('EntityFormModal', EntityFormModalDefaultProps, props);
 
@@ -46,6 +48,7 @@ export function EntityFormModal(props: EntityFormModalProps) {
                 entity: entity,
                 initialFormMode: initialFormMode!,
                 getDataOnInit: getDataOnInit,
+                navigationProtection,
                 withFullscreenButton,
                 closeOnClickOutside,
                 closeOnEscape,
@@ -65,7 +68,7 @@ export function EntityFormModal(props: EntityFormModalProps) {
             open();
         }
 
-    }, [client, entityConstructor, getDataOnInit, initialFormMode, onModalClosed, onModalSaved, openForm, openState, setOpenState, modalFormSize, withFullscreenButton, closeOnEscape, closeOnClickOutside]);
+    }, [client, entityConstructor, getDataOnInit, navigationProtection, initialFormMode, onModalClosed, onModalSaved, openForm, openState, setOpenState, modalFormSize, withFullscreenButton, closeOnEscape, closeOnClickOutside]);
 
     return null;
 }

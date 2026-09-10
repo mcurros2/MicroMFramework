@@ -2,6 +2,7 @@ import { Text } from "@mantine/core";
 import { useCallback } from "react";
 import { DBStatusResult, OperationStatus } from "../../client";
 import { Entity, EntityDefinition } from "../../Entity";
+import type { NavigationProtectionMode } from "../Router/NavigationGuards";
 import { createEntityForm } from "./createEntityForm";
 import { MicroMModalSize, useModal } from "./ModalsManager";
 import { FormMode } from "./types";
@@ -12,6 +13,7 @@ export interface OpenFormProps {
     title?: string,
     element?: HTMLElement,
     getDataOnInit?: boolean,
+    navigationProtection?: NavigationProtectionMode,
     onModalSaved?: (new_status: OperationStatus<DBStatusResult | null>) => void,
     onModalCancelled?: () => void,
     onModalClosed?: () => void,
@@ -32,7 +34,7 @@ export function useOpenForm() {
 
     const openForm = useCallback(async (props: OpenFormProps) => {
         const {
-            entity, initialFormMode, getDataOnInit, modalFormSize, title, element, onModalSaved, onModalCancelled, OKText, CancelText
+            entity, initialFormMode, getDataOnInit, navigationProtection, modalFormSize, title, element, onModalSaved, onModalCancelled, OKText, CancelText
             , showCancel, onModalClosed, otherFormProps, dontAddEntityTitle, withFullscreenButton, closeOnEscape, closeOnClickOutside
         } = props;
 
@@ -52,7 +54,7 @@ export function useOpenForm() {
             if (onModalClosed) await onModalClosed();
         };
 
-        const entity_form = createEntityForm({ entity, initialFormMode, getDataOnInit, showOK, onSaved, onCancel, OKText, CancelText, showCancel, ...otherFormProps });
+        const entity_form = createEntityForm({ entity, initialFormMode, getDataOnInit, navigationProtection, showOK, onSaved, onCancel, OKText, CancelText, showCancel, ...otherFormProps });
 
         await modals.open({
             modalProps: {

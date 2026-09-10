@@ -2,8 +2,10 @@ import { ActionIcon, Group, MantineNumberSize, Modal, ModalBaseOverlayProps, Ske
 import { randomId, useViewportSize } from '@mantine/hooks';
 import { ModalSettings } from '@mantine/modals/lib/context';
 import { IconArrowsDiagonal, IconArrowsDiagonalMinimize2 } from '@tabler/icons-react';
-import { createContext, PropsWithChildren, ReactNode, useCallback, useContext, useState } from 'react';
+import { createContext, PropsWithChildren, ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { isPromise } from '../../Entity';
+import { ModalHistory, registerModalNavigator } from '../Router/ModalNavigation';
+import { canNavigateLocally } from '../Router/NavigationGuards';
 
 export const ModalsManagerDefaultProps = {
     closeLabel: 'Close',
@@ -28,6 +30,10 @@ export type MicroMModalSettings = Partial<Omit<ModalSettings, 'size'>> & {
 
 
 export interface ModalOpenProps {
+    /** Optional stable identifier for targeted programmatic closes. */
+    id?: string,
+    /** Internal confirmation dialogs use false; normal modals participate in Back. */
+    history?: boolean,
     content: ReactNode | Promise<ReactNode>,
     modalProps: MicroMModalSettings,
     onClosed?: () => void,
@@ -36,10 +42,11 @@ export interface ModalOpenProps {
 
 export interface ModalContextType {
     open: (props: ModalOpenProps, onClosed?: () => void) => Promise<void>;
-    close: () => Promise<void>;
+    close: (id?: string) => Promise<void>;
 }
 
 export interface ModalType {
+    history?: boolean,
     originalContent: ReactNode | Promise<ReactNode>,
     resolvedContent?: ReactNode, // Resolved content to be rendered
     props: ModalSettings,
@@ -67,11 +74,25 @@ const NEW_SIZES: Record<string, string> = {
     fullscreen: '100%'
 }
 
+const ModalScopeContext = createContext<string | undefined>(undefined);
+export const useModalScope = () => useContext(ModalScopeContext);
+
 const ModalContext = createContext<ModalContextType | null>(null);
 
 export const ModalsManager = ({ modalProps, animationDuration, children }: ModalsManagerProps) => {
     const [modals, setModals] = useState<ModalType[]>([]);
-    const [isClosing, setIsClosing] = useState(false);
+
+    const modalsRef = useRef<ModalType[]>([]);
+    const closingRef = useRef(new Map<string, Promise<void>>());
+    const requestPendingRef = useRef(false);
+    const historyRef = useRef<ModalHistory>();
+    const requestCloseRef = useRef<() => Promise<void>>(async () => { });
+    const mountedRef = useRef(true);
+
+    const updateModals = useCallback((update: (previous: ModalType[]) => ModalType[]) => {
+        modalsRef.current = update(modalsRef.current);
+        if (mountedRef.current) setModals(modalsRef.current);
+    }, []);
 
     const { width: viewportWidth } = useViewportSize();
 
@@ -81,77 +102,38 @@ export const ModalsManager = ({ modalProps, animationDuration, children }: Modal
         blur: 0,
     }
 
-    const open = useCallback(async ({ content, modalProps, onClosed, focusOnClosed }: ModalOpenProps): Promise<void> => {
-        if (isClosing) {
-            await new Promise(resolve => {
-                const checkInterval = setInterval(() => {
-                    if (!isClosing) {
-                        clearInterval(checkInterval);
-                        resolve(null);
-                    }
-                }, 100);
-            });
-        }
+    const open = useCallback(async ({ content, modalProps, onClosed, focusOnClosed, id, history = true }: ModalOpenProps, fallbackOnClosed?: () => void): Promise<void> => {
+        if (!mountedRef.current) return;
 
-        const modal_id = randomId(); // Generate ID upfront
+        const modalId = id ?? randomId();
 
-        // try to get the last focused event if none specified
-        if (!focusOnClosed) {
-            focusOnClosed = document.activeElement as HTMLElement;
-        }
+        if (modalsRef.current.some(modal => modal.id === modalId)) throw new Error(`Modal ${modalId} is already open`);
 
-        // Default for closeButton
-        if (modalProps.withCloseButton === undefined) {
-            modalProps.withCloseButton = ModalsManagerDefaultProps.withCloseButton;
-        }
+        historyRef.current ??= new ModalHistory(() => requestCloseRef.current());
+        if (history) await historyRef.current.open(modalId);
 
-        // Default full screen button
-        if (modalProps.withFullscreenButton === undefined) {
-            modalProps.withFullscreenButton = ModalsManagerDefaultProps.withFullscreenButton;
-        }
+        if (!mountedRef.current) return;
 
-        // If content is a Promise
+        const props = {
+            ...modalProps,
+            withCloseButton: modalProps.withCloseButton ?? ModalsManagerDefaultProps.withCloseButton,
+            withFullscreenButton: modalProps.withFullscreenButton ?? ModalsManagerDefaultProps.withFullscreenButton,
+        };
+
+        updateModals(previous => [...previous, {
+            id: modalId, history, originalContent: content,
+            resolvedContent: isPromise<ReactNode>(content) ? undefined : content,
+            opened: true, props, onClosed: onClosed ?? fallbackOnClosed,
+            focusOnClosed: focusOnClosed ?? document.activeElement as HTMLElement,
+            initialSize: props.size, withFullscreenButton: props.withFullscreenButton,
+        }]);
+
         if (isPromise<ReactNode>(content)) {
-            content.then(resolvedContent => {
-                setModals((prev) => {
-                    return prev.map(m =>
-                        m.id === modal_id ? { ...m, resolvedContent } : m
-                    );
-                });
-            });
-
-            setModals(prevModals => [
-                ...prevModals,
-                {
-                    originalContent: content,
-                    opened: true,
-                    id: modal_id,
-                    props: modalProps,
-                    onClosed,
-                    focusOnClosed,
-                    initialSize: modalProps.size,
-                    withFullscreenButton: modalProps.withFullscreenButton,
-                }
-            ]);
+            void content.then(resolvedContent => {
+                updateModals(previous => previous.map(modal => modal.id === modalId ? { ...modal, resolvedContent } : modal));
+            }).catch(error => { console.error('Could not load modal content', error); void closeRef.current(modalId); });
         }
-        // If content is not a Promise
-        else {
-            setModals(prevModals => [
-                ...prevModals,
-                {
-                    originalContent: content,
-                    resolvedContent: content, // Directly setting resolved content for non-promise content
-                    opened: true,
-                    id: modal_id,
-                    props: modalProps,
-                    onClosed,
-                    focusOnClosed,
-                    initialSize: modalProps.size,
-                    withFullscreenButton: modalProps.withFullscreenButton,
-                }
-            ]);
-        }
-    }, [isClosing]);
+    }, [updateModals]);
 
     const getModalSize = useCallback((size?: MicroMModalSize): { size?: MantineNumberSize, fullscreen?: boolean } => {
         if (size === 'fullscreen' || size === '100%' || (viewportWidth < 768 && (['xs', 'sm', 'md', 'lg', 'xl', 'fullscreen'] as MicroMModalSize[]).includes(size ?? ''))) return { fullscreen: true, size: undefined };
@@ -160,47 +142,82 @@ export const ModalsManager = ({ modalProps, animationDuration, children }: Modal
         if (size && NEW_SIZES[size]) {
             new_size = NEW_SIZES[size] as MantineNumberSize;
         }
+
         return { size: new_size, fullscreen: undefined };
     }, [viewportWidth]);
 
-    const close = useCallback(() => {
-        let timer: ReturnType<typeof setTimeout> | null = null;
-        return new Promise<void>((resolve) => {
-            setModals((prevModals) => {
-                if (prevModals.length > 0) {
-                    const newModals = [...prevModals];
-                    newModals[newModals.length - 1].opened = false; // Close the last modal
-                    setIsClosing(true);
+    const close = useCallback((id?: string): Promise<void> => {
+        const modal = id ? modalsRef.current.find(item => item.id === id) : modalsRef.current[modalsRef.current.length - 1];
 
-                    // After a delay, remove the modal completely
-                    if (!timer) {
-                        timer = setTimeout(() => {
-                            const closedModal = newModals.pop();
-                            setModals(newModals);
-                            if (closedModal?.onClosed) {
-                                closedModal.onClosed();
-                            }
-                            setIsClosing(false);
-                            if (closedModal?.focusOnClosed) {
-                                closedModal.focusOnClosed.focus();
-                            }
-                            resolve();
-                        }, animationDuration); // Adjust this delay to match the closing animation duration
-                    }
+        if (!modal) return Promise.resolve();
 
-                    return newModals;
-                }
-                return [];
-            });
+        const pending = closingRef.current.get(modal.id);
+        if (pending) return pending;
+
+        const closing = (async () => {
+            updateModals(previous => previous.map(item => item.id === modal.id ? { ...item, opened: false } : item));
+
+            if (modal.history) await historyRef.current?.close(modal.id);
+
+            await new Promise(resolve => setTimeout(resolve, animationDuration));
+
+            updateModals(previous => previous.filter(item => item.id !== modal.id));
+
+            if (mountedRef.current) {
+                modal.onClosed?.();
+                if (modal.focusOnClosed?.isConnected) modal.focusOnClosed.focus();
+            }
+        })().finally(() => { closingRef.current.delete(modal.id); });
+        closingRef.current.set(modal.id, closing);
+        return closing;
+    }, [animationDuration, updateModals]);
+
+    const closeRef = useRef(close);
+    closeRef.current = close;
+
+    const requestClose = useCallback(async (id?: string): Promise<void> => {
+        const top = modalsRef.current[modalsRef.current.length - 1];
+
+        if (!top || !top.opened || top.history === false || (id && top.id !== id) || requestPendingRef.current) return;
+
+        requestPendingRef.current = true;
+
+        try {
+            const route = window.location.hash.slice(1);
+            if (await canNavigateLocally({ currentRoute: route, nextRoute: route }, top.id)) await close(top.id);
+        }
+        catch (error) { console.error('Modal close was cancelled', error); }
+        finally { requestPendingRef.current = false; }
+
+    }, [close]);
+
+    requestCloseRef.current = requestClose;
+
+    useEffect(() => {
+        mountedRef.current = true;
+        historyRef.current ??= new ModalHistory(() => requestCloseRef.current());
+
+        const unregister = registerModalNavigator({
+            hasModals: () => modalsRef.current.length > 0,
+            requestClose: () => requestCloseRef.current(),
+            restoreRoute: async () => { await historyRef.current?.restoreRoute(); },
         });
-    }, [animationDuration]);
+
+        return () => {
+            mountedRef.current = false;
+            unregister();
+            historyRef.current?.dispose();
+            historyRef.current = undefined;
+        };
+    }, []);
+
+    const contextValue = useMemo(() => ({ open, close }), [open, close]);
 
     const IconFullscreen = ModalsManagerDefaultProps.FullScreenIcon;
     const IconRestore = ModalsManagerDefaultProps.RestoreScreeSizeIcon;
 
-
     return (
-        <ModalContext.Provider value={{ open, close }}>
+        <ModalContext.Provider value={contextValue}>
             {children}
             {
                 modals.map((modal, index) => {
@@ -211,14 +228,14 @@ export const ModalsManager = ({ modalProps, animationDuration, children }: Modal
                         <Modal.Root
                             key={modal.id}
                             opened={modal.opened}
-                            onClose={async () => { await close(); }}
+                            onClose={() => { void requestClose(modal.id); }}
                             size={computedSizes.size}
                             fullScreen={computedSizes.fullscreen}
                             zIndex={(index + 1) * 5000}
                             returnFocus={false}
                             trapFocus
-                            closeOnClickOutside={modal.props.closeOnClickOutside ?? false}
-                            closeOnEscape={modal.props.closeOnEscape ?? true}
+                            closeOnClickOutside={index === modals.length - 1 && (modal.props.closeOnClickOutside ?? false)}
+                            closeOnEscape={index === modals.length - 1 && (modal.props.closeOnEscape ?? true)}
                             transitionProps={modal.props.transitionProps}
                         >
                             <Modal.Overlay {...((index === modals.length - 1) ? modalProps.overlayProps : transparentOverlay)} />
@@ -237,7 +254,7 @@ export const ModalsManager = ({ modalProps, animationDuration, children }: Modal
                                             <ActionIcon
                                                 onClick={(e) => {
                                                     e.stopPropagation();
-                                                    setModals((prev) =>
+                                                    updateModals((prev) =>
                                                         prev.map((m, i) => {
                                                             if (i !== index) return m;
                                                             const original = m.initialSize ?? 'lg';
@@ -276,9 +293,11 @@ export const ModalsManager = ({ modalProps, animationDuration, children }: Modal
                                 <Modal.Body style={{
                                     paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 1rem)'
                                 }}>
-                                    {modal.resolvedContent ?
-                                        modal.resolvedContent :
-                                        (isPromise<ReactNode>(modal.originalContent) ? <Skeleton /> : modal.originalContent)}
+                                    <ModalScopeContext.Provider value={modal.id}>
+                                        {modal.resolvedContent ?
+                                            modal.resolvedContent :
+                                            (isPromise<ReactNode>(modal.originalContent) ? <Skeleton /> : modal.originalContent)}
+                                    </ModalScopeContext.Provider>
                                 </Modal.Body>
                             </Modal.Content>
                         </Modal.Root>
