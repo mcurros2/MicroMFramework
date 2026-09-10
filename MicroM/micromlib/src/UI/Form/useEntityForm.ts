@@ -3,7 +3,7 @@ import { useForm, UseFormReturnType } from "@mantine/form";
 import { LooseKeys } from "@mantine/form/lib/types";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DBStatus, DBStatusResult, MicroMRequestOptions, OperationStatus, SQLType, toDBStatusMicroMError, toMicroMError, Value, ValuesObject } from "../../client";
-import { areValuesObjectsEqual, Entity, EntityColumn, EntityColumnFlags, EntityDefinition, getValues, isIn, setValues } from "../../Entity";
+import { areValuesObjectsEqual, Entity, EntityColumn, EntityColumnFlags, EntityDefinition, EntityFormActions, EntityFormClientAction, getValues, isIn, setValues } from "../../Entity";
 import { ValidationRule } from "../../Validation";
 import { FormMode, FormOptions, useStateReturnType, ValidateFormResult } from "../Core";
 import { useModal } from "../Core/ModalsManager";
@@ -38,9 +38,8 @@ export interface UseEntityFormReturnType {
     form: UseFormReturnType<ValuesObject>,
     status: OperationStatus<DBStatusResult | ValuesObject>,
     formMode: FormMode,
-    handleCancel: () => Promise<void> | void,
-    handleSubmit: (event?: React.FormEvent<HTMLFormElement>) => Promise<void>,
-    handleExecuteMappedAction: (buttonName: 'OK' | 'Cancel', actionName: string, requireValidation: boolean, element?: HTMLElement) => Promise<void>,
+    handleCancel: (silent?: boolean, element?: HTMLElement) => Promise<boolean>,
+    handleSubmit: (event?: React.FormEvent<HTMLFormElement>, silent?: boolean, element?: HTMLElement, requestOptions?: MicroMRequestOptions) => Promise<boolean>,
     performGetData: () => Promise<boolean>,
     saveAndGet: (get_data_if_saved: boolean, override_values?: ValuesObject, requestOptions?: MicroMRequestOptions) => Promise<OperationStatus<DBStatusResult>>,
     configureField: (column: EntityColumn<Value>, validation?: ValidationRule) => void,
@@ -54,6 +53,7 @@ export interface UseEntityFormReturnType {
     clearAllAsyncErrors: () => void,
     isFormValid: () => boolean,
     isFormFieldValid: (column_name: string) => boolean,
+    activeFormActions: EntityFormActions,
     silentSave: (requestOptions?: MicroMRequestOptions) => Promise<SilentSaveResult>,
 }
 
@@ -62,6 +62,7 @@ export const UseEntityFormDefaultProps: Partial<UseEntityFormOptions> = {
     initialShowDescriptionInFields: true,
     cancelGetOnUnmount: true,
     cancelSaveOnUnmount: true,
+    navigationProtection: 'confirm',
 }
 
 export function useEntityForm(props: UseEntityFormOptions): UseEntityFormReturnType {
@@ -80,6 +81,16 @@ export function useEntityForm(props: UseEntityFormOptions): UseEntityFormReturnT
     const showDescriptionState = useState<boolean>(initialShowDescriptionInFields!);
 
     const [formMode, setFormMode] = useState(initialFormMode);
+
+    const activeFormActions = useMemo<EntityFormActions>(() => {
+        const allModesOverrides = entity.def.formActionOverrides.Allways;
+        const modeOverrides = entity.def.formActionOverrides[formMode];
+
+        return {
+            OK: modeOverrides?.OK ?? allModesOverrides?.OK,
+            Cancel: modeOverrides?.Cancel ?? allModesOverrides?.Cancel,
+        };
+    }, [entity.def.formActionOverrides, formMode]);
 
     const getAbortController = useRef<AbortController>(new AbortController);
     const saveAbortController = useRef<AbortController>(new AbortController);
@@ -223,12 +234,6 @@ export function useEntityForm(props: UseEntityFormOptions): UseEntityFormReturnT
         }
     }, [entity.API, entity.def.columns, form.values, formMode, noSaveOnSubmit, performGetData]);
 
-    const handleCancel = useCallback(async () => {
-        getAbortController.current.abort();
-        saveAbortController.current.abort();
-        if (onCancel) await Promise.resolve(onCancel());
-    }, [onCancel]);
-
     const validateBeforeSubmit = useCallback(async () => {
         // Check if there are async errors
         if (Object.keys(asyncErrors.current).length > 0) {
@@ -270,98 +275,6 @@ export function useEntityForm(props: UseEntityFormOptions): UseEntityFormReturnT
 
         return true;
     }, [confirmWarning, form, setNotifyValidationError, showValidationError, validateForm]);
-
-    const handleSubmit = useCallback(async (event?: React.FormEvent<HTMLFormElement>) => {
-        if (event) event.preventDefault();
-
-        if (!await validateBeforeSubmit()) return;
-
-        let save_result: OperationStatus<DBStatusResult>;
-        if (saveAndGetOverride) {
-            try {
-                if (noSaveOnSubmit) {
-                    save_result = {
-                        loading: false, data: { Results: [{ Status: 0, Message: 'OK' }] }
-                    } as OperationStatus<DBStatusResult>;
-                }
-                else {
-                    setStatus({ loading: true, operationType: "add" });
-
-                    const get_data_if_saved = saveAndGetOnSubmit || false;
-                    save_result = await saveAndGetOverride(get_data_if_saved);
-                    setStatus(save_result);
-                    if (save_result.data?.Failed !== true) {
-                        if (get_data_if_saved) await performGetData();
-                        if (formMode === "add") setFormMode('edit');
-                    }
-                }
-            }
-            catch (e: any) {
-                if (e.name !== 'AbortError') {
-                    const new_status: OperationStatus<DBStatusResult> = { error: e.Errors ? toDBStatusMicroMError(e.Errors as DBStatus[], formMode) : toMicroMError(e), operationType: formMode };
-                    setStatus(new_status);
-                    save_result = new_status;
-                }
-                else {
-                    save_result = { loading: false };
-                }
-            }
-        }
-        else {
-            save_result = await saveAndGet(saveAndGetOnSubmit || false);
-        }
-
-        if (save_result.error === undefined && save_result.data?.Failed !== true && onSaved) {
-            // MMC: fix for mantine DateInput bug "invalid date"
-            // check all form values for date columns and set them to null if invalid
-            // The bug happens when closing the form with invalid date values, after save
-            for (const c in entity.def.columns) {
-                if (isIn<SQLType>(entity.def.columns[c].type, 'date', 'datetime', 'datetime2', 'smalldatetime')) {
-                    if (form.values[c]?.toString() === 'Invalid Date' || form.values[c]?.toString() === '') {
-                        form.values[c] = null;
-                        entity.def.columns[c].value = null;
-                    }
-                }
-            }
-            onSaved(save_result);
-        }
-
-    }, [entity.def.columns, form.values, formMode, noSaveOnSubmit, onSaved, performGetData, saveAndGet, saveAndGetOnSubmit, saveAndGetOverride, validateBeforeSubmit]);
-
-    const handleExecuteMappedAction = useCallback(async (buttonName: 'OK' | 'Cancel', actionName: string, requireValidation: boolean, element?: HTMLElement) => {
-        const action = entity.def.clientActions[actionName];
-        if (!action) {
-            console.warn(`EntityForm ${buttonName}: client action '${actionName}' was not found in entity '${entity.name}'.`);
-            return;
-        }
-
-        if (requireValidation && !await validateBeforeSubmit()) return;
-
-        // Keep the live form entity synchronized so the action can read and mutate its columns.
-        setValues(entity.def.columns, form.values, null, true);
-        const selectedKeys = [getValues(entity.def.columns, { flags: EntityColumnFlags.pk, ignoreDefaults: false })];
-
-        await action.onClick({
-            entity,
-            modal,
-            selectedKeys,
-            element,
-            onClose: async (result?: boolean, actionStatus?: OperationStatus<DBStatusResult>) => {
-                if (action.refreshOnClose && mountedRef.current) await performGetData();
-
-                // A successful action mapped to OK completes the same lifecycle as a regular submit.
-                if (buttonName === 'OK' && result === true && onSaved) {
-                    const completedStatus = actionStatus ?? {
-                        loading: false,
-                        operationType: formMode,
-                    };
-                    await Promise.resolve(onSaved(completedStatus));
-                }
-
-                return result ?? false;
-            },
-        });
-    }, [entity, form.values, formMode, modal, onSaved, performGetData, validateBeforeSubmit]);
 
     // Validation, InitialValues, InitialDirty
     const addValidation = useCallback((column: EntityColumn<Value>, validation?: ValidationRule) => {
@@ -449,15 +362,147 @@ export function useEntityForm(props: UseEntityFormOptions): UseEntityFormReturnT
         return savePromise;
     }, [entity.def.columns, form, formMode, noSaveOnSubmit, saveAndGet, saveAndGetOverride, setNotifyValidationError]);
 
+    const handleExecuteFormAction = useCallback(async (
+        buttonName: 'OK' | 'Cancel',
+        action: EntityFormClientAction,
+        silent: boolean,
+        element?: HTMLElement,
+    ) => {
+        if (!silent && buttonName === 'OK' && !await validateBeforeSubmit()) return false;
+
+        // Keep the live entity synchronized so form actions can read current values.
+        setValues(entity.def.columns, form.values, null, true);
+        const selectedKeys = [getValues(entity.def.columns, { flags: EntityColumnFlags.pk, ignoreDefaults: false })];
+
+        try {
+            return await action.onClick({
+                entity,
+                modal,
+                selectedKeys,
+                element,
+                silent,
+                onClose: async (result?: boolean, actionStatus?: OperationStatus<DBStatusResult>) => {
+                    if (result !== true) return false;
+
+                    if (action.refreshOnClose && mountedRef.current) await performGetData();
+
+                    if (buttonName === 'OK' && onSaved) {
+                        await Promise.resolve(onSaved(actionStatus ?? {
+                            loading: false,
+                            operationType: formMode,
+                        }));
+                    }
+
+                    return true;
+                },
+            });
+        }
+        catch (error) {
+            if (!silent) throw error;
+            console.error(`EntityForm ${buttonName} action failed silently`, error);
+            return false;
+        }
+    }, [entity, form.values, formMode, modal, onSaved, performGetData, validateBeforeSubmit]);
+
+    const handleSubmit = useCallback(async (
+        event?: React.FormEvent<HTMLFormElement>,
+        silent: boolean = false,
+        element?: HTMLElement,
+        requestOptions?: MicroMRequestOptions,
+    ) => {
+        event?.preventDefault();
+
+        if (activeFormActions.OK) {
+            return await handleExecuteFormAction('OK', activeFormActions.OK, silent, element);
+        }
+
+        if (silent) {
+            const silentResult = await silentSave(requestOptions);
+            return silentResult === 'saved' || silentResult === 'unchanged';
+        }
+
+        if (!await validateBeforeSubmit()) return false;
+
+        let save_result: OperationStatus<DBStatusResult>;
+        if (saveAndGetOverride) {
+            try {
+                if (noSaveOnSubmit) {
+                    save_result = {
+                        loading: false, data: { Results: [{ Status: 0, Message: 'OK' }] }
+                    } as OperationStatus<DBStatusResult>;
+                }
+                else {
+                    setStatus({ loading: true, operationType: "add" });
+
+                    const get_data_if_saved = saveAndGetOnSubmit || false;
+                    save_result = await saveAndGetOverride(get_data_if_saved);
+                    setStatus(save_result);
+                    if (save_result.data?.Failed !== true) {
+                        if (get_data_if_saved) await performGetData();
+                        if (formMode === "add") setFormMode('edit');
+                    }
+                }
+            }
+            catch (e: any) {
+                if (e.name !== 'AbortError') {
+                    const new_status: OperationStatus<DBStatusResult> = { error: e.Errors ? toDBStatusMicroMError(e.Errors as DBStatus[], formMode) : toMicroMError(e), operationType: formMode };
+                    setStatus(new_status);
+                    save_result = new_status;
+                }
+                else {
+                    save_result = { loading: false };
+                }
+            }
+        }
+        else {
+            save_result = await saveAndGet(saveAndGetOnSubmit || false);
+        }
+
+        const saved = save_result.error === undefined && save_result.data !== undefined && save_result.data.Failed !== true;
+
+        if (saved && onSaved) {
+            // MMC: fix for mantine DateInput bug "invalid date"
+            // check all form values for date columns and set them to null if invalid
+            // The bug happens when closing the form with invalid date values, after save
+            for (const c in entity.def.columns) {
+                if (isIn<SQLType>(entity.def.columns[c].type, 'date', 'datetime', 'datetime2', 'smalldatetime')) {
+                    if (form.values[c]?.toString() === 'Invalid Date' || form.values[c]?.toString() === '') {
+                        form.values[c] = null;
+                        entity.def.columns[c].value = null;
+                    }
+                }
+            }
+            await Promise.resolve(onSaved(save_result));
+        }
+
+        return saved;
+    }, [activeFormActions.OK, entity.def.columns, form.values, formMode, handleExecuteFormAction, noSaveOnSubmit, onSaved, performGetData, saveAndGet, saveAndGetOnSubmit, saveAndGetOverride, silentSave, validateBeforeSubmit]);
+
+    const handleCancel = useCallback(async (silent: boolean = false, element?: HTMLElement) => {
+        if (activeFormActions.Cancel) {
+            return await handleExecuteFormAction('Cancel', activeFormActions.Cancel, silent, element);
+        }
+
+        getAbortController.current.abort();
+        saveAbortController.current.abort();
+        if (onCancel) await Promise.resolve(onCancel());
+        return true;
+    }, [activeFormActions.Cancel, handleExecuteFormAction, onCancel]);
+
+    const hasUnsavedChanges = useCallback(() => formMode !== 'view'
+        && form.isDirty()
+        && !areValuesObjectsEqual(form.values, lastGetValues.current), [form, formMode]);
+
     useConfirmNavigation({
         mode: navigationProtection,
-        hasUnsavedChanges: () => formMode !== 'view'
-            && form.isDirty()
-            && !areValuesObjectsEqual(form.values, lastGetValues.current),
-        onSave: async (navigationType) => {
-            const result = await silentSave(navigationType === 'remote' ? { keepalive: true } : undefined);
-            return result === 'saved' || result === 'unchanged';
-        },
+        hasUnsavedChanges,
+        onSave: async (navigationType) => await handleSubmit(
+            undefined,
+            true,
+            undefined,
+            navigationType === 'remote' ? { keepalive: true } : undefined,
+        ),
+        onLeave: async () => await handleCancel(true),
     });
 
     useEffect(() => {
@@ -507,7 +552,6 @@ export function useEntityForm(props: UseEntityFormOptions): UseEntityFormReturnT
         saveAndGet: saveAndGetOverride ?? saveAndGet,
         performGetData: performGetData,
         handleCancel: handleCancel,
-        handleExecuteMappedAction: handleExecuteMappedAction,
         configureField: addValidation,
         removeValidation: removeValidation,
         handleSubmit: handleSubmit,
@@ -520,9 +564,10 @@ export function useEntityForm(props: UseEntityFormOptions): UseEntityFormReturnT
         clearAllAsyncErrors: clearAllAsyncErrors,
         isFormValid: isFormValid,
         isFormFieldValid: isFormFieldValid,
+        activeFormActions,
         silentSave,
-    }), [addValidation, clearAllAsyncErrors, clearAsyncError, entity, form, formMode, handleCancel, handleExecuteMappedAction, handleSubmit, isFormFieldValid, isFormValid, notifyValidationErrorState, performGetData,
-        removeValidation, saveAndGet, saveAndGetOverride, setAsyncError, showDescriptionState, status, silentSave]);
+    }), [activeFormActions, addValidation, clearAllAsyncErrors, clearAsyncError, entity, form, formMode, handleCancel, handleSubmit, isFormFieldValid,
+        isFormValid, notifyValidationErrorState, performGetData, removeValidation, saveAndGet, saveAndGetOverride, setAsyncError, showDescriptionState, status, silentSave]);
 
     return result;
 }

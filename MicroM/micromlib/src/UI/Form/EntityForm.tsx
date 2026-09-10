@@ -1,8 +1,7 @@
 import { ActionIcon, Button, DefaultMantineColor, FocusTrap, Group, Notification, Space, useComponentDefaultProps, useMantineTheme, Variants } from "@mantine/core";
 import { IconCircleCheck, IconCircleX, IconHelp, IconHelpOff, IconX } from "@tabler/icons-react";
-import { PropsWithChildren, ReactNode, useEffect, useRef } from "react";
+import { FormEvent, PropsWithChildren, ReactNode, useEffect, useRef } from "react";
 import { AlertError, FakeProgressBar, usePreventEnterSubmission } from "../Core";
-import { getClientActionStringLabel } from "../DataGrid/ToolBarFunctions";
 import { UseEntityFormReturnType } from "./useEntityForm";
 
 export interface EntityFormProps extends PropsWithChildren {
@@ -14,8 +13,6 @@ export interface EntityFormProps extends PropsWithChildren {
     OKText?: ReactNode,
     CancelText?: ReactNode,
     CloseText?: ReactNode,
-    OKActionName?: string,
-    CancelActionName?: string,
     formAPI: UseEntityFormReturnType,
     invalidFieldsLabel?: string,
     showHelpButton?: boolean,
@@ -57,14 +54,18 @@ export function EntityForm(props: EntityFormProps) {
     const {
         formAPI, children, showOK, showCancel, showErrors, showFormValidationNotification, showLoadingProgress, OKText, CancelText, invalidFieldsLabel,
         showHelpButton, preventEnterSubmission, CloseText, buttons, isDirtyColor, cancelButtonVariant, okButtonVariant, disableOKIfNotDirty,
-        formHeight, disableOK, loadingOK, OKActionName, CancelActionName
+        formHeight, disableOK, loadingOK
     } = useComponentDefaultProps('EntityForm', EntityFormDefaultProps, props);
 
     const { entity } = formAPI;
 
     const theme = useMantineTheme();
 
-    const { handleCancel, handleSubmit, handleExecuteMappedAction, notifyValidationErrorState, status, form, formMode, showDescriptionState, isFormValid, asyncErrors } = formAPI;
+    const {
+        handleCancel, handleSubmit, notifyValidationErrorState, status, form, formMode,
+        showDescriptionState, isFormValid, asyncErrors, activeFormActions,
+    } = formAPI;
+
     const [notifyValidationError, setNotifyValidationError] = notifyValidationErrorState;
     const [showDescription, setShowDescription] = showDescriptionState;
 
@@ -78,34 +79,24 @@ export function EntityForm(props: EntityFormProps) {
     const okElement = useRef<HTMLButtonElement>(null);
     const cancelElement = useRef<HTMLButtonElement>(null);
 
-    const actionLabels = entity.def.clientActions;
-    const effectiveOKText = OKActionName && explicitOKText === undefined
-        ? getClientActionStringLabel(actionLabels, OKActionName) ?? OKText
+    const effectiveOKText = activeFormActions.OK && explicitOKText === undefined
+        ? activeFormActions.OK.label ?? OKText
         : OKText;
+
     const defaultCancelText = formMode === 'view' ? CloseText : CancelText;
-    const effectiveCancelText = CancelActionName
+
+    const effectiveCancelText = activeFormActions.Cancel
         ? explicitCancelText !== undefined
             ? explicitCancelText
-            : getClientActionStringLabel(actionLabels, CancelActionName) ?? defaultCancelText
+            : activeFormActions.Cancel.label ?? defaultCancelText
         : defaultCancelText;
 
-    const handleFormSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-        if (!OKActionName) {
-            await handleSubmit(event);
-            return;
-        }
-
-        event.preventDefault();
-        await handleExecuteMappedAction('OK', OKActionName, true, okElement.current ?? undefined);
+    const handleFormSubmit = (event: FormEvent<HTMLFormElement>) => {
+        void handleSubmit(event, false, okElement.current ?? undefined);
     };
 
-    const handleCancelClick = async () => {
-        if (!CancelActionName) {
-            await Promise.resolve(handleCancel());
-            return;
-        }
-
-        await handleExecuteMappedAction('Cancel', CancelActionName, false, cancelElement.current ?? undefined);
+    const handleCancelClick = () => {
+        void handleCancel(false, cancelElement.current ?? undefined);
     };
 
     // MMC: FocusTrap is present here because the FocusTrap that uses breaks with children when is an array

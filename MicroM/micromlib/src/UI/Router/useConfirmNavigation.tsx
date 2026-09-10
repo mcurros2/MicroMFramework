@@ -14,13 +14,15 @@ export interface UseConfirmNavigationOptions {
     mode?: NavigationProtectionMode,
     hasUnsavedChanges: () => boolean,
     onSave: (navigationType: ConfirmNavigationType) => Promise<boolean>,
+    onLeave?: (navigationType: ConfirmNavigationType) => Promise<boolean>,
 }
 
-export function useConfirmNavigation({ mode, hasUnsavedChanges, onSave }: UseConfirmNavigationOptions): void {
+export function useConfirmNavigation({ mode, hasUnsavedChanges, onSave, onLeave }: UseConfirmNavigationOptions): void {
     const modals = useModal();
 
     const hasUnsavedChangesRef = useRef(hasUnsavedChanges);
     const onSaveRef = useRef(onSave);
+    const onLeaveRef = useRef(onLeave);
     const externalNavigationBypassRef = useRef(false);
     const confirmationPendingRef = useRef(false);
     const cancelPendingConfirmationRef = useRef<(() => void) | null>(null);
@@ -29,7 +31,8 @@ export function useConfirmNavigation({ mode, hasUnsavedChanges, onSave }: UseCon
     useEffect(() => {
         hasUnsavedChangesRef.current = hasUnsavedChanges;
         onSaveRef.current = onSave;
-    }, [hasUnsavedChanges, onSave]);
+        onLeaveRef.current = onLeave;
+    }, [hasUnsavedChanges, onLeave, onSave]);
 
     const requestNavigationConfirmation = useCallback((navigationType: ConfirmNavigationType): Promise<boolean> => {
         if (confirmationPendingRef.current) return Promise.resolve(false);
@@ -59,6 +62,18 @@ export function useConfirmNavigation({ mode, hasUnsavedChanges, onSave }: UseCon
                         saved = false;
                     }
                     await settle(saved);
+                    return;
+                }
+
+                if (result === 'leave' && navigationType === 'local' && onLeaveRef.current) {
+                    let left = false;
+                    try {
+                        left = await onLeaveRef.current(navigationType);
+                    }
+                    catch {
+                        left = false;
+                    }
+                    await settle(left);
                     return;
                 }
 
@@ -104,7 +119,7 @@ export function useConfirmNavigation({ mode, hasUnsavedChanges, onSave }: UseCon
         if (!mode) return;
 
         return registerLocalNavigationGuard(() => {
-            if (!hasUnsavedChangesRef.current()) return true;
+            if (mode !== 'allways' && !hasUnsavedChangesRef.current()) return true;
             if (mode === 'save') return onSaveRef.current('local');
             return requestNavigationConfirmation('local');
         });
@@ -114,9 +129,9 @@ export function useConfirmNavigation({ mode, hasUnsavedChanges, onSave }: UseCon
         if (!mode) return;
 
         const handleBeforeUnload = (event: BeforeUnloadEvent) => {
-            if (externalNavigationBypassRef.current || !hasUnsavedChangesRef.current()) return;
+            if (externalNavigationBypassRef.current || (mode !== 'allways' && !hasUnsavedChangesRef.current())) return;
 
-            if (mode === 'confirm') {
+            if (mode === 'confirm' || mode === 'allways') {
                 event.preventDefault();
                 event.returnValue = '';
                 return;
@@ -141,7 +156,7 @@ export function useConfirmNavigation({ mode, hasUnsavedChanges, onSave }: UseCon
 
             const anchor = event.target.closest<HTMLAnchorElement>('a[href]');
             if (!anchor || anchor.download || (anchor.target && anchor.target.toLowerCase() !== '_self')) return;
-            if (!hasUnsavedChangesRef.current()) return;
+            if (mode !== 'allways' && !hasUnsavedChangesRef.current()) return;
 
             const destination = new URL(anchor.href, window.location.href);
             if (destination.protocol !== 'http:' && destination.protocol !== 'https:') return;

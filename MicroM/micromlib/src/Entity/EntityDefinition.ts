@@ -1,5 +1,5 @@
 import { Value } from "../client";
-import { EntityClientAction } from "./EntityClientAction";
+import { EntityClientAction, EntityFormActionOverrides } from "./EntityClientAction";
 import { EntityColumn } from "./EntityColumn";
 import { EntityColumnOptions } from "./EntityColumn.types";
 import { ColumnsObject } from "./EntityColumnCollection.types";
@@ -19,6 +19,7 @@ export class EntityDefinition {
     lookups: Record<string, EntityLookup> = {};
     serverActions: Record<string, EntityServerAction> = {};
     clientActions: Record<string, EntityClientAction> = {};
+    formActionOverrides: EntityFormActionOverrides = {};
     /**
      * Ordered allowlist of columns available for data imports.
      * A null value uses the import flow's inferred destinations; an empty array exposes no destinations.
@@ -105,8 +106,12 @@ export class EntityDefinition {
         const clientActions: Record<string, EntityClientAction> = {};
         for (const act in entity_def.clientActions) {
             const source = entity_def.clientActions[act];
-            clientActions[act] = source;
+            clientActions[act] = { ...source };
         }
+
+        const formActionOverrides: EntityFormActionOverrides = Object.fromEntries(
+            Object.entries(entity_def.formActionOverrides).map(([mode, actions]) => [mode, { ...actions }])
+        ) as EntityFormActionOverrides;
 
         const new_def = Object.assign(
             Object.create(Object.getPrototypeOf(entity_def)) as TDefinition,
@@ -119,6 +124,7 @@ export class EntityDefinition {
         new_def.lookups = lookups;
         new_def.serverActions = serverActions;
         new_def.clientActions = clientActions;
+        new_def.formActionOverrides = formActionOverrides;
         new_def.importColumns = entity_def.importColumns ? [...entity_def.importColumns] : null;
 
         return new_def;

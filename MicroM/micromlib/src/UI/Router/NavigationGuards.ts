@@ -3,7 +3,7 @@ export interface LocalNavigationIntent {
     nextRoute: string;
 }
 
-export type NavigationProtectionMode = 'save' | 'confirm';
+export type NavigationProtectionMode = 'save' | 'confirm' | 'allways';
 
 export type LocalNavigationGuard = (intent: LocalNavigationIntent) => boolean | Promise<boolean>;
 

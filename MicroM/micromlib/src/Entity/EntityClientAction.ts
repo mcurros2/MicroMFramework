@@ -1,6 +1,7 @@
 import { ReactNode } from "react";
 import { DBStatusResult, OperationStatus, ValuesObject } from "../client";
 import { ModalContextType } from "../UI";
+import type { FormMode } from "../UI/Core";
 import { Entity } from "./Entity";
 
 export interface EntityClientActionOnClickProps {
@@ -24,3 +25,18 @@ export interface EntityClientAction {
     showActionInViewMode?: boolean,
     onClick: (props: EntityClientActionOnClickProps) => Promise<boolean>,
 }
+
+export interface EntityFormClientActionOnClickProps extends EntityClientActionOnClickProps {
+    silent: boolean,
+}
+
+export interface EntityFormClientAction extends Omit<EntityClientAction, 'onClick'> {
+    onClick: (props: EntityFormClientActionOnClickProps) => Promise<boolean>,
+}
+
+export interface EntityFormActions {
+    OK?: EntityFormClientAction,
+    Cancel?: EntityFormClientAction,
+}
+
+export type EntityFormActionOverrides = Partial<Record<FormMode | 'Allways', EntityFormActions>>;

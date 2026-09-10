@@ -19,14 +19,13 @@ export const EntityFormPanelDefaultProps: Partial<EntityFormPanelProps> = {
     defaultLoadingComponent: <Skeleton />,
     bgLight: 'gray.3',
     bgDark: 'dark.8',
-    navigationProtection: 'confirm',
     containerCardProps: { h: '100%', withBorder: true },
 };
 
 export function EntityFormPanel(props: EntityFormPanelProps) {
     const mergedProps = useComponentDefaultProps("EntityFormPanel", EntityFormPanelDefaultProps, props);
     const {
-        client, parentKeys, entityConstructor, entityLoader, defaultLoadingComponent, bgLight, bgDark, navigationProtection, containerCardProps, ...rest
+        client, parentKeys, entityConstructor, entityLoader, defaultLoadingComponent, bgLight, bgDark, containerCardProps, ...rest
     } = mergedProps;
 
     const theme = useMantineTheme();
@@ -44,7 +43,6 @@ export function EntityFormPanel(props: EntityFormPanelProps) {
                     client={client}
                     defaultLoadingComponent={defaultLoadingComponent}
                     entityConstructor={resolvedEntityConstructor}
-                    navigationProtection={navigationProtection}
                 />
             }
         </Card>
