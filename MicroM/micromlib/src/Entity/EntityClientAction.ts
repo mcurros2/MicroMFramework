@@ -26,6 +26,10 @@ export interface EntityClientAction {
     onClick: (props: EntityClientActionOnClickProps) => Promise<boolean>,
 }
 
+/** Form actions complete through onClose(true, status). Successful completion clears
+ * dirty state before invoking onSaved (OK) or onCancel (Cancel), including silent actions.
+ * Failed statuses do not complete the form. Returning from onClick alone does not complete it.
+ */
 export interface EntityFormClientActionOnClickProps extends EntityClientActionOnClickProps {
     silent: boolean,
 }

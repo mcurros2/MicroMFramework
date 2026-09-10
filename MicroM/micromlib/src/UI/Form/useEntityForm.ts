@@ -385,7 +385,12 @@ export function useEntityForm(props: UseEntityFormOptions): UseEntityFormReturnT
                 element,
                 silent,
                 onClose: async (result?: boolean, actionStatus?: OperationStatus<DBStatusResult>) => {
-                    if (result !== true) return false;
+                    if (result !== true || actionStatus?.error !== undefined || actionStatus?.data?.Failed === true) return false;
+
+                    // Update the navigation baseline synchronously, before callbacks can reload.
+                    const completedValues = { ...form.values };
+                    lastGetValues.current = completedValues;
+                    if (mountedRef.current) form.resetDirty(completedValues);
 
                     if (action.refreshOnClose && mountedRef.current) await performGetData();
 
@@ -396,6 +401,8 @@ export function useEntityForm(props: UseEntityFormOptions): UseEntityFormReturnT
                         }));
                     }
 
+                    if (buttonName === 'Cancel' && onCancel) await Promise.resolve(onCancel());
+
                     return true;
                 },
             });
@@ -405,7 +412,7 @@ export function useEntityForm(props: UseEntityFormOptions): UseEntityFormReturnT
             console.error(`EntityForm ${buttonName} action failed silently`, error);
             return false;
         }
-    }, [entity, form.values, formMode, modal, onSaved, performGetData, validateBeforeSubmit]);
+    }, [entity, form, formMode, modal, onCancel, onSaved, performGetData, validateBeforeSubmit]);
 
     const handleSubmit = useCallback(async (
         event?: React.FormEvent<HTMLFormElement>,
