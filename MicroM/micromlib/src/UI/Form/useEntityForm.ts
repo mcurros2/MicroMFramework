@@ -98,6 +98,7 @@ export function useEntityForm(props: UseEntityFormOptions): UseEntityFormReturnT
 
     const getAbortController = useRef<AbortController>(new AbortController);
     const saveAbortController = useRef<AbortController>(new AbortController);
+    const navigationProtectionBypassRef = useRef(false);
     const getInFlightRef = useRef(false);
     const cancellableSaveInFlightRef = useRef(false);
     const preserveSilentSaveOnUnmountRef = useRef(false);
@@ -298,6 +299,20 @@ export function useEntityForm(props: UseEntityFormOptions): UseEntityFormReturnT
         delete validationObject.current[column.name];
     }, []);
 
+    const completeWithNavigationProtectionBypassed = useCallback(async <T>(complete: () => Promise<T>): Promise<T> => {
+        navigationProtectionBypassRef.current = true;
+        try {
+            const result = await complete();
+            // Awaiting callers resume before the next timer, so immediate navigation stays unprotected.
+            setTimeout(() => { navigationProtectionBypassRef.current = false; }, 0);
+            return result;
+        }
+        catch (error) {
+            navigationProtectionBypassRef.current = false;
+            throw error;
+        }
+    }, []);
+
 
     // MMC: silentSave handling
     const silentSaveInFlight = useRef<Promise<SilentSaveResult> | null>(null);
@@ -398,16 +413,18 @@ export function useEntityForm(props: UseEntityFormOptions): UseEntityFormReturnT
 
                     if (action.refreshOnClose && mountedRef.current) await performGetData();
 
-                    if (buttonName === 'OK' && onSaved) {
-                        await Promise.resolve(onSaved(actionStatus ?? {
-                            loading: false,
-                            operationType: formMode,
-                        }));
-                    }
+                    return await completeWithNavigationProtectionBypassed(async () => {
+                        if (buttonName === 'OK' && onSaved) {
+                            await Promise.resolve(onSaved(actionStatus ?? {
+                                loading: false,
+                                operationType: formMode,
+                            }));
+                        }
 
-                    if (buttonName === 'Cancel' && onCancel) await Promise.resolve(onCancel());
+                        if (buttonName === 'Cancel' && onCancel) await Promise.resolve(onCancel());
 
-                    return true;
+                        return true;
+                    });
                 },
             });
         }
@@ -416,7 +433,7 @@ export function useEntityForm(props: UseEntityFormOptions): UseEntityFormReturnT
             console.error(`EntityForm ${buttonName} action failed silently`, error);
             return false;
         }
-    }, [entity, form, formMode, modal, onCancel, onSaved, performGetData, validateBeforeSubmit]);
+    }, [completeWithNavigationProtectionBypassed, entity, form, formMode, modal, onCancel, onSaved, performGetData, validateBeforeSubmit]);
 
     const handleSubmit = useCallback(async (
         event?: React.FormEvent<HTMLFormElement>,
@@ -474,23 +491,27 @@ export function useEntityForm(props: UseEntityFormOptions): UseEntityFormReturnT
 
         const saved = save_result.error === undefined && save_result.data !== undefined && save_result.data.Failed !== true;
 
-        if (saved && onSaved) {
-            // MMC: fix for mantine DateInput bug "invalid date"
-            // check all form values for date columns and set them to null if invalid
-            // The bug happens when closing the form with invalid date values, after save
-            for (const c in entity.def.columns) {
-                if (isIn<SQLType>(entity.def.columns[c].type, 'date', 'datetime', 'datetime2', 'smalldatetime')) {
-                    if (form.values[c]?.toString() === 'Invalid Date' || form.values[c]?.toString() === '') {
-                        form.values[c] = null;
-                        entity.def.columns[c].value = null;
+        if (!saved) return false;
+
+        return await completeWithNavigationProtectionBypassed(async () => {
+            if (onSaved) {
+                // MMC: fix for mantine DateInput bug "invalid date"
+                // check all form values for date columns and set them to null if invalid
+                // The bug happens when closing the form with invalid date values, after save
+                for (const c in entity.def.columns) {
+                    if (isIn<SQLType>(entity.def.columns[c].type, 'date', 'datetime', 'datetime2', 'smalldatetime')) {
+                        if (form.values[c]?.toString() === 'Invalid Date' || form.values[c]?.toString() === '') {
+                            form.values[c] = null;
+                            entity.def.columns[c].value = null;
+                        }
                     }
                 }
+                await Promise.resolve(onSaved(save_result));
             }
-            await Promise.resolve(onSaved(save_result));
-        }
 
-        return saved;
-    }, [activeFormActions.OK, entity.def.columns, form.values, formMode, handleExecuteFormAction, noSaveOnSubmit, onSaved, performGetData, saveAndGet, saveAndGetOnSubmit, saveAndGetOverride, silentSave, validateBeforeSubmit]);
+            return true;
+        });
+    }, [activeFormActions.OK, completeWithNavigationProtectionBypassed, entity.def.columns, form.values, formMode, handleExecuteFormAction, noSaveOnSubmit, onSaved, performGetData, saveAndGet, saveAndGetOnSubmit, saveAndGetOverride, silentSave, validateBeforeSubmit]);
 
     const handleCancel = useCallback(async (silent: boolean = false, element?: HTMLElement) => {
         if (activeFormActions.Cancel) {
@@ -504,6 +525,7 @@ export function useEntityForm(props: UseEntityFormOptions): UseEntityFormReturnT
     }, [activeFormActions.Cancel, handleExecuteFormAction, onCancel]);
 
     const hasUnsavedChanges = useCallback(() => {
+        if (navigationProtectionBypassRef.current) return false;
         if (navigationProtectionMode === 'allways') return true;
         if (navigationProtectionMode === 'disabled') return false;
         return form.isDirty() && !areValuesObjectsEqual(form.values, lastGetValues.current);
