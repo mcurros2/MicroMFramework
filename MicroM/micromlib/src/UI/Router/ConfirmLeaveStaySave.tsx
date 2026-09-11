@@ -48,7 +48,7 @@ export function ConfirmLeaveStaySave(props: ConfirmLeaveStaySaveProps) {
     return (
         <Stack spacing="md">
             <Text>{message}</Text>
-            <Group position="right">
+            <Group position="center">
                 <Button type="button" variant="default" onClick={() => void handleResult('stay')} disabled={saving}>
                     {stayLabel}
                 </Button>
