@@ -3,7 +3,7 @@ import { useEffect, useRef } from "react";
 import { DBStatusResult, MicroMClient, OperationStatus } from "../../client";
 import { Entity, EntityDefinition } from "../../Entity";
 import { FormMode, MicroMModalSize, useOpenForm } from "../Core";
-import type { NavigationProtectionMode } from "../Router/NavigationGuards";
+import type { NavigationProtection } from "../Router/NavigationGuards";
 
 
 export interface EntityFormModalProps {
@@ -11,7 +11,7 @@ export interface EntityFormModalProps {
     entityConstructor: (client: MicroMClient) => Entity<EntityDefinition>,
     initialFormMode?: FormMode,
     getDataOnInit?: boolean,
-    navigationProtection?: NavigationProtectionMode,
+    navigationProtection?: NavigationProtection,
     openState: boolean,
     setOpenState: (open: boolean) => void,
     onModalClosed?: () => void,

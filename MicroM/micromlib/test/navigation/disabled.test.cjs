@@ -29,28 +29,26 @@ function loadEntityFormNavigationProtection(useConfirmNavigation) {
     return exports;
 }
 
-test('confirm acts as disabled only when both standard buttons are hidden without custom buttons', () => {
-    const { resolveNavigationProtectionMode } = loadNavigationGuards();
+test('navigation protection resolves the form mode and falls back to default', () => {
+    const { DefaultNavigationProtection, resolveNavigationProtectionMode } = loadNavigationGuards();
 
-    for (const buttons of [undefined, null, false, '', 0]) {
-        assert.equal(resolveNavigationProtectionMode('confirm', false, false, buttons), 'disabled');
-    }
+    assert.equal(resolveNavigationProtectionMode(undefined, 'view'), 'disabled');
+    assert.equal(resolveNavigationProtectionMode(undefined, 'add'), 'confirm');
+    assert.equal(resolveNavigationProtectionMode(undefined, 'edit'), 'confirm');
+    assert.deepEqual({ ...DefaultNavigationProtection }, { view: 'disabled', default: 'confirm' });
 
-    assert.equal(resolveNavigationProtectionMode('confirm', false, false, 'custom buttons'), 'confirm');
-    assert.equal(resolveNavigationProtectionMode('confirm', true, false), 'confirm');
-    assert.equal(resolveNavigationProtectionMode('confirm', false, true), 'confirm');
-    assert.equal(resolveNavigationProtectionMode('confirm', undefined, undefined), 'confirm');
-
-    for (const mode of ['save', 'allways', 'disabled', undefined]) {
-        assert.equal(resolveNavigationProtectionMode(mode, false, false), mode);
-    }
+    const protection = { add: 'confirm', edit: 'allways', default: 'disabled' };
+    assert.equal(resolveNavigationProtectionMode(protection, 'add'), 'confirm');
+    assert.equal(resolveNavigationProtectionMode(protection, 'edit'), 'allways');
+    assert.equal(resolveNavigationProtectionMode(protection, 'view'), 'disabled');
 });
 
 test('entity form presentation controls the mode passed to the navigation guard', () => {
     let receivedOptions;
     const { useEntityFormNavigationProtection } = loadEntityFormNavigationProtection(options => { receivedOptions = options; });
+    const { resolveNavigationProtectionMode } = loadNavigationGuards();
     const navigationGuard = {
-        mode: 'confirm',
+        mode: resolveNavigationProtectionMode(undefined, 'add'),
         hasUnsavedChanges: () => true,
         onSave: async () => true,
     };
@@ -62,6 +60,14 @@ test('entity form presentation controls the mode passed to the navigation guard'
 
     useEntityFormNavigationProtection(formAPI, { showCancel: false, showOK: false, buttons: 'custom buttons' });
     assert.equal(receivedOptions.mode, 'confirm');
+
+    useEntityFormNavigationProtection(formAPI, { showCancel: true, showOK: false });
+    assert.equal(receivedOptions.mode, 'confirm');
+
+    for (const mode of ['save', 'allways', 'disabled']) {
+        useEntityFormNavigationProtection({ navigationGuard: { ...navigationGuard, mode } }, { showCancel: false, showOK: false });
+        assert.equal(receivedOptions.mode, mode);
+    }
 });
 
 test('disabled registers no guards, click or unload handlers; mode changes clean up', () => {

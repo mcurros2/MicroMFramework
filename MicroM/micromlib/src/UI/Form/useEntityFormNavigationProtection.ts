@@ -17,7 +17,7 @@ export function useEntityFormNavigationProtection(
         ...formAPI.navigationGuard,
         /* Hidden standard buttons without custom buttons make `confirm` behave as `disabled`. */
         mode:
-            (formAPI.formMode !== 'view' && formAPI.navigationGuard.mode === 'confirm' && showCancel === false && showOK === false && !buttons)
+            (formAPI.navigationGuard.mode === 'confirm' && showCancel === false && showOK === false && !buttons)
             ? 'disabled'
             : formAPI.navigationGuard.mode,
     });

@@ -7,7 +7,7 @@ import { ConfirmLeaveStaySave, ConfirmLeaveStaySaveDefaultProps, ConfirmLeaveSta
 import type { NavigationProtectionMode } from './NavigationGuards';
 import { registerLocalNavigationGuard } from './NavigationGuards';
 
-export type { NavigationProtectionMode } from './NavigationGuards';
+export type { NavigationProtection, NavigationProtectionMode } from './NavigationGuards';
 
 export type ConfirmNavigationType = 'local' | 'remote';
 
@@ -80,7 +80,6 @@ export function useConfirmNavigation({ mode, hasUnsavedChanges, onSave, onLeave 
                 content: <ConfirmLeaveStaySave onResult={handleResult} />,
                 modalProps: {
                     title: <Group spacing="xs"><IconAlertTriangle size="1.25rem" /><Text fw={700}>{ConfirmLeaveStaySaveDefaultProps.title}</Text></Group>,
-                    size: 'md',
                     withCloseButton: false,
                     withFullscreenButton: false,
                     closeOnClickOutside: false,

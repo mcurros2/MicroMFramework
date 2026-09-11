@@ -2,7 +2,7 @@ import { ReactNode } from "react";
 import { DBStatusResult, OperationStatus, ValuesObject } from "../../client";
 import { Entity, EntityDefinition } from "../../Entity";
 import { EntityFormProps } from "../Form";
-import { NavigationProtectionMode } from "../Router/NavigationGuards";
+import type { NavigationProtection } from "../Router/NavigationGuards";
 
 export type FormMode = 'add' | 'edit' | 'view';
 
@@ -27,7 +27,7 @@ export interface FormOptions<T extends Entity<EntityDefinition>> extends Omit<En
     getDataOnInit?: boolean,
     onSaved?: (status: OperationStatus<DBStatusResult>) => void,
     onCancel?: () => void,
-    navigationProtection?: NavigationProtectionMode,
+    navigationProtection?: NavigationProtection,
     validateForm?: ValidateFormCallback,
 }
 

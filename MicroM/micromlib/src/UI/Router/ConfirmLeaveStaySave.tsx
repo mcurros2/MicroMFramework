@@ -52,7 +52,7 @@ export function ConfirmLeaveStaySave(props: ConfirmLeaveStaySaveProps) {
                 <Button type="button" variant="default" onClick={() => void handleResult('stay')} disabled={saving}>
                     {stayLabel}
                 </Button>
-                <Button type="button" color="red" variant="light" onClick={() => void handleResult('leave')} disabled={saving}>
+                <Button type="button" variant="light" onClick={() => void handleResult('leave')} disabled={saving}>
                     {leaveLabel}
                 </Button>
                 <Button type="button" onClick={() => void handleResult('save')} loading={saving}>

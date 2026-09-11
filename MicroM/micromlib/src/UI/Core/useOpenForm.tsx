@@ -2,7 +2,7 @@ import { Text } from "@mantine/core";
 import { useCallback } from "react";
 import { DBStatusResult, OperationStatus } from "../../client";
 import { Entity, EntityDefinition } from "../../Entity";
-import type { NavigationProtectionMode } from "../Router/NavigationGuards";
+import type { NavigationProtection } from "../Router/NavigationGuards";
 import { createEntityForm } from "./createEntityForm";
 import { MicroMModalSize, useModal } from "./ModalsManager";
 import { FormMode } from "./types";
@@ -13,7 +13,7 @@ export interface OpenFormProps {
     title?: string,
     element?: HTMLElement,
     getDataOnInit?: boolean,
-    navigationProtection?: NavigationProtectionMode,
+    navigationProtection?: NavigationProtection,
     onModalSaved?: (new_status: OperationStatus<DBStatusResult | null>) => void,
     onModalCancelled?: () => void,
     onModalClosed?: () => void,

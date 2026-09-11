@@ -7,6 +7,7 @@ import { areValuesObjectsEqual, Entity, EntityColumn, EntityColumnFlags, EntityD
 import { ValidationRule } from "../../Validation";
 import { FormMode, FormOptions, useStateReturnType, ValidateFormResult } from "../Core";
 import { useModal } from "../Core/ModalsManager";
+import { DefaultNavigationProtection, resolveNavigationProtectionMode } from "../Router/NavigationGuards";
 import type { UseConfirmNavigationOptions } from "../Router/useConfirmNavigation";
 import { getMantineInitialValuesObject, getMantineValuesObject } from "./MantineFormHelpers";
 import { useValidateFormModals, ValidateFormLabelsDefaultProps } from "./useValidateFormModals";
@@ -63,7 +64,7 @@ export const UseEntityFormDefaultProps: Partial<UseEntityFormOptions> = {
     initialShowDescriptionInFields: true,
     cancelGetOnUnmount: true,
     cancelSaveOnUnmount: true,
-    navigationProtection: 'confirm',
+    navigationProtection: DefaultNavigationProtection,
 }
 
 export function useEntityForm(props: UseEntityFormOptions): UseEntityFormReturnType {
@@ -82,6 +83,8 @@ export function useEntityForm(props: UseEntityFormOptions): UseEntityFormReturnT
     const showDescriptionState = useState<boolean>(initialShowDescriptionInFields!);
 
     const [formMode, setFormMode] = useState(initialFormMode);
+
+    const navigationProtectionMode = resolveNavigationProtectionMode(navigationProtection, formMode);
 
     const activeFormActions = useMemo<EntityFormActions>(() => {
         const allModesOverrides = entity.def.formActionOverrides.Allways;
@@ -500,13 +503,14 @@ export function useEntityForm(props: UseEntityFormOptions): UseEntityFormReturnT
         return true;
     }, [activeFormActions.Cancel, handleExecuteFormAction, onCancel]);
 
-    const hasUnsavedChanges = useCallback(() => formMode !== 'view'
-        && ((navigationProtection === 'allways' && formMode === 'edit')
-            || (form.isDirty()
-                && !areValuesObjectsEqual(form.values, lastGetValues.current))), [form, formMode, navigationProtection]);
+    const hasUnsavedChanges = useCallback(() => {
+        if (navigationProtectionMode === 'allways') return true;
+        if (navigationProtectionMode === 'disabled') return false;
+        return form.isDirty() && !areValuesObjectsEqual(form.values, lastGetValues.current);
+    }, [form, navigationProtectionMode]);
 
     const navigationGuard = useMemo<UseConfirmNavigationOptions>(() => ({
-        mode: navigationProtection,
+        mode: navigationProtectionMode,
         hasUnsavedChanges,
         onSave: async (navigationType) => await handleSubmit(
             undefined,
@@ -515,7 +519,7 @@ export function useEntityForm(props: UseEntityFormOptions): UseEntityFormReturnT
             navigationType === 'remote' ? { keepalive: true } : undefined,
         ),
         onLeave: async () => await handleCancel(true),
-    }), [handleCancel, handleSubmit, hasUnsavedChanges, navigationProtection]);
+    }), [handleCancel, handleSubmit, hasUnsavedChanges, navigationProtectionMode]);
 
     useEffect(() => {
         mountedRef.current = true;
