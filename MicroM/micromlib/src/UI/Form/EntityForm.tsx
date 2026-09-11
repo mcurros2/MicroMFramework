@@ -3,6 +3,7 @@ import { IconCircleCheck, IconCircleX, IconHelp, IconHelpOff, IconX } from "@tab
 import { FormEvent, PropsWithChildren, ReactNode, useEffect, useRef } from "react";
 import { AlertError, FakeProgressBar, usePreventEnterSubmission } from "../Core";
 import { UseEntityFormReturnType } from "./useEntityForm";
+import { useEntityFormNavigationProtection } from "./useEntityFormNavigationProtection";
 
 export interface EntityFormProps extends PropsWithChildren {
     showOK?: boolean,
@@ -65,6 +66,8 @@ export function EntityForm(props: EntityFormProps) {
         handleCancel, handleSubmit, notifyValidationErrorState, status, form, formMode,
         showDescriptionState, isFormValid, asyncErrors, activeFormActions,
     } = formAPI;
+
+    useEntityFormNavigationProtection(formAPI, { showCancel, showOK, buttons });
 
     const [notifyValidationError, setNotifyValidationError] = notifyValidationErrorState;
     const [showDescription, setShowDescription] = showDescriptionState;

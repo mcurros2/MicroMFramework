@@ -1,4 +1,5 @@
 export * from "./useEntityForm"
+export * from "./useEntityFormNavigationProtection"
 export * from "./useValidateFormModals"
 export * from "./MantineFormHelpers"
 export * from "./EntityForm"

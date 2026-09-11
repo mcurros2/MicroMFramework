@@ -21,7 +21,7 @@ export function AutoForm(props: FormOptions<Entity<EntityDefinition>>) {
     );
 
     return (
-        <EntityForm formAPI={entityForm}>
+        <EntityForm {...rest} formAPI={entityForm}>
             <Stack>
                 <AutoFormFields entity={entity} entityForm={entityForm} />
             </Stack>

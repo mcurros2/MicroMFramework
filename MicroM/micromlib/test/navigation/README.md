@@ -6,6 +6,11 @@
 interception and unload protection. It does not change explicit Save/Cancel.
 The option is available through `FormOptions`, `EntityFormModal` and `useOpenForm`.
 Changing the mode removes the previous listeners and any pending confirmation.
+`navigationProtection="confirm"` also behaves as disabled when `showCancel` and
+`showOK` are both `false` and the form has no truthy `buttons` override.
+`EntityForm` resolves this from its rendered props and owns guard registration;
+custom form shells that only consume `useEntityForm` must call
+`useEntityFormNavigationProtection` with their effective button presentation.
 
 ## Managed modals
 

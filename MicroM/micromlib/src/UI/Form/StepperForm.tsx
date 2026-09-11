@@ -252,7 +252,7 @@ export function StepperForm(props: StepperFormProps) {
     }, [activeStep, onCompleted, steps.length]);
 
     return (
-        <EntityForm {...rest} buttons={buttons} formAPI={formAPI} showCancel={false} showOK={false} OKText={OKText}>
+        <EntityForm {...rest} formAPI={formAPI} buttons={buttons} showCancel={false} showOK={false} OKText={OKText}>
             <Stepper allowNextStepsSelect={false} {...stepperProps} active={activeStep} onStepClick={handleStepClick}>
                 {steps.map((step) =>
                 (

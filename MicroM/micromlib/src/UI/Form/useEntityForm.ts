@@ -7,7 +7,7 @@ import { areValuesObjectsEqual, Entity, EntityColumn, EntityColumnFlags, EntityD
 import { ValidationRule } from "../../Validation";
 import { FormMode, FormOptions, useStateReturnType, ValidateFormResult } from "../Core";
 import { useModal } from "../Core/ModalsManager";
-import { useConfirmNavigation } from "../Router/useConfirmNavigation";
+import type { UseConfirmNavigationOptions } from "../Router/useConfirmNavigation";
 import { getMantineInitialValuesObject, getMantineValuesObject } from "./MantineFormHelpers";
 import { useValidateFormModals, ValidateFormLabelsDefaultProps } from "./useValidateFormModals";
 
@@ -55,6 +55,7 @@ export interface UseEntityFormReturnType {
     isFormFieldValid: (column_name: string) => boolean,
     activeFormActions: EntityFormActions,
     silentSave: (requestOptions?: MicroMRequestOptions) => Promise<SilentSaveResult>,
+    navigationGuard: UseConfirmNavigationOptions,
 }
 
 export const UseEntityFormDefaultProps: Partial<UseEntityFormOptions> = {
@@ -504,7 +505,7 @@ export function useEntityForm(props: UseEntityFormOptions): UseEntityFormReturnT
             || (form.isDirty()
                 && !areValuesObjectsEqual(form.values, lastGetValues.current))), [form, formMode, navigationProtection]);
 
-    useConfirmNavigation({
+    const navigationGuard = useMemo<UseConfirmNavigationOptions>(() => ({
         mode: navigationProtection,
         hasUnsavedChanges,
         onSave: async (navigationType) => await handleSubmit(
@@ -514,7 +515,7 @@ export function useEntityForm(props: UseEntityFormOptions): UseEntityFormReturnT
             navigationType === 'remote' ? { keepalive: true } : undefined,
         ),
         onLeave: async () => await handleCancel(true),
-    });
+    }), [handleCancel, handleSubmit, hasUnsavedChanges, navigationProtection]);
 
     useEffect(() => {
         mountedRef.current = true;
@@ -577,8 +578,9 @@ export function useEntityForm(props: UseEntityFormOptions): UseEntityFormReturnT
         isFormFieldValid: isFormFieldValid,
         activeFormActions,
         silentSave,
+        navigationGuard,
     }), [activeFormActions, addValidation, clearAllAsyncErrors, clearAsyncError, entity, form, formMode, handleCancel, handleSubmit, isFormFieldValid,
-        isFormValid, notifyValidationErrorState, performGetData, removeValidation, saveAndGet, saveAndGetOverride, setAsyncError, showDescriptionState, status, silentSave]);
+        isFormValid, navigationGuard, notifyValidationErrorState, performGetData, removeValidation, saveAndGet, saveAndGetOverride, setAsyncError, showDescriptionState, status, silentSave]);
 
     return result;
 }

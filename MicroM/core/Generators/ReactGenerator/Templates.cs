@@ -109,14 +109,16 @@ export const {ENTITY_CLASSNAME}FormDefaultProps: Partial<FormOptions<{ENTITY_CLA
 export function {ENTITY_CLASSNAME}Form(props: FormOptions<{ENTITY_CLASSNAME}>) {
 
     const mergedProps = useComponentDefaultProps('{ENTITY_CLASSNAME}', {ENTITY_CLASSNAME}FormDefaultProps, props);
+
     const formAPI = useEntityForm(mergedProps);
+
     const { formMode, status } = formAPI;
     const { entity } = mergedProps;
 
     const theme = useMantineTheme();
 
     return (
-        <EntityForm formAPI={formAPI}>
+        <EntityForm {...mergedProps} formAPI={formAPI}>
             <Stack>
                 {FIELDS_CONTROLS}
             </Stack>

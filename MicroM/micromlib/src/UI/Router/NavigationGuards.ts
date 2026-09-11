@@ -3,7 +3,7 @@ export interface LocalNavigationIntent {
     nextRoute: string;
 }
 
-/** `disabled` bypasses protection. `allways` skips dirty checks only in edit; view is unprotected. */
+/* `disabled` bypasses protection. `allways` skips dirty checks only in edit; view is unprotected. */
 export type NavigationProtectionMode = 'save' | 'confirm' | 'allways' | 'disabled';
 
 export type LocalNavigationGuard = (intent: LocalNavigationIntent) => boolean | Promise<boolean>;
