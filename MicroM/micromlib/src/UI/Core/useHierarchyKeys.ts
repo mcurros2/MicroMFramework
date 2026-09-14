@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Value } from "../../client";
+import { areValuesObjectsEqual } from "../../Entity";
 import { UseEntityFormReturnType } from "../Form";
 
 export interface UseHierarchyKeysProps {
@@ -27,13 +28,7 @@ const generateParentKeysArray = (hierarchy: string[], mappedHierarchy: string[] 
 const areParentKeysArraysEqual = (left: Record<string, Value>[], right: Record<string, Value>[]) => {
     if (left.length !== right.length) return false;
 
-    return left.every((leftKeys, index) => {
-        const rightKeys = right[index];
-        const leftNames = Object.keys(leftKeys);
-        const rightNames = Object.keys(rightKeys);
-
-        return leftNames.length === rightNames.length && leftNames.every(name => leftKeys[name] === rightKeys[name]);
-    });
+    return left.every((leftKeys, index) => areValuesObjectsEqual(leftKeys, right[index]));
 };
 
 const areStringArraysEqual = (left: string[] | undefined, right: string[] | undefined) => {

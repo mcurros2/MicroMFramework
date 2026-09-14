@@ -1,5 +1,6 @@
 import { Button, Group, Loader, SelectItem, Space, Stack, Text, useComponentDefaultProps } from "@mantine/core";
-import { ForwardedRef, forwardRef, useState } from "react";
+import { ForwardedRef, forwardRef, useEffect, useState } from "react";
+import { areValuesObjectsEqual } from "../../Entity";
 import { AlertError, getInitialSearchData, useExecuteView, useViewState } from "../Core";
 import { DataGridToolbar } from "../DataGrid";
 import { DataGridActionsToolbar } from "../DataGrid/DataGridActionsToolbar";
@@ -76,7 +77,18 @@ export const DataView = forwardRef(function DataView(props: DataViewProps, ref: 
 
     const viewState = useViewState(search, limit);
 
-    const [executeViewEnabled, setExecuteViewEnabled] = useState(refreshOnInit !== false);
+    const [executeViewManuallyEnabled, setExecuteViewManuallyEnabled] = useState(false);
+    const [initialParentKeys] = useState(parentKeys);
+    const [parentKeysChangedSinceInit, setParentKeysChangedSinceInit] = useState(false);
+
+    useEffect(() => {
+        if (parentKeysChangedSinceInit || areValuesObjectsEqual(initialParentKeys, parentKeys)) return;
+
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setParentKeysChangedSinceInit(true);
+    }, [initialParentKeys, parentKeys, parentKeysChangedSinceInit]);
+
+    const executeViewEnabled = refreshOnInit !== false || executeViewManuallyEnabled || parentKeysChangedSinceInit;
 
     const executeViewState = useExecuteView(entity, parentKeys, viewName, viewState.searchText, viewState.limitRows, viewState.refresh, viewState.filterValues, executeViewEnabled);
 
@@ -84,7 +96,7 @@ export const DataView = forwardRef(function DataView(props: DataViewProps, ref: 
     const { handleLoadMore } = dataViewAPI;
 
     const handleToolbarRefresh = (searchText: string[] | undefined) => {
-        setExecuteViewEnabled(true);
+        setExecuteViewManuallyEnabled(true);
         onSearch?.(searchText);
         dataViewAPI.handleRefresh(searchText);
     };

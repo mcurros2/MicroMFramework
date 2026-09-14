@@ -1,5 +1,6 @@
 import { Box, Group, Select, SelectItem, Space, Text, useComponentDefaultProps, useMantineTheme } from "@mantine/core";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { areValuesObjectsEqual } from "../../Entity";
 import { AlertError, FakeProgressBar, getInitialSearchData, useExecuteView, useFirstVisible, useViewState } from "../../UI/Core";
 import { DataViewLimitData } from "../DataView/DataView.types";
 import { Grid } from "../Grid";
@@ -85,14 +86,25 @@ export function DataGrid(props: DataGridProps) {
 
     const viewState = useViewState(search, limit);
 
-    const [executeViewEnabled, setExecuteViewEnabled] = useState(refreshOnInit !== false);
+    const [executeViewManuallyEnabled, setExecuteViewManuallyEnabled] = useState(false);
+    const [initialParentKeys] = useState(parentKeys);
+    const [parentKeysChangedSinceInit, setParentKeysChangedSinceInit] = useState(false);
+
+    useEffect(() => {
+        if (parentKeysChangedSinceInit || areValuesObjectsEqual(initialParentKeys, parentKeys)) return;
+
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setParentKeysChangedSinceInit(true);
+    }, [initialParentKeys, parentKeys, parentKeysChangedSinceInit]);
+
+    const executeViewEnabled = refreshOnInit !== false || executeViewManuallyEnabled || parentKeysChangedSinceInit;
 
     const executeViewState = useExecuteView(entity, parentKeys, viewName, viewState.searchText, viewState.limitRows, viewState.refresh, viewState.filterValues, executeViewEnabled);
 
     const dataGridAPI = useDataGrid(props, { executeViewState, setRefresh: viewState.setRefresh, setSearchText: viewState.setSearchText });
 
     const handleToolbarRefresh = (searchText: string[] | undefined) => {
-        setExecuteViewEnabled(true);
+        setExecuteViewManuallyEnabled(true);
         onSearch?.(searchText);
         dataGridAPI.handleRefresh(searchText);
     };
