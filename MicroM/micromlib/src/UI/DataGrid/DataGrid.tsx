@@ -242,7 +242,10 @@ export function DataGrid(props: DataGridProps) {
                             />
                         </>
                     }
-                    <Box pos={"relative"} mt="sm" mb="sm" style={{ height: gridHeight === 'flex-grow' ? '100%' : undefined }}>
+                    <Box pos={"relative"} mt="sm" mb="sm" style={{
+                        flex: gridHeight === 'flex-grow' ? '1 1 0' : undefined,
+                        minHeight: gridHeight === 'flex-grow' ? 0 : undefined,
+                    }}>
                         {isLoading &&
                             <FakeProgressBar pos={"absolute"} style={{ top: 0, width: "100%", zIndex: 999 }} size="xs" />
                         }

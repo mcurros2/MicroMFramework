@@ -5,6 +5,7 @@ import { areValuesObjectsEqual, copyValuesObject, Entity, EntityColumnFlags, Ent
 import * as cf from "../../Entity/ColumnsFunctions";
 import { UseEntityFormReturnType } from "../Form";
 import { useLookupForm } from "../Lookup";
+import { resolveLookupKeyColumn } from "./resolveLookupKeyColumn";
 
 export interface LookupResultState {
     columnName: string,
@@ -23,7 +24,7 @@ export interface UseLookupOptions {
     entity: Entity<EntityDefinition>,
     lookupDefName: string,
     required?: boolean,
-    HTMLDescriptionRef: React.MutableRefObject<any>,
+    HTMLDescriptionRef: React.RefObject<HTMLElement>,
     enableAdd?: boolean,
     enableEdit?: boolean,
     enableDelete?: boolean,
@@ -57,6 +58,9 @@ export const useLookup = ({
     const lookupEntity = useRef<Entity<EntityDefinition>>();
     const viewName = useRef<string>('');
     const lookupDef = useRef<EntityLookup>();
+    const lookupKeyColumn = useRef<string>();
+    const lookupConfigurationError = useRef<string>();
+    const loggedConfigurationError = useRef<string>();
     const isLooking = useRef<boolean>(false);
     const lastFocusedElement = useRef<Element>();
     const lastValidLookup = useRef<CachedLookup>();
@@ -71,7 +75,18 @@ export const useLookup = ({
             return Promise.resolve({ columnName: bindingColumn, key: '', description: '', cancel: false, error: false, updateParentKeys: true });
         }
 
-        const mappedKeyColumnName = currentLookupDef.bindingColumnKey ?? bindingColumn;
+        const mappedKeyColumnName = lookupKeyColumn.current;
+        if (!mappedKeyColumnName) {
+            return Promise.resolve({
+                columnName: bindingColumn,
+                key: keyValue,
+                description: '',
+                cancel: false,
+                error: true,
+                updateParentKeys: false,
+                errorDescription: lookupConfigurationError.current ?? `Lookup '${currentLookupDef.name}' key column is not initialized.`
+            });
+        }
 
         const prepareLookupValues = (lookupKey: Value) => {
             // Parent keys provide the lookup context, but the explicit typed or selected
@@ -88,7 +103,7 @@ export const useLookup = ({
         prepareLookupValues(keyValue);
         if (parentKeys) currentLookupEntity.parentKeys = parentKeys;
 
-        return new Promise<LookupResultState>(async (resolve, reject) => {
+        return new Promise<LookupResultState>(async (resolve) => {
 
             const doLookup = async (lookupKey: Value = keyValue) => {
                 const requestValues = prepareLookupValues(lookupKey);
@@ -116,7 +131,7 @@ export const useLookup = ({
                     }
                     return { description: result, status: new_status, errorDescription: '' };
                 }
-                catch (e: any) {
+                catch (e: unknown) {
                     const new_status = { error: toMicroMError(e) } as OperationStatus<ValuesObject>;
                     setStatus(new_status);
                     const errorDescription = `${new_status.data?.status ? new_status.data?.status : ''} ${new_status.data?.message ? new_status.data?.message : ''} ${new_status.data?.statusMessage ? new_status.data.statusMessage : ''}`
@@ -128,7 +143,13 @@ export const useLookup = ({
                 const onOK = async (selectedKeys: ValuesObject[]) => {
                     //console.log(`OnOK force: ${force} isLooking ${isLooking.current}`);
                     if (selectedKeys.length > 0) {
-                        // MMC: map the binding column using binding column key or the column name
+                        if (!Object.prototype.hasOwnProperty.call(selectedKeys[0], mappedKeyColumnName)) {
+                            const errorDescription = `Lookup '${currentLookupDef.name}' selection does not contain the inferred key column '${mappedKeyColumnName}'.`;
+                            console.error(errorDescription);
+                            resolve({ columnName: bindingColumn, key: keyValue, description: '', cancel: false, error: true, updateParentKeys: false, errorDescription });
+                            return;
+                        }
+
                         const selectedKeyValue = selectedKeys[0][mappedKeyColumnName];
                         entityForm.form.setFieldValue(column, selectedKeyValue);
 
@@ -266,7 +287,7 @@ export const useLookup = ({
 
         if (lastFocusedElement.current) {
             //console.log(`Ref ${HTMLDescriptionRef.current}`)
-            if (HTMLDescriptionRef.current) (HTMLDescriptionRef.current as HTMLElement).focus({ preventScroll: false });
+            if (HTMLDescriptionRef.current) HTMLDescriptionRef.current.focus({ preventScroll: false });
         }
 
 
@@ -280,7 +301,18 @@ export const useLookup = ({
         const stdview = lookupEntity.current.def.standardView() ?? '';
         viewName.current = lookupDef.current.view ? lookupDef.current.view : stdview;
 
-    }, [entity, lookupDefName, parentKeys]);
+        const keyColumnResolution = resolveLookupKeyColumn(lookupDef.current, lookupEntity.current, viewName.current, column);
+        lookupKeyColumn.current = keyColumnResolution.columnName;
+        lookupConfigurationError.current = keyColumnResolution.error;
+
+        if (keyColumnResolution.error && loggedConfigurationError.current !== keyColumnResolution.error) {
+            console.error(keyColumnResolution.error);
+            loggedConfigurationError.current = keyColumnResolution.error;
+        } else if (!keyColumnResolution.error) {
+            loggedConfigurationError.current = undefined;
+        }
+
+    }, [column, entity, lookupDefName, parentKeys]);
 
     // MMC: perform the lookup after getting the entity data
     useEffect(() => {
