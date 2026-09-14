@@ -1,17 +1,14 @@
 import { Card, CardProps, DefaultMantineColor, Group, Loader, useComponentDefaultProps, useMantineTheme } from "@mantine/core";
 import type { ReactNode } from "react";
 import { DataGrid, DataGridProps } from ".";
-import { MicroMClient } from "../../client/MicromClient";
 import { ValuesObject } from "../../client/client.types";
+import { MicroMClient } from "../../client/MicromClient";
 import type { EntityGridBuilderProps, EntityGridSourceProps } from "../GetEntity/GetEntity";
 import { useResolvedEntityBuilder } from "../GetEntity/useResolvedEntityBuilder";
-import { useRetainedSearch } from "./useRetainedSearch";
 
 type DataGridPanelBaseProps = Omit<DataGridProps, "entity" | "title"> & {
     client: MicroMClient;
     parentKeys?: ValuesObject;
-    retainSearch?: string;
-    onSearchTextChange?: DataGridProps["onSearch"];
     bgLight?: DefaultMantineColor;
     bgDark?: DefaultMantineColor;
     /** Props for the wrapping Card. Replaces the default object entirely when set per instance */
@@ -45,8 +42,6 @@ export function DataGridPanel(props: DataGridPanelProps) {
 
     const { result: entityBuilder, ready: entityReady } = useResolvedEntityBuilder<EntityGridBuilderProps>(client, parentKeys, mergedProps);
 
-    const retainedSearchProps = useRetainedSearch({ retainSearch, search, refreshOnInit, onSearch, onSearchTextChange });
-
     return (
         <Card bg={theme.colorScheme === "light" ? bgLight : bgDark} {...containerCardProps}>
             {!entityReady || !entityBuilder ? (
@@ -54,7 +49,11 @@ export function DataGridPanel(props: DataGridPanelProps) {
             ) : (
                 <DataGrid
                     {...rest}
-                    {...retainedSearchProps}
+                    retainSearch={retainSearch}
+                    search={search}
+                    refreshOnInit={refreshOnInit}
+                    onSearch={onSearch}
+                    onSearchTextChange={onSearchTextChange}
                     parentKeys={parentKeys}
                     formMode={formMode}
                     enableAdd={enableAdd !== undefined ? enableAdd : (formMode === "view" ? false : undefined)}

@@ -10,6 +10,7 @@ import { DataGridColumnsMenu } from "./DataGridColumnsMenu";
 import { DataGridToolbar } from "./DataGridToolbar";
 import { getOverriddenActionLabels } from "./ToolBarFunctions";
 import { useDataGrid } from "./useDatagrid";
+import { useRetainedSearch } from "./useRetainedSearch";
 
 export const DataGridDefaultProps: Partial<DataGridProps> = {
     search: [],
@@ -68,6 +69,16 @@ export const DataGridDefaultProps: Partial<DataGridProps> = {
 
 export function DataGrid(props: DataGridProps) {
     props = useComponentDefaultProps('DataGrid', DataGridDefaultProps, props);
+
+    const { executeRetainedSearch, ...retainedSearchProps } = useRetainedSearch({
+        retainSearch: props.retainSearch,
+        search: props.search,
+        onSearch: props.onSearch,
+        onSearchTextChange: props.onSearchTextChange,
+    });
+
+    props = { ...props, ...retainedSearchProps };
+
     const {
         entity, selectionMode, gridHeight, preserveSelection, autoSelectFirstRow, autoFocus, toolbarIconVariant, actionsButtonVariant,
         enableAdd, enableEdit, enableDelete, enableView, enableExport, columnBorders, autoSizeColumnsOnLoad, rowBorders, withBorder,
@@ -86,25 +97,23 @@ export function DataGrid(props: DataGridProps) {
 
     const viewState = useViewState(search, limit);
 
-    const [executeViewManuallyEnabled, setExecuteViewManuallyEnabled] = useState(false);
+    const [executeViewEnabled, setExecuteViewEnabled] = useState(refreshOnInit !== false || executeRetainedSearch);
     const [initialParentKeys] = useState(parentKeys);
-    const [parentKeysChangedSinceInit, setParentKeysChangedSinceInit] = useState(false);
 
     useEffect(() => {
-        if (parentKeysChangedSinceInit || areValuesObjectsEqual(initialParentKeys, parentKeys)) return;
+        if (executeViewEnabled) return;
+        if (!executeRetainedSearch && areValuesObjectsEqual(initialParentKeys, parentKeys)) return;
 
         // eslint-disable-next-line react-hooks/set-state-in-effect
-        setParentKeysChangedSinceInit(true);
-    }, [initialParentKeys, parentKeys, parentKeysChangedSinceInit]);
-
-    const executeViewEnabled = refreshOnInit !== false || executeViewManuallyEnabled || parentKeysChangedSinceInit;
+        setExecuteViewEnabled(true);
+    }, [executeRetainedSearch, executeViewEnabled, initialParentKeys, parentKeys]);
 
     const executeViewState = useExecuteView(entity, parentKeys, viewName, viewState.searchText, viewState.limitRows, viewState.refresh, viewState.filterValues, executeViewEnabled);
 
     const dataGridAPI = useDataGrid(props, { executeViewState, setRefresh: viewState.setRefresh, setSearchText: viewState.setSearchText });
 
     const handleToolbarRefresh = (searchText: string[] | undefined) => {
-        setExecuteViewManuallyEnabled(true);
+        setExecuteViewEnabled(true);
         onSearch?.(searchText);
         dataGridAPI.handleRefresh(searchText);
     };

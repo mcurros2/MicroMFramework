@@ -24,6 +24,7 @@ export type DataGridSelectionChangedCallback = (selection: GridSelection, keys: 
 export interface DataGridProps extends UseEntityUIProps {
     viewName?: string,
     search?: string[],
+    retainSearch?: string,
     limit?: DataViewLimit,
     refreshOnInit?: boolean,
     selectionMode: GridSelectionMode,

@@ -47,6 +47,7 @@ export interface DataViewLabels extends EntityUILabels {
 export interface DataViewProps extends Omit<UseEntityUIProps, 'labels'> {
     viewName: string,
     search?: string[],
+    retainSearch?: string,
     limit?: DataViewLimit,
     refreshOnInit?: boolean,
     selectionMode: DataViewSelectionMode,

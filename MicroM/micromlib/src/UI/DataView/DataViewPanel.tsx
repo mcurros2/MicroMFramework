@@ -1,9 +1,8 @@
 import { Card, CardProps, DefaultMantineColor, Group, Loader, SimpleGrid, SimpleGridProps, useComponentDefaultProps, useMantineTheme } from "@mantine/core";
 import type { ReactNode } from "react";
 import { DataView, DataViewProps } from ".";
-import { MicroMClient } from "../../client/MicromClient";
 import { ValuesObject } from "../../client/client.types";
-import { useRetainedSearch } from "../DataGrid/useRetainedSearch";
+import { MicroMClient } from "../../client/MicromClient";
 import type { EntityBuilderProps, EntityBuilderSourceProps } from "../GetEntity/GetEntity";
 import { useResolvedEntityBuilder } from "../GetEntity/useResolvedEntityBuilder";
 
@@ -11,8 +10,6 @@ type DataViewPanelBaseProps = Omit<DataViewProps, "entity" | "title" | "viewName
     client: MicroMClient;
     parentKeys?: ValuesObject;
     Card?: DataViewProps["Card"];
-    retainSearch?: string;
-    onSearchTextChange?: DataViewProps["onSearch"];
     bgLight?: DefaultMantineColor;
     bgDark?: DefaultMantineColor;
     rowsContainerProps?: SimpleGridProps;
@@ -56,8 +53,6 @@ export function DataViewPanel(props: DataViewPanelProps) {
     const { result: entityBuilder, ready: entityReady } =
         useResolvedEntityBuilder<EntityBuilderProps>(client, parentKeys, mergedProps);
 
-    const retainedSearchProps = useRetainedSearch({ retainSearch, search, refreshOnInit, onSearch, onSearchTextChange });
-
     return (
         <Card bg={theme.colorScheme === "light" ? bgLight : bgDark} {...containerCardProps}>
             {!entityReady || !entityBuilder ? (
@@ -65,7 +60,11 @@ export function DataViewPanel(props: DataViewPanelProps) {
             ) : (
                 <DataView
                     {...rest}
-                    {...retainedSearchProps}
+                    retainSearch={retainSearch}
+                    search={search}
+                    refreshOnInit={refreshOnInit}
+                    onSearch={onSearch}
+                    onSearchTextChange={onSearchTextChange}
                     RowsContainer={SimpleGrid}
                     RowsContainerProps={rowsContainerProps}
                     formMode={formMode}

@@ -16,14 +16,13 @@ interface RetainedSearchState {
 interface UseRetainedSearchOptions {
     retainSearch?: string;
     search?: string[];
-    refreshOnInit?: boolean;
     onSearch?: SearchCallback;
     onSearchTextChange?: SearchCallback;
 }
 
 interface UseRetainedSearchResult {
     search?: string[];
-    refreshOnInit?: boolean;
+    executeRetainedSearch: boolean;
     onSearch?: SearchCallback;
     onSearchTextChange?: SearchCallback;
 }
@@ -54,7 +53,7 @@ function deserializeRetainedSearch(value: string, initialSearch?: string[]): Ret
     }
 }
 
-export function useRetainedSearch({ retainSearch, search, refreshOnInit, onSearch, onSearchTextChange }: UseRetainedSearchOptions): UseRetainedSearchResult {
+export function useRetainedSearch({ retainSearch, search, onSearch, onSearchTextChange }: UseRetainedSearchOptions): UseRetainedSearchResult {
     const [state, setState] = useSessionStorage<RetainedSearchState>({
         key: retainSearch ? `${RETAINED_SEARCH_PREFIX}:${retainSearch}` : DISABLED_SEARCH_KEY,
         defaultValue: createInitialState(search),
@@ -82,12 +81,12 @@ export function useRetainedSearch({ retainSearch, search, refreshOnInit, onSearc
     }, [onSearchTextChange, setState]);
 
     if (!retainSearch) {
-        return { search, refreshOnInit, onSearch, onSearchTextChange };
+        return { search, executeRetainedSearch: false, onSearch, onSearchTextChange };
     }
 
     return {
         search: state.terms,
-        refreshOnInit: state.executed ? true : refreshOnInit,
+        executeRetainedSearch: state.executed,
         onSearch: handleSearch,
         onSearchTextChange: handleSearchTextChange
     };

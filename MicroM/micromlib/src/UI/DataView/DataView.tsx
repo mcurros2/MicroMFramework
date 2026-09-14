@@ -5,10 +5,10 @@ import { AlertError, getInitialSearchData, useExecuteView, useViewState } from "
 import { DataGridToolbar } from "../DataGrid";
 import { DataGridActionsToolbar } from "../DataGrid/DataGridActionsToolbar";
 import { getOverriddenActionLabels } from "../DataGrid/ToolBarFunctions";
+import { useRetainedSearch } from "../DataGrid/useRetainedSearch";
 import { DataViewProps } from "./DataView.types";
 import { DataViewCardContainer } from "./DataViewCardContainer";
 import { useDataView } from "./useDataView";
-
 
 export const DataViewDefaultProps: Partial<DataViewProps> = {
     search: [],
@@ -62,6 +62,16 @@ export const DataViewDefaultProps: Partial<DataViewProps> = {
 
 export const DataView = forwardRef(function DataView(props: DataViewProps, ref: ForwardedRef<HTMLElement> | undefined) {
     props = useComponentDefaultProps('DataView', DataViewDefaultProps, props);
+
+    const { executeRetainedSearch, ...retainedSearchProps } = useRetainedSearch({
+        retainSearch: props.retainSearch,
+        search: props.search,
+        onSearch: props.onSearch,
+        onSearchTextChange: props.onSearchTextChange,
+    });
+
+    props = { ...props, ...retainedSearchProps };
+
     const {
         entity, autoFocus, toolbarIconVariant,
         actionsButtonVariant, enableAdd, enableEdit, enableDelete, enableView, enableExport, labels,
@@ -77,18 +87,16 @@ export const DataView = forwardRef(function DataView(props: DataViewProps, ref: 
 
     const viewState = useViewState(search, limit);
 
-    const [executeViewManuallyEnabled, setExecuteViewManuallyEnabled] = useState(false);
+    const [executeViewEnabled, setExecuteViewEnabled] = useState(refreshOnInit !== false || executeRetainedSearch);
     const [initialParentKeys] = useState(parentKeys);
-    const [parentKeysChangedSinceInit, setParentKeysChangedSinceInit] = useState(false);
 
     useEffect(() => {
-        if (parentKeysChangedSinceInit || areValuesObjectsEqual(initialParentKeys, parentKeys)) return;
+        if (executeViewEnabled) return;
+        if (!executeRetainedSearch && areValuesObjectsEqual(initialParentKeys, parentKeys)) return;
 
         // eslint-disable-next-line react-hooks/set-state-in-effect
-        setParentKeysChangedSinceInit(true);
-    }, [initialParentKeys, parentKeys, parentKeysChangedSinceInit]);
-
-    const executeViewEnabled = refreshOnInit !== false || executeViewManuallyEnabled || parentKeysChangedSinceInit;
+        setExecuteViewEnabled(true);
+    }, [executeRetainedSearch, executeViewEnabled, initialParentKeys, parentKeys]);
 
     const executeViewState = useExecuteView(entity, parentKeys, viewName, viewState.searchText, viewState.limitRows, viewState.refresh, viewState.filterValues, executeViewEnabled);
 
@@ -96,7 +104,7 @@ export const DataView = forwardRef(function DataView(props: DataViewProps, ref: 
     const { handleLoadMore } = dataViewAPI;
 
     const handleToolbarRefresh = (searchText: string[] | undefined) => {
-        setExecuteViewManuallyEnabled(true);
+        setExecuteViewEnabled(true);
         onSearch?.(searchText);
         dataViewAPI.handleRefresh(searchText);
     };
