@@ -9,7 +9,14 @@ export interface UseHierarchyKeysProps {
     mappedHierarchy?: string[]
 }
 
-const generateParentKeysArray = (hierarchy: string[], mappedHierarchy: string[] | undefined, values: Record<string, Value>, changedIndex?: number) => {
+const resolveHierarchyValues = (formAPI: UseEntityFormReturnType, hierarchy: string[]) => {
+    return hierarchy.map(name => Object.prototype.hasOwnProperty.call(formAPI.form.values, name)
+        ? formAPI.form.values[name]
+        : formAPI.entity.def.columns[name]?.value ?? ''
+    );
+};
+
+const generateParentKeysArray = (hierarchy: string[], mappedHierarchy: string[] | undefined, hierarchyValues: Value[], changedIndex?: number) => {
     return hierarchy.map((_, index) => {
         const parentKeys: Record<string, Value> = {};
 
@@ -18,7 +25,7 @@ const generateParentKeysArray = (hierarchy: string[], mappedHierarchy: string[] 
             const mappedName = mappedHierarchy?.[i] || formValueName;
             parentKeys[mappedName] = changedIndex !== undefined && i > changedIndex
                 ? ''
-                : values[formValueName];
+                : hierarchyValues[i];
         }
 
         return parentKeys;
@@ -49,15 +56,15 @@ interface HierarchyKeysState {
 export function useHierarchyKeys(props: UseHierarchyKeysProps) {
     const { formAPI, hierarchy, mappedHierarchy } = props;
 
+    const currentHierarchyValues = resolveHierarchyValues(formAPI, hierarchy);
+
     const [hierarchyState, setHierarchyState] = useState<HierarchyKeysState>(() => ({
-        parentKeysArray: generateParentKeysArray(hierarchy, mappedHierarchy, formAPI.form.values),
-        hierarchyValues: hierarchy.map(name => formAPI.form.values[name]),
+        parentKeysArray: generateParentKeysArray(hierarchy, mappedHierarchy, currentHierarchyValues),
+        hierarchyValues: currentHierarchyValues,
         hierarchy: [...hierarchy],
         mappedHierarchy: mappedHierarchy ? [...mappedHierarchy] : undefined,
         changeRevision: 0,
     }));
-
-    const currentHierarchyValues = hierarchy.map(name => formAPI.form.values[name]);
 
     const isGetLoading = formAPI.status.operationType === 'get' && formAPI.status.loading === true;
 
@@ -92,7 +99,7 @@ export function useHierarchyKeys(props: UseHierarchyKeysProps) {
         const newParentKeysArray = generateParentKeysArray(
             hierarchy,
             mappedHierarchy,
-            formAPI.form.values,
+            currentHierarchyValues,
             changedIndex
         );
 
