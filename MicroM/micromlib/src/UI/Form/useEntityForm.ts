@@ -64,7 +64,7 @@ export const UseEntityFormDefaultProps: Partial<UseEntityFormOptions> = {
     initialShowDescriptionInFields: true,
     cancelGetOnUnmount: true,
     cancelSaveOnUnmount: true,
-    navigationProtection: DefaultNavigationProtection,
+    navigationProtection: DefaultNavigationProtection
 }
 
 export function useEntityForm(props: UseEntityFormOptions): UseEntityFormReturnType {

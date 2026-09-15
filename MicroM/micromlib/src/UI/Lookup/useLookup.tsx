@@ -29,7 +29,7 @@ export interface UseLookupOptions {
     enableEdit?: boolean,
     enableDelete?: boolean,
     enableView?: boolean,
-    transform?: (value: string) => void,
+    transform?: (value: string) => string | void,
 }
 
 export interface UseLookupReturnType {
@@ -236,17 +236,29 @@ export const useLookup = ({
     }, [entityForm.form, previousLookupResult?.key]);
 
     const lookupInputProps: ReturnType<UseFormReturnType<ValuesObject>['getInputProps']> = entityForm.form.getInputProps(column);
+    const mantine_onchange = lookupInputProps.onChange;
     const mantine_onblur = lookupInputProps.onBlur;
     const bindingValue = entityForm.form.values[column];
 
-    let resolvedLookupResult = lookupResult;
-    if (lookupResult && !areValuesObjectsEqual({ key: lookupResult.key }, { key: bindingValue })) {
+    const lookupResultMatchesBinding = !lookupResult || areValuesObjectsEqual({ key: lookupResult.key }, { key: bindingValue });
+    const resolvedLookupResult = lookupResultMatchesBinding ? lookupResult : undefined;
+
+    useEffect(() => {
+        if (lookupResultMatchesBinding) return;
+
         // The form can be changed outside this control (for example, when a hierarchy
-        // parent clears its descendants). Do not expose a description for another key.
+        // parent clears its descendants). Clear the stored result after immediately
+        // suppressing the stale description above.
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setLookupResult(undefined);
         setPreviousLookupResult(undefined);
-        resolvedLookupResult = undefined;
-    }
+    }, [lookupResultMatchesBinding]);
+
+    const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        setLookupResult(undefined);
+        setPreviousLookupResult(undefined);
+        mantine_onchange(event);
+    };
 
     const onBlur = useCallback(async (bindingColumn: string, force: boolean = false, event: React.FocusEvent | null = null, new_value: Value | undefined = undefined) => {
         if (isLooking.current === true) return;
@@ -255,7 +267,9 @@ export const useLookup = ({
         if (event) lastFocusedElement.current = event.target;
         else lastFocusedElement.current = document.activeElement as Element;
 
-        const keyValue = new_value ?? entityForm.form.values[bindingColumn];
+        const rawKeyValue = new_value ?? entityForm.form.values[bindingColumn];
+        const transformedKeyValue = typeof rawKeyValue === 'string' ? transform?.(rawKeyValue) : undefined;
+        const keyValue = transformedKeyValue ?? rawKeyValue;
 
         if (!keyValue) {
             updateLookupType({
@@ -281,9 +295,6 @@ export const useLookup = ({
         isLooking.current = false;
 
         updateLookupType(result);
-
-        const transformKey = result.key as string;
-        if (transform) transform(transformKey);
 
         if (lastFocusedElement.current) {
             //console.log(`Ref ${HTMLDescriptionRef.current}`)
@@ -341,7 +352,7 @@ export const useLookup = ({
     return {
         status,
         lookupResult: resolvedLookupResult,
-        lookupInputProps,
+        lookupInputProps: { ...lookupInputProps, onChange: handleInputChange },
         onBlur
     };
 };
