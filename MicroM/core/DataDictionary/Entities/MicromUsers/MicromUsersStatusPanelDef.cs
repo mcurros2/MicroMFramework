@@ -21,6 +21,6 @@ public class MicromUsersStatusPanelDef(string mneo, string name, string? schema_
     public readonly Column<DateTime?> dt_locked = new(fake: true, column_flags: ColumnFlags.None);
     public readonly Column<DateTime?> dt_last_login = new(fake: true, column_flags: ColumnFlags.None);
     public readonly Column<DateTime?> dt_last_refresh = new(fake: true, column_flags: ColumnFlags.None);
-    public readonly Column<bool> bt_totp_enabled = new(fake: true, column_flags: ColumnFlags.None);
+    public readonly Column<bool> bt_totp_enabled = new(fake: true);
 
 }

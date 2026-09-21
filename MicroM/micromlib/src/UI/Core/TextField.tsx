@@ -69,7 +69,7 @@ export const TextField = forwardRef<HTMLInputElement, TextFieldProps>(function T
 
     const readonly_condition = readOnly === undefined ? column.hasFlag(EntityColumnFlags.autoNum) || (entityForm.formMode !== 'add' && column.hasFlag(EntityColumnFlags.pk)) : readOnly;
 
-    const resolved_maw = maw ?? (maxWidth !== 'auto' && maxWidth !== undefined) ? MicroMWidthSizes[maxWidth!] : undefined
+    const resolved_maw = maw ?? (maxWidth !== 'auto' && maxWidth !== undefined) ? MicroMWidthSizes[maxWidth!] : undefined;
     const resolved_miw = miw ?? (minWidth !== 'auto' && minWidth !== undefined) ? MicroMWidthSizes[minWidth!] : undefined;
 
     return (
