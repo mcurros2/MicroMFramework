@@ -2,6 +2,7 @@ import { Group, GroupProps, Loader, MultiSelect, MultiSelectProps, SelectItem, u
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { DataResult, DBStatusResult, OperationStatus, Value, ValuesObject } from "../../client"
 import { Entity, EntityColumn, EntityColumnFlags, EntityDefinition } from "../../Entity"
+import { MicroMWidthSizes } from "../Core/types"
 import { UseEntityFormReturnType, useFieldConfiguration } from "../Form"
 import { useLookupSelect } from "../LookupSelect"
 import { useLookupMultiSelectInputProps } from "./useLookupMultiSelectInputProps"
@@ -18,7 +19,9 @@ export interface LookupMultiSelectProps extends Omit<MultiSelectProps, 'data'> {
     includeKeyInDescription?: boolean,
     createLabel?: string,
     containerProps?: GroupProps
-    grow?: boolean
+    grow?: boolean,
+    maxWidth?: keyof typeof MicroMWidthSizes,
+    minWidth?: keyof typeof MicroMWidthSizes,
 }
 
 
@@ -31,6 +34,7 @@ export const LookupMultiSelectDefaultProps: Partial<LookupMultiSelectProps> = {
     createLabel: "+ Create",
     withinPortal: true,
     zIndex: 100000,
+    minWidth: "sm",
 }
 
 export function LookupMultiSelect(props: LookupMultiSelectProps) {
@@ -39,7 +43,7 @@ export function LookupMultiSelect(props: LookupMultiSelectProps) {
         entityForm, entity, lookupDefName,
         requiredLabel, includeKeyInDescription, label, description, required,
         icon, readOnly, searchable, maxDropdownHeight, clearable, containerProps,
-        creatable, createLabel, withAsterisk, grow, ...rest
+        creatable, createLabel, withAsterisk, grow, maxWidth, minWidth, miw, maw, ...rest
     } = useComponentDefaultProps('LookupMultiSelect', LookupMultiSelectDefaultProps, props);
 
     const containerPropsMemo = useMemo(() => {
@@ -92,6 +96,9 @@ export function LookupMultiSelect(props: LookupMultiSelectProps) {
         updateDescription(selectedValue);
     }, [selectedValue, updateDescription]);
 
+    const effective_miw = miw ?? (minWidth !== 'auto' && minWidth !== undefined) ? MicroMWidthSizes[minWidth!] : undefined;
+    const effective_maw = maw ?? (maxWidth !== 'auto' && maxWidth !== undefined) ? MicroMWidthSizes[maxWidth!] : undefined;
+
     return (
         <Group {...containerPropsMemo}>
             <MultiSelect
@@ -110,6 +117,8 @@ export function LookupMultiSelect(props: LookupMultiSelectProps) {
                 creatable={creatable}
                 onCreate={creatable ? onCreate : undefined}
                 getCreateLabel={(newValue) => `${createLabel} ${newValue}`}
+                miw={effective_miw}
+                maw={effective_maw}
                 {...inputProps}
             />
         </Group>

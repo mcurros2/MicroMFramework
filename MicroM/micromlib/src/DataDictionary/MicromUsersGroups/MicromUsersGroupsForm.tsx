@@ -69,7 +69,7 @@ export function MicromUsersGroupsForm(props: MicromUsersGroupsFormProps) {
                                 column={entity.def.columns.c_user_group_id}
                                 readOnly={true}
                                 required={false}
-                                maw="20rem"
+                                maxWidth="sm"
                             />
                         }
                         <TextField
@@ -109,7 +109,7 @@ export function MicromUsersGroupsForm(props: MicromUsersGroupsFormProps) {
                             searchable={true}
                             includeKeyInDescription={false}
                             creatable={false}
-                            maw="35rem"
+                            maxWidth="md"
                         />
                     </Stack>
                 </Tabs.Panel>

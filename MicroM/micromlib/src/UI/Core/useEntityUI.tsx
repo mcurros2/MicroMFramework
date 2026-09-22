@@ -266,6 +266,13 @@ export function useEntityUI(props: UseEntityUIProps) {
                             // Merge parentKeys with deleteEntity.parentKeys and remove keys named in keys
                             const mergedParentKeys = { ...cf.getValues(deleteEntity.def.columns, { flags: EntityColumnFlags.pk, ignoreDefaults: false }), ...parentKeys };
 
+                            const saveResult = await handleSaveBeforeAdd();
+
+                            if (saveResult === "error") {
+                                await modals.close();
+                                return { Failed: true, Results: [{ Status: 11, Message: "Failed to save data before deletion" }] } as DBStatusResult;
+                            }
+
                             if (keys.length === 1) {
                                 setValues(deleteEntity.def.columns, keys[0], null, true);
 
@@ -320,7 +327,7 @@ export function useEntityUI(props: UseEntityUIProps) {
                     </>
             });
         }
-    }, [entity, modals, labels, parentKeys, onRecordsDeleted]);
+    }, [entity, modals, labels, parentKeys, onRecordsDeleted, handleSaveBeforeAdd]);
 
     const handleDeleteClick = useCallback(async (keys: ValuesObject[], element?: HTMLElement) => {
         if (onDeleteClick) {
@@ -355,7 +362,7 @@ export function useEntityUI(props: UseEntityUIProps) {
             // Merge parentKeys with execEntity.parentKeys and remove keys named in keys
             const mergedParentKeys = { ...cf.getValues(execEntity.def.columns, { flags: EntityColumnFlags.pk, ignoreDefaults: false }), ...parentKeys };
 
-            if (keys.length > 0) {
+            if (action.dontRequireSelection !== true && keys.length > 0) {
                 // Delete selected keys from mergedParentKeys
                 Object.keys(keys[0]).forEach(key => {
                     delete mergedParentKeys[key];
