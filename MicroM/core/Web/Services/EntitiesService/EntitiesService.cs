@@ -444,6 +444,7 @@ public class EntitiesService : IEntitiesService
                     }
                     var view = entity.Def.Views[view_name];
                     EnsureApplicationKeys(app_id, parms.Values);
+                    entity.SetColumnValues(parms.Values);
                     view.Proc.SetParmsValues(parms.Values);
                     if (parms.ParentKeys != null && parms.ParentKeys.Count > 0)
                     {
@@ -494,7 +495,10 @@ public class EntitiesService : IEntitiesService
 
                     var view = entity.Def.Views[view_name];
                     EnsureApplicationKeys(app_id, parms.Values);
+
+                    entity.SetColumnValues(parms.Values);
                     view.Proc.SetParmsValues(parms.Values);
+
                     if (parms.ParentKeys != null && parms.ParentKeys.Count > 0)
                     {
                         EnsureApplicationKeys(app_id, parms.ParentKeys);

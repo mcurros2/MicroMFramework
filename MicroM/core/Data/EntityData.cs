@@ -63,7 +63,11 @@ public class EntityData(IEntityClient ec, EntityDefinition def, IMicroMEncryptio
                 {
                     if (def.AutonumColumn != null)
                     {
-                        def.AutonumColumn.ValueObject = status.Message;
+                        // allow transparent int/bigint conversion for autonum columns
+                        if (def.AutonumColumn.SQLMetadata.SQLType == SqlDbType.Int && int.TryParse(status.Message, out int int_value)) def.AutonumColumn.ValueObject = int_value;
+                        else if (def.AutonumColumn.SQLMetadata.SQLType == SqlDbType.BigInt && long.TryParse(status.Message, out long long_value)) def.AutonumColumn.ValueObject = long_value;
+                        else
+                            def.AutonumColumn.ValueObject = status.Message;
                         autonum = true;
                     }
                     else

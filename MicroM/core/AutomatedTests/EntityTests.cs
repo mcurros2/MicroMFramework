@@ -34,7 +34,7 @@ public static class EntityTests
         var pk_cols = entity.Def.Columns.GetWithFlags(ColumnFlags.PK);
         var pk_cols_names_array = pk_cols.GetColNamesArray();
 
-        const string test_version = "1.1.3";
+        const string test_version = "1.1.4";
 
         log?.Invoke($"*** {entity.Def.Name}: Running tests with test data from file {test_data_file}. version {test_version}");
 
@@ -110,7 +110,7 @@ public static class EntityTests
                 throw new Exception($"LOOKUP: Can't lookup record after insertion. ID {testData.ToRecordValuesString(record, pk_cols_names_array)}");
             }
 
-            change_column?.ValueObject = $"changed {change_column.ValueObject}";
+            change_column?.ValueObject = $"c*{change_column.ValueObject}";
 
             // Compare the elapsed ms. Wait if needed
             stop_watch.Stop();

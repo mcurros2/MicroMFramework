@@ -263,15 +263,26 @@ export function useEntityUI(props: UseEntityUIProps) {
                     <ConfirmAndExecutePanel
                         onOK={async () => {
                             const deleteEntity = Entity.clone(entity);
-                            // Merge parentKeys with deleteEntity.parentKeys and remove keys named in keys
-                            const mergedParentKeys = { ...cf.getValues(deleteEntity.def.columns, { flags: EntityColumnFlags.pk, ignoreDefaults: false }), ...parentKeys };
-
                             const saveResult = await handleSaveBeforeAdd();
 
                             if (saveResult === "error") {
                                 await modals.close();
                                 return { Failed: true, Results: [{ Status: 11, Message: "Failed to save data before deletion" }] } as DBStatusResult;
                             }
+
+                            if (saveResult === "saved") {
+                                if (parentKeys) {
+                                    const autoNumCols = parentFormAPI ? cf.getColumns(parentFormAPI.entity.def.columns, { flags: EntityColumnFlags.autoNum, ignoreDefaults: false }) : [];
+                                    const autonumCol = parentFormAPI && autoNumCols.length > 0 ? autoNumCols[0] : undefined;
+                                    if (autonumCol && Object.hasOwn(parentKeys, autonumCol.name)) {
+                                        parentKeys[autonumCol.name] = autonumCol.value;
+                                    }
+                                }
+                                cf.setValues(deleteEntity.def.columns, parentFormAPI!.entity.def.columns, { flags: EntityColumnFlags.pk | EntityColumnFlags.fk, ignoreDefaults: false }, true, true);
+                            }
+
+                            // Merge parentKeys with deleteEntity.parentKeys and remove keys named in keys
+                            const mergedParentKeys = { ...cf.getValues(deleteEntity.def.columns, { flags: EntityColumnFlags.pk, ignoreDefaults: false }), ...parentKeys };
 
                             if (keys.length === 1) {
                                 setValues(deleteEntity.def.columns, keys[0], null, true);
@@ -327,7 +338,7 @@ export function useEntityUI(props: UseEntityUIProps) {
                     </>
             });
         }
-    }, [entity, modals, labels, parentKeys, onRecordsDeleted, handleSaveBeforeAdd]);
+    }, [entity, modals, labels, parentKeys, onRecordsDeleted, handleSaveBeforeAdd, parentFormAPI]);
 
     const handleDeleteClick = useCallback(async (keys: ValuesObject[], element?: HTMLElement) => {
         if (onDeleteClick) {
