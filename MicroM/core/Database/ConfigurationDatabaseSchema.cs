@@ -56,7 +56,7 @@ public static class ConfigurationDatabaseSchema
 
 
     public async static Task<(CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>>? app_entities, CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>>? dd_entities)>
-        CreateConfigurationDBSchemaAndProcs(IEntityClient ec, AppDBSchemaConfiguration schema_config, CancellationToken ct, bool create_or_alter = false)
+        CreateConfigurationDBSchemaAndProcs(IEntityClient ec, AppDBSchemaConfiguration schema_config, CancellationToken ct, bool create_or_alter = false, Func<string, string?>? custom_sql_transform = null)
     {
         bool should_close = !(ec.ConnectionState == System.Data.ConnectionState.Open);
 
@@ -67,13 +67,13 @@ public static class ConfigurationDatabaseSchema
             await ec.Connect(ct);
 
             // This will also create the schema_name. If for any reason you want to have tweo schemas here you will need to take care of creating the schema yourself
-            dd_entities = await CreateDatadictionarySchemaAndProcs(ec, schema_config, ct, create_or_alter);
+            dd_entities = await CreateDatadictionarySchemaAndProcs(ec, schema_config, ct, create_or_alter, custom_sql_transform);
 
             cfg_entities = GetConfigurationEntitiesInstances(ec, schema_config.APPSchema);
 
             // Get all custom procs in the assembly (this will get DataDictionary and Configuration
             var custom_procs_assembly = (cfg_entities[0]?.EntityType.Assembly) ?? throw new InvalidOperationException("Unable to determine the assembly for custom procedures.");
-            var custom_procs = await custom_procs_assembly.GetAllClassifiedCustomSQLScripts(ct, schema_name: schema_config.APPSchema);
+            var custom_procs = await custom_procs_assembly.GetAllClassifiedCustomSQLScripts(ct, schema_name: schema_config.APPSchema, custom_sql_transform: custom_sql_transform);
 
             // Filter custom_procs based on the configuration entities mnemonic code (Mneo) to ensure only relevant procedures are included and return a new CustomOrderedDictionary<CustomScript> with the filtered procedures
             var cfg_custom_procs = custom_procs.Filter(cfg_entities);

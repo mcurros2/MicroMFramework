@@ -19,7 +19,8 @@ public static class DatabaseSchema
         bool create_or_alter, bool create_if_not_exists, bool create_custom_procs, bool drop_and_recreate_indexes,
         bool create_procs,
         AppDBSchemaConfiguration schema_config,
-        CancellationToken ct
+        CancellationToken ct,
+        Func<string, string?>? custom_sql_transform = null
         ) where T : EntityBase, new()
     {
 
@@ -65,14 +66,14 @@ public static class DatabaseSchema
 
                     if (create_procs)
                     {
-                        await CreateProcs(ent, ec, create_or_alter, schema_config.DDSchema, ct, create_custom_procs);
+                        await CreateProcs(ent, ec, create_or_alter, schema_config.DDSchema, ct, create_custom_procs, custom_sql_transform);
                     }
                 }
 
             }
             else
             {
-                if (create_procs && create_custom_procs) await CreateCustomProcs<T>(ent, ec, ct, schema_config.APPSchema);
+                if (create_procs && create_custom_procs) await CreateCustomProcs<T>(ent, ec, ct, schema_config.APPSchema, custom_sql_transform);
             }
 
         }
@@ -183,11 +184,16 @@ public static class DatabaseSchema
         }
     }
 
-    public async static Task CreateEntitiesDatabaseSchemaAndDictionary(IEntityClient ec, CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>> entities, AppDBSchemaConfiguration schema_config, CancellationToken ct, bool create_or_alter = false)
+    public async static Task CreateEntitiesDatabaseSchemaAndDictionary(
+        IEntityClient ec,
+        CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>> entities,
+        AppDBSchemaConfiguration schema_config,
+        CancellationToken ct,
+        bool create_or_alter = false,
+        Func<string, string?>? custom_sql_transform = null)
     {
         bool should_close = !(ec.ConnectionState == System.Data.ConnectionState.Open);
 
-        CustomOrderedDictionary<CustomScript>? custom_procs = null;
         try
         {
             await ec.Connect(ct);
@@ -197,7 +203,7 @@ public static class DatabaseSchema
                 throw new InvalidOperationException("No entities to create.");
             }
 
-            await entities.CreateSchemaAndProcs(ec, schema_config, ct, create_or_alter);
+            await entities.CreateSchemaAndProcs(ec, schema_config, ct, create_or_alter, custom_sql_transform: custom_sql_transform);
 
             Assembly asm = entities[0]!.EntityType.Assembly;
 
@@ -210,7 +216,6 @@ public static class DatabaseSchema
         }
         finally
         {
-            custom_procs?.Clear();
             if (should_close) await ec.Disconnect();
         }
     }

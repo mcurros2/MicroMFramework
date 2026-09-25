@@ -10,7 +10,7 @@ namespace MicroM.Database;
 
 public static class DatabaseSchemaProcedures
 {
-    public static async Task CreateCustomProcs<T>(T? ent, IEntityClient ec, CancellationToken ct, string? schema_name = null) where T : EntityBase, new()
+    public static async Task CreateCustomProcs<T>(T? ent, IEntityClient ec, CancellationToken ct, string? schema_name = null, Func<string, string?>? custom_sql_transform = null) where T : EntityBase, new()
     {
         bool should_close = !(ec.ConnectionState == System.Data.ConnectionState.Open);
         try
@@ -27,7 +27,7 @@ public static class DatabaseSchemaProcedures
                 new_ent = ent;
             }
 
-            foreach (string script in await new_ent.GetAllCustomProcs(new_ent.Def.Mneo, ct))
+            foreach (string script in await new_ent.GetAllCustomProcs(new_ent.Def.Mneo, ct, custom_sql_transform))
             {
                 await ec.ExecuteSQLNonQuery(script, ct);
             }
@@ -127,7 +127,8 @@ public static class DatabaseSchemaProcedures
         bool create_or_alter,
         string dd_schema,
         CancellationToken ct,
-        bool create_custom_procs = true
+        bool create_custom_procs = true,
+        Func<string, string?>? custom_sql_transform = null
         ) where T : EntityBase
     {
         bool should_close = !(ec.ConnectionState == System.Data.ConnectionState.Open);
@@ -135,7 +136,7 @@ public static class DatabaseSchemaProcedures
         {
 
             // get custom procs
-            var custom_procs = await ent.GetAllCustomProcs(ent.Def.Mneo, ct);
+            var custom_procs = await ent.GetAllCustomProcs(ent.Def.Mneo, ct, custom_sql_transform);
 
             string update_proc_name = $"{ent.Def.Mneo}{_update}";
             string iupdate_proc_name = $"{ent.Def.Mneo}{_iupdate}";
@@ -297,7 +298,8 @@ public static class DatabaseSchemaProcedures
     bool create_or_alter,
     string dd_schema,
     CancellationToken ct,
-    bool create_custom_procs = true
+    bool create_custom_procs = true,
+    Func<string, string?>? custom_sql_transform = null
     ) where T : EntityBase, new()
     {
         bool should_close = !(ec.ConnectionState == System.Data.ConnectionState.Open);
@@ -315,7 +317,7 @@ public static class DatabaseSchemaProcedures
                 new_ent = ent;
             }
 
-            await CreateProcs(new_ent, ec, create_or_alter, dd_schema, ct, create_custom_procs);
+            await CreateProcs(new_ent, ec, create_or_alter, dd_schema, ct, create_custom_procs, custom_sql_transform);
 
             return new_ent;
         }

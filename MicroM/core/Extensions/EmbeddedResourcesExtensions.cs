@@ -34,7 +34,12 @@ public static class EmbeddedResourcesExtensions
         return result.ToString();
     }
 
-    public async static Task<List<string>> GetAllCustomProcs<T>(this T entity, string? mneo, CancellationToken ct) where T : EntityBase
+    private static string ApplyCustomSQLTransform(string sql_text, Func<string, string?>? custom_sql_transform)
+    {
+        return custom_sql_transform?.Invoke(sql_text) ?? sql_text;
+    }
+
+    public async static Task<List<string>> GetAllCustomProcs<T>(this T entity, string? mneo, CancellationToken ct, Func<string, string?>? custom_sql_transform = null) where T : EntityBase
     {
         var replacements = BuildReplacements(entity.Def.SchemaName);
 
@@ -49,7 +54,8 @@ public static class EmbeddedResourcesExtensions
                 {
                     using StreamReader reader = new(manifest);
                     var sqlText = await reader.ReadToEndAsync(ct);
-                    ret.Add(entity.Def.SchemaName != null ? sqlText.ReplaceEntityReferences(replacements) : sqlText);
+                    var schema_sql = entity.Def.SchemaName != null ? sqlText.ReplaceEntityReferences(replacements) : sqlText;
+                    ret.Add(ApplyCustomSQLTransform(schema_sql, custom_sql_transform));
                     reader.Close();
                 }
             }
@@ -57,7 +63,7 @@ public static class EmbeddedResourcesExtensions
         return ret;
     }
 
-    public async static Task<List<string>> GetAssemblyCustomProcs(this Assembly assembly, string? mneo, string? starts_with, CancellationToken ct, string? schema_name = null)
+    public async static Task<List<string>> GetAssemblyCustomProcs(this Assembly assembly, string? mneo, string? starts_with, CancellationToken ct, string? schema_name = null, Func<string, string?>? custom_sql_transform = null)
     {
         var replacements = BuildReplacements(schema_name);
 
@@ -75,14 +81,15 @@ public static class EmbeddedResourcesExtensions
             {
                 using StreamReader reader = new(manifest);
                 var sqlText = await reader.ReadToEndAsync(ct);
-                ret.Add(schema_name != null ? sqlText.ReplaceEntityReferences(replacements) : sqlText);
+                var schema_sql = schema_name != null ? sqlText.ReplaceEntityReferences(replacements) : sqlText;
+                ret.Add(ApplyCustomSQLTransform(schema_sql, custom_sql_transform));
                 reader.Close();
             }
         }
         return ret;
     }
 
-    public async static Task<CustomOrderedDictionary<CustomScript>> GetAllClassifiedCustomSQLScripts(this Assembly assembly, CancellationToken ct, string? schema_name = null)
+    public async static Task<CustomOrderedDictionary<CustomScript>> GetAllClassifiedCustomSQLScripts(this Assembly assembly, CancellationToken ct, string? schema_name = null, Func<string, string?>? custom_sql_transform = null)
     {
         CustomOrderedDictionary<CustomScript> ret = new();
 
@@ -99,7 +106,8 @@ public static class EmbeddedResourcesExtensions
                 string sqlText = await reader.ReadToEndAsync(ct);
                 reader.Close();
 
-                string custom_sql = schema_name != null ? sqlText.ReplaceEntityReferences(replacements) : sqlText;
+                string schema_sql = schema_name != null ? sqlText.ReplaceEntityReferences(replacements) : sqlText;
+                string custom_sql = ApplyCustomSQLTransform(schema_sql, custom_sql_transform);
 
                 foreach (var custom_proc in DatabaseSchemaCustomScripts.ClassifyCustomSQLScript(custom_sql))
                 {

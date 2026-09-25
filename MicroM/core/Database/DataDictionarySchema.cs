@@ -144,7 +144,7 @@ public static class DataDictionarySchema
         return result;
     }
 
-    public async static Task<CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>>?> CreateDatadictionarySchemaAndProcs(IEntityClient ec, AppDBSchemaConfiguration schema_config, CancellationToken ct, bool create_or_alter = false)
+    public async static Task<CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>>?> CreateDatadictionarySchemaAndProcs(IEntityClient ec, AppDBSchemaConfiguration schema_config, CancellationToken ct, bool create_or_alter = false, Func<string, string?>? custom_sql_transform = null)
     {
         bool should_close = !(ec.ConnectionState == System.Data.ConnectionState.Open);
 
@@ -155,7 +155,7 @@ public static class DataDictionarySchema
 
             entities = GetDataDictionaryEntitiesInstances(ec, schema_config.DDSchema);
             var custom_procs_assembly = (entities[0]?.EntityType.Assembly) ?? throw new InvalidOperationException("Unable to determine the DataDictionary assembly for custom procedures.");
-            var custom_procs = await custom_procs_assembly.GetAllClassifiedCustomSQLScripts(ct, schema_name: schema_config.DDSchema);
+            var custom_procs = await custom_procs_assembly.GetAllClassifiedCustomSQLScripts(ct, schema_name: schema_config.DDSchema, custom_sql_transform: custom_sql_transform);
 
             var filtered_custom_procs = custom_procs.Filter(entities);
 
@@ -213,10 +213,11 @@ public static class DataDictionarySchema
         IEntityClient ec,
         AppDBSchemaConfiguration schema_config,
         CancellationToken ct, bool create_or_alter = false, bool create_if_not_exists = true,
-        bool create_custom_procs = false, bool drop_and_recreate_indexes = false, bool create_procs = true
+        bool create_custom_procs = false, bool drop_and_recreate_indexes = false, bool create_procs = true,
+        Func<string, string?>? custom_sql_transform = null
         ) where T : EntityBase, new()
     {
-        T ent = await CreateDBSchema<T>(ec, create_or_alter, create_if_not_exists, create_custom_procs, drop_and_recreate_indexes, create_procs, schema_config, ct);
+        T ent = await CreateDBSchema<T>(ec, create_or_alter, create_if_not_exists, create_custom_procs, drop_and_recreate_indexes, create_procs, schema_config, ct, custom_sql_transform);
 
         await ent.AddToDataDictionary(ct, schema_config.DDSchema);
 

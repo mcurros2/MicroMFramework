@@ -49,7 +49,7 @@ public static class DatabaseSchemaCreationOptionsExtensions
     /// method is safe to call multiple times; it will only create or alter objects as needed.</remarks>
     public async static Task CreateSchemaAndProcs(this CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>> entities, IEntityClient ec, AppDBSchemaConfiguration schema_config,
         CancellationToken ct, bool create_or_alter = false, CustomOrderedDictionary<CustomScript>? custom_procs = null, bool generate_standard_procs = true,
-        bool create_only_inexisting_constraints_and_indexes = true)
+        bool create_only_inexisting_constraints_and_indexes = true, Func<string, string?>? custom_sql_transform = null)
     {
         bool should_close = !(ec.ConnectionState == System.Data.ConnectionState.Open);
 
@@ -65,7 +65,7 @@ public static class DatabaseSchemaCreationOptionsExtensions
             if (custom_procs == null)
             {
                 var custom_procs_assembly = (entities[0]?.EntityType.Assembly) ?? throw new InvalidOperationException("Unable to determine the assembly for custom procedures.");
-                custom_procs = await custom_procs_assembly.GetAllClassifiedCustomSQLScripts(ct, schema_name: schema_name);
+                custom_procs = await custom_procs_assembly.GetAllClassifiedCustomSQLScripts(ct, schema_name: schema_name, custom_sql_transform: custom_sql_transform);
             }
 
             // Create schemas if not exist
