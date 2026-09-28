@@ -22,6 +22,7 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
 {
     private static readonly Dictionary<string, ApplicationOption> _ApplicationsCache = new(StringComparer.OrdinalIgnoreCase);
     private static readonly Dictionary<string, Type> _EntityTypesCache = new(StringComparer.OrdinalIgnoreCase);
+    private static readonly Dictionary<string, List<Assembly>> _EntityAssembliesCache = new(StringComparer.OrdinalIgnoreCase);
     private static readonly Dictionary<string, Type> _DDTypesCache = new(StringComparer.OrdinalIgnoreCase);
     private static readonly Dictionary<string, PublicEndpointSecurityRecord> _PublicAccessCache = new(StringComparer.OrdinalIgnoreCase);
 
@@ -245,10 +246,10 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
         }
     }
 
-
-    private static (Dictionary<string, Type> entities, Dictionary<string, Type> ddTypes) GetControlPanelEntitiesTypes()
+    private static (Assembly controlPanelassembly, Dictionary<string, Type> entities, Dictionary<string, Type> ddTypes) GetControlPanelEntitiesTypes()
     {
-        var assembly = typeof(Objects).Assembly;
+        Assembly assembly = typeof(Objects).Assembly;
+
         var types = assembly.GetEntitiesTypes();
         var dd_core = DataDictionarySchema.GetCoreEntitiesTypes();
 
@@ -264,7 +265,7 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
             }
         }
 
-        return (entities, ddTypes);
+        return (assembly, entities, ddTypes);
     }
 
     private Dictionary<string, PublicEndpointSecurityRecord> GetPublicEndpointsInstances(string app_id, Assembly assembly)
@@ -360,12 +361,20 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
 
         _ApplicationsCache.TryGetValue(ConfigurationDefaults.ControlPanelAppID, out var control_panel);
 
-        var assemblies_folders = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
         if (control_panel != null)
         {
+            _EntityAssembliesCache.Clear();
             _EntityTypesCache.Clear();
-            LoadControlPanelEntitiesTypes();
+            _DDTypesCache.Clear();
+            _PublicAccessCache.Clear();
+
+            var (tmpCPAssembly, tmpEntities, tmpDdTypes) = GetControlPanelEntitiesTypes();
+            var tmpAssembliesCache = new Dictionary<string, List<Assembly>>(StringComparer.OrdinalIgnoreCase) { { ConfigurationDefaults.ControlPanelAppID, [tmpCPAssembly] } };
+
+            // Re init cache with control panel
+            _EntityAssembliesCache.TryAdd(ConfigurationDefaults.ControlPanelAppID, [tmpCPAssembly]);
+            foreach (var entity in tmpEntities) { _EntityTypesCache[entity.Key] = entity.Value; }
+            foreach (var entity in tmpDdTypes) { _DDTypesCache[entity.Key] = entity.Value; }
 
             using DatabaseClient client = control_panel.CreateDatabaseClient(_log, null, null);
 
@@ -391,11 +400,10 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
                     .DistinctBy(r => $"{r.app_id}|{r.source_assembly_path}", StringComparer.OrdinalIgnoreCase)
                     .ToList();
 
+                // This copies the assmblies to a shadow copy folder
                 prepared = await _assemblyRuntime.PrepareGenerationAsync(requests, ct);
 
-                Dictionary<string, PublicEndpointSecurityRecord> tmpPublic = new();
-
-                var (tmpEntities, tmpDdTypes) = GetControlPanelEntitiesTypes();
+                Dictionary<string, PublicEndpointSecurityRecord> tmpPublic = [];
 
                 HashSet<string> processed = new(StringComparer.OrdinalIgnoreCase);
 
@@ -408,6 +416,7 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
                 {
                     Dictionary<string, Type>? types;
                     Assembly? asmForEndpoints = null;
+                    Assembly? coreAssembly = null;
                     string? assembly_path = null;
 
                     if (row.source_assembly_path.Equals(GetCoreAssemblyPath(), StringComparison.OrdinalIgnoreCase))
@@ -419,6 +428,7 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
                             foreach (var t in cfg) types.TryAdd(t.Key, t.Value);
                         }
                         assembly_path = row.source_assembly_path;
+                        coreAssembly = types.Values.FirstOrDefault()?.Assembly;
                     }
                     else
                     {
@@ -437,6 +447,15 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
                     foreach (var type in types)
                     {
                         tmpEntities.TryAdd($"{row.app_id}.{type.Key}", type.Value);
+                    }
+
+                    if (asmForEndpoints != null || coreAssembly != null)
+                    {
+                        tmpAssembliesCache.TryGetValue(row.app_id, out var existingAssemblies);
+                        existingAssemblies ??= [];
+                        var item = asmForEndpoints ?? coreAssembly;
+                        existingAssemblies.Add(item!);
+                        tmpAssembliesCache[row.app_id] = existingAssemblies;
                     }
 
                     if (asmForEndpoints != null)
@@ -484,6 +503,8 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
                 _PublicAccessCache.Clear();
                 foreach (var kv in tmpPublic) _PublicAccessCache[kv.Key] = kv.Value;
 
+                foreach (var kv in tmpAssembliesCache) _EntityAssembliesCache.TryAdd(kv.Key, kv.Value);
+
                 await _assemblyRuntime.CommitGenerationAsync(prepared.generation_id, ct);
 
                 if (_options.EnableHotReloadForEntitiesAssemblies == true)
@@ -515,36 +536,6 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
         return ret;
     }
 
-    private void LoadControlPanelEntitiesTypes()
-    {
-        try
-        {
-            var assembly = typeof(Objects).Assembly;
-
-            var types = assembly.GetEntitiesTypes();
-
-            var dd_types = DataDictionarySchema.GetCoreEntitiesTypes();
-
-            foreach (var type in types)
-            {
-                if (!_EntityTypesCache.TryAdd($"{ConfigurationDefaults.ControlPanelAppID}.{type.Key}", type.Value))
-                {
-                    _log.LogWarning("WARNING: APP: {app} - Type {type} from assembly {assembly} already exists in the cache. All types in the same application must have unique names even if in different assemblies.",
-                        ConfigurationDefaults.ControlPanelAppID, type.Key, assembly.FullName);
-                }
-                if (dd_types.ContainsKey(type.Key))
-                {
-                    _DDTypesCache.TryAdd(type.Key, type.Value);
-                }
-            }
-
-        }
-        catch (Exception ex)
-        {
-            _log.LogError(ex, "ERROR: Fatal error trying to load control panes assemblies");
-        }
-    }
-
     public bool IsDDType(string type_name)
     {
         return _DDTypesCache.ContainsKey(type_name);
@@ -556,12 +547,24 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
         return type;
     }
 
+    private static bool IsApplicationAssembly(Assembly assembly)
+    {
+        return assembly.GetTypes().Any(IsApplicationType);
+    }
+
+    private static bool IsApplicationType(Type type)
+    {
+        return type.IsClass &&
+               !type.IsAbstract &&
+               (typeof(EntityBase).IsAssignableFrom(type) ||
+                typeof(IDatabaseSchema).IsAssignableFrom(type) ||
+                typeof(IPublicEndpoints).IsAssignableFrom(type));
+    }
+
     public List<Assembly> GetAllAPPAssemblies(string app_id)
     {
-        return [.. _EntityTypesCache
-            .Where(kvp => kvp.Key.StartsWith(app_id + ".", StringComparison.OrdinalIgnoreCase))
-            .Select(kvp => kvp.Value.Assembly)
-            .Distinct()];
+        var appAssemblies = _EntityAssembliesCache.GetValueOrDefault(app_id, []);
+        return [.. appAssemblies.Where(a => IsApplicationAssembly(a))];
     }
 
     private async Task<bool> LoadAppsConfiguration(CancellationToken ct)
