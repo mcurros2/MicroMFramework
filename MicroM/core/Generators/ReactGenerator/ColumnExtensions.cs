@@ -251,7 +251,7 @@ namespace MicroM.Generators.ReactGenerator
                     return $"{separator}<NumberField entityForm={{formAPI}} column={{entity.def.columns.{column.Name}}}{autofocusADD}{autofocusEDIT} />";
 
                 case SqlDbType.Time:
-                    return $"{separator}<TimeInputField entityForm={{formAPI}} column={{entity.def.columns.{column.Name}}}{autofocusADD}{autofocusEDIT} />";
+                    return $"{separator}<TimeField entityForm={{formAPI}} column={{entity.def.columns.{column.Name}}}{autofocusADD}{autofocusEDIT} />";
 
                 default:
                     return $"{separator}<TextField entityForm={{formAPI}} column={{entity.def.columns.{column.Name}}}{autofocusADD}{autofocusEDIT}{(columnSize <= 20 ? " maxWidth=\"sm\"" : "")}/>";
