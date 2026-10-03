@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.VisualStudio.JavaScript.Sdk/1.0.5984942">
+  <PropertyGroup>
+    <StartupCommand>npm run storybook -- --no-open</StartupCommand>
+    <BuildCommand>
+    </BuildCommand>
+    <ProductionBuildCommand>npm run build-storybook</ProductionBuildCommand>
+    <BuildOutputFolder>$(MSBuildProjectDirectory)\storybook-static</BuildOutputFolder>
+  </PropertyGroup>
+</Project>

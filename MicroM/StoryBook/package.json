@@ -1,0 +1,56 @@
+{
+  "name": "microm-storybook",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Storybook for MicroM (micromlib) components, used to design and test Mantine themes",
+  "type": "commonjs",
+  "scripts": {
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build -o storybook-static",
+    "typecheck": "tsc --noEmit -p ."
+  },
+  "devDependencies": {
+    "@emotion/react": "^11.14.0",
+    "@googlemaps/js-api-loader": "~1.16.6",
+    "@googlemaps/markerclusterer": "~2.5.3",
+    "@mantine/core": "6.0.22",
+    "@mantine/dates": "6.0.22",
+    "@mantine/dropzone": "6.0.22",
+    "@mantine/form": "6.0.22",
+    "@mantine/hooks": "6.0.22",
+    "@mantine/modals": "6.0.22",
+    "@mantine/prism": "6.0.22",
+    "@mantine/spotlight": "6.0.22",
+    "@storybook/addon-docs": "^10.6.1",
+    "@storybook/react-vite": "^10.6.1",
+    "@tabler/icons-react": "^3.31.0",
+    "@types/google.maps": "3.55.9",
+    "@types/node": "^26.6.3",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "@types/supercluster": "^7.1.3",
+    "dayjs": "^1.11.23",
+    "eslint": "^10.11.0",
+    "exceljs": "npm:exceljs-microm@^4.4.1",
+    "mime": "^3.0.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-easy-crop": "^6.2.3",
+    "sass": "^1.105.1",
+    "storybook": "^10.6.1",
+    "typescript": "5.6.3",
+    "vite": "^7.3.6",
+    "xls-reader": "^0.7.0"
+  },
+  "overrides": {
+    "brace-expansion": "^5.0.8",
+    "exceljs": {
+      "uuid": "^14.0.0",
+      "tmp": "0.2.7"
+    }
+  },
+  "allowScripts": {
+    "@parcel/watcher": true,
+    "esbuild": true
+  }
+}

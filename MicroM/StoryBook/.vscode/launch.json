@@ -1,0 +1,19 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "msedge",
+      "request": "launch",
+      "name": "Storybook (Edge)",
+      "url": "http://localhost:6006",
+      "webRoot": "${workspaceFolder}"
+    },
+    {
+      "type": "chrome",
+      "request": "launch",
+      "name": "Storybook (Chrome)",
+      "url": "http://localhost:6006",
+      "webRoot": "${workspaceFolder}"
+    }
+  ]
+}

@@ -1,0 +1,54 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+
+<Meta title="Introduction" />
+
+# MicroM Storybook
+
+Catalog of **micromlib** components (React 18 + Mantine 6) for **designing and testing Mantine themes**.
+
+Stories import `@mcurros2/microm`, which Vite resolves to `../micromlib/src`, so library changes show up live without
+building it. `micromlib` keeps using Parcel and has no Storybook dependency.
+
+## Toolbar
+
+- **Theme**: theme applied to every story, from `stories/themes/index.ts`. *Theme Editor* uses whatever you build in
+  the Theme Editor (stored in this browser's `localStorage`).
+- **Scheme**: light / dark.
+- **Locale**: format locale for dates and numbers.
+- **Grid**: mounts `GridGlobalStyles` so the w2ui grid follows the theme.
+
+## Sections
+
+- **MicroM/Sample apps**: full apps driven by `useMenuContent`: navbar menu (`MenuNavBarPanel`) and the menu card system
+  (`MenuCardNavBarPanel`, `MenuRouteHost`, `ContextualMenuPanel`).
+- **MicroM/Lookups**: `Lookup`, `LookupSelect`, `LookupMultiSelect`, `CompoundLookup`, `useLookupForm`, `LookupFormAction`.
+- **MicroM/Data**: `DataGrid` variants (page, panel, form, filters, actions) and `DataView` (cards, page, panel).
+- **MicroM/Forms**: `EntityFormPage`, `EntityFormPanel`, `EntityFormModal`, `ModalForm`, `StepperForm`.
+- **MicroM/Maps**: `DataMap`, `DataMapPage`, `MultiDataMap`, `GoogleMap`, address inputs, `RegionSelector`, `DataRegion`.
+- **MicroM/Files**: `FilesUploadForm`, `FileUploader`, `AvatarUploader`, `ImageEditor`, `WebcamCapture`, `ImportDataPanel`.
+- **MicroM/Auth**: `Login` (including 2FA flows, code `123456`), `LoginModal`, recovery and TOTP management.
+- **MicroM/Menus**: `MenuNavBar`, menu cards, breadcrumbs, `Route`/`Link` and navigation protection.
+
+## Google Maps
+
+Map stories need an API key. Copy `.env.example` to `.env.local` and set `STORYBOOK_GOOGLE_MAPS_API_KEY` (and
+`STORYBOOK_GOOGLE_MAPS_MAP_ID` for region boundaries), then restart Storybook. Alternatively, enter the key in
+**MicroM/Maps/Setup** (stored in this browser only). `.env.local` is git-ignored.
+
+## Mock backend
+
+Stories use `MockMicroMClient` (`stories/mocks`), a `MicroMClient` subclass that serves the entity API (`get`, `insert`,
+`update`, `delete`, `lookup`, `view`, `proc`, `action`, `import`), login/2FA and file uploads from in-memory tables. It
+makes **no network requests** and all data is fictitious. To add an entity:
+
+1. Define it in `stories/mocks/entities.tsx`.
+2. Register its table in `createMockClient()` (`stories/mocks/mockClient.ts`).
+
+## Creating a theme
+
+1. Build it in the **Theme Editor** (or start from a registered theme with *Load*).
+2. Export it as `.ts` and save it in `stories/themes/` (e.g. `myTheme.ts`).
+3. Register it in `stories/themes/index.ts` so it shows up in the toolbar.
+4. In the app: `<MantineProvider theme={{ ...myTheme, colorScheme }} withGlobalStyles withNormalizeCSS>`.
+
+> Fonts (`fontFamily`) must be installed or loaded by the app; the theme only references them.

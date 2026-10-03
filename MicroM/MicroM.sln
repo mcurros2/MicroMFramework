@@ -11,6 +11,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WebAPI-Sample", "WebAPI\Web
 EndProject
 Project("{54A90642-561A-4BB1-A94E-469ADEE60C69}") = "micromlib", "micromlib\micromlib.esproj", "{9471D400-13BD-4461-8177-42143D835DF5}"
 EndProject
+Project("{54A90642-561A-4BB1-A94E-469ADEE60C69}") = "StoryBook", "StoryBook\StoryBook.esproj", "{6B72F1F6-EE0F-5373-277F-CC63A43CCF6C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -34,6 +36,12 @@ Global
 		{9471D400-13BD-4461-8177-42143D835DF5}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9471D400-13BD-4461-8177-42143D835DF5}.Release|Any CPU.Build.0 = Release|Any CPU
 		{9471D400-13BD-4461-8177-42143D835DF5}.Release|Any CPU.Deploy.0 = Release|Any CPU
+		{6B72F1F6-EE0F-5373-277F-CC63A43CCF6C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6B72F1F6-EE0F-5373-277F-CC63A43CCF6C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6B72F1F6-EE0F-5373-277F-CC63A43CCF6C}.Debug|Any CPU.Deploy.0 = Debug|Any CPU
+		{6B72F1F6-EE0F-5373-277F-CC63A43CCF6C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6B72F1F6-EE0F-5373-277F-CC63A43CCF6C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6B72F1F6-EE0F-5373-277F-CC63A43CCF6C}.Release|Any CPU.Deploy.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
