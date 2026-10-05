@@ -45,7 +45,7 @@ export const LookupSelectDefaultProps: Partial<LookupSelectOptions> = {
     zIndex: 100000,
     editButtonVariant: "light",
     editIconVariant: "light",
-    minWidth: "sm",
+    maxWidth: "sm",
     selectProps: {
         searchable: true,
         maxDropdownHeight: 260,

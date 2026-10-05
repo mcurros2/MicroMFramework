@@ -1,19 +1,18 @@
 import { ActionIcon, getSize, Group, Loader, rem, Stack, Text, TextInput, useComponentDefaultProps, useMantineTheme } from "@mantine/core";
 import { isNotEmpty } from "@mantine/form";
 import { useEffect, useMemo, useRef } from "react";
-import { Value } from "../../client";
-import { EntityColumn, EntityColumnFlags } from "../../Entity";
-import { LookupCommonProps, LookupDefaultProps } from "./Lookup.shared";
+import { EntityColumnFlags } from "../../Entity";
+import { CompoundLookupProps } from "./Lookup";
+import { CompoundLookupDefaultProps } from "./Lookup.shared";
 import { useCompoundLookup } from "./useCompoundLookup";
 
-type CompoundLookupProps = LookupCommonProps & { column?: never, bindingColumns: EntityColumn<Value>[], editLastLevelOnly?: boolean };
 
 export function CompoundLookup(props: CompoundLookupProps) {
     const {
         entityForm, entity, lookupDefName, autoFocus, label, parentKeys, bindingColumns, required, readonly, disabled,
         idMaxWidth, icon, iconVariant, requiredLabel, description, size, onLookupPerformed,
-        enableAdd, enableEdit, enableDelete, enableView, transform, autoTrim, editLastLevelOnly,
-    } = useComponentDefaultProps('Lookup', LookupDefaultProps, props);
+        enableAdd, enableEdit, enableDelete, enableView, transform, autoTrim, editLastLevelOnly, prefixMaxWidth
+    } = useComponentDefaultProps('CompoundLookup', CompoundLookupDefaultProps, props);
 
     if (bindingColumns.length < 2) throw new Error('Compound Lookup requires at least two bindingColumns.');
 
@@ -65,23 +64,29 @@ export function CompoundLookup(props: CompoundLookupProps) {
                 {(required ?? (!readonly && entityForm.formMode !== 'view' && !significantColumn.hasFlag(EntityColumnFlags.nullable))) && <Text size={controlSize} weight="500" color={theme.colors.red[5]}>*</Text>}
             </Group>
             {(description ?? significantColumn.description) && <Text style={{ fontSize: `calc(${descriptionSize} - ${rem(2)})`, lineHeight: 1.2 }} color={descriptionColor}>{description ?? significantColumn.description}</Text>}
-            <Group style={{ marginTop: `calc(${theme.spacing.xs} / 2)` }} align="flex-start">
-                {editLastLevelOnly && <Text weight={700}>{lookupAPI.keyPrefix}</Text>}
-                <TextInput ref={inputRef} size={size} maw={idMaxWidth}
-                    readOnly={readonlyCondition || entityForm.formMode === 'view' || lookupAPI.status.loading || entityForm.status.loading}
-                    autoFocus={autoFocus === 'autoFocusOnAdd' ? addAutofocus : autoFocus === 'autoFocusOnEdit' ? editAutofocus : autoFocus}
-                    data-autofocus={autoFocus === 'autoFocusOnAdd' ? addAutofocus : autoFocus === 'autoFocusOnEdit' ? editAutofocus : autoFocus}
-                    disabled={disabled} key={`${entity.name}${significantColumn.name}Compound`}
-                    rightSection={<ActionIcon color={theme.primaryColor}
-                        disabled={readonlyCondition || entityForm.formMode === 'view' || lookupAPI.status.loading || entityForm.status.loading}
-                        onClick={async () => {
-                            if (readonlyCondition || entityForm.formMode === 'view' || lookupAPI.status.loading || entityForm.status.loading) return;
-                            await lookupAPI.onBlur(significantColumn.name, true);
-                        }}
-                        variant={iconVariant} size="md">{icon}</ActionIcon>}
-                    {...lookupAPI.lookupInputProps}
-                    onBlur={async event => { await lookupAPI.onBlur(significantColumn.name, false, event); }}
-                />
+            <Group style={(description ?? significantColumn.description) ? { marginTop: `calc(${theme.spacing.xs} / 2)` } : undefined} align="flex-start">
+                <Group style={{ flexGrow: 1 }} maw={idMaxWidth}>
+                    {editLastLevelOnly &&
+                        <TextInput readOnly value={lookupAPI.keyPrefix} maw={prefixMaxWidth} />
+                    }
+                    <Group style={{ flex: "1 1" }}>
+                        <TextInput ref={inputRef} size={size} sx={{ flexGrow: 1 }}
+                            readOnly={readonlyCondition || entityForm.formMode === 'view' || lookupAPI.status.loading || entityForm.status.loading}
+                            autoFocus={autoFocus === 'autoFocusOnAdd' ? addAutofocus : autoFocus === 'autoFocusOnEdit' ? editAutofocus : autoFocus}
+                            data-autofocus={autoFocus === 'autoFocusOnAdd' ? addAutofocus : autoFocus === 'autoFocusOnEdit' ? editAutofocus : autoFocus}
+                            disabled={disabled} key={`${entity.name}${significantColumn.name}Compound`}
+                            rightSection={<ActionIcon color={theme.primaryColor}
+                                disabled={readonlyCondition || entityForm.formMode === 'view' || lookupAPI.status.loading || entityForm.status.loading}
+                                onClick={async () => {
+                                    if (readonlyCondition || entityForm.formMode === 'view' || lookupAPI.status.loading || entityForm.status.loading) return;
+                                    await lookupAPI.onBlur(significantColumn.name, true);
+                                }}
+                                variant={iconVariant} size="md">{icon}</ActionIcon>}
+                            {...lookupAPI.lookupInputProps}
+                            onBlur={async event => { await lookupAPI.onBlur(significantColumn.name, false, event); }}
+                        />
+                    </Group>
+                </Group>
                 <Group style={{ flexGrow: 1 }}>
                     <TextInput size={size} readOnly key={`${entity.name}${significantColumn.name}CompoundDescription`}
                         value={lookupAPI.lookupResult?.description ?? ''} rightSection={lookupAPI.status.loading && <Loader size="xs" variant="bars" />}

@@ -34,7 +34,7 @@ export const LookupMultiSelectDefaultProps: Partial<LookupMultiSelectProps> = {
     createLabel: "+ Create",
     withinPortal: true,
     zIndex: 100000,
-    minWidth: "sm",
+    maxWidth: "sm",
 }
 
 export function LookupMultiSelect(props: LookupMultiSelectProps) {

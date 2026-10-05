@@ -4,6 +4,7 @@ import { ValuesObject } from "../../client";
 import { Entity, EntityDefinition } from "../../Entity";
 import { ActionIconVariant, useTextTransformProps } from "../Core";
 import { UseEntityFormReturnType } from "../Form";
+import { CompoundLookupProps } from "./Lookup";
 import { LookupResultState } from "./useLookup";
 
 export interface LookupCommonProps extends Omit<useTextTransformProps, 'entityForm' | 'column'> {
@@ -30,7 +31,7 @@ export interface LookupCommonProps extends Omit<useTextTransformProps, 'entityFo
 }
 
 export const LookupDefaultProps: Partial<LookupCommonProps> = {
-    idMaxWidth: "15rem",
+    idMaxWidth: "20rem",
     icon: <IconSearch size="1rem" stroke="1.5" />,
     iconVariant: "light",
     requiredLabel: "A value is required",
@@ -41,3 +42,17 @@ export const LookupDefaultProps: Partial<LookupCommonProps> = {
     enableView: true,
     autoTrim: true,
 };
+
+export const CompoundLookupDefaultProps: Partial<CompoundLookupProps> = {
+    idMaxWidth: "20rem",
+    icon: <IconSearch size="1rem" stroke="1.5" />,
+    iconVariant: "light",
+    requiredLabel: "A value is required",
+    size: "sm",
+    enableAdd: false,
+    enableEdit: false,
+    enableDelete: false,
+    enableView: true,
+    autoTrim: true,
+    prefixMaxWidth: "4.2rem",
+}

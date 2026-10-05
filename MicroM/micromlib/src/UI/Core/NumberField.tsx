@@ -20,8 +20,9 @@ export interface NumberFieldProps extends Omit<NumberInputProps, 'autoFocus'> {
     minWidth?: keyof typeof MicroMWidthSizes,
 }
 
-const defaultProps: Partial<NumberFieldProps> = {
-    validationContainer: Group
+export const NumberInputDefaultProps: Partial<NumberFieldProps> = {
+    validationContainer: Group,
+    maxWidth: "sm",
 }
 
 // MMC: This component in mantine has a bug: if you set setFieldValue and the field has autofocus, the value displayed is not set until onBlur.
@@ -31,7 +32,7 @@ export const NumberField = forwardRef<HTMLInputElement, NumberFieldProps>(functi
     const {
         column, entityForm, validate, validationContainer, required, requiredMessage, readOnly, label,
         placeholder, description, withAsterisk, autoFocus, maxWidth, minWidth, maw, miw, precision, ...others
-    } = useComponentDefaultProps('NumberField', defaultProps, props);
+    } = useComponentDefaultProps('NumberField', NumberInputDefaultProps, props);
 
     useFieldConfiguration({ entityForm, column, validationContainer, validate, required, requiredMessage, readOnly });
 
