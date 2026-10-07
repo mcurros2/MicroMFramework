@@ -81,12 +81,28 @@ begin try
 
 	-- If @assembly_id is null, we are inerting a new assembly. 
 	-- We try to find if the @assembly_id with the @assembly_path already exists (the assembly was created by another app)
+	declare @existing_assembly_id char(20)
+	select	@existing_assembly_id = a.c_assembly_id,
+			@lu = a.dt_lu
+	from	[dbo].entities_assemblies a
+	where	a.vc_assemblypath = @assembly_path
+
+
 	if @assembly_id is null
 	begin
-		select	@assembly_id = a.c_assembly_id,
-				@lu = a.dt_lu
-		from	[dbo].entities_assemblies a
-		where	a.vc_assemblypath = @assembly_path
+		select	@assembly_id = @existing_assembly_id
+	end
+
+	-- Drop existing assembly if the assembly_id is different from the existing one (the assembly was created by another app)
+	if @assembly_id is not null and @existing_assembly_id is not null and @assembly_id <> @existing_assembly_id
+	begin
+		exec [dbo].apa_idrop @application_id, @assembly_id, @result out, @msg out
+		if @result <> 0
+		begin
+			return
+		end
+
+		select	@assembly_id = @existing_assembly_id
 	end
 
 	-- We are now sure we need to create a new assembly

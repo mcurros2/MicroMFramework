@@ -129,6 +129,20 @@ public class Column<T> : ColumnBase
         return new Column<string>(name, value: default!, sql_type: SqlDbType.VarChar, size: 0, column_flags: flags, computed_expression: expression, nullable: nullable, persisted: persisted);
     }
 
+    public static Column<T> Amount(T value = default!, byte precision = 15, byte scale = 2, bool fake = false, bool? nullable = null, bool encrypted = false
+    , ColumnFlags column_flags = ColumnFlags.Insert | ColumnFlags.Update, string? override_with = null, string name = "", bool api_readonly = false)
+    {
+        if (typeof(T) != typeof(decimal) && Nullable.GetUnderlyingType(typeof(T)) != typeof(decimal))
+        {
+            throw new ArgumentException($"Invalid type {typeof(T)}. Only decimal is allowed.");
+        }
+
+        if (fake) column_flags |= ColumnFlags.Fake;
+        if (api_readonly) column_flags |= ColumnFlags.APIReadOnly;
+        return new Column<T>(name, value: value, sql_type: SqlDbType.Decimal, size: 0, precision: precision, scale: scale, column_flags: column_flags, nullable: nullable, isArray: false, encrypted: encrypted, override_with: override_with);
+    }
+
+
     // MMC: Decide about datetime offset, datetime2, etc.
 
     //
