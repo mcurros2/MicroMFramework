@@ -34,7 +34,7 @@ public static class EntityTests
         var pk_cols = entity.Def.Columns.GetWithFlags(ColumnFlags.PK);
         var pk_cols_names_array = pk_cols.GetColNamesArray();
 
-        const string test_version = "1.1.4";
+        const string test_version = "1.1.5";
 
         log?.Invoke($"*** {entity.Def.Name}: Running tests with test data from file {test_data_file}. version {test_version}");
 
@@ -112,23 +112,15 @@ public static class EntityTests
 
             change_column?.ValueObject = $"c*{change_column.ValueObject}";
 
-            // Compare the elapsed ms. Wait if needed
-            stop_watch.Stop();
-
-            // check time drift, it sometimes happens whith sql in VM
-            double sql_precision_delay = 5.0;
-            if (dt_lu_value > DateTime.Now)
+            // dt_lu is set with getdate() in the _update procs. getdate() only advances with the Windows clock tick
+            // (nominally 15.6 ms, up to ~20 ms observed) and datetime rounds to 1/300 s, so wait at least 30 ms since the
+            // insert, measured with Stopwatch: a single Task.Delay depends on the same tick and can end early.
+            const double dt_lu_safe_interval_ms = 30.0;
+            while (stop_watch.Elapsed.TotalMilliseconds < dt_lu_safe_interval_ms)
             {
-                sql_precision_delay = 15.0;
+                await Task.Delay(1, ct);
             }
-
-            var remaining_ms = sql_precision_delay - stop_watch.Elapsed.TotalMilliseconds;
-            if (remaining_ms > 0.0)
-            {
-                var awaited = (int)Math.Ceiling(remaining_ms);
-                await Task.Delay(awaited, ct);
-                log?.Invoke($"{entity.Def.Name}: Delayed {awaited} ms to ensure dt_lu value will be different after update. Elapsed: {stop_watch.Elapsed.TotalMilliseconds} ms. Insert dt_lu {dt_lu_value:O}, Now: {DateTime.Now:O}");
-            }
+            log?.Invoke($"{entity.Def.Name}: Waited until {stop_watch.Elapsed.TotalMilliseconds:F1} ms after the insert to ensure dt_lu value will be different after update. Insert dt_lu {dt_lu_value:O}, Now: {DateTime.Now:O}");
 
             log?.Invoke($"{entity.Def.Name}: Updating data for record with PK values {testData.ToRecordValuesString(record, pk_cols_names_array)} at time {DateTime.Now:O}, elapsed ms since insert {(DateTime.Now - time_at_insert).TotalMilliseconds}.");
 
