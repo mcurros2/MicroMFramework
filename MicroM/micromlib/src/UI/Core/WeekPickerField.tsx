@@ -5,8 +5,9 @@ import { EntityColumn, EntityColumnFlags } from "../../Entity";
 import { ValidatorConfiguration } from "../../Validation";
 import { UseEntityFormReturnType, useFieldConfiguration } from "../Form";
 import { useLocaleFormat, WeekPicker, WeekPickerProps } from ".";
+import { FieldAutoFocus, FieldWidthProps, resolveFieldAutoFocus, resolveFieldReadOnly, resolveFieldWidths } from "./fieldUIHelpers";
 
-export interface WeekPickerFieldProps extends Omit<WeekPickerProps, 'weekStartDatevalue' | 'setWeekStartValue' | 'setWeekEndValue'> {
+export interface WeekPickerFieldProps extends Omit<WeekPickerProps, 'weekStartDatevalue' | 'setWeekStartValue' | 'setWeekEndValue' | 'autoFocus'>, FieldWidthProps {
     weekStartDateColumn: EntityColumn<Date | null>,
     weekEndDateColumn?: EntityColumn<Date | null>,
     entityForm: UseEntityFormReturnType,
@@ -22,6 +23,8 @@ export interface WeekPickerFieldProps extends Omit<WeekPickerProps, 'weekStartDa
     size?: MantineSize,
     required?: boolean,
     readonly?: boolean,
+    readOnly?: boolean,
+    autoFocus?: FieldAutoFocus,
     disabled?: boolean,
     label?: string,
     description?: string,
@@ -29,6 +32,7 @@ export interface WeekPickerFieldProps extends Omit<WeekPickerProps, 'weekStartDa
 }
 
 export const WeekPickerFieldDefaultProps: Partial<WeekPickerFieldProps> = {
+    maxWidth: 'sm',
     placeholder: 'Select a week',
     accordionVariant: 'separated',
     allowDeselect: true,
@@ -39,7 +43,7 @@ export const WeekPickerFieldDefaultProps: Partial<WeekPickerFieldProps> = {
 export function WeekPickerField(props: WeekPickerFieldProps) {
     const {
         weekStartDateColumn, weekEndDateColumn, entityForm, validate, validationContainer, requiredMessage,
-        accordionVariant, accordionExpanded, placeholder, size, required, readonly, disabled, label, description,
+        accordionVariant, accordionExpanded, placeholder, size, required, readonly, disabled, label, description, readOnly, autoFocus, maw, miw, maxWidth, minWidth,
         ...others
     } = useComponentDefaultProps('WeekPickerField', WeekPickerFieldDefaultProps, props);
 
@@ -62,8 +66,12 @@ export function WeekPickerField(props: WeekPickerFieldProps) {
     const is_required = (required ?? (!readonly && !(entityForm.formMode === 'view') && !weekStartDateColumn.hasFlag(EntityColumnFlags.nullable)));
     const error_color = theme.fn.variant({ variant: 'filled', color: 'red' }).background;
 
+    const effectiveReadOnly = resolveFieldReadOnly(weekStartDateColumn, entityForm.formMode, readOnly ?? readonly);
+    const resolvedAutoFocus = resolveFieldAutoFocus(autoFocus, entityForm.formMode, entityForm.status.loading);
+    const widths = resolveFieldWidths({ maw, miw, maxWidth, minWidth });
+
     return (
-        <Stack style={{ gap: "0.1rem" }}>
+        <Stack {...widths} style={{ gap: "0.1rem" }}>
             <Group style={{ gap: "0.2rem" }}>
                 <Text size={controlSize} weight="500" color={labelColor}>{label ?? weekStartDateColumn.prompt}</Text>
                 {is_required && <Text size={controlSize} weight="500" color={theme.colors.red[5]}>*</Text>}
@@ -85,10 +93,10 @@ export function WeekPickerField(props: WeekPickerFieldProps) {
                     label: { paddingLeft: "0", paddingTop: "0.447rem", paddingBottom: "0.447rem", paddingRight: "0.625rem" },
                     control: { paddingLeft: "0.75rem", paddingRight: "0.625rem" }
                 }}
-                maw="20rem"
+
             >
                 <Accordion.Item value={`weekPicker-${weekStartDateColumn.name}`}>
-                    <Accordion.Control icon={<IconCalendar size="1rem" />}>
+                    <Accordion.Control icon={<IconCalendar size="1rem" />} autoFocus={resolvedAutoFocus} data-autofocus={resolvedAutoFocus ? true : undefined}>
                         {(weekStartDisplayValue && weekStartDisplayValue !== 'null') ? (
                             <Text size={controlSize}>
                                 {weekStartDisplayValue}{weekEndDisplayValue ? ` - ${weekEndDisplayValue}` : ''}
@@ -100,7 +108,7 @@ export function WeekPickerField(props: WeekPickerFieldProps) {
                     <Accordion.Panel>
                         <WeekPicker
                             {...others}
-                            static={readonly || disabled}
+                            static={effectiveReadOnly || disabled || others.static}
                             weekStartDatevalue={entityForm.form.values[weekStartDateColumn.name] as Date | null}
                             setWeekStartValue={(value: Date | null) => {
                                 entityForm.form.setFieldValue(weekStartDateColumn.name, value);

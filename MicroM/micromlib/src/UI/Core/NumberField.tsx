@@ -4,6 +4,7 @@ import { Value } from "../../client";
 import { EntityColumn, EntityColumnFlags } from "../../Entity";
 import { ValidatorConfiguration } from "../../Validation";
 import { UseEntityFormReturnType, useFieldConfiguration } from "../Form";
+import { resolveFieldAutoFocus, resolveFieldReadOnly, resolveFieldWidths } from "./fieldUIHelpers";
 import { MicroMWidthSizes } from "./types";
 
 
@@ -38,27 +39,28 @@ export const NumberField = forwardRef<HTMLInputElement, NumberFieldProps>(functi
 
     const [showDescription,] = entityForm.showDescriptionState;
 
-    const { formMode, status } = entityForm;
-    const add_autofocus = formMode === 'add' ? true : undefined;
-    const edit_autofocus = status.loading === false && formMode !== 'add' ? true : undefined;
+
     
-    const resolved_maxWidth = maxWidth !== 'auto' && maxWidth !== undefined ? MicroMWidthSizes[maxWidth!] : undefined;
-    const resolved_minWidth = minWidth !== 'auto' && minWidth !== undefined ? MicroMWidthSizes[minWidth!] : undefined;
+
+    const resolvedAutoFocus = resolveFieldAutoFocus(autoFocus, entityForm.formMode, entityForm.status.loading);
+    const effectiveReadOnly = resolveFieldReadOnly(column, entityForm.formMode, readOnly);
+    const { maw: resolved_maw, miw: resolved_miw } = resolveFieldWidths({ maw, miw, maxWidth, minWidth });
 
     return (
         <NumberInput
             {...others}
+            {...entityForm.form.getInputProps(column.name)}
             withAsterisk={withAsterisk ?? (!readOnly && !(entityForm.formMode === 'view') && (required ?? !column.hasFlag(EntityColumnFlags.nullable)))}
             label={label ?? column.prompt}
             placeholder={placeholder ?? column.placeholder}
             description={showDescription ? (description ?? column.description) : ''}
-            readOnly={entityForm.formMode === 'view' ? true : readOnly}
-            data-autofocus={autoFocus === 'autoFocusOnAdd' ? add_autofocus : autoFocus === 'autoFocusOnEdit' ? edit_autofocus : autoFocus}
-            autoFocus={autoFocus === 'autoFocusOnAdd' ? add_autofocus : autoFocus === 'autoFocusOnEdit' ? edit_autofocus : autoFocus}
+            readOnly={effectiveReadOnly}
+            data-autofocus={resolvedAutoFocus ? true : undefined}
+            autoFocus={resolvedAutoFocus}
             precision={precision ?? column.scale}
-            maw={maw ?? resolved_maxWidth}
-            miw={miw ?? resolved_minWidth}
-            {...entityForm.form.getInputProps(column.name)}
+            maw={resolved_maw}
+            miw={resolved_miw}
+
 
             // FIX for mantine NumberInput not supporting null
             value={entityForm.form.values[column.name] === null ? '' : entityForm.form.values[column.name] as number}

@@ -2,6 +2,7 @@ import { ActionIcon, getSize, Group, Loader, rem, Stack, Text, TextInput, useCom
 import { isNotEmpty } from "@mantine/form";
 import { useEffect, useMemo, useRef } from "react";
 import { EntityColumnFlags } from "../../Entity";
+import { resolveFieldAutoFocus, resolveFieldReadOnly, resolveFieldWidths } from "../Core/fieldUIHelpers";
 import { CompoundLookupProps } from "./Lookup";
 import { CompoundLookupDefaultProps } from "./Lookup.shared";
 import { useCompoundLookup } from "./useCompoundLookup";
@@ -11,7 +12,7 @@ export function CompoundLookup(props: CompoundLookupProps) {
     const {
         entityForm, entity, lookupDefName, autoFocus, label, parentKeys, bindingColumns, required, readonly, disabled,
         idMaxWidth, icon, iconVariant, requiredLabel, description, size, onLookupPerformed,
-        enableAdd, enableEdit, enableDelete, enableView, transform, autoTrim, editLastLevelOnly, prefixMaxWidth
+        enableAdd, enableEdit, enableDelete, enableView, transform, autoTrim, editLastLevelOnly, prefixMaxWidth, readOnly, maw, miw, maxWidth, minWidth
     } = useComponentDefaultProps('CompoundLookup', CompoundLookupDefaultProps, props);
 
     if (bindingColumns.length < 2) throw new Error('Compound Lookup requires at least two bindingColumns.');
@@ -50,15 +51,13 @@ export function CompoundLookup(props: CompoundLookupProps) {
     const labelColor = theme.colorScheme === 'dark' ? theme.colors.dark[0] : theme.colors.gray[9];
     const descriptionColor = theme.colorScheme === 'dark' ? theme.colors.dark[2] : theme.colors.gray[6];
     const { formMode, status } = entityForm;
-    const addAutofocus = formMode === 'add' ? true : undefined;
-    const editAutofocus = status.loading === false && formMode !== 'add' ? true : undefined;
+    const resolvedAutoFocus = resolveFieldAutoFocus(autoFocus, formMode, status.loading);
+    const widths = resolveFieldWidths({ maw, miw, maxWidth, minWidth });
 
-    const readonlyCondition = readonly === undefined
-        ? significantColumn.hasFlag(EntityColumnFlags.autoNum) || (entityForm.formMode !== 'add' && significantColumn.hasFlag(EntityColumnFlags.pk))
-        : readonly;
+    const readonlyCondition = resolveFieldReadOnly(significantColumn, formMode, readOnly ?? readonly);
 
     return (
-        <Stack style={{ gap: "0.1rem", flexGrow: "1" }}>
+        <Stack {...widths} style={{ gap: "0.1rem", flexGrow: "1" }}>
             <Group style={{ gap: "0.2rem" }}>
                 <Text size={controlSize} weight="500" color={labelColor}>{label ?? significantColumn.prompt}</Text>
                 {(required ?? (!readonly && entityForm.formMode !== 'view' && !significantColumn.hasFlag(EntityColumnFlags.nullable))) && <Text size={controlSize} weight="500" color={theme.colors.red[5]}>*</Text>}
@@ -72,13 +71,13 @@ export function CompoundLookup(props: CompoundLookupProps) {
                     <Group style={{ flex: "1 1" }}>
                         <TextInput ref={inputRef} size={size} sx={{ flexGrow: 1 }}
                             readOnly={readonlyCondition || entityForm.formMode === 'view' || lookupAPI.status.loading || entityForm.status.loading}
-                            autoFocus={autoFocus === 'autoFocusOnAdd' ? addAutofocus : autoFocus === 'autoFocusOnEdit' ? editAutofocus : autoFocus}
-                            data-autofocus={autoFocus === 'autoFocusOnAdd' ? addAutofocus : autoFocus === 'autoFocusOnEdit' ? editAutofocus : autoFocus}
+                            autoFocus={resolvedAutoFocus}
+                            data-autofocus={resolvedAutoFocus ? true : undefined}
                             disabled={disabled} key={`${entity.name}${significantColumn.name}Compound`}
                             rightSection={<ActionIcon color={theme.primaryColor}
-                                disabled={readonlyCondition || entityForm.formMode === 'view' || lookupAPI.status.loading || entityForm.status.loading}
+                                disabled={disabled || readonlyCondition || entityForm.formMode === 'view' || lookupAPI.status.loading || entityForm.status.loading}
                                 onClick={async () => {
-                                    if (readonlyCondition || entityForm.formMode === 'view' || lookupAPI.status.loading || entityForm.status.loading) return;
+                                    if (disabled || readonlyCondition || entityForm.formMode === 'view' || lookupAPI.status.loading || entityForm.status.loading) return;
                                     await lookupAPI.onBlur(significantColumn.name, true);
                                 }}
                                 variant={iconVariant} size="md">{icon}</ActionIcon>}

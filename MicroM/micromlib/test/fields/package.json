@@ -1,0 +1,11 @@
+{
+  "name": "microm-field-ui-tests",
+  "private": true,
+  "targets": {
+    "fixture": {
+      "context": "browser",
+      "includeNodeModules": true,
+      "isLibrary": false
+    }
+  }
+}

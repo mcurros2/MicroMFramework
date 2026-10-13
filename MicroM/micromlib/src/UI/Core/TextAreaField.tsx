@@ -4,12 +4,13 @@ import { Value } from "../../client";
 import { EntityColumn, EntityColumnFlags } from "../../Entity";
 import { ValidatorConfigurationParms } from "../../Validation";
 import { UseEntityFormReturnType, useFieldConfiguration } from "../Form";
+import { FieldWidthProps, resolveFieldAutoFocus, resolveFieldReadOnly, resolveFieldWidths } from "./fieldUIHelpers";
 import { useTextTransform, useTextTransformProps } from "./useTextTransform";
 
 type TextAreaFieldAllowedValidators = 'regex' | 'length' | 'field' | 'required';
 export type TextAreaFieldValidatorConfiguration = Partial<Record<TextAreaFieldAllowedValidators, ValidatorConfigurationParms>>;
 
-export interface TextAreaFieldProps extends Omit<TextareaProps, 'autoFocus'>, Omit<useTextTransformProps, 'entityForm' | 'column' | 'onBlur' | 'mantineOnBlur'> {
+export interface TextAreaFieldProps extends Omit<TextareaProps, 'autoFocus'>, FieldWidthProps, Omit<useTextTransformProps, 'entityForm' | 'column' | 'onBlur' | 'mantineOnBlur'> {
     column: EntityColumn<Value>,
     entityForm: UseEntityFormReturnType,
     validate?: TextAreaFieldValidatorConfiguration,
@@ -26,7 +27,7 @@ export const TextAreaField = forwardRef<HTMLTextAreaElement, TextAreaFieldProps>
 
     const {
         column, entityForm, required, label, validate, requiredMessage, validationContainer, maxLength,
-        placeholder, description, readOnly, withAsterisk, autoFocus, transform, autoTrim, onBlur, onChange, onFocus, ...others
+        placeholder, description, readOnly, withAsterisk, autoFocus, transform, autoTrim, onBlur, onChange, onFocus, maw, miw, maxWidth, minWidth, ...others
     } = useComponentDefaultProps('TextAreaField', defaultProps, props);
 
     useFieldConfiguration({ entityForm, column, validationContainer, validate, required, requiredMessage });
@@ -57,9 +58,9 @@ export const TextAreaField = forwardRef<HTMLTextAreaElement, TextAreaFieldProps>
 
     const [showDescription,] = entityForm.showDescriptionState;
 
-    const { formMode, status } = entityForm;
-    const add_autofocus = formMode === 'add' ? true : undefined;
-    const edit_autofocus = status.loading === false && formMode !== 'add' ? true : undefined;
+    const resolvedAutoFocus = resolveFieldAutoFocus(autoFocus, entityForm.formMode, entityForm.status.loading);
+    const effectiveReadOnly = resolveFieldReadOnly(column, entityForm.formMode, readOnly);
+    const { maw: resolved_maw, miw: resolved_miw } = resolveFieldWidths({ maw, miw, maxWidth, minWidth });
 
     return (
         <Textarea
@@ -69,13 +70,15 @@ export const TextAreaField = forwardRef<HTMLTextAreaElement, TextAreaFieldProps>
             label={label ?? column.prompt}
             placeholder={placeholder ?? column.placeholder}
             description={showDescription ? (description ?? column.description) : ''}
-            readOnly={entityForm.formMode === 'view' ? true : readOnly}
+            readOnly={effectiveReadOnly}
             onBlur={handleOnBlur}
             onChange={handleOnChange}
             onFocus={handleOnFocus}
+            maw={resolved_maw}
+            miw={resolved_miw}
             ref={ref}
-            data-autofocus={autoFocus === 'autoFocusOnAdd' ? add_autofocus : autoFocus === 'autoFocusOnEdit' ? edit_autofocus : autoFocus}
-            autoFocus={autoFocus === 'autoFocusOnAdd' ? add_autofocus : autoFocus === 'autoFocusOnEdit' ? edit_autofocus : autoFocus}
+            data-autofocus={resolvedAutoFocus ? true : undefined}
+            autoFocus={resolvedAutoFocus}
             maxLength={maxLength ?? (column.length || undefined)}
         />
 

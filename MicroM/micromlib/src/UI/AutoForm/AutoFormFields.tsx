@@ -1,6 +1,7 @@
 import { ReactNode } from "react";
 import { Entity, EntityColumnFlags, EntityDefinition, SYSTEM_COLUMNS_NAMES } from "../../Entity";
 import { CheckboxField, DateInputField, NumberField } from "../Core";
+import { resolveFieldReadOnly } from "../Core/fieldUIHelpers";
 import { TextAreaField } from "../Core/TextAreaField";
 import { TextField } from "../Core/TextField";
 import { UseEntityFormReturnType } from "../Form";
@@ -19,6 +20,8 @@ export function AutoFormFields(props: AutoFormFieldsProps<Entity<EntityDefinitio
     return Object.entries(entity.def.columns).map(([key, column]) => {
         if (!SYSTEM_COLUMNS_NAMES.includes(key) && !column.excludeInAutoForm) {
             let element: ReactNode = undefined;
+            const fieldReadOnly = resolveFieldReadOnly(column, entityForm.formMode);
+            const fieldAutoFocus = !fieldReadOnly ? first_focus : undefined;
             switch (column.type) {
                 case 'nvarchar':
                 case 'varchar':
@@ -30,13 +33,12 @@ export function AutoFormFields(props: AutoFormFieldsProps<Entity<EntityDefinitio
                             column={column}
                             entityForm={entityForm}
                             readOnly={column.hasFlag(EntityColumnFlags.autoNum) || (entityForm.formMode !== 'add' && column.hasFlag(EntityColumnFlags.pk))}
-                            autoFocus={!(column.hasFlag(EntityColumnFlags.autoNum) || (entityForm.formMode !== 'add' && column.hasFlag(EntityColumnFlags.pk))) ? first_focus : undefined}
+                            autoFocus={fieldAutoFocus}
                             key={`${entity.name}${column.name}`}
                             description={column.description}
                             placeholder={column.placeholder}
                             maw={column.length === 20 ? "20rem" : undefined}
                         />
-                        if (!(column.hasFlag(EntityColumnFlags.autoNum) || (entityForm.formMode !== 'add' && column.hasFlag(EntityColumnFlags.pk))) && first_focus) first_focus = undefined;
                     }
                     else {
                         element = <TextAreaField
@@ -45,12 +47,11 @@ export function AutoFormFields(props: AutoFormFieldsProps<Entity<EntityDefinitio
                             label={column.prompt}
                             maxRows={4}
                             minRows={4}
-                            autoFocus={first_focus}
+                            autoFocus={fieldAutoFocus}
                             key={`${entity.name}${column.name}`}
                             description={column.description}
                             placeholder={column.placeholder}
                         />
-                        if (first_focus) first_focus = undefined;
                     }
                     break;
                 case 'date':
@@ -60,12 +61,11 @@ export function AutoFormFields(props: AutoFormFieldsProps<Entity<EntityDefinitio
                         column={column}
                         entityForm={entityForm}
                         label={column.prompt}
-                        autoFocus={first_focus}
+                        autoFocus={fieldAutoFocus}
                         key={`${entity.name}${column.name}`}
                         description={column.description}
                         placeholder={column.placeholder}
                     />
-                    if (first_focus) first_focus = undefined;
                     break;
                 case 'bigint':
                 case 'int':
@@ -74,8 +74,8 @@ export function AutoFormFields(props: AutoFormFieldsProps<Entity<EntityDefinitio
                     element = <NumberField
                         column={column}
                         entityForm={entityForm}
-                        readOnly={column.hasFlag(EntityColumnFlags.autoNum)}
-                        autoFocus={!column.hasFlag(EntityColumnFlags.autoNum) ? first_focus : undefined}
+                        readOnly={column.hasFlag(EntityColumnFlags.autoNum) || undefined}
+                        autoFocus={fieldAutoFocus}
                         key={`${entity.name}${column.name}`}
                         description={column.description}
                         placeholder={column.placeholder}
@@ -89,8 +89,8 @@ export function AutoFormFields(props: AutoFormFieldsProps<Entity<EntityDefinitio
                     element = <NumberField
                         column={column}
                         entityForm={entityForm}
-                        readOnly={column.hasFlag(EntityColumnFlags.autoNum)}
-                        autoFocus={!column.hasFlag(EntityColumnFlags.autoNum) ? first_focus : undefined}
+                        readOnly={column.hasFlag(EntityColumnFlags.autoNum) || undefined}
+                        autoFocus={fieldAutoFocus}
                         key={`${entity.name}${column.name}`}
                         description={column.description}
                         placeholder={column.placeholder}
@@ -103,12 +103,13 @@ export function AutoFormFields(props: AutoFormFieldsProps<Entity<EntityDefinitio
                         column={column}
                         entityForm={entityForm}
                         label={column.prompt}
-                        autoFocus={first_focus}
+                        autoFocus={fieldAutoFocus}
                         key={`${entity.name}${column.name}`}
                         description={column.description}
                     />
                     break;
             }
+            if (element !== undefined && fieldAutoFocus) first_focus = undefined;
             return element;
         }
         return undefined

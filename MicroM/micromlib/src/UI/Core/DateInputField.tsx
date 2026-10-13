@@ -8,6 +8,7 @@ import { Value } from "../../client";
 import { EntityColumn, EntityColumnFlags } from "../../Entity";
 import { ValidatorConfiguration } from "../../Validation";
 import { UseEntityFormReturnType, useFieldConfiguration } from "../Form";
+import { resolveFieldAutoFocus, resolveFieldReadOnly, resolveFieldWidths } from "./fieldUIHelpers";
 import { MicroMWidthSizes } from "./types";
 
 dayjs.extend(customParseFormat);
@@ -47,30 +48,27 @@ export const DateInputField = forwardRef<HTMLInputElement, DateInputFieldProps>(
 
     const [showDescription,] = entityForm.showDescriptionState;
 
-    const { formMode, status } = entityForm;
-    const add_autofocus = formMode === 'add' ? true : undefined;
-    const edit_autofocus = status.loading === false && formMode !== 'add' ? true : undefined;
-
-    const resolved_maw = maw ?? (maxWidth !== undefined) ? MicroMWidthSizes[maxWidth!] : undefined
-    const resolved_miw = miw ?? (minWidth !== undefined) ? MicroMWidthSizes[minWidth!] : undefined;
-
+    const resolvedAutoFocus = resolveFieldAutoFocus(autoFocus, entityForm.formMode, entityForm.status.loading);
+    const effectiveReadOnly = resolveFieldReadOnly(column, entityForm.formMode, readOnly);
+    const { maw: resolved_maw, miw: resolved_miw } = resolveFieldWidths({ maw, miw, maxWidth, minWidth });
 
     return (
         <DateInput
             {...others}
+            {...entityForm.form.getInputProps(column.name)}
             valueFormat={valueFormat}
             required={required ?? (!readOnly && !(entityForm.formMode === 'view') && (required ?? !column.hasFlag(EntityColumnFlags.nullable)))}
             withAsterisk={withAsterisk ?? (!readOnly && !(entityForm.formMode === 'view') && (required ?? !column.hasFlag(EntityColumnFlags.nullable)))}
             label={label ?? column.prompt}
             placeholder={placeholder ?? column.placeholder}
             description={showDescription ? (description ?? column.description) : ''}
-            clearable={clearable ?? (!readOnly && !(entityForm.formMode === 'view'))}
-            data-autofocus={autoFocus === 'autoFocusOnAdd' ? add_autofocus : autoFocus === 'autoFocusOnEdit' ? edit_autofocus : autoFocus}
-            autoFocus={autoFocus === 'autoFocusOnAdd' ? add_autofocus : autoFocus === 'autoFocusOnEdit' ? edit_autofocus : autoFocus}
-            readOnly={readOnly || entityForm.formMode === 'view'}
+            clearable={!effectiveReadOnly && (clearable ?? true)}
+            data-autofocus={resolvedAutoFocus ? true : undefined}
+            autoFocus={resolvedAutoFocus}
+            readOnly={effectiveReadOnly}
             maw={resolved_maw}
             miw={resolved_miw}
-            {...entityForm.form.getInputProps(column.name)}
+
             ref={ref}
         />
     )

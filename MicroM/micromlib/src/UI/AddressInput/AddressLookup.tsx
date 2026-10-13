@@ -2,6 +2,7 @@ import { Button, useComponentDefaultProps, useMantineTheme } from "@mantine/core
 import { IconMapPin } from "@tabler/icons-react";
 import { useCallback } from "react";
 import { ActionIconVariant, latLng } from "../Core";
+import { resolveFieldReadOnly } from "../Core/fieldUIHelpers";
 import { AddressFoundResult } from "../GoogleMaps";
 import { AddressAutocomplete, AddressAutocompleteProps, AddressAutocompleteResult } from "./AddressAutocomplete";
 import { AddressMapMarkerPosition } from "./AddressMapMarker";
@@ -44,7 +45,10 @@ export function AddressLookup(props: AddressLookupProps) {
         if (onAddressFound) onAddressFound(found);
     }, [column.name, entityForm.form, onAddressFound]);
 
+    const actionDisabled = resolveFieldReadOnly(column, entityForm.formMode, rest.readOnly) || rest.disabled;
+
     const handleSearch = useCallback(() => {
+        if (actionDisabled) return;
         search({
             countries: countries,
             search: entityForm.form.values[column.name] as string,
@@ -52,7 +56,7 @@ export function AddressLookup(props: AddressLookupProps) {
             mappingRules: mappingRules,
             onOK: handleOKSearch
         });
-    }, [column.name, countries, currentPosition, entityForm.form.values, handleOKSearch, mappingRules, search]);
+    }, [actionDisabled, column.name, countries, currentPosition, entityForm.form.values, handleOKSearch, mappingRules, search]);
 
     return (
         <>
@@ -63,7 +67,7 @@ export function AddressLookup(props: AddressLookupProps) {
                 countries={countries}
 
                 onAddressFound={onAddressFound}
-                rightSection={<Button color={theme.primaryColor} onClick={handleSearch} variant={iconVariant} size="xs" leftIcon={icon}>{iconLabel}</Button>}
+                rightSection={<Button disabled={actionDisabled} color={theme.primaryColor} onClick={handleSearch} variant={iconVariant} size="xs" leftIcon={icon}>{iconLabel}</Button>}
                 rightSectionWidth={rightSectionWidth}
             />
         </>

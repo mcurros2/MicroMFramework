@@ -6,6 +6,7 @@ import { Value } from "../../client";
 import { EntityColumn, EntityColumnFlags } from "../../Entity";
 import { ValidatorConfiguration } from "../../Validation";
 import { UseEntityFormReturnType, useFieldConfiguration } from "../Form";
+import { resolveFieldAutoFocus, resolveFieldReadOnly, resolveFieldWidths } from "./fieldUIHelpers";
 import { MicroMWidthSizes } from "./types";
 
 export interface TimeFieldProps extends Omit<TimeInputProps, 'validate' | 'autoFocus'> {
@@ -47,6 +48,10 @@ export const TimeField = forwardRef<TimeFieldRef, TimeFieldProps>(function TimeF
     const [showDescription,] = entityForm.showDescriptionState;
     const clockRef = useRef<ExtendedHTMLInputElement | null>(null);
 
+    const resolvedAutoFocus = resolveFieldAutoFocus(autoFocus, entityForm.formMode, entityForm.status.loading);
+    const effectiveReadOnly = resolveFieldReadOnly(column, entityForm.formMode, readOnly);
+    const { maw: resolved_maw, miw: resolved_miw } = resolveFieldWidths({ maw, miw, maxWidth, minWidth });
+
     // Expose the showPicker method to the parent using the ref
     useImperativeHandle(ref, () => ({
         showPicker: () => {
@@ -54,33 +59,28 @@ export const TimeField = forwardRef<TimeFieldRef, TimeFieldProps>(function TimeF
         }
     }), []);
 
-    const { formMode, status } = entityForm;
-    const add_autofocus = formMode === 'add' ? true : undefined;
-    const edit_autofocus = status.loading === false && formMode !== 'add' ? true : undefined;
-
-    const resolved_maw = maw ?? (maxWidth !== undefined) ? MicroMWidthSizes[maxWidth!] : undefined
-    const resolved_miw = miw ?? (minWidth !== undefined) ? MicroMWidthSizes[minWidth!] : undefined;
-
     return (
         <TimeInput
             {...others}
+            {...entityForm.form.getInputProps(column.name)}
             withAsterisk={withAsterisk ?? (!readOnly && !(entityForm.formMode === 'view') && (required ?? !column.hasFlag(EntityColumnFlags.nullable)))}
             maw={resolved_maw}
             miw={resolved_miw}
             label={label ?? column.prompt}
             placeholder={placeholder ?? column.placeholder}
             description={showDescription ? (description ?? column.description) : ''}
-            data-autofocus={autoFocus === 'autoFocusOnAdd' ? add_autofocus : autoFocus === 'autoFocusOnEdit' ? edit_autofocus : autoFocus}
-            autoFocus={autoFocus === 'autoFocusOnAdd' ? add_autofocus : autoFocus === 'autoFocusOnEdit' ? edit_autofocus : autoFocus}
+            data-autofocus={resolvedAutoFocus ? true : undefined}
+            autoFocus={resolvedAutoFocus}
+            readOnly={effectiveReadOnly}
             ref={clockRef}
             rightSection={showTimePicker &&
-                <ActionIcon disabled={readOnly} onClick={() => clockRef.current?.showPicker?.()}>
+                <ActionIcon disabled={effectiveReadOnly || others.disabled} onClick={() => clockRef.current?.showPicker?.()}>
                     <IconClock size="1rem" stroke={1.5} />
                 </ActionIcon>
             }
             rightSectionWidth={showTimePicker ? "2.5rem" : undefined}
 
-            {...entityForm.form.getInputProps(column.name)}
+
         />
     );
 });

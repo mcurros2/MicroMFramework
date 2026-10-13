@@ -62,6 +62,7 @@ export function WeekPicker(props: WeekPickerProps) {
                         lastInRange: isInRange && date.getDay() === 0,
                         selected: isSelected,
                         onClick: () => {
+                            if (others.static) return;
                             if (allowDeselect && isSelected) {
                                 setWeekStartValue(null);
                                 if (setWeekEndValue) setWeekEndValue(null);

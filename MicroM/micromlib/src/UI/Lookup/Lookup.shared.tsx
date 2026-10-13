@@ -3,11 +3,12 @@ import { IconSearch } from "@tabler/icons-react";
 import { ValuesObject } from "../../client";
 import { Entity, EntityDefinition } from "../../Entity";
 import { ActionIconVariant, useTextTransformProps } from "../Core";
+import { FieldWidthProps } from "../Core/fieldUIHelpers";
 import { UseEntityFormReturnType } from "../Form";
 import { CompoundLookupProps } from "./Lookup";
 import { LookupResultState } from "./useLookup";
 
-export interface LookupCommonProps extends Omit<useTextTransformProps, 'entityForm' | 'column'> {
+export interface LookupCommonProps extends Omit<useTextTransformProps, 'entityForm' | 'column'>, FieldWidthProps {
     parentKeys?: ValuesObject,
     autoFocus?: 'autoFocusOnAdd' | 'autoFocusOnEdit' | boolean
     entityForm: UseEntityFormReturnType
@@ -15,6 +16,7 @@ export interface LookupCommonProps extends Omit<useTextTransformProps, 'entityFo
     lookupDefName: string,
     required?: boolean,
     readonly?: boolean,
+    readOnly?: boolean,
     disabled?: boolean,
     label?: string,
     idMaxWidth?: string,

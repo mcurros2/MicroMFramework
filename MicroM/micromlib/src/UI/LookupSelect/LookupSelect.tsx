@@ -4,6 +4,7 @@ import { forwardRef, ReactNode, useState } from "react"
 import { DataResult, DBStatusResult, OperationStatus, Value, ValuesObject } from "../../client"
 import { Entity, EntityColumn, EntityColumnFlags, EntityDefinition } from "../../Entity"
 import { ActionIconVariant, ButtonVariant, MicroMWidthSizes } from "../Core"
+import { resolveFieldAutoFocus, resolveFieldReadOnly, resolveFieldWidths } from "../Core/fieldUIHelpers"
 import { UseEntityFormReturnType, useFieldConfiguration } from "../Form"
 import { useLookupSelect } from "./useLookupSelect"
 import { useLookupSelectInputProps } from "./useLookupSelectInputProps"
@@ -76,17 +77,13 @@ export const LookupSelect = forwardRef<HTMLInputElement, LookupSelectOptions>(fu
 
     const [showDescription,] = entityForm.showDescriptionState;
 
-    const add_autofocus = formMode === 'add' ? true : undefined;
-    const edit_autofocus = formStatus?.loading === false && formMode !== 'add' ? true : undefined;
-
     const readonly_condition = selectProps?.readOnly === undefined ? (entityForm.formMode !== 'add' && column.hasFlag(EntityColumnFlags.pk)) : selectProps.readOnly;
-    const autofocus_condition = autoFocus === 'autoFocusOnAdd' ? add_autofocus : autoFocus === 'autoFocusOnEdit' ? edit_autofocus : autoFocus;
+    const autofocus_condition = resolveFieldAutoFocus(autoFocus, formMode, entityForm.status.loading);
 
     const resolvedSelectProps: CustomSelectProps = {
         ...(selectProps ?? {}),
         readOnly: readonly_condition,
-        miw: selectProps?.miw ?? (minWidth !== 'auto' && minWidth !== undefined) ? MicroMWidthSizes[minWidth!] : undefined,
-        maw: selectProps?.maw ?? (maxWidth !== 'auto' && maxWidth !== undefined) ? MicroMWidthSizes[maxWidth!] : undefined,
+        ...resolveFieldWidths({ miw: selectProps?.miw, maw: selectProps?.maw, minWidth, maxWidth }),
         label: selectProps?.label ?? column.prompt,
         autoFocus: autofocus_condition,
         description: showDescription ? (selectProps?.description ?? column.description) : ''
@@ -94,18 +91,17 @@ export const LookupSelect = forwardRef<HTMLInputElement, LookupSelectOptions>(fu
 
     useFieldConfiguration({ entityForm, column, required: resolvedSelectProps?.required, requiredMessage: requiredLabel });
 
-    const readoOnlyResult = resolvedSelectProps?.readOnly || entityForm.formMode === 'view' || lookupSelectAPI.status.loading || formStatus?.loading || (column.hasFlag(EntityColumnFlags.pk) && entityForm.formMode !== 'add') ? true : false;
+    const readoOnlyResult = resolveFieldReadOnly(column, formMode, selectProps?.readOnly) || Boolean(lookupSelectAPI.status.loading || formStatus?.loading);
+    const editDisabled = readoOnlyResult || selectProps?.disabled;
 
     return (
         <Select
             {...resolvedSelectProps}
-            data-autofocus={autofocus_condition}
             withAsterisk={resolvedSelectProps.withAsterisk ?? (!resolvedSelectProps.readOnly && !(entityForm.formMode === 'view') && (resolvedSelectProps.required ?? !column.hasFlag(EntityColumnFlags.nullable)))}
             withinPortal={withinPortal}
             zIndex={zIndex}
             icon={lookupSelectAPI.status.loading ? <Loader size="xs" /> : resolvedSelectProps.icon}
             data={selectData}
-            readOnly={readoOnlyResult}
             error={lookupSelectAPI.status.error ? lookupSelectAPI.status.error.message : null}
             // MMC: this is how we hack the styles let the chevron work showing the list and the edit button be clickable
             styles={() => ({
@@ -115,17 +111,22 @@ export const LookupSelect = forwardRef<HTMLInputElement, LookupSelectOptions>(fu
                 <Group spacing="xs">
                     <IconSelector size="1rem" />
                     {editIcon &&
-                        <ActionIcon style={{ pointerEvents: 'all' }} size="md" color={theme.primaryColor} variant={editIconVariant} onClick={lookupSelectAPI.onEditClick}>
+                        <ActionIcon style={{ pointerEvents: 'all' }} size="md" color={theme.primaryColor} variant={editIconVariant} disabled={editDisabled} onClick={() => { if (!editDisabled) lookupSelectAPI.onEditClick(); }}>
                             {editIcon}
                         </ActionIcon>
                     }
                     {!editIcon &&
-                        <Button size="xs" mr="xs" variant="light" onClick={lookupSelectAPI.onEditClick}>{editLabel}</Button>
+                        <Button size="xs" mr="xs" variant="light" disabled={editDisabled} onClick={() => { if (!editDisabled) lookupSelectAPI.onEditClick(); }}>{editLabel}</Button>
                     }
                 </Group>
             }
             rightSectionWidth={(enableEdit) ? "auto" : undefined}
             {...inputProps}
+            readOnly={readoOnlyResult}
+            autoFocus={autofocus_condition}
+            data-autofocus={autofocus_condition ? true : undefined}
+            miw={resolvedSelectProps.miw}
+            maw={resolvedSelectProps.maw}
             ref={ref}
         />
     )

@@ -3,6 +3,7 @@ import { Value } from "../../client";
 import { EntityColumn, EntityColumnFlags } from "../../Entity";
 import { ValidatorConfiguration } from "../../Validation";
 import { latLng } from "../Core";
+import { FieldAutoFocus, FieldWidthProps, resolveFieldAutoFocus, resolveFieldReadOnly, resolveFieldWidths } from "../Core/fieldUIHelpers";
 import { UseEntityFormReturnType, useFieldConfiguration } from "../Form";
 import { AddressFoundResult, GoogleAddressAutocomplete, GoogleAddressAutocompleteProps, GoogleAddressAutocompleteRestrictions, MappedAddressResult } from "../GoogleMaps";
 
@@ -13,13 +14,13 @@ export interface AddressAutocompleteResult {
     formattedAddress?: string,
 }
 
-export interface AddressAutocompleteProps extends Omit<GoogleAddressAutocompleteProps, 'restrictions' | 'onAddressFound'> {
+export interface AddressAutocompleteProps extends Omit<GoogleAddressAutocompleteProps, 'restrictions' | 'onAddressFound' | 'autoFocus'>, FieldWidthProps {
     column: EntityColumn<Value>,
     entityForm: UseEntityFormReturnType,
     validate?: ValidatorConfiguration,
     requiredMessage?: ReactNode,
     validationContainer?: React.ComponentType<{ children: ReactNode }>
-    autoFocus?: boolean
+    autoFocus?: FieldAutoFocus
 
     countries: string[],
 
@@ -30,7 +31,7 @@ export function AddressAutocomplete(props: AddressAutocompleteProps) {
     //const { } = useComponentDefaultProps('AddressAutocomplete', {}, props);
     const {
         column, entityForm, validate, requiredMessage, validationContainer, countries, required, readOnly, onAddressFound,
-        withAsterisk, label, placeholder, description, maxLength, autoFocus,
+        withAsterisk, label, placeholder, description, maxLength, autoFocus, maw, miw, maxWidth, minWidth,
         ...rest
     } = props;
 
@@ -61,9 +62,15 @@ export function AddressAutocomplete(props: AddressAutocompleteProps) {
         form.setFieldValue(column.name, column.value || '');
     }, []);
 
+    const effectiveReadOnly = resolveFieldReadOnly(column, entityForm.formMode, readOnly);
+    const resolvedAutoFocus = resolveFieldAutoFocus(autoFocus, entityForm.formMode, status.loading);
+    const widths = resolveFieldWidths({ maw, miw, maxWidth, minWidth });
+
     return (
         <GoogleAddressAutocomplete
             {...rest}
+            {...entityForm.form.getInputProps(column.name)}
+            {...widths}
 
             restrictions={restrictions}
             onAddressFound={handleOnAddressFound}
@@ -73,12 +80,10 @@ export function AddressAutocomplete(props: AddressAutocompleteProps) {
             placeholder={placeholder ?? column.placeholder}
             description={showDescription ? (description ?? column.description) : ''}
             maxLength={maxLength ?? column.length}
-            readOnly={entityForm.formMode === 'view' ? true : readOnly}
+            readOnly={effectiveReadOnly}
 
-            autoFocus={autoFocus}
-            data-autofocus={autoFocus}
-
-            {...entityForm.form.getInputProps(column.name)}
+            autoFocus={resolvedAutoFocus}
+            data-autofocus={resolvedAutoFocus ? true : undefined}
 
         />
     )

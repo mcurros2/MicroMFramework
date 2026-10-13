@@ -4,9 +4,10 @@ import { Value } from "../../client";
 import { EntityColumn, EntityColumnFlags } from "../../Entity";
 import { ValidatorConfiguration } from "../../Validation";
 import { UseEntityFormReturnType, useFieldConfiguration } from "../Form";
+import { FieldWidthProps, resolveFieldAutoFocus, resolveFieldReadOnly, resolveFieldWidths } from "./fieldUIHelpers";
 import { useTextTransform, useTextTransformProps } from "./useTextTransform";
 
-export interface PinFieldProps extends Omit<PinInputProps, 'validate' | 'autoFocus'>, Omit<useTextTransformProps, 'entityForm' | 'column'> {
+export interface PinFieldProps extends Omit<PinInputProps, 'validate' | 'autoFocus'>, FieldWidthProps, Omit<useTextTransformProps, 'entityForm' | 'column'> {
     column: EntityColumn<Value>,
     entityForm: UseEntityFormReturnType,
     validate?: ValidatorConfiguration,
@@ -31,8 +32,8 @@ function isArrayOfStrings(value: ReactNode): value is string[] {
 
 export function PinField(props: PinFieldProps) {
     const {
-        entityForm, column, validationContainer, validate, required, requiredMessage, readOnly,
-        placeholder, autoFocus, transform, autoTrim, size, description, label,
+        entityForm, column, validationContainer, validate, required, requiredMessage, readOnly, disabled,
+        placeholder, autoFocus, transform, autoTrim, size, description, label, maw, miw, maxWidth, minWidth,
         ...others
     } = useComponentDefaultProps('PinField', PinFieldDefaultProps, props);
 
@@ -52,11 +53,12 @@ export function PinField(props: PinFieldProps) {
     const descriptionColor = theme.colorScheme === 'dark' ? theme.colors.dark[2] : theme.colors.gray[6];
 
     const { form, formMode, status } = entityForm;
-    const add_autofocus = formMode === 'add' ? true : undefined;
-    const edit_autofocus = status.loading === false && formMode !== 'add' ? true : undefined;
+    const resolvedAutoFocus = resolveFieldAutoFocus(autoFocus, formMode, status.loading);
+    const effectiveReadOnly = resolveFieldReadOnly(column, formMode, readOnly);
+    const widths = resolveFieldWidths({ maw, miw, maxWidth, minWidth });
 
     return (
-        <Stack style={{ gap: "0.1rem" }}>
+        <Stack {...widths} style={{ gap: "0.1rem" }}>
             <Group style={{ gap: "0.2rem" }}>
                 <Text size={controlSize} weight="500" color={labelColor}>{label ?? column.prompt}</Text>
                 {(required ?? (!readOnly && !(entityForm.formMode === 'view') && !column.hasFlag(EntityColumnFlags.nullable))) && <Text size={controlSize} weight="500" color={theme.colors.red[5]}>*</Text>}
@@ -68,8 +70,8 @@ export function PinField(props: PinFieldProps) {
                 {...others}
                 {...entityForm.form.getInputProps(column.name)}
                 placeholder={placeholder ?? column.placeholder}
-                autoFocus={autoFocus === 'autoFocusOnAdd' ? add_autofocus : autoFocus === 'autoFocusOnEdit' ? edit_autofocus : autoFocus}
-                data-autofocus={autoFocus === 'autoFocusOnAdd' ? add_autofocus : autoFocus === 'autoFocusOnEdit' ? edit_autofocus : autoFocus}
+                autoFocus={resolvedAutoFocus}
+                disabled={disabled || effectiveReadOnly}
                 onComplete={handleOnComplete}
                 required={required ?? !column.hasFlag(EntityColumnFlags.nullable)}
                 mt="xs"

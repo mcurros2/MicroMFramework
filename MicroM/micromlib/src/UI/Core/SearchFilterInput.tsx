@@ -11,7 +11,6 @@ export interface SearchFilterInputProps extends MultiSelectProps {
     autoFocus?: boolean,
     addFilterLabel?: string,
     iconVariant?: ActionIconVariant,
-    [x: string]: any
 }
 
 
@@ -26,7 +25,7 @@ export const SearchFilterInput = forwardRef<HTMLInputElement, SearchFilterInputP
         onSearchClick, size, iconsSize, value, onChange, placeholder, autoFocus, iconVariant, addFilterLabel,
         onSearchChange, onCreate,
         ...rest
-    } = useComponentDefaultProps('SearchFilterInput', SearchFilterInputDefaultProps, props);
+    }: SearchFilterInputProps = useComponentDefaultProps('SearchFilterInput', SearchFilterInputDefaultProps, props);
 
     const theme = useMantineTheme();
 

@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import { Value } from "../../client";
 import { EntityColumn, EntityColumnFlags } from "../../Entity";
 import { useTextTransform } from "../Core";
+import { resolveFieldAutoFocus, resolveFieldReadOnly, resolveFieldWidths } from "../Core/fieldUIHelpers";
 import { LookupCommonProps, LookupDefaultProps } from "./Lookup.shared";
 import { useLookup } from "./useLookup";
 
@@ -12,7 +13,7 @@ type SingleLookupProps = LookupCommonProps & { column: EntityColumn<Value>, bind
 export function SingleLookup(props: SingleLookupProps) {
     const {
         entityForm, entity, lookupDefName, autoFocus, label, parentKeys, column, required, readonly, disabled, idMaxWidth, icon, iconVariant,
-        requiredLabel, description, size, onLookupPerformed, enableAdd, enableEdit, enableDelete, enableView, transform, autoTrim
+        requiredLabel, description, size, onLookupPerformed, enableAdd, enableEdit, enableDelete, enableView, transform, autoTrim, readOnly, maw, miw, maxWidth, minWidth
     } = useComponentDefaultProps('Lookup', LookupDefaultProps, props);
 
     const theme = useMantineTheme();
@@ -42,13 +43,13 @@ export function SingleLookup(props: SingleLookupProps) {
 
     const { formMode, status } = entityForm;
 
-    const addAutofocus = formMode === 'add' ? true : undefined;
-    const editAutofocus = status.loading === false && formMode !== 'add' ? true : undefined;
+    const resolvedAutoFocus = resolveFieldAutoFocus(autoFocus, formMode, status.loading);
+    const widths = resolveFieldWidths({ maw, miw, maxWidth, minWidth });
 
-    const readonlyCondition = readonly === undefined ? column.hasFlag(EntityColumnFlags.autoNum) || (entityForm.formMode !== 'add' && column.hasFlag(EntityColumnFlags.pk)) : readonly;
+    const readonlyCondition = resolveFieldReadOnly(column, formMode, readOnly ?? readonly);
 
     return (
-        <Stack style={{ gap: "0.1rem", flexGrow: "1" }}>
+        <Stack {...widths} style={{ gap: "0.1rem", flexGrow: "1" }}>
             <Group style={{ gap: "0.2rem" }}>
                 <Text size={controlSize} weight="500" color={labelColor}>{label ?? column.prompt}</Text>
                 {(required ?? (!readonly && entityForm.formMode !== 'view' && !column.hasFlag(EntityColumnFlags.nullable))) && <Text size={controlSize} weight="500" color={theme.colors.red[5]}>*</Text>}
@@ -58,13 +59,13 @@ export function SingleLookup(props: SingleLookupProps) {
                 <TextInput
                     size={size} maw={idMaxWidth}
                     readOnly={readonlyCondition || entityForm.formMode === 'view' || lookupAPI.status.loading || entityForm.status.loading}
-                    autoFocus={autoFocus === 'autoFocusOnAdd' ? addAutofocus : autoFocus === 'autoFocusOnEdit' ? editAutofocus : autoFocus}
-                    data-autofocus={autoFocus === 'autoFocusOnAdd' ? addAutofocus : autoFocus === 'autoFocusOnEdit' ? editAutofocus : autoFocus}
+                    autoFocus={resolvedAutoFocus}
+                    data-autofocus={resolvedAutoFocus ? true : undefined}
                     disabled={disabled} key={`${entity.name}${column.name}`}
                     rightSection={<ActionIcon color={theme.primaryColor}
-                        disabled={readonlyCondition || entityForm.formMode === 'view' || lookupAPI.status.loading || entityForm.status.loading}
+                        disabled={disabled || readonlyCondition || entityForm.formMode === 'view' || lookupAPI.status.loading || entityForm.status.loading}
                         onClick={async () => {
-                            if (readonlyCondition || entityForm.formMode === 'view' || lookupAPI.status.loading || entityForm.status.loading) return;
+                            if (disabled || readonlyCondition || entityForm.formMode === 'view' || lookupAPI.status.loading || entityForm.status.loading) return;
                             await lookupAPI.onBlur(column.name, true);
                         }}
                         variant={iconVariant} size="md">{icon}</ActionIcon>}

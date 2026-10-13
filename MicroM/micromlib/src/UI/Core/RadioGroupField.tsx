@@ -5,16 +5,18 @@ import { EntityColumn, EntityColumnFlags } from "../../Entity";
 import { ValidatorConfiguration } from "../../Validation";
 import { UseEntityFormReturnType } from "../Form/useEntityForm";
 import { useFieldConfiguration } from "../Form/useFieldConfiguration";
+import { FieldAutoFocus, FieldWidthProps, resolveFieldAutoFocus, resolveFieldReadOnly, resolveFieldWidths } from "./fieldUIHelpers";
 
-export interface RadioGroupFieldProps extends ComponentPropsWithoutRef<typeof Radio.Group> {
+export interface RadioGroupFieldProps extends Omit<ComponentPropsWithoutRef<typeof Radio.Group>, 'autoFocus'>, FieldWidthProps {
     column: EntityColumn<Value>,
     entityForm: UseEntityFormReturnType,
 
     validate?: ValidatorConfiguration,
     requiredMessage?: ReactNode,
     validationContainer?: React.ComponentType<{ children: ReactNode }>
-    autoFocus?: boolean,
+    autoFocus?: FieldAutoFocus,
     readOnly?: boolean,
+    disabled?: boolean,
     showDescription?: boolean,
 }
 
@@ -22,16 +24,20 @@ export const RadioGroupFieldDefaultProps: Partial<RadioGroupFieldProps> = {
     showDescription: true
 }
 
-export const RadioGroupField = forwardRef<HTMLInputElement, RadioGroupFieldProps>(function RadioGroupField(props, ref) {
+export const RadioGroupField = forwardRef<HTMLDivElement, RadioGroupFieldProps>(function RadioGroupField(props, ref) {
     const {
-        entityForm, column, validationContainer, validate, required, requiredMessage, readOnly,
-        onChange, onBlur, onFocus, children, withAsterisk, label, description, showDescription,
+        entityForm, column, validationContainer, validate, required, requiredMessage, readOnly, disabled,
+        onChange, onBlur, onFocus, children, withAsterisk, label, description, showDescription, autoFocus, maw, miw, maxWidth, minWidth,
         ...others
     } = useComponentDefaultProps('RadioGroupField', RadioGroupFieldDefaultProps, props);
 
     useFieldConfiguration({ entityForm, column, validationContainer, validate, required, requiredMessage, readOnly });
 
     const { onBlur: mantineOnBlur, onChange: mantineOnChange, onFocus: mantineOnFocus, ...mantineProps } = entityForm.form.getInputProps(column.name);
+
+    const effectiveReadOnly = resolveFieldReadOnly(column, entityForm.formMode, readOnly);
+    const resolvedAutoFocus = resolveFieldAutoFocus(autoFocus, entityForm.formMode, entityForm.status.loading);
+    const widths = resolveFieldWidths({ maw, miw, maxWidth, minWidth });
 
     const handleOnBlur = useCallback((event: React.FocusEvent<HTMLInputElement>) => {
         if (onBlur) onBlur(event);
@@ -61,9 +67,13 @@ export const RadioGroupField = forwardRef<HTMLInputElement, RadioGroupFieldProps
             onBlur={handleOnBlur}
             onChange={handleOnChange}
             onFocus={handleOnFocus}
+            {...widths}
+            autoFocus={resolvedAutoFocus}
             ref={ref}
         >
-            {children}
+            <fieldset disabled={disabled || effectiveReadOnly} style={{ borderWidth: 0, margin: 0, padding: 0, minInlineSize: 'unset' }}>
+                {children}
+            </fieldset>
         </Radio.Group>
     )
 });

@@ -34,22 +34,24 @@ export function GoogleAddressAutocomplete(props: GoogleAddressAutocompleteProps)
     props = useComponentDefaultProps('GoogleAddressAutocomplete', DefaultGoogleAddressAutocompleteProps, props);
 
     const {
-        onAddressFound, restrictions, onChange, value, onAPIError, mappingRules, iconColor,
+        onAddressFound, restrictions, onChange, value, onAPIError, mappingRules, iconColor, maw, miw, disabled,
         ...rest } = props;
 
     const googleAddressAutocompleteAPI = useGoogleAddressAutocomplete({ onAddressFound, restrictions, onChange, value, onAPIError, mappingRules, iconColor });
 
 
     return <>
-        <Box pos={"relative"}>
+        <Box pos={"relative"} maw={maw} miw={miw}>
             <Autocomplete
                 {...rest}
+                maw={maw}
+                miw={miw}
                 ref={googleAddressAutocompleteAPI.userInputRef}
                 onChange={googleAddressAutocompleteAPI.handleOnUserInputChange}
                 onItemSubmit={googleAddressAutocompleteAPI.handleOnItemSubmit}
                 itemComponent={AddressSuggestionItem}
                 data={googleAddressAutocompleteAPI.suggestions}
-                disabled={googleAddressAutocompleteAPI.isLoading}
+                disabled={disabled || googleAddressAutocompleteAPI.isLoading}
                 value={googleAddressAutocompleteAPI.value}
                 // MMC: show all google prediction results
                 filter={() => true}
