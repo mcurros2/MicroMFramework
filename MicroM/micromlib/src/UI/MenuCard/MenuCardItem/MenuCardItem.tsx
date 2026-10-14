@@ -25,6 +25,7 @@ export interface MenuCardItemProps extends Omit<CardProps, 'children'> {
     shortcutSeparator?: ReactNode,
     /** Left indent applied to shortcuts when the item has no icon */
     noIconIndent?: MantineNumberSize,
+    showDescription?: boolean,
 }
 
 export const MenuCardItemDefaultProps: Partial<MenuCardItemProps> = {
@@ -45,7 +46,7 @@ export const MenuCardItemDefaultProps: Partial<MenuCardItemProps> = {
 export function MenuCardItem(props: MenuCardItemProps) {
     const {
         item, routeBuilder, hoverStyles, titleOrder, titleColorLight, titleColorDark, headerSpacing,
-        shortcutSpacing, shortcutSize, shortcutSeparator, noIconIndent, sx, style, ...others
+        shortcutSpacing, shortcutSize, shortcutSeparator, noIconIndent, sx, style, showDescription, ...others
     } = useComponentDefaultProps('MenuCardItem', MenuCardItemDefaultProps, props);
     const theme = useMantineTheme();
 
@@ -62,6 +63,11 @@ export function MenuCardItem(props: MenuCardItemProps) {
                 <Title order={titleOrder} color={theme.colorScheme === 'light' ? titleColorLight : titleColorDark}>{item.label}</Title>
             </Group>
             <Stack spacing="xs" mt="xs" ml={!item.icon ? noIconIndent : undefined} >
+                {showDescription && item.description && (
+                    <Text size="sm" color="dimmed">
+                        {item.description}
+                    </Text>
+                )}
                 <Group key={`cig${item.ID}`} spacing={shortcutSpacing}>
                     {item.subitems?.filter((s) => s.canShowAsShortcut)
                         .map((subitem, index, arr) => (

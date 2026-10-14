@@ -15,12 +15,13 @@ export interface MenuRouteHostProps {
     menus: Record<string, MenuContentResult>;
     emptyNodeMessage?: ReactNode;
     defaultLoadingComponent?: ReactNode;
+    renderBreadcrumbs?: boolean;
 }
 
-export const MenuRouteHostDefaultProps: Partial<MenuRouteHostProps> = {};
+export const MenuRouteHostDefaultProps: Partial<MenuRouteHostProps> = { renderBreadcrumbs: true };
 
 export function MenuRouteHost(props: MenuRouteHostProps) {
-    const { client, menuConfig, menus, emptyNodeMessage, defaultLoadingComponent } =
+    const { client, menuConfig, menus, emptyNodeMessage, defaultLoadingComponent, renderBreadcrumbs } =
         useComponentDefaultProps('MenuRouteHost', MenuRouteHostDefaultProps, props);
 
     const { path, route, navigate } = useMicroMRouter();
@@ -47,20 +48,24 @@ export function MenuRouteHost(props: MenuRouteHostProps) {
         menu,
         menus,
         emptyNodeMessage,
-        defaultLoadingComponent
+        defaultLoadingComponent,
+        renderBreadcrumbs
     };
 
-    if (config.hostPanel) {
-        const HostPanel = config.hostPanel;
-        return <HostPanel {...hostProps} />;
-    }
+    const HostPanel = config.hostPanel!;
 
     return (
-        <MenuCardPanel
-            menuId={hostProps.menuId}
-            menu={hostProps.menu}
-            emptyNodeMessage={hostProps.emptyNodeMessage}
-            defaultLoadingComponent={hostProps.defaultLoadingComponent}
-        />
+        <>
+            {config.hostPanel ? <HostPanel {...hostProps} /> : null}
+            {!config.hostPanel &&
+                <MenuCardPanel
+                    menuId={hostProps.menuId}
+                    menu={hostProps.menu}
+                    emptyNodeMessage={hostProps.emptyNodeMessage}
+                    defaultLoadingComponent={hostProps.defaultLoadingComponent}
+                    renderBreadcrumbs={hostProps.renderBreadcrumbs}
+                />
+            }
+        </>
     );
 }

@@ -10,20 +10,20 @@ import { MenuCardBreadcrumbs } from "../MenuCardBreadcrumbs/MenuCardBreadcrumbs"
 import { MenuCardGrid } from "../MenuCardGrid/MenuCardGrid";
 import { MenuCardPanel } from "../MenuCardPanel/MenuCardPanel";
 
-export interface GestionarPanelProps extends MenuHostProps, Omit<StackProps, 'children'> {
+export interface ContextualMenuPanelProps extends MenuHostProps, Omit<StackProps, 'children'> {
     header?: ReactNode;
     homeLabel?: string;
 }
 
-export const GestionarPanelDefaultProps: Partial<GestionarPanelProps> = {
+export const ContextualMenuPanelDefaultProps: Partial<ContextualMenuPanelProps> = {
     homeLabel: 'Home',
     h: '100%',
 };
 
-export function ContextualMenuPanel(props: GestionarPanelProps) {
+export function ContextualMenuPanel(props: ContextualMenuPanelProps) {
     const {
-        header, mainMenuId, menuId, menu, menus, emptyNodeMessage, defaultLoadingComponent, homeLabel, ...others
-    } = useComponentDefaultProps('GestionarPanel', GestionarPanelDefaultProps, props);
+        header, mainMenuId, menuId, menu, menus, emptyNodeMessage, defaultLoadingComponent, homeLabel, renderBreadcrumbs, ...others
+    } = useComponentDefaultProps('ContextualMenuPanel', ContextualMenuPanelDefaultProps, props);
 
     const { route } = useMicroMRouter();
     const menuRoute = useMemo(() => parseMenuRoute(route), [route]);
@@ -60,7 +60,7 @@ export function ContextualMenuPanel(props: GestionarPanelProps) {
 
     return (
         <Stack {...others}>
-            <MenuCardBreadcrumbs items={breadcrumbs} menuID={menuId} />
+            {renderBreadcrumbs && <MenuCardBreadcrumbs items={breadcrumbs} menuID={menuId} />}
             {header}
             {menuRoute.itemPath === "/"
                 ? <MenuCardGrid items={menu.items} routeBuilder={routeBuilder} />
