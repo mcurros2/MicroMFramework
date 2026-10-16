@@ -18,6 +18,7 @@ export interface ContextualMenuPanelProps extends MenuHostProps, Omit<StackProps
 export const ContextualMenuPanelDefaultProps: Partial<ContextualMenuPanelProps> = {
     homeLabel: 'Home',
     h: '100%',
+    renderBreadcrumbs: true
 };
 
 export function ContextualMenuPanel(props: ContextualMenuPanelProps) {
