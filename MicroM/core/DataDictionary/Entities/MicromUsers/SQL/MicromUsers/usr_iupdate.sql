@@ -4,6 +4,7 @@
 		, @email VarChar(255)
 		, @pwhash VarChar(2048)
 		, @sid VarChar(85)
+		, @domainaccountname VarChar(255)
 		, @badlogonattempts Int
 		, @disabled bit
         , @locked DateTime
@@ -55,6 +56,7 @@ begin try
 			, @email
 			, @pwhash
 			, @sid
+            , @domainaccountname
 			, isnull(@badlogonattempts,0)
 			, isnull(@disabled,0)
             , @locked

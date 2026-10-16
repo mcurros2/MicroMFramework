@@ -16,10 +16,11 @@ public class MicromUsersDef : EntityDefinition
     public MicromUsersDef() : base("usr", nameof(MicromUsers)) { SQLCreationOptions = SQLCreationOptionsMetadata.WithIUpdateAndIDrop; }
 
     public readonly Column<string> c_user_id = Column<string>.PK(autonum: true);
-    public readonly Column<string> vc_username = Column<string>.Text();
-    public readonly Column<string?> vc_email = Column<string?>.Text(nullable: true);
+    public readonly Column<string> vc_username = Column<string>.Text(); // principal name if using windows auth
+    public readonly Column<string?> vc_email = Column<string?>.Text(nullable: true); // principal name if using windows auth
     public readonly Column<string> vc_pwhash = Column<string>.Text(size: 2048);
     public readonly Column<string?> vb_sid = Column<string?>.Text(size: 85, nullable: true); // this is the Windows SID if using Windows Auth
+    public readonly Column<string?> vc_domainaccountname = Column<string?>.Text(nullable: true); // this is the windows user in format DOMAIN\username if using Windows Auth
     public readonly Column<int> i_badlogonattempts = new(value: 0);
     public readonly Column<bool> bt_disabled = new();
     public readonly Column<DateTime?> dt_locked = new();

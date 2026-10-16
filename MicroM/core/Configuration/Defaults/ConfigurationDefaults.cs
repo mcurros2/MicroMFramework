@@ -24,14 +24,17 @@ public class ConfigurationDefaults
         ".doc",
         ".docx",
         ".pdf",
+        ".ppt",
+        ".pptx",
         ".xls",
         ".xlsx",
         ".csv",
-        ".jpg",
-        ".jpeg",
-        ".png",
-        ".webp",
-        ".zip"
+        ".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp", ".tiff", ".svg",
+        ".txt",
+        ".log", ".json", ".xml",
+        ".mp3", ".wav", ".flac", ".aac", ".ogg",
+        ".mp4", ".avi", ".mkv", ".mov", ".wmv", ".flv",
+        ".rar", ".7z", ".zip", ".tar", ".gz", ".bz2", ".xz"
     ];
 
     public static AppDBSchemaConfiguration SchemaConfiguration { get; set; } = new(APPSchema: "dbo", DDSchema: "dbo");
