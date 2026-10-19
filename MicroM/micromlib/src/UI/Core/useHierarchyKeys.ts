@@ -130,17 +130,22 @@ export function useHierarchyKeys(props: UseHierarchyKeysProps) {
     const committedChangedIndex = hierarchyState.changedIndex;
     const committedChangeRevision = hierarchyState.changeRevision;
     const committedHierarchy = hierarchyState.hierarchy;
+    const committedHierarchyValues = hierarchyState.hierarchyValues;
+    // Mantine recreates the form object every render, but its setter is stable.
+    const { setFieldValue } = formAPI.form;
 
     useEffect(() => {
         if (committedChangedIndex === undefined) return;
 
-        // Changing the bound value is handled by the control. Descendants must be
-        // changed through the form controls receive the update.
-        committedHierarchy.slice(committedChangedIndex + 1).forEach((name) => {
-            formAPI.form.setFieldValue(name, '');
-        });
+        // Notify descendant controls through the form, but avoid redundant writes:
+        // Mantine schedules updates even when a field is already empty.
+        for (let index = committedChangedIndex + 1; index < committedHierarchy.length; index++) {
+            if (committedHierarchyValues[index] !== '') {
+                setFieldValue(committedHierarchy[index], '');
+            }
+        }
 
-    }, [committedChangedIndex, committedChangeRevision, committedHierarchy, formAPI.form]);
+    }, [committedChangedIndex, committedChangeRevision, committedHierarchy, committedHierarchyValues, setFieldValue]);
 
     return resolvedHierarchyState.parentKeysArray;
 }
