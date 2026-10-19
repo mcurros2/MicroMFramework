@@ -101,6 +101,7 @@ public class ActiveDirectoryAuthenticator(
                     var jitUser = new MicromUsers(ec);
                     jitUser.Def.vc_username.Value = ad_result.PrincipalName;
                     jitUser.Def.vc_email.Value = ad_result.PrincipalName;
+                    jitUser.Def.vb_sid.Value = ad_result.SID;
                     jitUser.Def.vc_domainaccountname.Value = $"{ad_result.WindowsDomainName}\\{ad_result.SamAccountName}";
                     jitUser.Def.c_usertype_id.Value = ad_result.isDomainAdmin ? nameof(UserTypes.ADMIN) : nameof(UserTypes.USER);
                     jitUser.Def.vc_password.Value = CryptClass.GenerateRandomBase64String();

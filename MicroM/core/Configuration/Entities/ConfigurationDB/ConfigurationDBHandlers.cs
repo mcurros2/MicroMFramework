@@ -30,29 +30,29 @@ public static class ConfigurationDBHandlers
         return result;
     }
 
-    private async static Task SaveConfigurationDBParms(SecretsOptions options, string certificate_thumbprint, CancellationToken ct)
+    private async static Task SaveConfigurationDBParms(SecretsOptions options, string certificate_thumbprint, MicroMOptions microm_config, CancellationToken ct)
     {
         using var cert = CryptClass.FindCertificate(certificate_thumbprint) ?? throw new ArgumentException($"Certificate not found {certificate_thumbprint}");
 
         var encrypted = CryptClass.EncryptObject<SecretsOptions>(options, cert);
 
-        string config_path = Path.Combine(ConfigurationDefaults.SecretsFilePath, ConfigurationDefaults.MicroMCommonID);
+        string config_path = Path.Combine(microm_config.SecretsFilePath ?? ConfigurationDefaults.SecretsFilePath, ConfigurationDefaults.MicroMCommonID);
 
         Directory.CreateDirectory(config_path);
 
-        string config_file = Path.Combine(config_path, ConfigurationDefaults.SecretsFilename);
+        string config_file = Path.Combine(config_path, microm_config.SecretsFilePath ?? ConfigurationDefaults.SecretsFilename);
 
         await File.WriteAllTextAsync(config_file, encrypted, ct);
     }
 
-    public async static Task<SecretsOptions?> ReadConfigurationDBParms(string certificate_thumbprint, CancellationToken ct)
+    public async static Task<SecretsOptions?> ReadConfigurationDBParms(string certificate_thumbprint, MicroMOptions microm_config, CancellationToken ct)
     {
         SecretsOptions? result = null;
 
         using var cert = CryptClass.FindCertificate(certificate_thumbprint);
         if (cert != null)
         {
-            string config_path = Path.Combine(ConfigurationDefaults.SecretsFilePath, ConfigurationDefaults.MicroMCommonID, ConfigurationDefaults.SecretsFilename);
+            string config_path = Path.Combine(microm_config.SecretsFilePath ?? ConfigurationDefaults.SecretsFilePath, ConfigurationDefaults.MicroMCommonID, microm_config.SecretsFilePath ?? ConfigurationDefaults.SecretsFilename);
             if (File.Exists(config_path))
             {
                 string encrypted = await File.ReadAllTextAsync(config_path, ct);
@@ -105,7 +105,7 @@ public static class ConfigurationDBHandlers
         {
             try
             {
-                secrets = await ReadConfigurationDBParms(thumbprint, ct);
+                secrets = await ReadConfigurationDBParms(thumbprint, options, ct);
                 cfg.Def.b_secretsconfigured.Value = secrets != null;
                 cfg.Def.b_secretsfilevalid.Value = true;
             }
@@ -207,7 +207,7 @@ public static class ConfigurationDBHandlers
         SecretsOptions? secrets = null;
         if (existing_config.Def.b_secretsconfigured.Value && existing_config.Def.b_configdbexists.Value)
         {
-            secrets = await ReadConfigurationDBParms(existing_config.Def.vc_certificatethumbprint.Value, ct);
+            secrets = await ReadConfigurationDBParms(existing_config.Def.vc_certificatethumbprint.Value, options, ct);
             if (secrets?.ConfigSQLUser != cfg.Def.vc_configsqluser.Value)
             {
                 return DBStatusResult.FailedStatus("The specified configuration username is different from the secrets configuration. Delete the existing configuration.");
@@ -261,7 +261,7 @@ public static class ConfigurationDBHandlers
             try
             {
                 secrets = new() { ConfigSQLUser = cfg.Def.vc_configsqluser.Value, ConfigSQLPassword = new_password };
-                await SaveConfigurationDBParms(secrets, existing_config.Def.vc_certificatethumbprint.Value, ct);
+                await SaveConfigurationDBParms(secrets, existing_config.Def.vc_certificatethumbprint.Value, options, ct);
             }
             catch (Exception ex)
             {

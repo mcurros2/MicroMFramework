@@ -19,7 +19,7 @@ public class MicromUsersDef : EntityDefinition
     public readonly Column<string> vc_username = Column<string>.Text(); // principal name if using windows auth
     public readonly Column<string?> vc_email = Column<string?>.Text(nullable: true); // principal name if using windows auth
     public readonly Column<string> vc_pwhash = Column<string>.Text(size: 2048);
-    public readonly Column<string?> vb_sid = Column<string?>.Text(size: 85, nullable: true); // this is the Windows SID if using Windows Auth
+    public readonly Column<byte[]?> vb_sid = new(size: 85, nullable: true); // this is the Windows SID if using Windows Auth
     public readonly Column<string?> vc_domainaccountname = Column<string?>.Text(nullable: true); // this is the windows user in format DOMAIN\username if using Windows Auth
     public readonly Column<int> i_badlogonattempts = new(value: 0);
     public readonly Column<bool> bt_disabled = new();
@@ -62,7 +62,7 @@ public class MicromUsersDef : EntityDefinition
 
 
     public readonly EntityUniqueConstraint UNUsername = new(keys: nameof(vc_username));
-
+    public readonly EntityUniqueConstraint UNSID = new(keys: nameof(vb_sid));
     public readonly EntityForeignKey<MicromUsersGroups, MicromUsers> FKGroups = new(fake: true);
 }
 

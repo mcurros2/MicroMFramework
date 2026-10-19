@@ -15,7 +15,7 @@ public record ADUserRecord(
     string? LastName,
     string EmailAddress,
     string? EmployeeNumber,
-    string? SID,
+    byte[]? SID,
     bool isDomainAdmin,
     bool isBuiltInAdmin,
     List<string>? GroupSIDs
@@ -185,7 +185,7 @@ public static class ADCore
                     lastName,
                     emailAddress,
                     employeeNumber,
-                    sidBytes != null ? ConvertSidToString(sidBytes) : null,
+                    sidBytes,
                     isDomainAdmin,
                     isBuiltInAdmin,
                     groupSIDs

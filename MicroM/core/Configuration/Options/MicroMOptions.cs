@@ -38,4 +38,6 @@ public class MicroMOptions
 
     public DiskFileCacheOptions? DiskFileCacheOptions { get; set; } = null;
 
+    public string? SecretsFileName { get; set; } = null;
+    public string? SecretsFilePath { get; set; } = null;
 }

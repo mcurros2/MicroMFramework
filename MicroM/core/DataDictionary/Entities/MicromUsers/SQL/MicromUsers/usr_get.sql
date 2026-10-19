@@ -13,7 +13,8 @@ select  [c_user_id] = rtrim(a.c_user_id)
         , a.vc_username
         , a.vc_email
         , vc_pwhash = null
-        , vb_sid = null
+        , a.vb_sid
+        , a.vc_domainaccountname
         , a.i_badlogonattempts
         , [bt_disabled] = a.bt_disabled
         , a.dt_locked

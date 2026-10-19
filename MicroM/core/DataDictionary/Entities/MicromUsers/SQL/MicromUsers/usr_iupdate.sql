@@ -3,7 +3,7 @@
 		, @username VarChar(255)
 		, @email VarChar(255)
 		, @pwhash VarChar(2048)
-		, @sid VarChar(85)
+		, @sid VarBinary(85)
 		, @domainaccountname VarChar(255)
 		, @badlogonattempts Int
 		, @disabled bit
