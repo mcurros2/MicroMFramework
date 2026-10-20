@@ -9,11 +9,9 @@ public class ConfigurationDefaults
     public const double EtagCacheDurationSeconds = 86400; // 1 day
     public const double JwksCacheDurationSeconds = 3600; // 1 hour
     public static string SecretsFilename { get; set; } = "microm_config.cry";
-    public static string MicroMCommonID { get; set; } = "MicroM";
-    public static string SecretsFilePath { get; set; } = Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData);
-    public static string UploadsFolder { get; set; } = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), MicroMCommonID);
 
-    public static string DiskFileCacheFolder { get; set; } = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), MicroMCommonID);
+    // Paths
+    public static string MicroMConfigurationFolder { get; set; } = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData));
 
     public const string HTTPClientOidcName = "oidc";
     public const string HTTPClientOidcUserAgent = "MicroM.OIDC/1.0";
@@ -39,7 +37,4 @@ public class ConfigurationDefaults
 
     public static AppDBSchemaConfiguration SchemaConfiguration { get; set; } = new(APPSchema: "dbo", DDSchema: "dbo");
 
-    public static string TestDataRootFolderName { get; set; } = "test_data";
-
-    public static string EntitiesDLLStoragePath { get; set; } = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), MicroMCommonID, "microm_entities_dlls");
 }

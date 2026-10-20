@@ -16,7 +16,7 @@ public class FileStorageService(IOptions<MicroMOptions> options, ILogger<FileSto
 
     public ResultWithStatus<NewFileNameResult, ErrorResult> GetNewFileName(IEntityClient ec, ApplicationOption app, string file_name)
     {
-        var (allowed, extension) = file_name.IsFileExtensionAllowed(_options.AllowedUploadFileExtensions ?? ConfigurationDefaults.AllowedFileUploadExtensions);
+        var (allowed, extension) = file_name.IsFileExtensionAllowed(_options.AllowedUploadFileExtensions!);
 
         if (!allowed)
         {

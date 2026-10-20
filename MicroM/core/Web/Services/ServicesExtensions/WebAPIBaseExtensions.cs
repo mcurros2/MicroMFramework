@@ -456,9 +456,16 @@ public static class WebAPIBaseExtensions
         return services;
     }
 
-    public static IServiceCollection AddMicroMApiServices(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddMicroMOptions(this IServiceCollection services, IConfiguration configuration)
     {
         services.Configure<MicroMOptions>(configuration.GetSection(MicroMOptions.MicroM));
+        services.ConfigureOptions<MicroMOptionsPostConfiguration>();
+        return services;
+    }
+
+    public static IServiceCollection AddMicroMApiServices(this IServiceCollection services, IConfiguration configuration)
+    {
+        services.AddMicroMOptions(configuration);
 
         services.AddHttpClient();
         services.AddMemoryCache();

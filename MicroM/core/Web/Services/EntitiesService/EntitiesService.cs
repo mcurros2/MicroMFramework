@@ -43,9 +43,6 @@ public class EntitiesService : IEntitiesService
 
         _options = options.Value;
 
-        if (_options.DefaultConnectionTimeOutInSecs != -1) DataDefaults.DefaultConnectionTimeOutInSecs = _options.DefaultConnectionTimeOutInSecs;
-        if (_options.DefaultRowLimitForViews != -1) DataDefaults.DefaultRowLimitForViews = _options.DefaultRowLimitForViews;
-        if (_options.DefaultCommandTimeOutInMins != -1) DataDefaults.DefaultCommandTimeOutInMins = _options.DefaultCommandTimeOutInMins;
     }
 
     public IEntityClient CreateDbConnection(ApplicationOption app, Dictionary<string, object>? server_claims)

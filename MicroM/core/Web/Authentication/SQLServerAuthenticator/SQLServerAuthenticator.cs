@@ -122,8 +122,8 @@ public class SQLServerAuthenticator : IAuthenticator
     {
         if (app_config.ApplicationID.Equals(ConfigurationDefaults.ControlPanelAppID, StringComparison.OrdinalIgnoreCase))
         {
-            string configPath = Path.Combine(ConfigurationDefaults.SecretsFilePath, ConfigurationDefaults.MicroMCommonID);
-            string configFile = Path.Combine(configPath, ConfigurationDefaults.SecretsFilename);
+            string configPath = Path.Combine(_microm_config.Value.SecretsFilePath!, nameof(MicroMOptions.MicroM));
+            string configFile = Path.Combine(configPath, _microm_config.Value.SecretsFileName!);
             if (!File.Exists(configFile))
             {
                 _log.LogWarning("SQL admin TOTP secret for Control Panel could not be created because the secrets file does not exist.");

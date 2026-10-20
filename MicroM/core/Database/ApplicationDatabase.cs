@@ -39,7 +39,7 @@ public class ApplicationDatabase
 
     private static async Task InitializeApplication(
         IEntityClient ec, ApplicationOption app_config, string grant_user, bool seed_test_data, IMicroMAppConfiguration config,
-        ILogger log,
+        ILogger log, MicroMOptions microm_config,
         CancellationToken ct)
     {
         // MMC: Clone here is used to create a connection to the same server with the app database name
@@ -83,7 +83,7 @@ public class ApplicationDatabase
                                     if (app_config.EnableSeedTestData && seed_test_data)
                                     {
                                         log.LogInformation("Seeding test data for app {AppID} using assembly {Assembly}", app_config.ApplicationID, assembly.FullName);
-                                        await instance.SeedTestData(app_ec, app_config.SchemaConfiguration, ct);
+                                        await instance.SeedTestData(app_ec, app_config.SchemaConfiguration, microm_config.TestDataRootFolderName, ct);
                                     }
                                 }
 
@@ -116,7 +116,9 @@ public class ApplicationDatabase
         }
     }
 
-    private static async Task InitializeDatabase(IEntityClient admin_dbc, Applications app, ApplicationOption app_config, string grant_user, IWebAPIServices api, bool seed_test_data, ILogger log, CancellationToken ct)
+    private static async Task InitializeDatabase(
+        IEntityClient admin_dbc, Applications app, ApplicationOption app_config, string grant_user, IWebAPIServices api,
+        bool seed_test_data, ILogger log, MicroMOptions microm_config, CancellationToken ct)
     {
         // MMC: Clone here is used to create a connection to the same server with the app database name
         using var app_ec = admin_dbc.Clone(new_db: app.Def.vc_database.Value);
@@ -132,7 +134,7 @@ public class ApplicationDatabase
                 throw new InvalidOperationException($"No runtime assemblies loaded for app '{app.Def.c_application_id.Value}' and there are assemblies defined.");
             }
 
-            await InitializeApplication(app_ec, app_config, grant_user, seed_test_data, api.app_config, log, ct);
+            await InitializeApplication(app_ec, app_config, grant_user, seed_test_data, api.app_config, log, microm_config, ct);
         }
         finally
         {
@@ -277,7 +279,7 @@ public class ApplicationDatabase
             if (configGrantResult != null) return configGrantResult;
 
             // Create tables and procs
-            await InitializeDatabase(admin_dbc, app, app_config, app.Def.vc_user.Value, api, seed_test_data: app_config.EnableSeedTestData, api.log, ct);
+            await InitializeDatabase(admin_dbc, app, app_config, app.Def.vc_user.Value, api, seed_test_data: app_config.EnableSeedTestData, api.log, options, ct);
 
             // Create a MicroM Admin User
             if (app.Def.c_authenticationtype_id.Value.Equals(nameof(AuthenticationTypes.MicroMAuthentication), StringComparison.OrdinalIgnoreCase)
@@ -303,7 +305,9 @@ public class ApplicationDatabase
         return new() { Results = [new() { Status = DBStatusCodes.OK }] };
     }
 
-    public static async Task<DBStatusResult> UpdateAppDatabase(Applications app, ApplicationOption app_config, CancellationToken ct, Dictionary<string, object>? server_claims = null, MicroMOptions? options = null, IWebAPIServices? api = null)
+    public static async Task<DBStatusResult> UpdateAppDatabase(
+        Applications app, ApplicationOption app_config, CancellationToken ct, Dictionary<string, object>? server_claims = null,
+        MicroMOptions? options = null, IWebAPIServices? api = null)
     {
         ArgumentNullException.ThrowIfNull(server_claims);
         // MMC: this is the logged in user to the control panel, it should be admin
@@ -341,7 +345,7 @@ public class ApplicationDatabase
         if (configGrantResult != null) return configGrantResult;
 
         // Create tables and procs
-        await InitializeDatabase(admin_dbc, app, app_config, app.Def.vc_user.Value, api, seed_test_data: app_config.EnableSeedTestData, api.log, ct);
+        await InitializeDatabase(admin_dbc, app, app_config, app.Def.vc_user.Value, api, seed_test_data: app_config.EnableSeedTestData, api.log, options, ct);
 
         // try to recreate user if for any reason has been deleted
         try
@@ -376,7 +380,8 @@ public class ApplicationDatabase
         return new() { Results = [new() { Status = DBStatusCodes.OK }] };
     }
 
-    public static async Task<DBStatusResult> UpdateAppDatabaseOnHotReload(ApplicationOption app_config, IMicroMAppConfiguration config, ILogger log, CancellationToken ct)
+    public static async Task<DBStatusResult> UpdateAppDatabaseOnHotReload(
+        ApplicationOption app_config, IMicroMAppConfiguration config, ILogger log, MicroMOptions microm_config, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(app_config);
 
@@ -405,7 +410,7 @@ public class ApplicationDatabase
                 return DBStatusResult.FailedStatus($"APP Database '{app_config.SQLDB}' does not exist.");
             }
 
-            await InitializeApplication(config_dbc, app_config, app_config.SQLUser, app_config.EnableSeedTestData, config, log, ct);
+            await InitializeApplication(config_dbc, app_config, app_config.SQLUser, app_config.EnableSeedTestData, config, log, microm_config, ct);
 
             return DBStatusResult.SuccessStatus();
         }

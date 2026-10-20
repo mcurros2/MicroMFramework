@@ -85,14 +85,6 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
 
         _basePathString = string.IsNullOrEmpty(trimmed) ? PathString.Empty : new PathString("/" + trimmed);
 
-        _options.UploadsFolder ??= Path.Combine(ConfigurationDefaults.UploadsFolder, _options.ConfigSQLServerDB ?? ConfigurationDefaults.SQLConfigDatabaseName, "uploads");
-
-        _options.DiskFileCacheOptions ??= new DiskFileCacheOptions();
-
-        if (string.IsNullOrEmpty(_options.DiskFileCacheOptions.RootPath))
-        {
-            _options.DiskFileCacheOptions.RootPath = Path.Combine(ConfigurationDefaults.DiskFileCacheFolder, _options.ConfigSQLServerDB ?? ConfigurationDefaults.SQLConfigDatabaseName, "disk_cache");
-        }
 
         _log.LogTrace("initialized");
     }
@@ -136,7 +128,7 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
         SecretsOptions? result = null;
         string? thumbprint = _encryptor.CertificateThumbprint;
 
-        string config_path = Path.Combine(ConfigurationDefaults.SecretsFilePath, ConfigurationDefaults.MicroMCommonID, ConfigurationDefaults.SecretsFilename);
+        string config_path = Path.Combine(_options.SecretsFilePath!, nameof(MicroMOptions.MicroM), _options.SecretsFileName!);
         if (File.Exists(config_path))
         {
             string encrypted = await File.ReadAllTextAsync(config_path, ct);
@@ -148,10 +140,10 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
 
     private async Task SaveConfigurationDBParms(SecretsOptions secrets, CancellationToken ct)
     {
-        string configPath = Path.Combine(ConfigurationDefaults.SecretsFilePath, ConfigurationDefaults.MicroMCommonID);
+        string configPath = Path.Combine(_options.SecretsFilePath!, nameof(MicroMOptions.MicroM));
         Directory.CreateDirectory(configPath);
 
-        string configFile = Path.Combine(configPath, ConfigurationDefaults.SecretsFilename);
+        string configFile = Path.Combine(configPath, _options.SecretsFileName!);
         string encrypted = _encryptor.EncryptObject(secrets);
         await File.WriteAllTextAsync(configFile, encrypted, ct);
     }
@@ -166,7 +158,7 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
         }
         if (secrets == null)
         {
-            _log.LogError("ERROR: The API is not configured. Secrets not found {secrets}", Path.Combine(ConfigurationDefaults.SecretsFilePath, ConfigurationDefaults.MicroMCommonID, ConfigurationDefaults.SecretsFilename));
+            _log.LogError("ERROR: The API is not configured. Secrets not found {secrets}", Path.Combine(_options.SecretsFilePath!, nameof(MicroMOptions.MicroM), _options.SecretsFileName!));
         }
 
         _ApplicationsCache.TryGetValue(ConfigurationDefaults.ControlPanelAppID, out var control_panel);
@@ -191,7 +183,7 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
                 JWTRefreshExpirationHours = 60,
                 JWTTokenExpirationMinutes = 60,
                 MaxBadLogonAttempts = 5,
-                SQLDB = _options.ConfigSQLServerDB ?? ConfigurationDefaults.SQLConfigDatabaseName,
+                SQLDB = _options.ConfigSQLServerDB!,
                 SQLServer = _options.ConfigSQLServer ?? "",
                 SQLUser = secrets?.ConfigSQLUser ?? "",
                 SQLPassword = secrets?.ConfigSQLPassword ?? "",
@@ -925,7 +917,7 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
 
         foreach (var app in targets)
         {
-            var result = await ApplicationDatabase.UpdateAppDatabaseOnHotReload(app, this, _log, ct);
+            var result = await ApplicationDatabase.UpdateAppDatabaseOnHotReload(app, this, _log, _options, ct);
             if (!result.Failed)
             {
                 _bus.Publish(new AppDatabaseUpdatedOnHotReloadEvent(app.ApplicationID));

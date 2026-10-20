@@ -30,29 +30,29 @@ public static class ConfigurationDBHandlers
         return result;
     }
 
-    private async static Task SaveConfigurationDBParms(SecretsOptions options, string certificate_thumbprint, MicroMOptions microm_config, CancellationToken ct)
+    private async static Task SaveConfigurationDBParms(SecretsOptions options, string certificate_thumbprint, MicroMOptions microm_options, CancellationToken ct)
     {
         using var cert = CryptClass.FindCertificate(certificate_thumbprint) ?? throw new ArgumentException($"Certificate not found {certificate_thumbprint}");
 
         var encrypted = CryptClass.EncryptObject<SecretsOptions>(options, cert);
 
-        string config_path = Path.Combine(microm_config.SecretsFilePath ?? ConfigurationDefaults.SecretsFilePath, ConfigurationDefaults.MicroMCommonID);
+        string config_path = Path.Combine(microm_options.SecretsFilePath!, nameof(MicroMOptions.MicroM));
 
         Directory.CreateDirectory(config_path);
 
-        string config_file = Path.Combine(config_path, microm_config.SecretsFilePath ?? ConfigurationDefaults.SecretsFilename);
+        string config_file = Path.Combine(config_path, microm_options.SecretsFileName!);
 
         await File.WriteAllTextAsync(config_file, encrypted, ct);
     }
 
-    public async static Task<SecretsOptions?> ReadConfigurationDBParms(string certificate_thumbprint, MicroMOptions microm_config, CancellationToken ct)
+    public async static Task<SecretsOptions?> ReadConfigurationDBParms(string certificate_thumbprint, MicroMOptions microm_options, CancellationToken ct)
     {
         SecretsOptions? result = null;
 
         using var cert = CryptClass.FindCertificate(certificate_thumbprint);
         if (cert != null)
         {
-            string config_path = Path.Combine(microm_config.SecretsFilePath ?? ConfigurationDefaults.SecretsFilePath, ConfigurationDefaults.MicroMCommonID, microm_config.SecretsFilePath ?? ConfigurationDefaults.SecretsFilename);
+            string config_path = Path.Combine(microm_options.SecretsFilePath!, nameof(MicroMOptions.MicroM), microm_options.SecretsFileName!);
             if (File.Exists(config_path))
             {
                 string encrypted = await File.ReadAllTextAsync(config_path, ct);
@@ -115,8 +115,9 @@ public static class ConfigurationDBHandlers
             }
         }
 
+        // !WARNING: cfg.Def.vc_configsqluser.Value will never work as the default value is already set
         var config_user = secrets?.ConfigSQLUser ?? cfg.Def.vc_configsqluser.Value ?? ConfigurationDefaults.SQLConfigUser;
-        var config_db = options.ConfigSQLServerDB ?? cfg.Def.vc_configdatabase.Value ?? ConfigurationDefaults.SQLConfigDatabaseName;
+        var config_db = options.ConfigSQLServerDB ?? cfg.Def.vc_configdatabase.Value;
 
         InitialConfigurationResult checks = new();
         if (!string.IsNullOrEmpty(options.ConfigSQLServer) && !string.IsNullOrEmpty(config_user))

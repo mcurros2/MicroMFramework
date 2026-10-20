@@ -9,6 +9,7 @@ using MicroM.DataDictionary.Entities;
 using MicroM.DataDictionary.Procs;
 using MicroM.Extensions;
 using MicroM.Web.Authentication;
+using MicroM.Web.Services;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Collections.Generic;
@@ -103,7 +104,7 @@ public class C_EntityTests
 
         ConfigurationDefaults.SecretsFilename = "config_test.cry";
 
-        var common_app_path = Path.Combine(ConfigurationDefaults.SecretsFilePath, ConfigurationDefaults.MicroMCommonID);
+        var common_app_path = Path.Combine(ConfigurationDefaults.MicroMConfigurationFolder, nameof(MicroMOptions.MicroM));
 
         if (!Directory.Exists(common_app_path)) Directory.CreateDirectory(common_app_path);
 
@@ -121,7 +122,11 @@ public class C_EntityTests
         {
             ConfigSQLServer = DatabaseConfiguration.Server,
             CertificateThumbprint = cert.Thumbprint,
+            SecretsFileName = "config_test.cry"
         };
+
+        var postcfg = new MicroMOptionsPostConfiguration();
+        postcfg.PostConfigure(null, options);
 
         var result = await cfg.UpdateData(cts.Token, options: options, server_claims: claims);
 

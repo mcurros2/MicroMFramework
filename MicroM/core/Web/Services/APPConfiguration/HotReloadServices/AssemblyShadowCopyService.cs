@@ -8,13 +8,15 @@ public sealed class AssemblyShadowCopyService : IAssemblyShadowCopyService
 {
     private readonly string _storageRoot;
     private readonly ILogger<AssemblyShadowCopyService> _log;
+    private readonly string _testDataFolder;
 
     public AssemblyShadowCopyService(
         IOptions<MicroMOptions> options,
         ILogger<AssemblyShadowCopyService> log)
     {
         _log = log;
-        _storageRoot = options.Value.EntitiesDLLStoragePath ?? ConfigurationDefaults.EntitiesDLLStoragePath;
+        _storageRoot = options.Value.EntitiesDLLStoragePath!;
+        _testDataFolder = options.Value.TestDataRootFolderName;
     }
 
     private static void CopyFile(string sourcePath, string destPath, int maxRetries = 5, int millisecondsDelay = 200)
@@ -66,10 +68,10 @@ public sealed class AssemblyShadowCopyService : IAssemblyShadowCopyService
                 CopyFile(sourcePath, destPath);
 
                 // copy test data if exists. Copy the complete folder and subfolders in ConfigurationDefaults.TestDataRootFolderName
-                var testDataFolder = Path.Combine(sourceFolder, ConfigurationDefaults.TestDataRootFolderName);
+                var testDataFolder = Path.Combine(sourceFolder, _testDataFolder);
                 if (Directory.Exists(testDataFolder))
                 {
-                    var destTestDataFolder = Path.Combine(destFolder, ConfigurationDefaults.TestDataRootFolderName);
+                    var destTestDataFolder = Path.Combine(destFolder, _testDataFolder);
                     Directory.CreateDirectory(destTestDataFolder);
                     foreach (var file in Directory.EnumerateFiles(testDataFolder, "*.json", SearchOption.AllDirectories))
                     {

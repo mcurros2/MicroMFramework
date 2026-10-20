@@ -14,9 +14,14 @@ public class MicroMOptions
 
     public string? UploadsFolder { get; set; } = null;
 
+    public string? SecretsFilePath { get; set; } = null;
+    public string? SecretsFileName { get; set; } = null;
+
     public string[]? AllowedUploadFileExtensions { get; set; } = null;
 
     public string MicroMAPIBaseRootPath { get; set; } = "microm";
+
+    public string? MicroMBaseFolderPath { get; set; } = null;
 
     public string? DefaultSQLDatabaseCollation { get; set; } = null;
 
@@ -38,6 +43,5 @@ public class MicroMOptions
 
     public DiskFileCacheOptions? DiskFileCacheOptions { get; set; } = null;
 
-    public string? SecretsFileName { get; set; } = null;
-    public string? SecretsFilePath { get; set; } = null;
+    public string TestDataRootFolderName { get; set; } = "test_data";
 }
