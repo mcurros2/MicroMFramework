@@ -92,6 +92,8 @@ export function MicromUsersForm(props: MicromUsersFormProps) {
         });
     };
 
+    const values = entityForm.form.values;
+
     return (
         <EntityForm formAPI={entityForm}>
             <Stack>
@@ -120,17 +122,20 @@ export function MicromUsersForm(props: MicromUsersFormProps) {
                 }
                 <CheckboxField entityForm={entityForm} column={entity.def.columns.bt_disabled} required={false} />
                 {formMode !== 'add' &&
-                    <Group align="center">
-                        <CheckboxField entityForm={entityForm} column={entity.def.columns.bt_totp_enabled} required={false} />
-                        <Button
-                            variant="light"
-                            leftIcon={<IconRefresh size="1rem" />}
-                            onClick={() => void handleResetAuthenticatorClick()}
-                            disabled={status.loading}
-                        >
-                            {resetAuthenticatorButtonLabel}
-                        </Button>
-                    </Group>
+                    <>
+                        <Group align="center">
+                            <CheckboxField entityForm={entityForm} column={entity.def.columns.bt_totp_enabled} required={false} />
+                            <Button
+                                variant="light"
+                                leftIcon={<IconRefresh size="1rem" />}
+                                onClick={() => void handleResetAuthenticatorClick()}
+                                disabled={status.loading}
+                            >
+                                {resetAuthenticatorButtonLabel}
+                            </Button>
+                        </Group>
+                        {values.vc_domainaccountname && <TextField entityForm={entityForm} column={entity.def.columns.vc_domainaccountname} readOnly />}
+                    </>
                 }
                 <Group>
                     {(!entity.def.columns.bt_islocked.value || entity.def.columns.bt_disabled.value) &&
