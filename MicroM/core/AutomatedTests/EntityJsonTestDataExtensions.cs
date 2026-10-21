@@ -66,9 +66,84 @@ public static class EntityJsonTestDataExtensions
             }
             else
             {
-                column!.ValueObject = value;
+                column!.ValueObject = ConvertRecordValue(value, column, i + 1);
             }
         }
+    }
+
+    private static object ConvertRecordValue(JsonElement value, ColumnBase column, int position)
+    {
+        var type = Nullable.GetUnderlyingType(column.SystemType) ?? column.SystemType;
+
+        try
+        {
+            if (type == typeof(short))
+            {
+                if (value.ValueKind == JsonValueKind.Number && value.TryGetInt16(out short result))
+                {
+                    return result;
+                }
+                throw new FormatException("Expected an integer between -32768 and 32767.");
+            }
+
+            if (type == typeof(DateTimeOffset))
+            {
+                if (value.ValueKind == JsonValueKind.String)
+                {
+                    string text = value.GetString()!;
+                    bool hasOffset = text.EndsWith('Z') ||
+                        (text.Length >= 6 && (text[^6] == '+' || text[^6] == '-') && text[^3] == ':');
+                    if (hasOffset && value.TryGetDateTimeOffset(out var result))
+                    {
+                        return result;
+                    }
+                }
+                throw new FormatException("Expected an ISO 8601 date/time string with Z or an explicit UTC offset.");
+            }
+
+            if (type == typeof(byte[]))
+            {
+                return ConvertBinaryValue(value);
+            }
+        }
+        catch (FormatException ex)
+        {
+            throw new FormatException(
+                $"Invalid test data for column '{column.Name}' at value position {position}. Expected CLR type {column.SystemType}, SQL type {column.SQLMetadata.SQLType}; received JSON {value.ValueKind}. {ex.Message}", ex);
+        }
+
+        // Preserve the existing ColumnBase JSON conversion for all other types.
+        return value;
+    }
+
+    // Binary fixtures accept Base64, explicitly prefixed hex, or arrays of byte numbers.
+    // Empty strings, "0x", and empty arrays all represent an empty byte array.
+    private static byte[] ConvertBinaryValue(JsonElement value)
+    {
+        if (value.ValueKind == JsonValueKind.String)
+        {
+            string text = value.GetString()!;
+            return text.StartsWith("0x", StringComparison.OrdinalIgnoreCase)
+                ? Convert.FromHexString(text.AsSpan(2))
+                : Convert.FromBase64String(text);
+        }
+
+        if (value.ValueKind == JsonValueKind.Array)
+        {
+            byte[] bytes = new byte[value.GetArrayLength()];
+            int index = 0;
+            foreach (var item in value.EnumerateArray())
+            {
+                if (item.ValueKind != JsonValueKind.Number || !item.TryGetByte(out bytes[index]))
+                {
+                    throw new FormatException($"Expected an integer between 0 and 255 at binary array position {index + 1}.");
+                }
+                index++;
+            }
+            return bytes;
+        }
+
+        throw new FormatException("Expected a Base64 string, a 0x-prefixed hex string, or an array of integers between 0 and 255.");
     }
 
     public static string ToRecordValuesString(this EntityJsonTestData data, JsonElement[] record, string[]? properties_filter = null)
