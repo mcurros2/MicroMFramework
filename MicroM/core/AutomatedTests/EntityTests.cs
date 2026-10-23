@@ -17,16 +17,24 @@ public static class EntityTests
         return [.. columns.Values.Select(c => c.Name)];
     }
 
-    public static async Task FullTest<T>(IEntityClient ec, IMicroMEncryption enc, string data_group_folder, string schema_name, string test_data_folder, bool seed_test_data, CancellationToken ct)
+    /// <summary>
+    /// Runs the entity tests. When skip_empty_lookups is enabled, failed lookup assertions
+    /// are skipped only after verifying an empty deployed procedure body, and reported through log.
+    /// </summary>
+    public static async Task FullTest<T>(IEntityClient ec, IMicroMEncryption enc, string data_group_folder, string schema_name, string test_data_folder, bool seed_test_data, CancellationToken ct, bool skip_empty_lookups = false, Action<string>? log = null)
         where T : EntityBase, new()
     {
         T entity = new();
         entity.Init(ec, enc, schema_name);
 
-        await FullTest(entity, test_data_folder, seed_test_data, ct);
+        await FullTest(entity, test_data_folder, seed_test_data, ct, log, skip_empty_lookups);
     }
 
-    public static async Task FullTest(EntityBase entity, string test_data_folder, bool seed_test_data, CancellationToken ct, Action<string>? log = null)
+    /// <summary>
+    /// Runs the entity tests, optionally inspecting empty lookup results and logging skipped
+    /// assertions for procedures containing only comments, semicolons, or empty BEGIN/END blocks.
+    /// </summary>
+    public static async Task FullTest(EntityBase entity, string test_data_folder, bool seed_test_data, CancellationToken ct, Action<string>? log = null, bool skip_empty_lookups = false)
     {
         var test_data_file = entity.GetTestDataFilePath(test_data_folder);
         var testData = await entity.LoadJsonEntityTestData(test_data_file);
@@ -107,7 +115,22 @@ public static class EntityTests
             bool lookup_success = !lookup_result.IsNullOrEmpty();
             if (!lookup_success)
             {
-                throw new Exception($"LOOKUP: Can't lookup record after insertion. ID {testData.ToRecordValuesString(record, pk_cols_names_array)}");
+                string failure = $"LOOKUP: Can't lookup record after insertion. ID {testData.ToRecordValuesString(record, pk_cols_names_array)}";
+                if (!skip_empty_lookups)
+                {
+                    throw new Exception(failure);
+                }
+
+                var inspection = await LookupProcedureInspection.Inspect(entity, ct);
+                if (inspection.Body != LookupProcedureBody.Empty)
+                {
+                    string reason = inspection.Body == LookupProcedureBody.Unknown
+                        ? "emptiness could not be verified (definition unavailable or unrecognized)"
+                        : "the procedure body contains executable content";
+                    throw new Exception($"{failure}. Procedure '{inspection.ProcedureName}': {reason}.");
+                }
+
+                log?.Invoke($"{entity.Def.Name}: Skipping lookup assertion: deployed lookup procedure '{inspection.ProcedureName}' has an empty body. Record {record_number}, ID {testData.ToRecordValuesString(record, pk_cols_names_array)}.");
             }
 
             change_column?.ValueObject = $"c*{change_column.ValueObject}";
@@ -174,9 +197,13 @@ public static class EntityTests
         }
     }
 
+    /// <summary>
+    /// Runs the tests on each entity using the same skip_empty_lookups setting and log callback.
+    /// Empty-lookup skipping is disabled by default.
+    /// </summary>
     public static async Task RunTestsOnEntities(
         this List<IEntityType> entities, string server, string database, string user, string password, IMicroMEncryption enc, string schema_name, string test_data_folder,
-        bool seed_test_data, CancellationToken ct, Action<string>? log = null)
+        bool seed_test_data, CancellationToken ct, Action<string>? log = null, bool skip_empty_lookups = false)
     {
         using var ec = new DatabaseClient(server, database, user, password);
         await ec.Connect(ct);
@@ -189,7 +216,7 @@ public static class EntityTests
 
             entity.Init(ec, enc, schema_name);
 
-            await FullTest(entity, test_data_folder, seed_test_data, ct, log);
+            await FullTest(entity, test_data_folder, seed_test_data, ct, log, skip_empty_lookups);
         }
     }
 
