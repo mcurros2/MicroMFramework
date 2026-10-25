@@ -23,6 +23,7 @@ export interface DataGridToolbarOptions {
     toolbarIconVariant?: ActionIconVariant,
     enableExport?: boolean,
     refreshTooltip?: string,
+    configureColumnsTooltip?: string,
     exportTooltip?: string,
     selectRowsTooltip?: string,
     searchText: string[] | undefined,
@@ -85,6 +86,7 @@ export const DataGridToolbarDefaultProps: Partial<DataGridToolbarOptions> = {
     enableExport: true,
     searchPlaceholder: "Enter search text",
     refreshTooltip: "Refresh",
+    configureColumnsTooltip: "Configure columns",
     exportTooltip: "Export",
     selectRowsTooltip: "Select items",
     filterTooltip: "Filter items",
@@ -117,7 +119,7 @@ export function DataGridToolbar(props: DataGridToolbarOptions) {
         size, hideCheckboxToggle, onCheckboxToggle,
         onSearchTextChange, onRefreshClick, autoFocus,
         toolbarIconVariant, onExportClick, enableExport,
-        searchPlaceholder, refreshTooltip, exportTooltip, selectRowsTooltip,
+        searchPlaceholder, refreshTooltip, configureColumnsTooltip, exportTooltip, selectRowsTooltip,
         searchData, setSearchData, searchText, setSearchText, filterTooltip, parentKeys,
         setFilterValues, filterValues, clearFiltersTooltip, filtersFormSize, FiltersEntity, client,
         enableImport, importTooltip, onImportClick, filtersBadgeSize,
@@ -240,7 +242,7 @@ export function DataGridToolbar(props: DataGridToolbarOptions) {
                     <Menu opened={configMenuOpened} onChange={setConfigMenuOpened} withinPortal closeOnItemClick={false}>
                         <Menu.Target>
                             <ActionIcon
-                                title="Configure columns"
+                                title={configureColumnsTooltip}
                                 size={actionIconSize} radius="xl" color={theme.primaryColor} variant={toolbarIconVariant} >
                                 <IconEyeCog size={iconsSize} stroke="1.5" />
                             </ActionIcon>

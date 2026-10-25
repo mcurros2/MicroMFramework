@@ -14,6 +14,8 @@ export interface DataGridStateProps {
 export interface DataGridLabels extends EntityUILabels {
     rowsReturnedLabel: string,
     selectedRowsLabel: string,
+    selectedRowLabel?: string,
+    fetchErrorLabel?: string,
     limitLabel: string,
     rowsLabel: string,
     unlimitedLabel: string,

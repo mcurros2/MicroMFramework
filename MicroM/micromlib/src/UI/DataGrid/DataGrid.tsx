@@ -2,6 +2,7 @@ import { Box, Group, Select, SelectItem, Space, Text, useComponentDefaultProps, 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { areValuesObjectsEqual } from "../../Entity";
 import { AlertError, FakeProgressBar, getInitialSearchData, useExecuteView, useFirstVisible, useViewState } from "../../UI/Core";
+import { getSelectedRowsLabel, getViewErrorMessage } from "../Core/dataViewLabels";
 import { DataViewLimitData } from "../DataView/DataView.types";
 import { Grid } from "../Grid";
 import { DataGridProps } from "./DataGrid.types";
@@ -250,7 +251,7 @@ export function DataGrid(props: DataGridProps) {
                             <FakeProgressBar pos={"absolute"} style={{ top: 0, width: "100%", zIndex: 999 }} size="xs" />
                         }
                         {!isLoading && executeViewState.error &&
-                            <AlertError mb="xs">Error: {executeViewState.error.status} {executeViewState.error.message} {executeViewState.error.statusMessage}</AlertError>
+                            <AlertError mb="xs">Error: {getViewErrorMessage(executeViewState.error, labels?.fetchErrorLabel)}</AlertError>
                         }
                         <Grid
                             columns={columns}
@@ -283,7 +284,7 @@ export function DataGrid(props: DataGridProps) {
                                 </>
                             }
                             {rows &&
-                                <Text fz="xs" c="dimmed">{labels?.rowsReturnedLabel} {rows.length}{dataGridAPI.selectedRowsCount ? <>, {dataGridAPI.selectedRowsCount} {labels?.selectedRowsLabel}</> : ""}</Text>
+                                <Text fz="xs" c="dimmed">{labels?.rowsReturnedLabel} {rows.length}{dataGridAPI.selectedRowsCount ? <>, {dataGridAPI.selectedRowsCount} {getSelectedRowsLabel(dataGridAPI.selectedRowsCount, labels)}</> : ""}</Text>
                             }
                         </Group>
                     }

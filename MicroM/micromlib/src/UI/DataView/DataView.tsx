@@ -10,6 +10,8 @@ import { DataViewProps } from "./DataView.types";
 import { DataViewCardContainer } from "./DataViewCardContainer";
 import { useDataView } from "./useDataView";
 
+import { getViewErrorMessage } from "../Core/dataViewLabels";
+
 export const DataViewDefaultProps: Partial<DataViewProps> = {
     search: [],
     limit: "1000",
@@ -208,7 +210,7 @@ export const DataView = forwardRef(function DataView(props: DataViewProps, ref: 
                     </Group>
                 }
                 {!dataViewAPI.isLoading && dataViewAPI.executeViewState.error &&
-                    <AlertError mb="xs">Error: {dataViewAPI.executeViewState.error.status} {dataViewAPI.executeViewState.error.message} {dataViewAPI.executeViewState.error.statusMessage}</AlertError>
+                    <AlertError mb="xs">Error: {getViewErrorMessage(dataViewAPI.executeViewState.error, labels?.fetchErrorLabel)}</AlertError>
                 }
                 {!dataViewAPI.isLoading && !dataViewAPI.executeViewState.error && dataViewAPI.data.length > 0 && dataViewAPI.recordsCount === limit_number && limit_number !== 0 &&
                     <Text fz="sm" align="center" fw={500} c="dimmed">{labels?.resultLimitLabel?.replace('%s', limit || '')}</Text>

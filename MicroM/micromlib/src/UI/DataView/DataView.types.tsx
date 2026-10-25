@@ -35,6 +35,8 @@ export type DataViewSelectionMode = 'single' | 'multi';
 export interface DataViewLabels extends EntityUILabels {
     rowsReturnedLabel: string,
     selectedRowsLabel: string,
+    selectedRowLabel?: string,
+    fetchErrorLabel?: string,
     limitLabel: string,
     rowsLabel: string,
     unlimitedLabel: string,
