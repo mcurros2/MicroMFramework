@@ -3,6 +3,7 @@ using MicroM.Core;
 using MicroM.Extensions;
 using MicroM.Web.Services;
 using System.Data;
+using System.Globalization;
 using static MicroM.Data.IEntityClient;
 
 namespace MicroM.Data;
@@ -57,7 +58,12 @@ public class EntityData(IEntityClient ec, EntityDefinition def, IMicroMEncryptio
         var dbstats = await EntityClient.ExecuteSP<DBStatus>(proc_name, ct, parms: parms,
             mapper: async (IValueReader fv, string[] headers, string[] typeInfo, CancellationToken ct) =>
             {
-                var status = new DBStatus((DBStatusCodes)await fv.GetFieldValueAsync<int>(0, ct), await fv.GetFieldValueAsync<string>(1, ct));
+                var status_code = await fv.GetFieldValueAsync<int>(0, ct);
+                var raw_message = await fv.GetFieldValueAsync<object?>(1, ct);
+
+                string? status_message = Convert.ToString(raw_message, CultureInfo.InvariantCulture);
+
+                var status = new DBStatus((DBStatusCodes)status_code, status_message);
                 if (status.Status.IsIn(DBStatusCodes.Error, DBStatusCodes.RecordHasChanged)) failed = true;
                 if (status.Status == DBStatusCodes.Autonum)
                 {
