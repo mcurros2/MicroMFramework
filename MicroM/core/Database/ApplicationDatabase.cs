@@ -380,8 +380,13 @@ public class ApplicationDatabase
         return new() { Results = [new() { Status = DBStatusCodes.OK }] };
     }
 
-    public static async Task<DBStatusResult> UpdateAppDatabaseOnHotReload(
+    public static Task<DBStatusResult> UpdateAppDatabaseOnHotReload(
         ApplicationOption app_config, IMicroMAppConfiguration config, ILogger log, MicroMOptions microm_config, CancellationToken ct)
+        => UpdateAppDatabaseOnHotReload(app_config, config, log, microm_config, ct, skipSeedTestData: false);
+
+    public static async Task<DBStatusResult> UpdateAppDatabaseOnHotReload(
+        ApplicationOption app_config, IMicroMAppConfiguration config, ILogger log, MicroMOptions microm_config, CancellationToken ct,
+        bool skipSeedTestData)
     {
         ArgumentNullException.ThrowIfNull(app_config);
 
@@ -410,7 +415,7 @@ public class ApplicationDatabase
                 return DBStatusResult.FailedStatus($"APP Database '{app_config.SQLDB}' does not exist.");
             }
 
-            await InitializeApplication(config_dbc, app_config, app_config.SQLUser, app_config.EnableSeedTestData, config, log, microm_config, ct);
+            await InitializeApplication(config_dbc, app_config, app_config.SQLUser, app_config.EnableSeedTestData && !skipSeedTestData, config, log, microm_config, ct);
 
             return DBStatusResult.SuccessStatus();
         }

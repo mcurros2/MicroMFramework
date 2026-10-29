@@ -679,7 +679,10 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
 
     private static readonly SemaphoreSlim _refreshSemaphore = new(1, 1);
 
-    public async Task<bool> RefreshConfiguration(string? app_id, CancellationToken ct)
+    public Task<bool> RefreshConfiguration(string? app_id, CancellationToken ct)
+        => RefreshConfiguration(app_id, ct, skipSeedTestData: false);
+
+    public async Task<bool> RefreshConfiguration(string? app_id, CancellationToken ct, bool skipSeedTestData)
     {
         await _refreshSemaphore.WaitAsync(ct);
         _log.LogTrace("RefreshConfiguration Called");
@@ -701,7 +704,7 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
 
             await LoadEntitiesAssemblies(ct);
 
-            await RunHotReloadDbUpdates(ct, app_id);
+            await RunHotReloadDbUpdates(ct, app_id, skipSeedTestData);
 
             ReloadCors();
 
@@ -904,7 +907,7 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
         return rows;
     }
 
-    private async Task RunHotReloadDbUpdates(CancellationToken ct, string? app_id = null)
+    private async Task RunHotReloadDbUpdates(CancellationToken ct, string? app_id, bool skipSeedTestData)
     {
         var targets = _ApplicationsCache.Values
             .Where(a => !a.ApplicationID.Equals(ConfigurationDefaults.ControlPanelAppID, StringComparison.OrdinalIgnoreCase))
@@ -917,7 +920,7 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
 
         foreach (var app in targets)
         {
-            var result = await ApplicationDatabase.UpdateAppDatabaseOnHotReload(app, this, _log, _options, ct);
+            var result = await ApplicationDatabase.UpdateAppDatabaseOnHotReload(app, this, _log, _options, ct, skipSeedTestData);
             if (!result.Failed)
             {
                 _bus.Publish(new AppDatabaseUpdatedOnHotReloadEvent(app.ApplicationID));

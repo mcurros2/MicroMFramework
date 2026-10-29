@@ -190,7 +190,9 @@ public class Applications : Entity<ApplicationsDef>
             var result = await base.InsertData(ct, throw_dbstat_exception, options, server_claims, api);
             if (!result.Failed && api != null)
             {
-                var refreshed = await api.app_config.RefreshConfiguration(Def.c_application_id.Value.Trim(), ct);
+                // The explicit database action below owns seeding; the refresh still updates the schema.
+                bool skipSeedTestData = Def.b_createdatabase.Value || Def.b_updatedatabase.Value || Def.b_dropdatabase.Value;
+                var refreshed = await api.app_config.RefreshConfiguration(Def.c_application_id.Value.Trim(), ct, skipSeedTestData);
                 if (!refreshed)
                 {
                     return DBStatusResult.FailedStatus("Failed to refresh application configuration after insert.");
@@ -249,7 +251,9 @@ public class Applications : Entity<ApplicationsDef>
 
             if (!result.Failed && api != null)
             {
-                var refreshed = await api.app_config.RefreshConfiguration(Def.c_application_id.Value, ct);
+                // The explicit database action below owns seeding; the refresh still updates the schema.
+                bool skipSeedTestData = Def.b_createdatabase.Value || Def.b_updatedatabase.Value || Def.b_dropdatabase.Value;
+                var refreshed = await api.app_config.RefreshConfiguration(Def.c_application_id.Value, ct, skipSeedTestData);
                 if (!refreshed)
                 {
                     return DBStatusResult.FailedStatus("Failed to refresh application configuration after update.");
