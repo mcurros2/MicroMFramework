@@ -1,4 +1,4 @@
-﻿using MicroM.Configuration;
+using MicroM.Configuration;
 using MicroM.Configuration.CategoriesDefinitions;
 using MicroM.Configuration.Entities;
 using MicroM.Data;
@@ -42,6 +42,7 @@ public class ApplicationDatabase
         ILogger log, MicroMOptions microm_config,
         CancellationToken ct)
     {
+        using var timing = new InitializationTiming(log, "InitializeApplication", app_config.ApplicationID);
         // MMC: Clone here is used to create a connection to the same server with the app database name
         using var app_ec = ec.Clone(new_db: app_config.SQLDB);
 
@@ -64,7 +65,9 @@ public class ApplicationDatabase
                         {
                             IDatabaseSchema instance = (IDatabaseSchema)result;
 
-                            var migration_result = await instance.MigrateDatabase(app_ec, app_config.SchemaConfiguration, ct);
+                            DatabaseMigrationResult migration_result;
+                            using (new InitializationTiming(log, $"{init_type.FullName}.MigrateDatabase", app_config.ApplicationID))
+                                migration_result = await instance.MigrateDatabase(app_ec, app_config.SchemaConfiguration, ct);
 
                             var entities = await instance.GetEntitiesInstances(app_ec, app_config.SchemaConfiguration, ct);
                             try
@@ -76,22 +79,26 @@ public class ApplicationDatabase
 
                                 if (migration_result == DatabaseMigrationResult.NoMigrationNeeded)
                                 {
-                                    await instance.CreateDBSchemaAndProcs(app_ec, entities, app_config.SchemaConfiguration, ct);
+                                    using (new InitializationTiming(log, $"{init_type.FullName}.CreateDBSchemaAndProcs", app_config.ApplicationID))
+                                        await instance.CreateDBSchemaAndProcs(app_ec, entities, app_config.SchemaConfiguration, ct);
 
                                     await MicromEntitiesTypes.FillEntitiesTypes(app_ec, app_config.SchemaConfiguration.DDSchema, entities, ct);
 
                                     if (app_config.EnableSeedTestData && seed_test_data)
                                     {
                                         log.LogInformation("Seeding test data for app {AppID} using assembly {Assembly}", app_config.ApplicationID, assembly.FullName);
-                                        await instance.SeedTestData(app_ec, app_config.SchemaConfiguration, microm_config.TestDataRootFolderName, ct);
+                                        using (new InitializationTiming(log, $"{init_type.FullName}.SeedTestData", app_config.ApplicationID))
+                                            await instance.SeedTestData(app_ec, app_config.SchemaConfiguration, microm_config.TestDataRootFolderName, ct);
                                     }
                                 }
 
-                                await instance.GrantPermissions(app_ec, entities, grant_user, app_config.SchemaConfiguration, ct);
+                                using (new InitializationTiming(log, $"{init_type.FullName}.GrantPermissions", app_config.ApplicationID))
+                                    await instance.GrantPermissions(app_ec, entities, grant_user, app_config.SchemaConfiguration, ct);
 
                                 var del_result = await MicromRoutes.DeleteAllRoutes(app_ec, app_config.SchemaConfiguration.DDSchema, ct);
 
-                                await instance.CreateMenus(app_ec, entities, app_config.SchemaConfiguration, ct);
+                                using (new InitializationTiming(log, $"{init_type.FullName}.CreateMenus", app_config.ApplicationID))
+                                    await instance.CreateMenus(app_ec, entities, app_config.SchemaConfiguration, ct);
 
                                 entities.Clear();
                             }
@@ -107,12 +114,6 @@ public class ApplicationDatabase
         finally
         {
             await app_ec.Disconnect();
-
-            // Force free memory of generated sql scripts
-            System.Runtime.GCSettings.LargeObjectHeapCompactionMode = System.Runtime.GCLargeObjectHeapCompactionMode.CompactOnce;
-            GC.Collect();
-            GC.WaitForPendingFinalizers();
-            GC.Collect();
         }
     }
 
@@ -237,6 +238,7 @@ public class ApplicationDatabase
             return DBStatusResult.FailedStatus("Can't connect to the APP Server " + app.Def.vc_server.Value + ".");
         }
 
+        bool databaseInitializationExecuted = false;
         try
         {
             // MMC: app.Client should be the database configuration user (not sa)
@@ -279,6 +281,7 @@ public class ApplicationDatabase
             if (configGrantResult != null) return configGrantResult;
 
             // Create tables and procs
+            databaseInitializationExecuted = true;
             await InitializeDatabase(admin_dbc, app, app_config, app.Def.vc_user.Value, api, seed_test_data: app_config.EnableSeedTestData, api.log, options, ct);
 
             // Create a MicroM Admin User
@@ -299,7 +302,15 @@ public class ApplicationDatabase
         }
         finally
         {
-            await app.Client.Disconnect();
+            try { await app.Client.Disconnect(); }
+            finally
+            {
+                if (databaseInitializationExecuted)
+                {
+                    System.Runtime.GCSettings.LargeObjectHeapCompactionMode = System.Runtime.GCLargeObjectHeapCompactionMode.CompactOnce;
+                    GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, blocking: true, compacting: true);
+                }
+            }
         }
 
         return new() { Results = [new() { Status = DBStatusCodes.OK }] };
@@ -327,66 +338,84 @@ public class ApplicationDatabase
             return new() { Failed = true, Results = [new() { Status = DBStatusCodes.Error, Message = $"Can't connect to the APP Server {app.Def.vc_server.Value}." }] };
         }
 
+        bool databaseInitializationExecuted = false;
         try
         {
-            if (!app.Def.b_appuserexists.Value)
+            try
+            {
+                if (!app.Def.b_appuserexists.Value)
+                {
+                    // re-read an unencrypt password
+                    var result = await app.GetData(ct, options, server_claims, api);
+                    await CreateLoginAndDatabaseUser(admin_dbc, app.Def.vc_database.Value, app.Def.vc_user.Value, app.Def.vc_password.Value ?? "", ct);
+                }
+            }
+            catch
+            {
+
+            }
+
+            var configGrantResult = await EnsureConfigUserDbOwnerOnAppDb(admin_dbc, app.Def.vc_database.Value, api, ct);
+            if (configGrantResult != null) return configGrantResult;
+
+            // Create tables and procs
+            databaseInitializationExecuted = true;
+            await InitializeDatabase(admin_dbc, app, app_config, app.Def.vc_user.Value, api, seed_test_data: app_config.EnableSeedTestData, api.log, options, ct);
+
+            // try to recreate user if for any reason has been deleted
+            try
             {
                 // re-read an unencrypt password
                 var result = await app.GetData(ct, options, server_claims, api);
-                await CreateLoginAndDatabaseUser(admin_dbc, app.Def.vc_database.Value, app.Def.vc_user.Value, app.Def.vc_password.Value ?? "", ct);
+
+                // re-Create a MicroM Admin User, this can launch an exception as we are not checking if the user exists
+                if (app.Def.c_authenticationtype_id.Value.Equals(nameof(AuthenticationTypes.MicroMAuthentication), StringComparison.OrdinalIgnoreCase)
+                    && !string.IsNullOrEmpty(app.Def.vc_app_admin_user.Value)
+                    && !string.IsNullOrEmpty(app.Def.vc_app_admin_password.Value)
+                    )
+                {
+                    var schema_config = app_config.SchemaConfiguration;
+
+                    using var app_dbc = admin_dbc.Clone(new_db: app.Def.vc_database.Value);
+                    var usr = new MicromUsers(app_dbc, schema_name: schema_config.DDSchema);
+                    usr.Def.vc_username.Value = app.Def.vc_app_admin_user.Value;
+                    usr.Def.vc_password.Value = app.Def.vc_app_admin_password.Value;
+                    usr.Def.c_usertype_id.Value = nameof(UserTypes.ADMIN);
+                    await usr.InsertData(ct);
+                }
+
             }
-        }
-        catch
-        {
-
-        }
-
-        var configGrantResult = await EnsureConfigUserDbOwnerOnAppDb(admin_dbc, app.Def.vc_database.Value, api, ct);
-        if (configGrantResult != null) return configGrantResult;
-
-        // Create tables and procs
-        await InitializeDatabase(admin_dbc, app, app_config, app.Def.vc_user.Value, api, seed_test_data: app_config.EnableSeedTestData, api.log, options, ct);
-
-        // try to recreate user if for any reason has been deleted
-        try
-        {
-            // re-read an unencrypt password
-            var result = await app.GetData(ct, options, server_claims, api);
-
-            // re-Create a MicroM Admin User, this can launch an exception as we are not checking if the user exists
-            if (app.Def.c_authenticationtype_id.Value.Equals(nameof(AuthenticationTypes.MicroMAuthentication), StringComparison.OrdinalIgnoreCase)
-                && !string.IsNullOrEmpty(app.Def.vc_app_admin_user.Value)
-                && !string.IsNullOrEmpty(app.Def.vc_app_admin_password.Value)
-                )
+            catch
             {
-                var schema_config = app_config.SchemaConfiguration;
-
-                using var app_dbc = admin_dbc.Clone(new_db: app.Def.vc_database.Value);
-                var usr = new MicromUsers(app_dbc, schema_name: schema_config.DDSchema);
-                usr.Def.vc_username.Value = app.Def.vc_app_admin_user.Value;
-                usr.Def.vc_password.Value = app.Def.vc_app_admin_password.Value;
-                usr.Def.c_usertype_id.Value = nameof(UserTypes.ADMIN);
-                await usr.InsertData(ct);
+                //ignore exceptions here
             }
 
+            await admin_dbc.Disconnect();
+
+            return new() { Results = [new() { Status = DBStatusCodes.OK }] };
         }
-        catch
+        finally
         {
-            //ignore exceptions here
+            if (databaseInitializationExecuted)
+            {
+                System.Runtime.GCSettings.LargeObjectHeapCompactionMode = System.Runtime.GCLargeObjectHeapCompactionMode.CompactOnce;
+                GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, blocking: true, compacting: true);
+            }
         }
-
-        await admin_dbc.Disconnect();
-
-        return new() { Results = [new() { Status = DBStatusCodes.OK }] };
     }
 
     public static Task<DBStatusResult> UpdateAppDatabaseOnHotReload(
         ApplicationOption app_config, IMicroMAppConfiguration config, ILogger log, MicroMOptions microm_config, CancellationToken ct)
         => UpdateAppDatabaseOnHotReload(app_config, config, log, microm_config, ct, skipSeedTestData: false);
 
-    public static async Task<DBStatusResult> UpdateAppDatabaseOnHotReload(
+    public static Task<DBStatusResult> UpdateAppDatabaseOnHotReload(
         ApplicationOption app_config, IMicroMAppConfiguration config, ILogger log, MicroMOptions microm_config, CancellationToken ct,
         bool skipSeedTestData)
+        => UpdateAppDatabaseOnHotReload(app_config, config, log, microm_config, skipSeedTestData, skipGarbageCollection: false, ct: ct);
+
+    public static async Task<DBStatusResult> UpdateAppDatabaseOnHotReload(
+        ApplicationOption app_config, IMicroMAppConfiguration config, ILogger log, MicroMOptions microm_config,
+        bool skipSeedTestData, bool skipGarbageCollection, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(app_config);
 
@@ -401,6 +430,7 @@ public class ApplicationDatabase
             return DBStatusResult.FailedStatus($"Invalid SQL configuration for app '{app_config.ApplicationID}'.");
         }
 
+        bool databaseInitializationExecuted = false;
         using var config_dbc = new DatabaseClient(app_config.SQLServer, app_config.SQLDB, controlPanelCfg.SQLUser, controlPanelCfg.SQLPassword, logger: log);
 
         if (await config_dbc.Connect(ct, throw_exception: false) == false)
@@ -415,6 +445,7 @@ public class ApplicationDatabase
                 return DBStatusResult.FailedStatus($"APP Database '{app_config.SQLDB}' does not exist.");
             }
 
+            databaseInitializationExecuted = true;
             await InitializeApplication(config_dbc, app_config, app_config.SQLUser, app_config.EnableSeedTestData && !skipSeedTestData, config, log, microm_config, ct);
 
             return DBStatusResult.SuccessStatus();
@@ -425,7 +456,15 @@ public class ApplicationDatabase
         }
         finally
         {
-            await config_dbc.Disconnect();
+            try { await config_dbc.Disconnect(); }
+            finally
+            {
+                if (databaseInitializationExecuted && !skipGarbageCollection)
+                {
+                    System.Runtime.GCSettings.LargeObjectHeapCompactionMode = System.Runtime.GCLargeObjectHeapCompactionMode.CompactOnce;
+                    GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, blocking: true, compacting: true);
+                }
+            }
         }
     }
 }

@@ -1,4 +1,4 @@
-﻿using MicroM.Configuration;
+using MicroM.Configuration;
 using MicroM.Core;
 using MicroM.Data;
 using MicroM.Extensions;
@@ -17,10 +17,13 @@ namespace MicroM.Database
             try
             {
                 await ec.Connect(ct);
+                var rows = await ec.ExecuteSQL("SELECT TABLE_SCHEMA, TABLE_NAME FROM INFORMATION_SCHEMA.TABLES", ct);
+                var existing = rows.SelectMany(r => r.records)
+                    .Select(r => (Schema: r[0]?.ToString(), Table: r[1]?.ToString())).ToHashSet();
                 foreach (var options in entities.Values)
                 {
-                    bool table_exists = await TableExists(ec, options.EntityInstance.Def.TableName, options.EntityInstance.Def.SchemaName ?? "dbo", ct);
-                    if (!table_exists) inexisting_tables.Add(options.EntityInstance.Def.FullTableName);
+                    var def = options.EntityInstance.Def;
+                    if (!existing.Contains((def.SchemaName ?? "dbo", def.TableName))) inexisting_tables.Add(def.FullTableName);
                 }
             }
             finally

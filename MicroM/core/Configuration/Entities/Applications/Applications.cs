@@ -1,4 +1,4 @@
-﻿using MicroM.Configuration.CategoriesDefinitions;
+using MicroM.Configuration.CategoriesDefinitions;
 using MicroM.Core;
 using MicroM.Data;
 using MicroM.Extensions;
@@ -190,9 +190,9 @@ public class Applications : Entity<ApplicationsDef>
             var result = await base.InsertData(ct, throw_dbstat_exception, options, server_claims, api);
             if (!result.Failed && api != null)
             {
-                // The explicit database action below owns seeding; the refresh still updates the schema.
+                // The explicit action owns database initialization; refresh only configuration and runtime state.
                 bool skipSeedTestData = Def.b_createdatabase.Value || Def.b_updatedatabase.Value || Def.b_dropdatabase.Value;
-                var refreshed = await api.app_config.RefreshConfiguration(Def.c_application_id.Value.Trim(), ct, skipSeedTestData);
+                var refreshed = await api.app_config.RefreshConfiguration(Def.c_application_id.Value, new ConfigurationRefreshOptions { SkipDatabaseUpdates = skipSeedTestData, SkipSeedTestData = skipSeedTestData }, ct);
                 if (!refreshed)
                 {
                     return DBStatusResult.FailedStatus("Failed to refresh application configuration after insert.");
@@ -201,7 +201,8 @@ public class Applications : Entity<ApplicationsDef>
                 result = await PerformCreateOrDropDatabase(ct, options, server_claims, api);
                 if (!result.Failed)
                 {
-                    await api.securityService.RefreshGroupsSecurityRecords(Def.c_application_id.Value.Trim(), ct);
+                    if (Def.b_dropdatabase.Value && !Def.b_createdatabase.Value) api.securityService.InvalidateGroupsSecurityRecords(Def.c_application_id.Value);
+                    else await api.securityService.RefreshGroupsSecurityRecords(Def.c_application_id.Value, ct);
                 }
             }
             return result;
@@ -251,9 +252,9 @@ public class Applications : Entity<ApplicationsDef>
 
             if (!result.Failed && api != null)
             {
-                // The explicit database action below owns seeding; the refresh still updates the schema.
+                // The explicit action owns database initialization; refresh only configuration and runtime state.
                 bool skipSeedTestData = Def.b_createdatabase.Value || Def.b_updatedatabase.Value || Def.b_dropdatabase.Value;
-                var refreshed = await api.app_config.RefreshConfiguration(Def.c_application_id.Value, ct, skipSeedTestData);
+                var refreshed = await api.app_config.RefreshConfiguration(Def.c_application_id.Value, new ConfigurationRefreshOptions { SkipDatabaseUpdates = skipSeedTestData, SkipSeedTestData = skipSeedTestData }, ct);
                 if (!refreshed)
                 {
                     return DBStatusResult.FailedStatus("Failed to refresh application configuration after update.");
@@ -262,7 +263,8 @@ public class Applications : Entity<ApplicationsDef>
                 result = await PerformCreateOrDropDatabase(ct, options, server_claims, api);
                 if (!result.Failed)
                 {
-                    await api.securityService.RefreshGroupsSecurityRecords(Def.c_application_id.Value, ct);
+                    if (Def.b_dropdatabase.Value && !Def.b_createdatabase.Value) api.securityService.InvalidateGroupsSecurityRecords(Def.c_application_id.Value);
+                    else await api.securityService.RefreshGroupsSecurityRecords(Def.c_application_id.Value, ct);
                 }
             }
             return result;

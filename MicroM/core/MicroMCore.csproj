@@ -88,6 +88,8 @@
     <None Remove="Configuration\Entities\MicromApplicationAPIKeys\SQL\MicromApplicationApiKeys\mak_getByAPIKey.sql" />
     <None Remove="Configuration\Entities\MicromApplicationAPIKeys\SQL\MicromApplicationApiKeys\mak_iupdate.sql" />
     <None Remove="DataDictionary\Entities\MicromEntitiesTypes\SQL\mty_deleteAll.sql" />
+    <None Remove="DataDictionary\Entities\MicromEntitiesTypes\SQL\mty_GetEntitiesTypes.sql" />
+    <None Remove="DataDictionary\Entities\MicromEntitiesTypes\SQL\mty_InsertChunk.sql" />
     <None Remove="DataDictionary\Entities\MicromMenus\SQL\MicromMenusItems\mmi_update.sql" />
     <None Remove="DataDictionary\Entities\MicromRoutes\SQL\mro_deleteAllRoutes.sql" />
     <None Remove="DataDictionary\Entities\MicromRoutes\SQL\mro_iupdate.sql" />
@@ -155,6 +157,8 @@
     <EmbeddedResource Include="Configuration\Entities\MicromApplicationAPIKeys\SQL\MicromApplicationApiKeys\mak_getByAPIKey.sql" />
     <EmbeddedResource Include="Configuration\Entities\MicromApplicationAPIKeys\SQL\MicromApplicationApiKeys\mak_iupdate.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\MicromEntitiesTypes\SQL\mty_deleteAll.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\MicromEntitiesTypes\SQL\mty_GetEntitiesTypes.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\MicromEntitiesTypes\SQL\mty_InsertChunk.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\MicromMenus\SQL\MicromMenusItemsAllowedRoutes\mir_drop.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\MicromMenus\SQL\MicromMenusItemsAllowedRoutes\mir_get.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\MicromMenus\SQL\MicromMenusItemsAllowedRoutes\mir_update.sql" />
@@ -188,6 +192,7 @@
     <EmbeddedResource Include="Configuration\Entities\Applications\SQL\app_brwStandard.sql" />
     <EmbeddedResource Include="Configuration\Entities\Applications\SQL\app_GetConfiguration.sql" />
     <EmbeddedResource Include="Configuration\Entities\EntitiesAssembliesTypes\SQL\eat_deleteAllTypes.sql" />
+    <EmbeddedResource Include="Configuration\Entities\EntitiesAssembliesTypes\SQL\eat_GetAssemblyTypes.sql" />
     <EmbeddedResource Include="Configuration\Entities\EntitiesAssembliesTypes\SQL\eat_iupdate.sql" />
     <EmbeddedResource Include="Configuration\Entities\EntitiesAssemblies\SQL\eas_dropUnusedAssemblies.sql" />
     <EmbeddedResource Include="Configuration\Entities\EntitiesAssemblies\SQL\eas_idropUnusedAssemblies.sql" />

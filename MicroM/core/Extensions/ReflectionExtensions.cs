@@ -126,10 +126,11 @@ public static class ReflectionExtensions
         return statusTypes;
     }
 
+    private static readonly ConditionalWeakTable<Assembly, Type[]> InterfaceTypes = [];
+
     public static List<Type> GetInterfaceTypes<T>(this Assembly asm)
     {
-        var types = asm.GetTypes();
-
+        var types = InterfaceTypes.GetValue(asm, a => a.GetTypes());
         return types.Where(t => t.GetInterfaces().Contains(typeof(T)) && t.IsClass).ToList();
     }
 

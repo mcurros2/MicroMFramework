@@ -1,6 +1,7 @@
 using MicroM.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using System.Security.Cryptography;
 
 namespace MicroM.Web.Services;
 
@@ -10,9 +11,7 @@ public sealed class AssemblyShadowCopyService : IAssemblyShadowCopyService
     private readonly ILogger<AssemblyShadowCopyService> _log;
     private readonly string _testDataFolder;
 
-    public AssemblyShadowCopyService(
-        IOptions<MicroMOptions> options,
-        ILogger<AssemblyShadowCopyService> log)
+    public AssemblyShadowCopyService(IOptions<MicroMOptions> options, ILogger<AssemblyShadowCopyService> log)
     {
         _log = log;
         _storageRoot = options.Value.EntitiesDLLStoragePath!;
@@ -49,6 +48,7 @@ public sealed class AssemblyShadowCopyService : IAssemblyShadowCopyService
         var copied = new List<AssemblyCopiedFile>(assemblies.Count);
         var watchFolders = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
+        var shared = new Dictionary<string, (string Hash, string DataHash, string Path)>(StringComparer.OrdinalIgnoreCase);
         foreach (var request in assemblies)
         {
             ct.ThrowIfCancellationRequested();
@@ -59,6 +59,23 @@ public sealed class AssemblyShadowCopyService : IAssemblyShadowCopyService
             if (!string.IsNullOrWhiteSpace(sourceFolder))
             {
                 watchFolders.Add(sourceFolder);
+
+                var name = System.Reflection.AssemblyName.GetAssemblyName(sourcePath).Name!;
+                var hash = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(sourcePath)));
+
+                var sourceData = Path.Combine(sourceFolder, _testDataFolder);
+
+                var dataParts = Directory.Exists(sourceData) ? Directory.EnumerateFiles(sourceData, "*.json", SearchOption.AllDirectories)
+                    .OrderBy(f => f, StringComparer.Ordinal).Select(f => Path.GetRelativePath(sourceData, f) + ":" + Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(f)))) : [];
+
+                var dataHash = string.Join("|", dataParts);
+                if (shared.TryGetValue(name, out var prior))
+                {
+                    if (prior.Hash != hash || prior.DataHash != dataHash)
+                        throw new InvalidOperationException($"Conflicting shared assembly or test data: '{sourcePath}' for app '{request.app_id}' conflicts with '{prior.Path}'.");
+                    copied.Add(new AssemblyCopiedFile(request.app_id, sourcePath, prior.Path));
+                    continue;
+                }
 
                 var destFolder = Path.Combine(_storageRoot, request.app_id, generationId);
                 Directory.CreateDirectory(destFolder);
@@ -83,6 +100,7 @@ public sealed class AssemblyShadowCopyService : IAssemblyShadowCopyService
                     }
                 }
 
+                shared.Add(name, (hash, dataHash, destPath));
                 copied.Add(new AssemblyCopiedFile(request.app_id, sourcePath, destPath));
                 _log.LogInformation("Copied assembly {source} => {dest}", sourcePath, destPath);
             }
@@ -116,6 +134,9 @@ public sealed class AssemblyShadowCopyService : IAssemblyShadowCopyService
 
         return Task.CompletedTask;
     }
+
+    internal bool GenerationExists(string generationId) => Directory.Exists(_storageRoot)
+        && Directory.EnumerateDirectories(_storageRoot).Any(app => Directory.Exists(Path.Combine(app, generationId)));
 
     public Task DeleteAllGenerationsAsync(CancellationToken ct)
     {

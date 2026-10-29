@@ -18,6 +18,23 @@ public sealed class AppAssemblyRuntimeManager : IAppAssemblyRuntimeManager, IAsy
     private readonly SemaphoreSlim _gate = new(1, 1);
     private string? _activeGenerationId;
     private bool _disposed;
+    private readonly ConcurrentDictionary<string, byte> _retired = new(StringComparer.OrdinalIgnoreCase);
+
+    private void ScheduleRetiredCleanup(string generationId) => _retired[generationId] = 0;
+
+    internal async Task CleanupRetiredGenerationsAsync()
+    {
+        foreach (var id in _retired.Keys)
+        {
+            try
+            {
+                if (_loadContexts is AssemblyLoadContextService contexts && contexts.IsRetiredAlive(id)) continue;
+                await _shadowCopy.DeleteGenerationAsync(id, CancellationToken.None);
+                if (_shadowCopy is AssemblyShadowCopyService shadow && !shadow.GenerationExists(id)) _retired.TryRemove(id, out _);
+            }
+            catch (Exception ex) { _log.LogWarning(ex, "Could not clean up retired generation {GenerationId}", id); }
+        }
+    }
 
     public AppAssemblyRuntimeManager(IAssemblyShadowCopyService shadowCopy, IAssemblyLoadContextService loadContexts, IAssemblyFileWatcherService watchers, ILogger<AppAssemblyRuntimeManager> log)
     {
@@ -65,7 +82,7 @@ public sealed class AppAssemblyRuntimeManager : IAppAssemblyRuntimeManager, IAsy
                 await CleanupCommittedGenerationAsync(previousActive, ct);
             }
 
-            await _shadowCopy.DeleteAllGenerationsExceptAsync(generationId, ct);
+            // Retired generations are cleaned only after the outer operation collects them.
         }
         finally
         {
@@ -130,7 +147,7 @@ public sealed class AppAssemblyRuntimeManager : IAppAssemblyRuntimeManager, IAsy
         if (!_committed.TryRemove(generationId, out var state)) return;
 
         await _loadContexts.UnloadGenerationAsync(state.ShadowCopy.generation_id, ct);
-        await _shadowCopy.DeleteGenerationAsync(state.ShadowCopy.generation_id, ct);
+        ScheduleRetiredCleanup(state.ShadowCopy.generation_id);
     }
 
 

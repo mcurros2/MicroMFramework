@@ -15,6 +15,7 @@ public class EntitiesAssembliesTypesDef : EntityDefinition
     public readonly ViewDefinition eat_brwStandard = new(nameof(c_assembly_id), nameof(c_assemblytype_id));
 
     public readonly ProcedureDefinition eat_deleteAllTypes = new(nameof(c_assembly_id));
+    public readonly ProcedureDefinition eat_GetAssemblyTypes = new(nameof(c_assembly_id));
 
     public readonly EntityUniqueConstraint UNTypes = new(keys: [nameof(c_assembly_id), nameof(vc_assemblytypename)]);
 

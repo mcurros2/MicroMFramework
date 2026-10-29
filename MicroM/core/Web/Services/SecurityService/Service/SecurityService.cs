@@ -1,4 +1,4 @@
-﻿using MicroM.Configuration;
+using MicroM.Configuration;
 using MicroM.DataDictionary.CategoriesDefinitions;
 using MicroM.DataDictionary.Entities;
 using MicroM.Extensions;
@@ -87,6 +87,12 @@ public class SecurityService(IMicroMAppConfiguration app_config, ILogger<Securit
             logger.LogError("Error getting groups security records for {app_id}\nException: {ex}", app_id, ex.ToString());
         }
         return groupsSecurityRecords;
+    }
+
+    public void InvalidateGroupsSecurityRecords(string app_id)
+    {
+        foreach (var key in _groupsSecurityRecords.Keys.Where(k => k.StartsWith($"{app_id}.", StringComparison.OrdinalIgnoreCase)))
+            _groupsSecurityRecords.TryRemove(key, out _);
     }
 
     public async Task RefreshGroupsSecurityRecords(string? app_id, CancellationToken ct)

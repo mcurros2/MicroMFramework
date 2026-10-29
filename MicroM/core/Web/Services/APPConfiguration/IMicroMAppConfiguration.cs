@@ -25,6 +25,8 @@ public interface IMicroMAppConfiguration
     /// <summary>Refreshes configuration, optionally skipping only test-data seeding during automatic database updates.</summary>
     public Task<bool> RefreshConfiguration(string? app_id, CancellationToken ct, bool skipSeedTestData);
 
+    public Task<bool> RefreshConfiguration(string? app_id, ConfigurationRefreshOptions options, CancellationToken ct);
+
     public DatabaseClient? GetDatabaseClient(string app_id, int connection_tiemout_secs = 5);
 
     public List<string> GetAppIDs();

@@ -33,6 +33,15 @@ public sealed class AssemblyLoadContextService : IAssemblyLoadContextService, IA
     private readonly ILogger<AssemblyLoadContextService> _log;
     private readonly SemaphoreSlim _gate = new(1, 1);
     private bool _disposed;
+    private readonly ConcurrentDictionary<string, WeakReference> _retired = new(StringComparer.OrdinalIgnoreCase);
+
+    internal bool IsRetiredAlive(string generationId)
+    {
+        if (!_retired.TryGetValue(generationId, out var reference)) return false;
+        if (reference.IsAlive) return true;
+        _retired.TryRemove(generationId, out _);
+        return false;
+    }
 
     public AssemblyLoadContextService(ILogger<AssemblyLoadContextService> log) { _log = log; }
 
@@ -49,10 +58,12 @@ public sealed class AssemblyLoadContextService : IAssemblyLoadContextService, IA
         var context = new GenerationLoadContext(shadowCopyGeneration.generation_id, simpleNameMap);
         var assembliesByKey = new Dictionary<string, Assembly>(StringComparer.OrdinalIgnoreCase);
 
+        var loadedPaths = new Dictionary<string, Assembly>(StringComparer.OrdinalIgnoreCase);
         foreach (var file in shadowCopyGeneration.files)
         {
             ct.ThrowIfCancellationRequested();
-            var assembly = context.LoadFromAssemblyPath(file.copied_assembly_path);
+            if (!loadedPaths.TryGetValue(file.copied_assembly_path, out var assembly))
+                loadedPaths[file.copied_assembly_path] = assembly = context.LoadFromAssemblyPath(file.copied_assembly_path);
             assembliesByKey[$"{file.app_id}|{file.source_assembly_path}"] = assembly;
         }
 
@@ -66,6 +77,7 @@ public sealed class AssemblyLoadContextService : IAssemblyLoadContextService, IA
     public async Task UnloadGenerationAsync(string generationId, CancellationToken ct)
     {
         if (!_generations.TryRemove(generationId, out var state)) return;
+        _retired[generationId] = new WeakReference(state.Context);
         await UnloadStateAsync(state, ct);
     }
 
@@ -75,13 +87,7 @@ public sealed class AssemblyLoadContextService : IAssemblyLoadContextService, IA
         {
             state.Context.Unload();
 
-            for (var i = 0; i < 3; i++)
-            {
-                ct.ThrowIfCancellationRequested();
-                GC.Collect();
-                GC.WaitForPendingFinalizers();
-                await Task.Delay(50, ct);
-            }
+            await Task.CompletedTask;
         }
         catch (Exception ex)
         {
