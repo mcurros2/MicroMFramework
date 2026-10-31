@@ -46,6 +46,7 @@ public class EntityTypesChunkTests
 
         string user = systemGrant ? "app_sql_user" : "config_sql_user";
         client.Verify(c => c.ExecuteSQLNonQuery(It.Is<string>(sql => sql.Contains("grant exec on [custom].mty_GetEntitiesTypes to [" + user + "]")), It.IsAny<CancellationToken>()), Times.Once);
+        client.Verify(c => c.ExecuteSQLNonQuery(It.Is<string>(sql => sql.Contains("grant exec on [custom].mme_InitializeMenu to [" + user + "]")), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [TestMethod]

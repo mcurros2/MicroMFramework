@@ -1,4 +1,4 @@
-﻿using MicroM.Core;
+using MicroM.Core;
 using MicroM.Data;
 using MicroM.Database;
 using MicroM.DataDictionary.Configuration;
@@ -126,11 +126,9 @@ public static class ReflectionExtensions
         return statusTypes;
     }
 
-    private static readonly ConditionalWeakTable<Assembly, Type[]> InterfaceTypes = [];
-
     public static List<Type> GetInterfaceTypes<T>(this Assembly asm)
     {
-        var types = InterfaceTypes.GetValue(asm, a => a.GetTypes());
+        var types = asm.GetTypes();
         return types.Where(t => t.GetInterfaces().Contains(typeof(T)) && t.IsClass).ToList();
     }
 

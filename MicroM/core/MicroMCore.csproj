@@ -90,6 +90,9 @@
     <None Remove="DataDictionary\Entities\MicromEntitiesTypes\SQL\mty_deleteAll.sql" />
     <None Remove="DataDictionary\Entities\MicromEntitiesTypes\SQL\mty_GetEntitiesTypes.sql" />
     <None Remove="DataDictionary\Entities\MicromEntitiesTypes\SQL\mty_InsertChunk.sql" />
+    <None Remove="DataDictionary\Entities\MicromMenus\SQL\mme_InitializeMenu.sql" />
+    <None Remove="DataDictionary\Entities\MicromMenus\SQL\MicromMenusItems\mmi_iCreateItems.sql" />
+    <None Remove="DataDictionary\Entities\MicromMenus\SQL\MicromMenusItemsAllowedRoutes\mir_iCreateItems.sql" />
     <None Remove="DataDictionary\Entities\MicromMenus\SQL\MicromMenusItems\mmi_update.sql" />
     <None Remove="DataDictionary\Entities\MicromRoutes\SQL\mro_deleteAllRoutes.sql" />
     <None Remove="DataDictionary\Entities\MicromRoutes\SQL\mro_iupdate.sql" />
@@ -159,6 +162,9 @@
     <EmbeddedResource Include="DataDictionary\Entities\MicromEntitiesTypes\SQL\mty_deleteAll.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\MicromEntitiesTypes\SQL\mty_GetEntitiesTypes.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\MicromEntitiesTypes\SQL\mty_InsertChunk.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\MicromMenus\SQL\mme_InitializeMenu.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\MicromMenus\SQL\MicromMenusItems\mmi_iCreateItems.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\MicromMenus\SQL\MicromMenusItemsAllowedRoutes\mir_iCreateItems.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\MicromMenus\SQL\MicromMenusItemsAllowedRoutes\mir_drop.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\MicromMenus\SQL\MicromMenusItemsAllowedRoutes\mir_get.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\MicromMenus\SQL\MicromMenusItemsAllowedRoutes\mir_update.sql" />

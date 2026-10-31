@@ -14,8 +14,6 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Collections.Concurrent;
 using System.Reflection;
-using System.Security.Cryptography;
-using System.Text.Json;
 using static System.ArgumentNullException;
 
 namespace MicroM.Web.Services;
@@ -51,42 +49,9 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
 
     private bool _startupShadowCopyCleaned;
 
-    private string? _assemblyManifest;
     private string? _activeAssemblyGeneration;
 
-
-    private async Task<string?> ReadAssemblyManifest(CancellationToken ct)
-    {
-        if (!_ApplicationsCache.TryGetValue(ConfigurationDefaults.ControlPanelAppID, out var cp)) return null;
-
-        using var client = cp.CreateDatabaseClient(_log, null, null);
-
-        var requests = await GetAssembliesToCopy(client, ct);
-
-        var parts = new List<string>();
-        foreach (var request in requests.OrderBy(r => r.app_id).ThenBy(r => r.source_assembly_path).ThenBy(r => r.assembly_id))
-        {
-            ct.ThrowIfCancellationRequested();
-            parts.Add(JsonSerializer.Serialize(request));
-
-            using var dll = File.OpenRead(request.source_assembly_path);
-
-            parts.Add(Convert.ToHexString(await SHA256.HashDataAsync(dll, ct)));
-
-            var folder = Path.Combine(Path.GetDirectoryName(request.source_assembly_path)!, _options.TestDataRootFolderName);
-            if (!Directory.Exists(folder)) continue;
-            foreach (var file in Directory.EnumerateFiles(folder, "*.json", SearchOption.AllDirectories).OrderBy(f => f, StringComparer.Ordinal))
-            {
-                parts.Add(Path.GetRelativePath(folder, file));
-                using var data = File.OpenRead(file);
-                parts.Add(Convert.ToHexString(await SHA256.HashDataAsync(data, ct)));
-            }
-        }
-
-        return JsonSerializer.Serialize(parts);
-    }
-
-
+    private readonly IHostApplicationLifetime _applicationLifetime;
 
     private static string NormalizeURL(string url)
     {
@@ -103,7 +68,8 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
         IMemoryEventsService bus,
         IConfiguration config,
         IAppAssemblyRuntimeManager assemblyRuntime,
-        IAssemblyShadowCopyService assemblyShadowCopy)
+        IAssemblyShadowCopyService assemblyShadowCopy,
+        IHostApplicationLifetime applicationLifetime)
     {
         ThrowIfNull(options);
 
@@ -115,6 +81,7 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
         _bus = bus;
         _assemblyRuntime = assemblyRuntime;
         _assemblyShadowCopy = assemblyShadowCopy;
+        _applicationLifetime = applicationLifetime;
 
         _jwtkey = CryptClass.GenerateRandomBase64String(32);
 
@@ -122,7 +89,6 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
         var trimmed = raw.Trim().Trim('/');
 
         _basePathString = string.IsNullOrEmpty(trimmed) ? PathString.Empty : new PathString("/" + trimmed);
-
 
         _log.LogTrace("initialized");
     }
@@ -151,6 +117,47 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
 
         _log.LogInformation("MicroM APP Configuration Service stopped");
 
+    }
+
+    public void QueueSeedTestData(string app_id, IReadOnlyList<IDatabaseSchema> initializers)
+    {
+        var app = GetAppConfiguration(app_id);
+        if (initializers.Count == 0 || app?.EnableSeedTestData != true) return;
+        app_id = app.ApplicationID;
+        var seeds = initializers.ToArray();
+
+        void Enqueue() => _backgroundTaskQueue.Enqueue($"SeedTestData.{app_id}", async ct =>
+        {
+            ct.ThrowIfCancellationRequested();
+            var currentApp = GetAppConfiguration(app_id);
+            if (currentApp?.EnableSeedTestData != true) return $"Test-data seeding disabled for {app_id}";
+
+            using var client = GetDatabaseClient(ConfigurationDefaults.ControlPanelAppID)
+                ?? throw new InvalidOperationException("Configuration connection unavailable for test-data seeding.");
+            client.Server = currentApp.SQLServer;
+            client.DB = currentApp.SQLDB;
+            try
+            {
+                await client.Connect(ct);
+                foreach (var initializer in seeds)
+                {
+                    ct.ThrowIfCancellationRequested();
+                    var type = initializer.GetType();
+                    _log.LogInformation("Seeding test data for app {AppID} using assembly {Assembly}", app_id, type.Assembly.FullName);
+                    using (new InitializationTiming(_log, $"{type.FullName}.SeedTestData", app_id))
+                        await initializer.SeedTestData(client, currentApp.SchemaConfiguration, _options.TestDataRootFolderName, ct);
+                    ct.ThrowIfCancellationRequested();
+                }
+            }
+            finally { await client.Disconnect(); }
+
+            ct.ThrowIfCancellationRequested();
+            _bus.Publish(new AppDatabaseUpdatedOnHotReloadEvent(app_id));
+            return $"Seeded test data for {app_id}. Initializers: {seeds.Length}";
+        }, singleInstance: true);
+
+        if (_applicationLifetime.ApplicationStarted.IsCancellationRequested) Enqueue();
+        else _applicationLifetime.ApplicationStarted.Register(Enqueue);
     }
 
     public ApplicationOption? GetAppConfiguration(string app_id)
@@ -355,7 +362,27 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
         }, true);
     }
 
-    private async Task PersistAppEntityTypes(string appId, List<(string assemblyId, string? assemblyPath, Dictionary<string, Type> types)> assembliesForApp, HashSet<string> coreEntityNames)
+    public void QueuePersistAppEntityTypes(string appId)
+    {
+        if (appId.Equals(ConfigurationDefaults.ControlPanelAppID, StringComparison.OrdinalIgnoreCase)
+            || !_EntityAssembliesCache.ContainsKey(appId)) return;
+        var app = GetAppConfiguration(appId);
+        if (app == null) return;
+        appId = app.ApplicationID;
+
+        var coreEntityNames = new HashSet<string>(DataDictionarySchema.GetCoreEntitiesTypes().Keys, StringComparer.OrdinalIgnoreCase);
+        coreEntityNames.UnionWith(ConfigurationDatabaseSchema.GetCoreConfigurationEntitiesTypes().Keys);
+        var assembliesForApp = _EntityTypesCache
+            .Where(kv => kv.Key.StartsWith(appId + ".", StringComparison.OrdinalIgnoreCase))
+            .Select(kv => kv.Value)
+            .GroupBy(type => type.Assembly)
+            .Select(group => group.ToDictionary(type => type.Name, type => type, StringComparer.OrdinalIgnoreCase))
+            .ToList();
+
+        PersistAppEntityTypes(appId, assembliesForApp, coreEntityNames);
+    }
+
+    private void PersistAppEntityTypes(string appId, List<Dictionary<string, Type>> assembliesForApp, HashSet<string> coreEntityNames)
     {
         var core_entity_names = coreEntityNames;
         _backgroundTaskQueue.Enqueue($"PersistAppEntityTypes.{appId}", async (innerCt) =>
@@ -363,12 +390,13 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
             int appEntitiesCount = 0;
             if (_ApplicationsCache.TryGetValue(appId, out var app_config))
             {
-                using DatabaseClient app_ec = app_config.CreateDatabaseClient(_log, null, null);
+                using var app_ec = GetDatabaseClient(appId);
+                if (app_ec == null) return $"Database connection unavailable for {appId}";
 
                 var entities = new CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>>();
 
                 foreach (var type in assembliesForApp
-                    .SelectMany(x => x.types.Values)
+                    .SelectMany(types => types.Values)
                     .Where(t => typeof(EntityBase).IsAssignableFrom(t) && !t.IsAbstract)
                     .Where(t => !core_entity_names.Contains(t.Name))
                     .DistinctBy(t => t.Name, StringComparer.OrdinalIgnoreCase))
@@ -409,7 +437,6 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
             using DatabaseClient client = control_panel.CreateDatabaseClient(_log, null, null);
 
             PreparedAssemblyGeneration? prepared = null;
-            var sourceManifest = await ReadAssemblyManifest(ct);
             var metadataJobs = new List<Func<Task>>();
 
             try
@@ -439,11 +466,6 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
 
                 HashSet<string> processed = new(StringComparer.OrdinalIgnoreCase);
 
-                var coreEntityNames = new HashSet<string>(DataDictionarySchema.GetCoreEntitiesTypes().Keys, StringComparer.OrdinalIgnoreCase);
-                coreEntityNames.UnionWith(ConfigurationDatabaseSchema.GetCoreConfigurationEntitiesTypes().Keys);
-
-                var appAssembliesToPersist = new Dictionary<string, List<(string assemblyId, string? assemblyPath, Dictionary<string, Type> types)>>(StringComparer.OrdinalIgnoreCase);
-
                 foreach (var row in assemblies_to_copy)
                 {
                     Dictionary<string, Type>? types;
@@ -472,7 +494,8 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
                         }
 
                         asmForEndpoints = loadedAsm;
-                        types = loadedAsm.GetEntitiesTypes();
+                        using (new InitializationTiming(_log, "AssemblyReflection", row.app_id))
+                            types = loadedAsm.GetEntitiesTypes();
                         assembly_path = loadedAsm.Location;
                     }
 
@@ -506,33 +529,13 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
                         var assemblyPath = assembly_path;
                         var appId = row.app_id;
 
-                        if (!appAssembliesToPersist.TryGetValue(row.app_id, out var appAssemblies))
-                        {
-                            appAssemblies = [];
-                            appAssembliesToPersist[row.app_id] = appAssemblies;
-                        }
-
-                        appAssemblies.Add((row.assembly_id, assembly_path, capturedTypes));
-
                         metadataJobs.Add(() => PersistEntitiesAssembliesTypes(appId, assemblyId, assemblyPath, client, capturedTypes));
                     }
                 }
 
-                foreach (var appBatch in appAssembliesToPersist)
-                {
-                    var appId = appBatch.Key;
-                    var assembliesForApp = appBatch.Value;
-
-                    metadataJobs.Add(() => PersistAppEntityTypes(appId, assembliesForApp, coreEntityNames));
-                }
-
-                if (sourceManifest != await ReadAssemblyManifest(ct))
-                    throw new InvalidOperationException("Assembly inputs changed while preparing a generation; refresh again after the build finishes.");
-
                 await _assemblyRuntime.CommitGenerationAsync(prepared.generation_id, ct);
 
                 _activeAssemblyGeneration = prepared.generation_id;
-                _assemblyManifest = sourceManifest;
 
                 _EntityTypesCache.Clear();
                 foreach (var kv in tmpEntities) _EntityTypesCache[kv.Key] = kv.Value;
@@ -738,6 +741,7 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
     public async Task<bool> RefreshConfiguration(string? app_id, ConfigurationRefreshOptions options, CancellationToken ct)
     {
         bool databaseInitializationExecuted = false;
+        List<(string AppId, List<IDatabaseSchema> Initializers)> seedInitializers = [];
         using var timing = new MicroM.Database.InitializationTiming(_log, "RefreshConfiguration", app_id);
         await _refreshSemaphore.WaitAsync(ct);
         _log.LogTrace("RefreshConfiguration Called");
@@ -749,21 +753,13 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
             _assemblyRuntime.DisableFileWatchers();
 
             var previousApps = _ApplicationsCache.ToDictionary(k => k.Key, k => k.Value, StringComparer.OrdinalIgnoreCase);
-            var previousConfigs = _ApplicationsCache.ToDictionary(k => k.Key,
-                k => JsonSerializer.Serialize(k.Value), StringComparer.OrdinalIgnoreCase);
-
             // Configuration updates rotate the SQL password before refreshing. Reload
-            // secrets before any database query, including the generation-reuse check.
+            // secrets before any configuration database query.
             await AddControlPanelApp(ct);
             var controlPanel = _ApplicationsCache[ConfigurationDefaults.ControlPanelAppID];
             previousApps[ConfigurationDefaults.ControlPanelAppID] = controlPanel;
 
-            var manifest = _activeAssemblyGeneration != null && _assemblyManifest != null
-                ? await ReadAssemblyManifest(ct)
-                : null;
-
-            bool reuseGeneration = manifest != null && manifest == _assemblyManifest;
-            if (!reuseGeneration) await StopApplicationServices();
+            await StopApplicationServices();
 
             _ApplicationsCache.Clear();
 
@@ -775,60 +771,32 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
             {
                 _ApplicationsCache.Clear();
                 foreach (var entry in previousApps) _ApplicationsCache[entry.Key] = entry.Value;
-                if (!reuseGeneration) await StartApplicationServices();
-                if (_options.EnableHotReloadForEntitiesAssemblies == true && _activeAssemblyGeneration != null)
-                    _assemblyRuntime.EnableFileWatchers(_activeAssemblyGeneration, _ => ScheduleReloadAfterLastChange());
+                await StartApplicationServices();
                 return false;
             }
 
             await ReconcileSqlServerAdminTotpState(ct);
 
-            var changedApps = _ApplicationsCache.Values.Where(a => !previousConfigs.TryGetValue(a.ApplicationID, out var old)
-                || old != JsonSerializer.Serialize(a)).Select(a => a.ApplicationID).ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-            if (reuseGeneration)
+            if (!await LoadEntitiesAssemblies(ct))
             {
-                foreach (var id in previousConfigs.Keys.Where(id => changedApps.Contains(id) || !_ApplicationsCache.ContainsKey(id)))
-                {
-                    await StopApplicationServices(id);
-                    _ApplicationServicesCache.Remove(id);
-                }
-                // No new generation was installed, so restore watchers for the active generation below.
-                if (_options.EnableHotReloadForEntitiesAssemblies == true && _activeAssemblyGeneration != null)
-                    _assemblyRuntime.EnableFileWatchers(_activeAssemblyGeneration, _ => ScheduleReloadAfterLastChange());
-            }
-            else
-            {
-                if (!await LoadEntitiesAssemblies(ct))
-                {
-                    _ApplicationsCache.Clear();
-                    foreach (var entry in previousApps) _ApplicationsCache[entry.Key] = entry.Value;
-                    await StartApplicationServices();
-                    if (_options.EnableHotReloadForEntitiesAssemblies == true && _activeAssemblyGeneration != null)
-                        _assemblyRuntime.EnableFileWatchers(_activeAssemblyGeneration, _ => ScheduleReloadAfterLastChange());
-                    return false;
-                }
-                // The loader publishes the manifest verified against its prepared generation.
+                _ApplicationsCache.Clear();
+                foreach (var entry in previousApps) _ApplicationsCache[entry.Key] = entry.Value;
+                await StartApplicationServices();
+                return false;
             }
 
             if (!options.SkipDatabaseUpdates && SelectDatabaseUpdateTargets(_ApplicationsCache.Values, app_id).Any())
             {
                 databaseInitializationExecuted = true;
-                await RunHotReloadDbUpdates(ct, app_id, options.SkipSeedTestData);
+                seedInitializers = await RunHotReloadDbUpdates(ct, app_id, options.SkipSeedTestData);
             }
 
             ReloadCors();
 
-            if (reuseGeneration)
-            {
-                foreach (var app in _ApplicationsCache.Values.Where(a => changedApps.Contains(a.ApplicationID)))
-                    await StartApplicationServices(app);
-            }
-            else await StartApplicationServices();
+            await StartApplicationServices();
 
-            _log.LogInformation("Configuration refresh: reused assemblies {Reused}; skip database updates {Skip}", reuseGeneration, options.SkipDatabaseUpdates);
+            _log.LogInformation("Configuration refresh: skip database updates {Skip}", options.SkipDatabaseUpdates);
 
-            return result;
         }
         finally
         {
@@ -845,10 +813,13 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
                     System.Runtime.GCSettings.LargeObjectHeapCompactionMode = System.Runtime.GCLargeObjectHeapCompactionMode.CompactOnce;
                     GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, blocking: true, compacting: true);
                 }
-                if (_assemblyRuntime is AppAssemblyRuntimeManager runtime) await runtime.CleanupRetiredGenerationsAsync();
             }
             finally { _refreshSemaphore.Release(); }
         }
+        if (!options.SkipDatabaseUpdates)
+            foreach (var id in GetAppIDs()) QueuePersistAppEntityTypes(id);
+        foreach (var (id, initializers) in seedInitializers) QueueSeedTestData(id, initializers);
+        return true;
     }
 
     private static readonly SemaphoreSlim _reloadSemaphore = new(1, 1);
@@ -1055,15 +1026,18 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
         return targets.ToArray();
     }
 
-    private async Task RunHotReloadDbUpdates(CancellationToken ct, string? app_id, bool skipSeedTestData)
+    private async Task<List<(string AppId, List<IDatabaseSchema> Initializers)>> RunHotReloadDbUpdates(CancellationToken ct, string? app_id, bool skipSeedTestData)
     {
+        List<(string AppId, List<IDatabaseSchema> Initializers)> seeds = [];
         foreach (var app in SelectDatabaseUpdateTargets(_ApplicationsCache.Values, app_id))
         {
-            var result = await ApplicationDatabase.UpdateAppDatabaseOnHotReload(app, this, _log, _options, skipSeedTestData, skipGarbageCollection: true, ct: ct);
+            var (result, initializers) = await ApplicationDatabase.InitializeAppDatabaseOnHotReload(app, this, _log, skipSeedTestData, skipGarbageCollection: true, ct: ct);
             if (!result.Failed)
             {
+                seeds.Add((app.ApplicationID, initializers));
                 _bus.Publish(new AppDatabaseUpdatedOnHotReloadEvent(app.ApplicationID));
             }
         }
+        return seeds;
     }
 }

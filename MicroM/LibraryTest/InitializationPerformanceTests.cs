@@ -21,24 +21,29 @@ namespace LibraryTest;
 public class InitializationPerformanceTests
 {
     [TestMethod]
-    public async Task SharedAssembly_RejectsConflictingRelativeTestData()
+    public async Task SharedAssembly_CopiesEachApplicationsOwnNestedTestData()
     {
         var folder = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
         try
         {
             var first = Path.Combine(folder, "first");
             var second = Path.Combine(folder, "second");
-            var options = new MicroMOptions { EntitiesDLLStoragePath = Path.Combine(folder, "output") };
+            var options = new MicroMOptions { EntitiesDLLStoragePath = Path.Combine(folder, "output"), TestDataRootFolderName = "custom-data" };
             foreach (var source in new[] { first, second })
             {
-                Directory.CreateDirectory(Path.Combine(source, options.TestDataRootFolderName));
+                Directory.CreateDirectory(Path.Combine(source, options.TestDataRootFolderName, "nested"));
                 File.Copy(typeof(ApplicationDatabase).Assembly.Location, Path.Combine(source, "shared.dll"));
-                File.WriteAllText(Path.Combine(source, options.TestDataRootFolderName, "data.json"), source == first ? "[]" : "[{}]");
+                File.WriteAllText(Path.Combine(source, options.TestDataRootFolderName, "nested", "data.json"), source == first ? "[]" : "[{}]");
             }
             var service = new AssemblyShadowCopyService(Options.Create(options), NullLogger<AssemblyShadowCopyService>.Instance);
-            await Assert.ThrowsAsync<InvalidOperationException>(() => service.CopyForReloadAsync([
+            var generation = await service.CopyForReloadAsync([
                 new AssemblyCopyRequest("A", Path.Combine(first, "shared.dll"), "one"),
-                new AssemblyCopyRequest("B", Path.Combine(second, "shared.dll"), "two")], CancellationToken.None));
+                new AssemblyCopyRequest("B", Path.Combine(second, "shared.dll"), "two")], CancellationToken.None);
+            foreach (var file in generation.files)
+            {
+                var data = Path.Combine(Path.GetDirectoryName(file.copied_assembly_path)!, options.TestDataRootFolderName, "nested", "data.json");
+                Assert.AreEqual(file.app_id == "A" ? "[]" : "[{}]", File.ReadAllText(data));
+            }
         }
         finally { if (Directory.Exists(folder)) Directory.Delete(folder, true); }
     }
@@ -78,7 +83,7 @@ public class InitializationPerformanceTests
     }
 
     [TestMethod]
-    public async Task SharedAssembly_IsCopiedOnce_WithBothApplicationMappings()
+    public async Task SharedAssembly_IsCopiedForEachApplication_WithBothMappings()
     {
         var folder = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
         try
@@ -89,9 +94,69 @@ public class InitializationPerformanceTests
             var generation = await service.CopyForReloadAsync([
                 new AssemblyCopyRequest("A", source, "one"), new AssemblyCopyRequest("B", source, "two")], CancellationToken.None);
             Assert.HasCount(2, generation.files);
-            Assert.AreEqual(generation.files[0].copied_assembly_path, generation.files[1].copied_assembly_path);
-            Assert.HasCount(1, Directory.GetFiles(folder, "*.dll", SearchOption.AllDirectories));
+            Assert.AreNotEqual(generation.files[0].copied_assembly_path, generation.files[1].copied_assembly_path);
+            Assert.HasCount(2, Directory.GetFiles(folder, "*.dll", SearchOption.AllDirectories));
             CollectionAssert.AreEquivalent(new[] { "A", "B" }, generation.files.Select(f => f.app_id).ToArray());
+            foreach (var file in generation.files)
+            {
+                Assert.AreEqual(Path.Combine(folder, file.app_id, generation.generation_id, Path.GetFileName(source)), file.copied_assembly_path);
+                CollectionAssert.AreEqual(File.ReadAllBytes(source), File.ReadAllBytes(file.copied_assembly_path));
+            }
+        }
+        finally { if (Directory.Exists(folder)) Directory.Delete(folder, true); }
+    }
+
+    [TestMethod]
+    public async Task ShadowCopy_NewGenerationIncludesCurrentFiles_AndStartupCleanupRemovesOldCopies()
+    {
+        var folder = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        try
+        {
+            var source = Path.Combine(folder, "source");
+            var output = Path.Combine(folder, "output");
+            Directory.CreateDirectory(Path.Combine(source, "data", "nested"));
+            var dll = Path.Combine(source, "entities.dll");
+            var data = Path.Combine(source, "data", "nested", "test.json");
+            File.WriteAllText(dll, "first DLL contents");
+            File.WriteAllText(data, "[]");
+            var service = new AssemblyShadowCopyService(Options.Create(new MicroMOptions { EntitiesDLLStoragePath = output, TestDataRootFolderName = "data" }),
+                NullLogger<AssemblyShadowCopyService>.Instance);
+            var requests = new[] { new AssemblyCopyRequest("A", dll, "one") };
+            var first = await service.CopyForReloadAsync(requests, CancellationToken.None);
+
+            File.WriteAllText(dll, "new DLL contents");
+            File.WriteAllText(data, "[{}]");
+            var second = await service.CopyForReloadAsync(requests, CancellationToken.None);
+            Assert.AreNotEqual(first.generation_id, second.generation_id);
+            Assert.AreEqual("first DLL contents", File.ReadAllText(first.files.Single().copied_assembly_path));
+            Assert.AreEqual("new DLL contents", File.ReadAllText(second.files.Single().copied_assembly_path));
+            Assert.AreEqual("[{}]", File.ReadAllText(Path.Combine(output, "A", second.generation_id, "data", "nested", "test.json")));
+
+            await service.DeleteAllGenerationsExceptAsync(second.generation_id, CancellationToken.None);
+            Assert.IsFalse(Directory.Exists(Path.Combine(output, "A", first.generation_id)));
+            Assert.IsTrue(File.Exists(second.files.Single().copied_assembly_path));
+            await service.DeleteAllGenerationsAsync(CancellationToken.None);
+            Assert.HasCount(0, Directory.GetDirectories(output));
+            var third = await service.CopyForReloadAsync(requests, CancellationToken.None);
+            Assert.AreNotEqual(second.generation_id, third.generation_id);
+            Assert.AreEqual("new DLL contents", File.ReadAllText(third.files.Single().copied_assembly_path));
+        }
+        finally { if (Directory.Exists(folder)) Directory.Delete(folder, true); }
+    }
+
+    [TestMethod]
+    public async Task ShadowCopy_PropagatesMissingFileAndCancellation()
+    {
+        var folder = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        try
+        {
+            Directory.CreateDirectory(folder);
+            var source = Path.Combine(folder, "missing.dll");
+            var service = new AssemblyShadowCopyService(Options.Create(new MicroMOptions { EntitiesDLLStoragePath = Path.Combine(folder, "output") }),
+                NullLogger<AssemblyShadowCopyService>.Instance);
+            var requests = new[] { new AssemblyCopyRequest("A", source, "one") };
+            await Assert.ThrowsExactlyAsync<FileNotFoundException>(() => service.CopyForReloadAsync(requests, CancellationToken.None));
+            await Assert.ThrowsExactlyAsync<OperationCanceledException>(() => service.CopyForReloadAsync(requests, new CancellationToken(true)));
         }
         finally { if (Directory.Exists(folder)) Directory.Delete(folder, true); }
     }
@@ -104,6 +169,36 @@ public class InitializationPerformanceTests
         var generation = await service.LoadGenerationAsync(new AssemblyShadowCopyGeneration("shared", [
             new AssemblyCopiedFile("A", source, source), new AssemblyCopiedFile("B", source, source)], []), CancellationToken.None);
         Assert.AreSame(generation.AssembliesByKey[$"A|{source}"], generation.AssembliesByKey[$"B|{source}"]);
+    }
+
+    [TestMethod]
+    public async Task FailedGenerationPreparation_KeepsActiveGenerationAndItsWatchers()
+    {
+        var source = typeof(ApplicationDatabase).Assembly.Location;
+        var files = new[] { new AssemblyCopiedFile("A", source, source) };
+        var active = new AssemblyShadowCopyGeneration("active", files, []);
+        var failed = new AssemblyShadowCopyGeneration("failed", files, []);
+        var shadow = new Mock<IAssemblyShadowCopyService>();
+        shadow.SetupSequence(s => s.CopyForReloadAsync(It.IsAny<IReadOnlyCollection<AssemblyCopyRequest>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(active).ReturnsAsync(failed);
+        var contexts = new Mock<IAssemblyLoadContextService>();
+        contexts.Setup(c => c.LoadGenerationAsync(active, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new AssemblyLoadContextGeneration("active", new Dictionary<string, System.Reflection.Assembly>()));
+        contexts.Setup(c => c.LoadGenerationAsync(failed, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new FileLoadException("Invalid assembly"));
+        var watchers = new Mock<IAssemblyFileWatcherService>();
+        await using var runtime = new AppAssemblyRuntimeManager(shadow.Object, contexts.Object, watchers.Object,
+            NullLogger<AppAssemblyRuntimeManager>.Instance);
+        var requests = new[] { new AssemblyCopyRequest("A", source, "one") };
+        var prepared = await runtime.PrepareGenerationAsync(requests, CancellationToken.None);
+        await runtime.CommitGenerationAsync(prepared.generation_id, CancellationToken.None);
+
+        await Assert.ThrowsExactlyAsync<FileLoadException>(() => runtime.PrepareGenerationAsync(requests, CancellationToken.None));
+        runtime.EnableFileWatchers("active", _ => Task.CompletedTask);
+        watchers.Verify(w => w.ResetWatchers(It.Is<IEnumerable<string>>(paths => paths.SequenceEqual(new[] { source })), It.IsAny<Func<string, Task>>()), Times.Once);
+        contexts.Verify(c => c.UnloadGenerationAsync("active", It.IsAny<CancellationToken>()), Times.Never);
+        shadow.Verify(s => s.DeleteGenerationAsync("active", It.IsAny<CancellationToken>()), Times.Never);
+        shadow.Verify(s => s.DeleteGenerationAsync("failed", It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [TestMethod]

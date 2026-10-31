@@ -1,4 +1,4 @@
-﻿using MicroM.Configuration;
+using MicroM.Configuration;
 using MicroM.Core;
 using MicroM.Data;
 using MicroM.Extensions;
@@ -41,7 +41,10 @@ public class DatabaseSchemaPermissions
                 sb.AppendLine(options.EntityInstance.AsGrantExecutionToEntityProcsScript(login_or_group));
             }
 
-            await ec.ExecuteSQLNonQuery(sb.ToString(), ct);
+            var grants = sb.ToString().Split('\n').Where(line => !string.IsNullOrWhiteSpace(line)).ToArray();
+            var unique = grants.Distinct(StringComparer.Ordinal).ToArray();
+            await ec.ExecuteSQLNonQuery(string.Join("\n", unique), ct);
+
 
         }
         finally

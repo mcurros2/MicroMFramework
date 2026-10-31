@@ -10,6 +10,8 @@ public class MicromMenusDef : EntityDefinition
 
     public readonly Column<string> c_menu_id = Column<string>.PK(size: 50);
     public readonly Column<string> vc_menu_name = Column<string>.Text();
+    public readonly Column<string> vc_json_menu = Column<string>.Text(size: 0, fake: true, column_flags: ColumnFlags.None);
+    public readonly ProcedureDefinition mme_InitializeMenu = new(nameof(vc_json_menu), nameof(webusr));
 
     public readonly Column<DateTime>? dt_last_route_updated = new(nullable: true);
 

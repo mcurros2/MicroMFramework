@@ -33,20 +33,12 @@ public sealed class AssemblyLoadContextService : IAssemblyLoadContextService, IA
     private readonly ILogger<AssemblyLoadContextService> _log;
     private readonly SemaphoreSlim _gate = new(1, 1);
     private bool _disposed;
-    private readonly ConcurrentDictionary<string, WeakReference> _retired = new(StringComparer.OrdinalIgnoreCase);
-
-    internal bool IsRetiredAlive(string generationId)
-    {
-        if (!_retired.TryGetValue(generationId, out var reference)) return false;
-        if (reference.IsAlive) return true;
-        _retired.TryRemove(generationId, out _);
-        return false;
-    }
 
     public AssemblyLoadContextService(ILogger<AssemblyLoadContextService> log) { _log = log; }
 
     public Task<AssemblyLoadContextGeneration> LoadGenerationAsync(AssemblyShadowCopyGeneration shadowCopyGeneration, CancellationToken ct)
     {
+        using var timing = new MicroM.Database.InitializationTiming(_log, "AssemblyLoad");
         var simpleNameMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         foreach (var file in shadowCopyGeneration.files)
         {
@@ -58,12 +50,10 @@ public sealed class AssemblyLoadContextService : IAssemblyLoadContextService, IA
         var context = new GenerationLoadContext(shadowCopyGeneration.generation_id, simpleNameMap);
         var assembliesByKey = new Dictionary<string, Assembly>(StringComparer.OrdinalIgnoreCase);
 
-        var loadedPaths = new Dictionary<string, Assembly>(StringComparer.OrdinalIgnoreCase);
         foreach (var file in shadowCopyGeneration.files)
         {
             ct.ThrowIfCancellationRequested();
-            if (!loadedPaths.TryGetValue(file.copied_assembly_path, out var assembly))
-                loadedPaths[file.copied_assembly_path] = assembly = context.LoadFromAssemblyPath(file.copied_assembly_path);
+            var assembly = context.LoadFromAssemblyPath(file.copied_assembly_path);
             assembliesByKey[$"{file.app_id}|{file.source_assembly_path}"] = assembly;
         }
 
@@ -74,20 +64,17 @@ public sealed class AssemblyLoadContextService : IAssemblyLoadContextService, IA
             assembliesByKey));
     }
 
-    public async Task UnloadGenerationAsync(string generationId, CancellationToken ct)
+    public Task UnloadGenerationAsync(string generationId, CancellationToken ct)
     {
-        if (!_generations.TryRemove(generationId, out var state)) return;
-        _retired[generationId] = new WeakReference(state.Context);
-        await UnloadStateAsync(state, ct);
+        if (_generations.TryRemove(generationId, out var state)) UnloadState(state);
+        return Task.CompletedTask;
     }
 
-    private async Task UnloadStateAsync(GenerationState state, CancellationToken ct)
+    private void UnloadState(GenerationState state)
     {
         try
         {
             state.Context.Unload();
-
-            await Task.CompletedTask;
         }
         catch (Exception ex)
         {
@@ -108,7 +95,7 @@ public sealed class AssemblyLoadContextService : IAssemblyLoadContextService, IA
 
             foreach (var item in all)
             {
-                await UnloadStateAsync(item.Value, CancellationToken.None);
+                UnloadState(item.Value);
             }
         }
         finally

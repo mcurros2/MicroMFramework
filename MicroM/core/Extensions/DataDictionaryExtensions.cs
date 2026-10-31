@@ -1,4 +1,4 @@
-﻿using MicroM.Core;
+using MicroM.Core;
 using MicroM.Data;
 using MicroM.DataDictionary.Configuration;
 using MicroM.DataDictionary.Entities;
@@ -181,48 +181,22 @@ public static class DataDictionaryExtensions
             await ec.Connect(ct);
 
             var menu = new MicromMenus(ec, schema_name: dd_schema_name);
-            menu.Def.c_menu_id.Value = menu_definition.MenuID;
-            menu.Def.vc_menu_name.Value = menu_definition.MenuDescription;
-
-            await menu.InsertData(ct);
-
-            var menu_item = new MicromMenusItems(ec, schema_name: dd_schema_name);
-            foreach (var item in menu_definition.MenuItems)
+            menu.Def.vc_json_menu.Value = System.Text.Json.JsonSerializer.Serialize(new
             {
-                if (item != null)
+                menu_id = menu_definition.MenuID,
+                menu_name = menu_definition.MenuDescription,
+                items = menu_definition.MenuItems.Values.Select(item => new
                 {
-                    menu_item.Def.c_menu_id.Value = menu_definition.MenuID;
-                    menu_item.Def.c_menu_item_id.Value = item.MenuItemID;
+                    item_id = item.MenuItemID,
+                    parent_id = item.ParentMenuItemID,
+                    item_name = item.MenuItemDescription,
+                    item_path = item.ItemPath,
+                    routes = item.AllowedRoutes ?? []
+                })
+            });
+            menu.Def.webusr.Value = ec.WebUser ?? "";
+            await menu.ExecuteProcessDBStatus(menu.Def.mme_InitializeMenu, ct, throw_dbstat_exception: true);
 
-                    if (item.ParentMenuItemID != null)
-                    {
-                        menu_item.Def.c_parent_menu_id.Value = menu_definition.MenuID;
-                        menu_item.Def.c_parent_item_id.Value = item.ParentMenuItemID;
-                    }
-                    else
-                    {
-                        menu_item.Def.c_parent_menu_id.Value = null;
-                        menu_item.Def.c_parent_item_id.Value = null;
-                    }
-
-                    menu_item.Def.vc_menu_item_name.Value = item.MenuItemDescription;
-                    menu_item.Def.vc_menu_item_path.Value = item.ItemPath;
-                    await menu_item.InsertData(ct);
-
-                    if (item.AllowedRoutes != null)
-                    {
-                        var allowed = new MicromMenusItemsAllowedRoutes(ec, schema_name: dd_schema_name);
-                        foreach (var route in item.AllowedRoutes)
-                        {
-                            allowed.Def.c_menu_id.Value = menu_definition.MenuID;
-                            allowed.Def.c_menu_item_id.Value = item.MenuItemID;
-                            allowed.Def.vc_route_path.Value = route;
-                            await allowed.InsertData(ct);
-                        }
-                    }
-
-                }
-            }
         }
         finally
         {

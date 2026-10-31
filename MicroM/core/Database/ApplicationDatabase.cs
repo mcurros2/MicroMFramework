@@ -37,12 +37,13 @@ public class ApplicationDatabase
         return null;
     }
 
-    private static async Task InitializeApplication(
+    private static async Task<List<IDatabaseSchema>> InitializeApplication(
         IEntityClient ec, ApplicationOption app_config, string grant_user, bool seed_test_data, IMicroMAppConfiguration config,
-        ILogger log, MicroMOptions microm_config,
+        ILogger log,
         CancellationToken ct)
     {
         using var timing = new InitializationTiming(log, "InitializeApplication", app_config.ApplicationID);
+        List<IDatabaseSchema> seedInitializers = [];
         // MMC: Clone here is used to create a connection to the same server with the app database name
         using var app_ec = ec.Clone(new_db: app_config.SQLDB);
 
@@ -82,13 +83,9 @@ public class ApplicationDatabase
                                     using (new InitializationTiming(log, $"{init_type.FullName}.CreateDBSchemaAndProcs", app_config.ApplicationID))
                                         await instance.CreateDBSchemaAndProcs(app_ec, entities, app_config.SchemaConfiguration, ct);
 
-                                    await MicromEntitiesTypes.FillEntitiesTypes(app_ec, app_config.SchemaConfiguration.DDSchema, entities, ct);
-
                                     if (app_config.EnableSeedTestData && seed_test_data)
                                     {
-                                        log.LogInformation("Seeding test data for app {AppID} using assembly {Assembly}", app_config.ApplicationID, assembly.FullName);
-                                        using (new InitializationTiming(log, $"{init_type.FullName}.SeedTestData", app_config.ApplicationID))
-                                            await instance.SeedTestData(app_ec, app_config.SchemaConfiguration, microm_config.TestDataRootFolderName, ct);
+                                        seedInitializers.Add(instance);
                                     }
                                 }
 
@@ -115,11 +112,12 @@ public class ApplicationDatabase
         {
             await app_ec.Disconnect();
         }
+        return seedInitializers;
     }
 
-    private static async Task InitializeDatabase(
+    private static async Task<List<IDatabaseSchema>> InitializeDatabase(
         IEntityClient admin_dbc, Applications app, ApplicationOption app_config, string grant_user, IWebAPIServices api,
-        bool seed_test_data, ILogger log, MicroMOptions microm_config, CancellationToken ct)
+        bool seed_test_data, ILogger log, CancellationToken ct)
     {
         // MMC: Clone here is used to create a connection to the same server with the app database name
         using var app_ec = admin_dbc.Clone(new_db: app.Def.vc_database.Value);
@@ -135,7 +133,7 @@ public class ApplicationDatabase
                 throw new InvalidOperationException($"No runtime assemblies loaded for app '{app.Def.c_application_id.Value}' and there are assemblies defined.");
             }
 
-            await InitializeApplication(app_ec, app_config, grant_user, seed_test_data, api.app_config, log, microm_config, ct);
+            return await InitializeApplication(app_ec, app_config, grant_user, seed_test_data, api.app_config, log, ct);
         }
         finally
         {
@@ -230,7 +228,6 @@ public class ApplicationDatabase
             return DBStatusResult.FailedStatus(errors);
         }
 
-
         using var admin_dbc = app.Client.Clone(app.Def.vc_server.Value, app.Client.MasterDatabase, admin_user, admin_password ?? "");
 
         if (await admin_dbc.Connect(ct, false) == false)
@@ -239,6 +236,7 @@ public class ApplicationDatabase
         }
 
         bool databaseInitializationExecuted = false;
+        List<IDatabaseSchema> seedInitializers = [];
         try
         {
             // MMC: app.Client should be the database configuration user (not sa)
@@ -282,7 +280,7 @@ public class ApplicationDatabase
 
             // Create tables and procs
             databaseInitializationExecuted = true;
-            await InitializeDatabase(admin_dbc, app, app_config, app.Def.vc_user.Value, api, seed_test_data: app_config.EnableSeedTestData, api.log, options, ct);
+            seedInitializers = await InitializeDatabase(admin_dbc, app, app_config, app.Def.vc_user.Value, api, seed_test_data: app_config.EnableSeedTestData, api.log, ct);
 
             // Create a MicroM Admin User
             if (app.Def.c_authenticationtype_id.Value.Equals(nameof(AuthenticationTypes.MicroMAuthentication), StringComparison.OrdinalIgnoreCase)
@@ -313,6 +311,8 @@ public class ApplicationDatabase
             }
         }
 
+        api.app_config.QueuePersistAppEntityTypes(app_config.ApplicationID);
+        api.app_config.QueueSeedTestData(app_config.ApplicationID, seedInitializers);
         return new() { Results = [new() { Status = DBStatusCodes.OK }] };
     }
 
@@ -339,6 +339,7 @@ public class ApplicationDatabase
         }
 
         bool databaseInitializationExecuted = false;
+        List<IDatabaseSchema> seedInitializers = [];
         try
         {
             try
@@ -360,7 +361,7 @@ public class ApplicationDatabase
 
             // Create tables and procs
             databaseInitializationExecuted = true;
-            await InitializeDatabase(admin_dbc, app, app_config, app.Def.vc_user.Value, api, seed_test_data: app_config.EnableSeedTestData, api.log, options, ct);
+            seedInitializers = await InitializeDatabase(admin_dbc, app, app_config, app.Def.vc_user.Value, api, seed_test_data: app_config.EnableSeedTestData, api.log, ct);
 
             // try to recreate user if for any reason has been deleted
             try
@@ -391,8 +392,6 @@ public class ApplicationDatabase
             }
 
             await admin_dbc.Disconnect();
-
-            return new() { Results = [new() { Status = DBStatusCodes.OK }] };
         }
         finally
         {
@@ -402,6 +401,9 @@ public class ApplicationDatabase
                 GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, blocking: true, compacting: true);
             }
         }
+        api.app_config.QueuePersistAppEntityTypes(app_config.ApplicationID);
+        api.app_config.QueueSeedTestData(app_config.ApplicationID, seedInitializers);
+        return new() { Results = [new() { Status = DBStatusCodes.OK }] };
     }
 
     public static Task<DBStatusResult> UpdateAppDatabaseOnHotReload(
@@ -417,42 +419,54 @@ public class ApplicationDatabase
         ApplicationOption app_config, IMicroMAppConfiguration config, ILogger log, MicroMOptions microm_config,
         bool skipSeedTestData, bool skipGarbageCollection, CancellationToken ct)
     {
+        var (result, initializers) = await InitializeAppDatabaseOnHotReload(app_config, config, log, skipSeedTestData, skipGarbageCollection, ct);
+        if (!result.Failed)
+        {
+            config.QueuePersistAppEntityTypes(app_config.ApplicationID);
+            config.QueueSeedTestData(app_config.ApplicationID, initializers);
+        }
+        return result;
+    }
+
+    internal static async Task<(DBStatusResult Result, List<IDatabaseSchema> Initializers)> InitializeAppDatabaseOnHotReload(
+        ApplicationOption app_config, IMicroMAppConfiguration config, ILogger log,
+        bool skipSeedTestData, bool skipGarbageCollection, CancellationToken ct)
+    {
         ArgumentNullException.ThrowIfNull(app_config);
 
         var controlPanelCfg = config.GetAppConfiguration(ConfigurationDefaults.ControlPanelAppID);
         if (controlPanelCfg == null || string.IsNullOrWhiteSpace(controlPanelCfg.SQLUser) || string.IsNullOrWhiteSpace(controlPanelCfg.SQLPassword))
         {
-            return DBStatusResult.FailedStatus("Configuration SQL user credentials were not found.");
+            return (DBStatusResult.FailedStatus("Configuration SQL user credentials were not found."), []);
         }
 
         if (string.IsNullOrWhiteSpace(app_config.SQLServer) || string.IsNullOrWhiteSpace(app_config.SQLDB))
         {
-            return DBStatusResult.FailedStatus($"Invalid SQL configuration for app '{app_config.ApplicationID}'.");
+            return (DBStatusResult.FailedStatus($"Invalid SQL configuration for app '{app_config.ApplicationID}'."), []);
         }
 
         bool databaseInitializationExecuted = false;
+        List<IDatabaseSchema> seedInitializers = [];
         using var config_dbc = new DatabaseClient(app_config.SQLServer, app_config.SQLDB, controlPanelCfg.SQLUser, controlPanelCfg.SQLPassword, logger: log);
 
         if (await config_dbc.Connect(ct, throw_exception: false) == false)
         {
-            return DBStatusResult.FailedStatus($"Can't connect to APP DB '{app_config.SQLDB}' in server '{app_config.SQLServer}' using configuration SQL user.");
+            return (DBStatusResult.FailedStatus($"Can't connect to APP DB '{app_config.SQLDB}' in server '{app_config.SQLServer}' using configuration SQL user."), []);
         }
 
         try
         {
             if (!await DatabaseExists(config_dbc, app_config.SQLDB, ct))
             {
-                return DBStatusResult.FailedStatus($"APP Database '{app_config.SQLDB}' does not exist.");
+                return (DBStatusResult.FailedStatus($"APP Database '{app_config.SQLDB}' does not exist."), []);
             }
 
             databaseInitializationExecuted = true;
-            await InitializeApplication(config_dbc, app_config, app_config.SQLUser, app_config.EnableSeedTestData && !skipSeedTestData, config, log, microm_config, ct);
-
-            return DBStatusResult.SuccessStatus();
+            seedInitializers = await InitializeApplication(config_dbc, app_config, app_config.SQLUser, app_config.EnableSeedTestData && !skipSeedTestData, config, log, ct);
         }
         catch (Exception ex)
         {
-            return DBStatusResult.FailedStatus($"Hot reload update failed for app '{app_config.ApplicationID}'. {ex.Message}");
+            return (DBStatusResult.FailedStatus($"Hot reload update failed for app '{app_config.ApplicationID}'. {ex.Message}"), []);
         }
         finally
         {
@@ -466,5 +480,6 @@ public class ApplicationDatabase
                 }
             }
         }
+        return (DBStatusResult.SuccessStatus(), seedInitializers);
     }
 }

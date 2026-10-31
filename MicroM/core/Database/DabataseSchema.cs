@@ -1,9 +1,10 @@
-﻿using MicroM.Configuration;
+using MicroM.Configuration;
 using MicroM.Core;
 using MicroM.Data;
 using MicroM.Extensions;
 using MicroM.Generators.SQLGenerator;
 using System.Reflection;
+using System.Text;
 using static MicroM.Database.DatabaseManagement;
 using static MicroM.Database.DatabaseSchemaProcedures;
 
@@ -11,6 +12,22 @@ namespace MicroM.Database;
 
 public static class DatabaseSchema
 {
+    private static async Task ExecuteProcedureScripts(IEntityClient ec, IReadOnlyList<CustomScript> scripts, CancellationToken ct)
+    {
+        foreach (var batch in scripts.Chunk(100))
+        {
+            ct.ThrowIfCancellationRequested();
+            var body = new StringBuilder("BEGIN TRY\n");
+            foreach (var script in batch)
+            {
+                // Each CREATE PROCEDURE needs a separate compilation batch.
+                body.Append("EXEC(N'").Append(script.SQLText.Replace("'", "''")).AppendLine("');");
+            }
+            body.AppendLine("END TRY BEGIN CATCH THROW; END CATCH");
+            await ec.ExecuteSQLNonQuery(body.ToString(), ct);
+        }
+    }
+
     /// <summary>
     /// Creates the database schema for the specified entity type asynchronously in the provided <see cref="AppDBSchemaConfiguration.APPSchema"/> 
     /// </summary>
@@ -152,29 +169,17 @@ public static class DatabaseSchema
             {
 
                 var idrop_scripts = classified_custom_scripts.Values.Where(x => x.ProcType == SQLScriptType.Procedure && x.StandardType == SQLProcStandardType.IDrop).ToList();
-                foreach (var func in idrop_scripts)
-                {
-                    await ec.ExecuteSQLNonQuery(func.SQLText, ct);
-                }
+                await ExecuteProcedureScripts(ec, idrop_scripts, ct);
 
                 var iupdate_scripts = classified_custom_scripts.Values.Where(x => x.ProcType == SQLScriptType.Procedure && x.StandardType == SQLProcStandardType.IUpdate).ToList();
-                foreach (var func in iupdate_scripts)
-                {
-                    await ec.ExecuteSQLNonQuery(func.SQLText, ct);
-                }
+                await ExecuteProcedureScripts(ec, iupdate_scripts, ct);
 
                 var standard_replacements = classified_custom_scripts.Values.Where(x => x.ProcType == SQLScriptType.Procedure &&
                 x.StandardType.IsIn(SQLProcStandardType.Update, SQLProcStandardType.Drop, SQLProcStandardType.Get, SQLProcStandardType.Lookup, SQLProcStandardType.StandardView)).ToList();
-                foreach (var func in standard_replacements)
-                {
-                    await ec.ExecuteSQLNonQuery(func.SQLText, ct);
-                }
+                await ExecuteProcedureScripts(ec, standard_replacements, ct);
 
                 var custom_scripts = classified_custom_scripts.Values.Where(x => x.ProcType == SQLScriptType.Procedure && x.StandardType == SQLProcStandardType.Unknown).ToList();
-                foreach (var func in custom_scripts)
-                {
-                    await ec.ExecuteSQLNonQuery(func.SQLText, ct);
-                }
+                await ExecuteProcedureScripts(ec, custom_scripts, ct);
 
             }
         }
