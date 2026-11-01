@@ -1,4 +1,4 @@
-﻿using MicroM.Configuration;
+using MicroM.Configuration;
 using MicroM.Core;
 using MicroM.Data;
 using MicroM.DataDictionary.CategoriesDefinitions;
@@ -387,7 +387,7 @@ public class MicroMAuthenticator(
         }
     }
 
-    public async Task<ResultWithStatus<bool, string>> SendPasswordRecoveryEmail(ApplicationOption app_config, string user_name, CancellationToken ct)
+    public async Task<ResultWithStatus<bool, string>> SendPasswordRecoveryEmail(ApplicationOption app_config, string user_name, string frontend_origin, CancellationToken ct)
     {
         if (string.IsNullOrEmpty(user_name)) throw new ArgumentException("Username is null or empty");
 
@@ -423,6 +423,7 @@ public class MicroMAuthenticator(
                 return new(true, $"Can't get a recovery code for user: {user_name} {get_code.Status}");
             }
 
+            EmailServiceTags origin_tag = new() { tag = IAuthenticator.AuthenticatorRecoveryEmailTemplateOriginTAG, value = frontend_origin };
             EmailServiceTags recovery_tag = new() { tag = IAuthenticator.AuthenticatorRecoveryEmailTemplateCodeTAG, value = get_code.Result };
             EmailServiceDestination[] destinations = emails.Select(e =>
             new EmailServiceDestination
@@ -430,7 +431,7 @@ public class MicroMAuthenticator(
                 reference_id = Guid.NewGuid().ToString(),
                 destination_name = "",
                 destination_email = e,
-                tags = [recovery_tag]
+                tags = [recovery_tag, origin_tag]
             }).ToArray();
 
             var email = new EmailServiceItem()

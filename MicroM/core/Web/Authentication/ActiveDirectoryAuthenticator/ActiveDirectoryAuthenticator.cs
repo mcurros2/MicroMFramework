@@ -1,4 +1,4 @@
-﻿using MicroM.ActiveDirectory;
+using MicroM.ActiveDirectory;
 using MicroM.Configuration;
 using MicroM.Core;
 using MicroM.Data;
@@ -277,7 +277,7 @@ public class ActiveDirectoryAuthenticator(
         throw new NotImplementedException();
     }
 
-    public Task<ResultWithStatus<bool, string>> SendPasswordRecoveryEmail(ApplicationOption app_config, string user_name, CancellationToken ct)
+    public Task<ResultWithStatus<bool, string>> SendPasswordRecoveryEmail(ApplicationOption app_config, string user_name, string frontend_origin, CancellationToken ct)
     {
         throw new NotImplementedException();
     }

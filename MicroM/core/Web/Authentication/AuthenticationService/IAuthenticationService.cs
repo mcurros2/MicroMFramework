@@ -1,4 +1,4 @@
-﻿using MicroM.Core;
+using MicroM.Core;
 using MicroM.Web.Authentication;
 using MicroM.Web.Authentication.SSO;
 using Microsoft.AspNetCore.Http;
@@ -15,7 +15,7 @@ public interface IAuthenticationService
 
     public Task HandleLogoff(IAuthenticationProvider auth, string app_id, string user_name, string user_id, CancellationToken ct);
 
-    public Task<ResultWithStatus<bool, string>> HandleSendRecoveryEmail(IAuthenticationProvider auth, string app_id, string user_name, CancellationToken ct);
+    public Task<ResultWithStatus<bool, string>> HandleSendRecoveryEmail(IAuthenticationProvider auth, string app_id, string user_name, string? origin, CancellationToken ct);
 
     public Task<ResultWithStatus<bool, string>> HandleRecoverPassword(IAuthenticationProvider auth, string app_id, string user_name, string new_password, string recovery_code, CancellationToken ct);
 

@@ -1,4 +1,4 @@
-﻿using MicroM.Configuration;
+using MicroM.Configuration;
 using MicroM.Core;
 
 namespace MicroM.Web.Authentication;
@@ -6,6 +6,7 @@ namespace MicroM.Web.Authentication;
 public interface IAuthenticator
 {
     public const string AuthenticatorRecoveryEmailTemplateID = "RECOVERY";
+    public const string AuthenticatorRecoveryEmailTemplateOriginTAG = "{FRONTEND_ORIGIN}";
     public const string AuthenticatorRecoveryEmailTemplateCodeTAG = "{RECOVERY_CODE}";
     public const string AuthenticatorTotpEmailTemplateID = "TOTP_LOGIN";
     public const string AuthenticatorTotpEmailTemplateCodeTAG = "{TOTP_CODE}";
@@ -18,7 +19,7 @@ public interface IAuthenticator
 
     public abstract void UnencryptClaims(Dictionary<string, object>? server_claims);
 
-    public abstract Task<ResultWithStatus<bool, string>> SendPasswordRecoveryEmail(ApplicationOption app_config, string user_name, CancellationToken ct);
+    public abstract Task<ResultWithStatus<bool, string>> SendPasswordRecoveryEmail(ApplicationOption app_config, string user_name, string frontend_origin, CancellationToken ct);
 
     public abstract Task<ResultWithStatus<bool, string>> RecoverPassword(ApplicationOption app_config, string user_name, string new_password, string recovery_code, CancellationToken ct);
 

@@ -158,7 +158,7 @@ public class SecretsAuthenticator(
         throw new NotImplementedException();
     }
 
-    public Task<ResultWithStatus<bool, string>> SendPasswordRecoveryEmail(ApplicationOption app_config, string user_name, CancellationToken ct)
+    public Task<ResultWithStatus<bool, string>> SendPasswordRecoveryEmail(ApplicationOption app_config, string user_name, string frontend_origin, CancellationToken ct)
     {
         throw new NotImplementedException();
     }

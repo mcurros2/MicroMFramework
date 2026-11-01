@@ -311,7 +311,7 @@ public class SQLServerAuthenticator : IAuthenticator
         }
     }
 
-    public Task<bool> SendPasswordRecoveryEmail(ApplicationOption app_config, string user_name, CancellationToken ct)
+    public Task<bool> SendPasswordRecoveryEmail(ApplicationOption app_config, string user_name, string frontend_origin, CancellationToken ct)
     {
         throw new NotImplementedException();
     }
@@ -321,7 +321,7 @@ public class SQLServerAuthenticator : IAuthenticator
         throw new NotImplementedException();
     }
 
-    Task<ResultWithStatus<bool, string>> IAuthenticator.SendPasswordRecoveryEmail(ApplicationOption app_config, string user_name, CancellationToken ct)
+    Task<ResultWithStatus<bool, string>> IAuthenticator.SendPasswordRecoveryEmail(ApplicationOption app_config, string user_name, string frontend_origin, CancellationToken ct)
     {
         throw new NotImplementedException();
     }

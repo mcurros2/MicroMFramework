@@ -40,9 +40,9 @@ const columns = () =>
         }),
         vc_template_body: new EntityColumn<string>({
             name: 'vc_template_body', type: 'varchar', flags: c.Edit | EntityColumnFlags.nullable, prompt: 'Message',
-            description: 'The message body for the recovery email',
-            defaultValue: 'You have requested an email to recover your password.\n\nPlease follow this link to set your new password: https://<YOUR_SITE>/recover/?code={RECOVERY_CODE}\n\nThe support team.',
-            placeholder: 'You have requested an email to recover your password.\n\nPlease follow this link to set your new password: https://<YOUR_SITE>/recover/?code={RECOVERY_CODE}\n\nThe support team.',
+            description: 'Use {FRONTEND_ORIGIN} for the requesting frontend origin and {RECOVERY_CODE} for the recovery code',
+            defaultValue: 'You have requested an email to recover your password.\n\nPlease follow this link to set your new password: {FRONTEND_ORIGIN}/recover?code={RECOVERY_CODE}\n\nThe support team.',
+            placeholder: 'You have requested an email to recover your password.\n\nPlease follow this link to set your new password: {FRONTEND_ORIGIN}/recover?code={RECOVERY_CODE}\n\nThe support team.',
         }),
         ...DefaultColumns()
     }

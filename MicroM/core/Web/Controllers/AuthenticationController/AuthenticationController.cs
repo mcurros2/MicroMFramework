@@ -1,4 +1,4 @@
-﻿using MicroM.Configuration;
+using MicroM.Configuration;
 using MicroM.Configuration.CategoriesDefinitions;
 using MicroM.Data;
 using MicroM.Web.Authentication;
@@ -375,7 +375,7 @@ public class AuthenticationController(IOptions<MicroMOptions> options) : Control
         {
             string username = parms.Username ?? "";
 
-            var (failed, status) = await aus.HandleSendRecoveryEmail(auth, app_id, username, ct);
+            var (failed, status) = await aus.HandleSendRecoveryEmail(auth, app_id, username, Request.Headers.Origin.ToString(), ct);
 
             if (failed == false)
             {

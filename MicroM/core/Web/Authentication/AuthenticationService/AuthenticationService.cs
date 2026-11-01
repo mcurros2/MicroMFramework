@@ -1,4 +1,4 @@
-﻿using MicroM.Configuration;
+using MicroM.Configuration;
 using MicroM.Configuration.CategoriesDefinitions;
 using MicroM.Core;
 using MicroM.DataDictionary.Entities;
@@ -302,7 +302,34 @@ public class AuthenticationService(
         return (null, null);
     }
 
-    public async Task<ResultWithStatus<bool, string>> HandleSendRecoveryEmail(IAuthenticationProvider auth, string app_id, string user_name, CancellationToken ct)
+    // Recovery destinations are scoped to this app, independently of global CORS permissions.
+    private static string? ResolveRecoveryOrigin(ApplicationOption app, string? origin)
+    {
+        if (string.IsNullOrWhiteSpace(origin)
+            || !System.Text.RegularExpressions.Regex.IsMatch(origin, @"\Ahttps?://[^/?#\\\s,]+/?\z",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase)
+            || !Uri.TryCreate(origin, UriKind.Absolute, out var requested)
+            || requested.UserInfo.Length != 0 || requested.AbsolutePath != "/"
+            || requested.Query.Length != 0 || requested.Fragment.Length != 0
+            || !IsRecoverySchemeAllowed(requested)) return null;
+
+        foreach (var configured in app.FrontendURLS)
+        {
+            if (!Uri.TryCreate(configured, UriKind.Absolute, out var frontend)
+                || frontend.UserInfo.Length != 0 || !IsRecoverySchemeAllowed(frontend)) continue;
+
+            if (string.Equals(requested.Scheme, frontend.Scheme, StringComparison.OrdinalIgnoreCase)
+                && string.Equals(requested.IdnHost, frontend.IdnHost, StringComparison.OrdinalIgnoreCase)
+                && requested.Port == frontend.Port)
+                return frontend.GetLeftPart(UriPartial.Authority).TrimEnd('/');
+        }
+        return null;
+    }
+
+    private static bool IsRecoverySchemeAllowed(Uri uri)
+        => uri.Scheme == Uri.UriSchemeHttps || (uri.Scheme == Uri.UriSchemeHttp && uri.IsLoopback);
+
+    public async Task<ResultWithStatus<bool, string>> HandleSendRecoveryEmail(IAuthenticationProvider auth, string app_id, string user_name, string? origin, CancellationToken ct)
     {
         ApplicationOption? app = app_config.GetAppConfiguration(app_id);
         if (app == null)
@@ -311,10 +338,17 @@ public class AuthenticationService(
             return new(true, null);
         }
 
+        var frontendOrigin = ResolveRecoveryOrigin(app, origin);
+        if (frontendOrigin == null)
+        {
+            log.LogWarning("RECOVERY_EMAIL: Missing or invalid frontend origin for APP_ID {app_id}", app_id);
+            return new(true, null);
+        }
+
         var authenticator = auth.GetAuthenticator(app);
         if (authenticator != null)
         {
-            var result = await authenticator.SendPasswordRecoveryEmail(app, user_name, ct);
+            var result = await authenticator.SendPasswordRecoveryEmail(app, user_name, frontendOrigin, ct);
             return result;
         }
         else
