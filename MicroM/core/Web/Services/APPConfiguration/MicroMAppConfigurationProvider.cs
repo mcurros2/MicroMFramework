@@ -305,6 +305,16 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
         return (assembly, entities, ddTypes);
     }
 
+    private static void EnsureControlPanelEntities()
+    {
+        // The Control Panel must remain usable before the configuration database exists.
+        // Add only missing entries so failed refreshes retain the active application caches.
+        var (assembly, entities, ddTypes) = GetControlPanelEntitiesTypes();
+        _EntityAssembliesCache.TryAdd(ConfigurationDefaults.ControlPanelAppID, [assembly]);
+        foreach (var entry in entities) _EntityTypesCache.TryAdd(entry.Key, entry.Value);
+        foreach (var entry in ddTypes) _DDTypesCache.TryAdd(entry.Key, entry.Value);
+    }
+
     private Dictionary<string, PublicEndpointSecurityRecord> GetPublicEndpointsInstances(string app_id, Assembly assembly)
     {
         var inits = assembly.GetInterfaceTypes<IPublicEndpoints>();
@@ -758,6 +768,11 @@ public class MicroMAppConfigurationProvider : IHostedService, IMicroMAppConfigur
             await AddControlPanelApp(ct);
             var controlPanel = _ApplicationsCache[ConfigurationDefaults.ControlPanelAppID];
             previousApps[ConfigurationDefaults.ControlPanelAppID] = controlPanel;
+
+            EnsureControlPanelEntities();
+            // Load global origins even on first startup, and retain existing app origins
+            // if database or assembly loading fails before the final CORS refresh.
+            ReloadCors();
 
             await StopApplicationServices();
 
