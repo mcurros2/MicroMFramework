@@ -19,11 +19,11 @@ namespace MicroM.Database
                 await ec.Connect(ct);
                 var rows = await ec.ExecuteSQL("SELECT TABLE_SCHEMA, TABLE_NAME FROM INFORMATION_SCHEMA.TABLES", ct);
                 var existing = rows.SelectMany(r => r.records)
-                    .Select(r => (Schema: r[0]?.ToString(), Table: r[1]?.ToString())).ToHashSet();
+                    .Select(r => $"{r[0]}.{r[1]}").ToHashSet(StringComparer.OrdinalIgnoreCase);
                 foreach (var options in entities.Values)
                 {
                     var def = options.EntityInstance.Def;
-                    if (!existing.Contains((def.SchemaName ?? "dbo", def.TableName))) inexisting_tables.Add(def.FullTableName);
+                    if (!existing.Contains($"{def.SchemaName}.{def.TableName}")) inexisting_tables.Add(def.FullTableName);
                 }
             }
             finally

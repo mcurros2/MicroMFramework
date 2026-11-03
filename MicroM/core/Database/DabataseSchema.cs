@@ -155,13 +155,31 @@ public static class DatabaseSchema
                 } while (retry);
             }
 
+
             if (generate_standard_procs)
             {
                 // Standard generated procs are created if no custom proc replacing it exists
+                List<CustomScript> generated_scripts = [];
+
                 foreach (var options in entities.Values)
                 {
-                    await CreateGeneratedProcs(options.EntityInstance, ec, classified_custom_scripts, create_or_alter, dd_schema, ct);
+                    var ent = options.EntityInstance;
+
+
+                    var scripts = GetGeneratedProcsScripts(ent, create_or_alter, dd_schema);
+
+                    foreach (var script_key in scripts.Keys)
+                    {
+                        // Skip the proc is it has a custom option available
+                        if (classified_custom_scripts == null || !classified_custom_scripts.Contains(script_key))
+                        {
+                            generated_scripts.Add(new(script_key, ent.Def.Mneo, SQLScriptType.Procedure, SQLProcStandardType.Unknown, scripts[script_key]!, ent.Def.SchemaName));
+                        }
+                    }
+
                 }
+
+                await ExecuteProcedureScripts(ec, generated_scripts, ct);
             }
 
             // the rest of the custom procs, in order, that correspond to the entities defined mnemonic code

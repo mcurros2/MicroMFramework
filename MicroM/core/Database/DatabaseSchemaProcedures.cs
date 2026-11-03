@@ -38,6 +38,70 @@ public static class DatabaseSchemaProcedures
         }
     }
 
+
+    public static CustomOrderedDictionary<string> GetGeneratedProcsScripts<T>(
+        T ent,
+        bool create_or_alter,
+        string dd_schema
+        ) where T : EntityBase
+    {
+        CustomOrderedDictionary<string> generated_scripts = new();
+
+        bool tableOnly = ent.Def.SQLCreationOptions.HasFlag(SQLCreationOptionsMetadata.TableOnly) | ent.Def.SQLCreationOptions.HasFlag(SQLCreationOptionsMetadata.TableOnlyWithoutSystemColumns);
+
+        if (tableOnly) return generated_scripts;
+
+        string update_proc_name = $"{ent.Def.Mneo}{_update}";
+        string iupdate_proc_name = $"{ent.Def.Mneo}{_iupdate}";
+        string get_proc_name = $"{ent.Def.Mneo}{_get}";
+        string drop_proc_name = $"{ent.Def.Mneo}{_drop}";
+        string idrop_proc_name = $"{ent.Def.Mneo}{_idrop}";
+        string lookup_proc_name = $"{ent.Def.Mneo}{_lookup}";
+        string view_proc_name = $"{ent.Def.Mneo}{_brwStandard}";
+
+        bool with_iupdate = ent.Def.SQLCreationOptions.HasFlag(SQLCreationOptionsMetadata.WithIUpdate);
+        bool with_idrop = ent.Def.SQLCreationOptions.HasFlag(SQLCreationOptionsMetadata.WithIDrop);
+
+        var generated_update_scripts = ent.AsCreateUpdateProc(dd_schema, create_or_alter, with_iupdate);
+        if (generated_update_scripts?.Count > 0)
+        {
+            if (with_iupdate)
+            {
+                generated_scripts.Add(iupdate_proc_name, generated_update_scripts[0]);
+                generated_scripts.Add(update_proc_name, generated_update_scripts[1]);
+            }
+            else
+            {
+                generated_scripts.Add(update_proc_name, generated_update_scripts[0]);
+            }
+        }
+
+        var get_proc_script = ent.AsCreateGetProc(create_or_alter);
+        if (get_proc_script?.Length > 0) generated_scripts.Add(get_proc_name, get_proc_script);
+
+        var drop_proc_scripts = ent.AsCreateDropProc(create_or_alter, with_idrop);
+        if (drop_proc_scripts?.Count > 0)
+        {
+            if (with_idrop)
+            {
+                generated_scripts.Add(idrop_proc_name, drop_proc_scripts[0]);
+                generated_scripts.Add(drop_proc_name, drop_proc_scripts[1]);
+            }
+            else
+            {
+                generated_scripts.Add(drop_proc_name, drop_proc_scripts[0]);
+            }
+        }
+
+        var lookup_proc_script = ent.AsCreateLookupProc(create_or_alter);
+        if (lookup_proc_script?.Length > 0) generated_scripts.Add(lookup_proc_name, lookup_proc_script);
+
+        var view_proc_script = ent.AsCreateViewProc(create_or_alter);
+        if (view_proc_script?.Length > 0) generated_scripts.Add(view_proc_name, view_proc_script);
+
+        return generated_scripts;
+    }
+
     public static async Task CreateGeneratedProcs<T>(
         T ent,
         IEntityClient ec,
@@ -50,59 +114,7 @@ public static class DatabaseSchemaProcedures
         bool should_close = !(ec.ConnectionState == System.Data.ConnectionState.Open);
         try
         {
-            bool tableOnly = ent.Def.SQLCreationOptions.HasFlag(SQLCreationOptionsMetadata.TableOnly) | ent.Def.SQLCreationOptions.HasFlag(SQLCreationOptionsMetadata.TableOnlyWithoutSystemColumns);
-
-            if (tableOnly) return;
-
-            string update_proc_name = $"{ent.Def.Mneo}{_update}";
-            string iupdate_proc_name = $"{ent.Def.Mneo}{_iupdate}";
-            string get_proc_name = $"{ent.Def.Mneo}{_get}";
-            string drop_proc_name = $"{ent.Def.Mneo}{_drop}";
-            string idrop_proc_name = $"{ent.Def.Mneo}{_idrop}";
-            string lookup_proc_name = $"{ent.Def.Mneo}{_lookup}";
-            string view_proc_name = $"{ent.Def.Mneo}{_brwStandard}";
-
-            bool with_iupdate = ent.Def.SQLCreationOptions.HasFlag(SQLCreationOptionsMetadata.WithIUpdate);
-            bool with_idrop = ent.Def.SQLCreationOptions.HasFlag(SQLCreationOptionsMetadata.WithIDrop);
-
-            CustomOrderedDictionary<string> generated_scripts = new();
-
-            var generated_update_scripts = ent.AsCreateUpdateProc(dd_schema, create_or_alter, with_iupdate);
-            if (generated_update_scripts?.Count > 0)
-            {
-                if (with_iupdate)
-                {
-                    generated_scripts.Add(iupdate_proc_name, generated_update_scripts[0]);
-                    generated_scripts.Add(update_proc_name, generated_update_scripts[1]);
-                }
-                else
-                {
-                    generated_scripts.Add(update_proc_name, generated_update_scripts[0]);
-                }
-            }
-
-            var get_proc_script = ent.AsCreateGetProc(create_or_alter);
-            if (get_proc_script?.Length > 0) generated_scripts.Add(get_proc_name, get_proc_script);
-
-            var drop_proc_scripts = ent.AsCreateDropProc(create_or_alter, with_idrop);
-            if (drop_proc_scripts?.Count > 0)
-            {
-                if (with_idrop)
-                {
-                    generated_scripts.Add(idrop_proc_name, drop_proc_scripts[0]);
-                    generated_scripts.Add(drop_proc_name, drop_proc_scripts[1]);
-                }
-                else
-                {
-                    generated_scripts.Add(drop_proc_name, drop_proc_scripts[0]);
-                }
-            }
-
-            var lookup_proc_script = ent.AsCreateLookupProc(create_or_alter);
-            if (lookup_proc_script?.Length > 0) generated_scripts.Add(lookup_proc_name, lookup_proc_script);
-
-            var view_proc_script = ent.AsCreateViewProc(create_or_alter);
-            if (view_proc_script?.Length > 0) generated_scripts.Add(view_proc_name, view_proc_script);
+            var generated_scripts = GetGeneratedProcsScripts(ent, create_or_alter, dd_schema);
 
             foreach (var script_key in generated_scripts.Keys)
             {
@@ -112,7 +124,6 @@ public static class DatabaseSchemaProcedures
                     await ec.ExecuteSQLNonQuery(generated_scripts[script_key]!, ct);
                 }
             }
-
         }
         finally
         {

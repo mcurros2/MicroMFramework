@@ -15,6 +15,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading;
@@ -197,6 +198,13 @@ public class C_EntityTests
         Assert.AreEqual(db_name, DatabaseConfiguration.TestDatabase, $"Incorrect database found while creating schema. Expecting {DatabaseConfiguration.TestDatabase} found {db_name}");
 
         await CreateDatadictionarySchemaAndProcs(client, schema_config, cts.Token);
+
+        // Existing tables must be found and a second run (update) must not try to create them again
+        var dd_entities = GetDataDictionaryEntitiesInstances(client, schema_config.DDSchema);
+        var missing = await MicroM.Database.DatabaseSchemaTables.GetEntitiesInexistingTables(client, dd_entities, cts.Token);
+        missing.RemoveWhere(table => dd_entities.Values.Any(o => o.EntityInstance.Def.Fake && o.EntityInstance.Def.FullTableName == table));
+        Assert.HasCount(0, missing, string.Join(", ", missing));
+        await CreateDatadictionarySchemaAndProcs(client, schema_config, cts.Token, create_or_alter: true);
 
         var menu = new MainMenuDefinition();
         await menu.AddMenu(client, cts.Token, dd_schema_name: schema_config.DDSchema);

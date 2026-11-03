@@ -62,6 +62,14 @@ public static class DatabaseSchemaCreationOptionsExtensions
         {
             await ec.Connect(ct);
 
+            // Entities without schema use the application configured schema
+            var dd_types = DataDictionarySchema.GetCoreEntitiesTypes();
+            foreach (var options in entities.Values)
+            {
+                var def = options.EntityInstance.Def;
+                if (def.SchemaName == null) def.SchemaName = dd_types.ContainsKey(options.EntityType.Name) ? schema_config.DDSchema : schema_config.APPSchema;
+            }
+
             if (custom_procs == null)
             {
                 var custom_procs_assembly = (entities[0]?.EntityType.Assembly) ?? throw new InvalidOperationException("Unable to determine the assembly for custom procedures.");

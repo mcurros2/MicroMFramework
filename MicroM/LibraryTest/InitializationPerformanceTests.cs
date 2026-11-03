@@ -210,7 +210,7 @@ public class InitializationPerformanceTests
         var entities = new CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>>();
         entities.Add(nameof(MicromEntitiesTypes), new(entity));
         var rows = new DataResult(2);
-        rows.records.Add(["custom", entity.Def.TableName]);
+        rows.records.Add(["CUSTOM", entity.Def.TableName.ToUpperInvariant()]);
         client.Setup(c => c.ExecuteSQL(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(new List<DataResult> { rows });
         var missing = await DatabaseSchemaTables.GetEntitiesInexistingTables(client.Object, entities, CancellationToken.None);
         Assert.HasCount(0, missing);

@@ -5,6 +5,8 @@ using System.Linq;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using MicroM.Configuration;
+using MicroM.Configuration.Entities;
 using MicroM.Core;
 using MicroM.Data;
 using MicroM.Database;
@@ -152,6 +154,57 @@ public class StartupOptimizationTests
         CollectionAssert.AreEqual(new[] { "IDROP", "IUPDATE", "UPDATE", "CUSTOM" }, batches);
         client.Verify(c => c.ExecuteSQLNonQuery("FUNCTION", It.IsAny<CancellationToken>()), Times.Once);
         client.Verify(c => c.ExecuteSQLNonQuery(It.Is<List<string>>(s => s.Count > 0), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [TestMethod]
+    public async Task GeneratedProcedures_AreBatched_BeforeCustomProcedures()
+    {
+        var batches = new List<string>();
+        var client = new Mock<IEntityClient>();
+        client.SetupGet(c => c.ConnectionState).Returns(ConnectionState.Open);
+        client.Setup(c => c.ExecuteSQLNonQuery(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Callback((string body, CancellationToken ct) =>
+            {
+                StringAssert.StartsWith(body, "BEGIN TRY");
+                batches.AddRange(ReadScriptLiterals(body));
+            }).Returns(Task.CompletedTask);
+        var entities = new CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>>();
+        entities.Add(nameof(MicromMenus), new(new MicromMenus(client.Object, schema_name: "custom")));
+        var scripts = new CustomOrderedDictionary<CustomScript>();
+        scripts.Add("mme_get", new("mme_get", "mme", SQLScriptType.Procedure, SQLProcStandardType.Get, "CUSTOM GET", "custom"));
+        scripts.Add("x_idrop", new("x_idrop", "x", SQLScriptType.Procedure, SQLProcStandardType.IDrop, "IDROP", "custom"));
+
+        await DatabaseSchema.CreateAllEntitiesProcs(client.Object, entities, scripts, "custom", true, CancellationToken.None);
+
+        int idrop = batches.IndexOf("IDROP");
+        Assert.IsTrue(idrop > 0, "Generated procs must be batched before the IDrop phase");
+        var generated = batches.Take(idrop).ToList();
+        Assert.IsTrue(generated.Any(s => s.Contains("proc [custom].mme_drop", StringComparison.OrdinalIgnoreCase)));
+        Assert.IsFalse(generated.Any(s => s.Contains("proc [custom].mme_get", StringComparison.OrdinalIgnoreCase)),
+            "Generated get must be skipped when a custom one exists");
+        Assert.AreEqual(1, batches.Count(s => s == "CUSTOM GET"));
+    }
+
+    [TestMethod]
+    public async Task CreateSchemaAndProcs_AssignsConfiguredSchema_ToEntitiesWithoutSchema()
+    {
+        var sql = new List<string>();
+        var client = new Mock<IEntityClient>();
+        client.SetupGet(c => c.ConnectionState).Returns(ConnectionState.Open);
+        client.Setup(c => c.ExecuteSQL(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(new List<DataResult>());
+        client.Setup(c => c.ExecuteSQLNonQuery(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Callback((string body, CancellationToken ct) => sql.Add(body)).Returns(Task.CompletedTask);
+        var dd_entity = new MicromMenus(client.Object);
+        var app_entity = new EntitiesAssemblies(client.Object);
+        var entities = new CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>>();
+        entities.Add(nameof(MicromMenus), new(dd_entity));
+        entities.Add(nameof(EntitiesAssemblies), new(app_entity));
+
+        await entities.CreateSchemaAndProcs(client.Object, new AppDBSchemaConfiguration("dd", "app"), CancellationToken.None, custom_procs: new CustomOrderedDictionary<CustomScript>());
+
+        Assert.AreEqual("dd", dd_entity.Def.SchemaName);
+        Assert.AreEqual("app", app_entity.Def.SchemaName);
+        Assert.IsTrue(sql.Any(s => s.Contains($"create table [app].[{app_entity.Def.TableName}]", StringComparison.OrdinalIgnoreCase)));
     }
 
     [TestMethod]
