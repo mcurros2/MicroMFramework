@@ -78,10 +78,32 @@ public class ApplicationDatabase
                                     throw new InvalidOperationException($"No entities found in assembly {assembly}");
                                 }
 
+                                // Get duplicate mnemonics and log them
+                                var duplicateMnemonics = entities.Values
+                                    .GroupBy(e => e.EntityInstance.Def.Mneo)
+                                    .Where(g => g.Count() > 1)
+                                    .Select(g => g.Key)
+                                    .ToList();
+
+                                if (duplicateMnemonics.Count > 0)
+                                {
+                                    log.LogError("Duplicate mnemonics found in assembly {AssemblyName}: {DuplicateMnemonics}", assembly.FullName, string.Join(", ", duplicateMnemonics));
+                                }
+
                                 if (migration_result == DatabaseMigrationResult.NoMigrationNeeded)
                                 {
                                     using (new InitializationTiming(log, $"{init_type.FullName}.CreateDBSchemaAndProcs", app_config.ApplicationID))
                                         await instance.CreateDBSchemaAndProcs(app_ec, entities, app_config.SchemaConfiguration, ct);
+
+                                    // Missing constraints and indexes on existing tables, errors are logged and the update continues
+                                    try
+                                    {
+                                        await entities.CreateEntitiesConstraintsAndIndexes(app_config.SchemaConfiguration, app_ec, ct);
+                                    }
+                                    catch (Exception ex) when (ex is not OperationCanceledException)
+                                    {
+                                        log.LogError(ex, "Error creating missing constraints and indexes for application {ApplicationID}. The database update continues.", app_config.ApplicationID);
+                                    }
 
                                     if (app_config.EnableSeedTestData && seed_test_data)
                                     {

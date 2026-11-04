@@ -28,11 +28,13 @@ public static class DatabaseSchemaExtensions
         try
         {
             await ec.Connect(ct);
+            List<CategoryDefinition> category_definitions = [];
             foreach (var category_type in categories.Values)
             {
                 CategoryDefinition? cat = (CategoryDefinition?)Activator.CreateInstance(category_type);
-                if (cat != null) await cat.AddCategory(ec, ct, schema_name);
+                if (cat != null) category_definitions.Add(cat);
             }
+            await category_definitions.AddCategories(ec, ct, schema_name);
         }
         finally
         {
@@ -48,11 +50,13 @@ public static class DatabaseSchemaExtensions
         try
         {
             await ec.Connect(ct);
+            List<StatusDefinition> status_definitions = [];
             foreach (var status_type in status.Values)
             {
                 StatusDefinition? stat = (StatusDefinition?)Activator.CreateInstance(status_type);
-                if (stat != null) await stat.AddStatus(ec, ct, schema_name);
+                if (stat != null) status_definitions.Add(stat);
             }
+            await status_definitions.AddStatuses(ec, ct, schema_name);
         }
         finally
         {

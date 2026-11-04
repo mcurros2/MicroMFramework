@@ -4,12 +4,14 @@ namespace MicroM.Database;
 
 public class ExistingConstraintInfo
 {
+    public string TableName { get; set; } = "";
     public string ConstraintType { get; set; } = null!;
     public List<string> Columns { get; set; } = new();
 }
 
 public class ExistingIndexInfo
 {
+    public string TableName { get; set; } = "";
     public List<string> Columns { get; set; } = new();
     public bool IsUnique { get; set; }
 }
@@ -167,6 +169,31 @@ ORDER BY ic.key_ordinal";
         return [.. results[0].records.Select(r => r[0]?.ToString() ?? "")];
     }
 
+    public static async Task<List<ExistingConstraintInfo>> GetAllExistingPrimaryKeyColumns(IEntityClient ec, CancellationToken ct)
+    {
+        string sql = @"
+SELECT QUOTENAME(OBJECT_SCHEMA_NAME(kc.parent_object_id)) + '.' + QUOTENAME(OBJECT_NAME(kc.parent_object_id)) AS table_name,
+       STRING_AGG(c.name, ',') WITHIN GROUP (ORDER BY ic.key_ordinal) AS column_names
+FROM sys.key_constraints kc
+INNER JOIN sys.index_columns ic ON kc.parent_object_id = ic.object_id AND kc.unique_index_id = ic.index_id
+INNER JOIN sys.columns c ON ic.object_id = c.object_id AND ic.column_id = c.column_id
+WHERE kc.type = 'PK'
+GROUP BY kc.parent_object_id, kc.object_id";
+
+        var results = await ec.ExecuteSQL(sql, ct);
+        if (results.Count == 0) return [];
+
+        List<ExistingConstraintInfo> primary_keys = [];
+        foreach (var record in results[0].records)
+        {
+            string table_name = record[0]?.ToString() ?? "";
+            string column_names = record[1]?.ToString() ?? "";
+            primary_keys.Add(new() { TableName = table_name, ConstraintType = "PK", Columns = [.. column_names.Split(',')] });
+        }
+
+        return primary_keys;
+    }
+
     public static async Task<List<ExistingConstraintInfo>> GetExistingUniqueConstraints(IEntityClient ec, string full_table_name, CancellationToken ct)
     {
         string sql = $@"
@@ -193,6 +220,31 @@ ORDER BY kc.name, ic.key_ordinal";
         return grouped;
     }
 
+    public static async Task<List<ExistingConstraintInfo>> GetAllExistingUniqueConstraints(IEntityClient ec, CancellationToken ct)
+    {
+        string sql = @"
+SELECT QUOTENAME(OBJECT_SCHEMA_NAME(kc.parent_object_id)) + '.' + QUOTENAME(OBJECT_NAME(kc.parent_object_id)) AS table_name,
+       STRING_AGG(c.name, ',') WITHIN GROUP (ORDER BY ic.key_ordinal) AS column_names
+FROM sys.key_constraints kc
+INNER JOIN sys.index_columns ic ON kc.parent_object_id = ic.object_id AND kc.unique_index_id = ic.index_id
+INNER JOIN sys.columns c ON ic.object_id = c.object_id AND ic.column_id = c.column_id
+WHERE kc.type = 'UQ'
+GROUP BY kc.parent_object_id, kc.object_id";
+
+        var results = await ec.ExecuteSQL(sql, ct);
+        if (results.Count == 0) return [];
+
+        List<ExistingConstraintInfo> unique_constraints = [];
+        foreach (var record in results[0].records)
+        {
+            string table_name = record[0]?.ToString() ?? "";
+            string column_names = record[1]?.ToString() ?? "";
+            unique_constraints.Add(new() { TableName = table_name, ConstraintType = "UQ", Columns = [.. column_names.Split(',')] });
+        }
+
+        return unique_constraints;
+    }
+
     public static async Task<List<ExistingConstraintInfo>> GetExistingForeignKeys(IEntityClient ec, string full_table_name, CancellationToken ct)
     {
         string sql = $@"
@@ -216,6 +268,30 @@ ORDER BY fk.name, fkc.constraint_column_id";
             .ToList();
 
         return grouped;
+    }
+
+    public static async Task<List<ExistingConstraintInfo>> GetAllExistingForeignKeys(IEntityClient ec, CancellationToken ct)
+    {
+        string sql = @"
+SELECT QUOTENAME(OBJECT_SCHEMA_NAME(fk.parent_object_id)) + '.' + QUOTENAME(OBJECT_NAME(fk.parent_object_id)) AS table_name,
+       STRING_AGG(c.name, ',') WITHIN GROUP (ORDER BY fkc.constraint_column_id) AS column_names
+FROM sys.foreign_keys fk
+INNER JOIN sys.foreign_key_columns fkc ON fk.object_id = fkc.constraint_object_id
+INNER JOIN sys.columns c ON fkc.parent_object_id = c.object_id AND fkc.parent_column_id = c.column_id
+GROUP BY fk.parent_object_id, fk.object_id";
+
+        var results = await ec.ExecuteSQL(sql, ct);
+        if (results.Count == 0) return [];
+
+        List<ExistingConstraintInfo> foreign_keys = [];
+        foreach (var record in results[0].records)
+        {
+            string table_name = record[0]?.ToString() ?? "";
+            string column_names = record[1]?.ToString() ?? "";
+            foreign_keys.Add(new() { TableName = table_name, ConstraintType = "FK", Columns = [.. column_names.Split(',')] });
+        }
+
+        return foreign_keys;
     }
 
     public static async Task<List<ExistingIndexInfo>> GetExistingIndexes(IEntityClient ec, string full_table_name, CancellationToken ct)
@@ -244,6 +320,36 @@ ORDER BY i.name, ic.key_ordinal";
             .ToList();
 
         return grouped;
+    }
+
+    public static async Task<List<ExistingIndexInfo>> GetAllExistingIndexes(IEntityClient ec, CancellationToken ct)
+    {
+        string sql = @"
+SELECT QUOTENAME(OBJECT_SCHEMA_NAME(i.object_id)) + '.' + QUOTENAME(OBJECT_NAME(i.object_id)) AS table_name,
+       STRING_AGG(c.name, ',') WITHIN GROUP (ORDER BY ic.key_ordinal) AS column_names,
+       i.is_unique
+FROM sys.indexes i
+INNER JOIN sys.index_columns ic ON i.object_id = ic.object_id AND i.index_id = ic.index_id
+INNER JOIN sys.columns c ON ic.object_id = c.object_id AND ic.column_id = c.column_id
+WHERE OBJECTPROPERTY(i.object_id, 'IsUserTable') = 1
+  AND i.is_primary_key = 0
+  AND i.is_unique_constraint = 0
+  AND ic.is_included_column = 0
+GROUP BY i.object_id, i.index_id, i.is_unique";
+
+        var results = await ec.ExecuteSQL(sql, ct);
+        if (results.Count == 0) return [];
+
+        List<ExistingIndexInfo> indexes = [];
+        foreach (var record in results[0].records)
+        {
+            string table_name = record[0]?.ToString() ?? "";
+            string column_names = record[1]?.ToString() ?? "";
+            bool is_unique = Convert.ToBoolean(record[2]);
+            indexes.Add(new() { TableName = table_name, Columns = [.. column_names.Split(',')], IsUnique = is_unique });
+        }
+
+        return indexes;
     }
 
     public static bool AreColumnsNamesAndOrderEqual(IEnumerable<string> columns1, IEnumerable<string> columns2)

@@ -3,6 +3,7 @@ using MicroM.Configuration.CategoriesDefinitions;
 using MicroM.Configuration.Entities;
 using MicroM.Core;
 using MicroM.Data;
+using MicroM.DataDictionary.Configuration;
 using MicroM.Extensions;
 using static MicroM.Database.DataDictionarySchema;
 
@@ -80,9 +81,9 @@ public static class ConfigurationDatabaseSchema
 
             await cfg_entities.CreateSchemaAndProcs(ec, schema_config, ct, create_or_alter, cfg_custom_procs);
 
-            await CreateCategory<AuthenticationTypes>(ec, ct, schema_config.DDSchema);
-            await CreateCategory<IdentityProviderRole>(ec, ct, schema_config.DDSchema);
-            await CreateCategory<FileStorageTypes>(ec, ct, schema_config.DDSchema);
+            CategoryDefinition[] category_definitions = [new AuthenticationTypes(), new IdentityProviderRole(), new FileStorageTypes()];
+
+            await category_definitions.AddCategories(ec, ct, schema_config.DDSchema);
 
             await cfg_entities.AddEntitiesToDataDictionary(ec, ct, schema_config.DDSchema);
 

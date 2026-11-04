@@ -172,6 +172,85 @@ public static class DataDictionaryExtensions
         return ent;
     }
 
+    /// <summary>
+    /// Adds the categories and their values to the data dictionary, one call to <see cref="CategoriesDef.cat_InitializeCategories"/> per chunk.
+    /// Existing categories and values are not modified.
+    /// </summary>
+    public static async Task AddCategories(this IEnumerable<CategoryDefinition> categories, IEntityClient ec, CancellationToken ct, string? schema_name = null)
+    {
+        var unique_categories = categories.DistinctBy(cad => cad.CategoryID).ToList();
+        if (unique_categories.Count == 0) return;
+
+        bool should_close = !(ec.ConnectionState == System.Data.ConnectionState.Open);
+
+        try
+        {
+            await ec.Connect(ct);
+
+            var cat = new Categories(ec, schema_name: schema_name);
+            cat.Def.webusr.Value = ec.WebUser ?? "";
+            foreach (var chunk in unique_categories.Chunk(100))
+            {
+                ct.ThrowIfCancellationRequested();
+                cat.Def.vc_json_categories.Value = System.Text.Json.JsonSerializer.Serialize(chunk.Select(cad => new
+                {
+                    category_id = cad.CategoryID,
+                    description = cad.Description,
+                    values = cad.GetPropertiesOrFields<CategoryValuesDefinition, CategoryDefinition>().Select(cav => new
+                    {
+                        value_id = cad.NumericIDS && cav.CategoryValueID.StartsWith('_') ? cav.CategoryValueID[1..] : cav.CategoryValueID,
+                        description = cav.Description
+                    })
+                }));
+                await cat.ExecuteProcessDBStatus(cat.Def.cat_InitializeCategories, ct, throw_dbstat_exception: true);
+            }
+        }
+        finally
+        {
+            if (should_close) await ec.Disconnect();
+        }
+    }
+
+    /// <summary>
+    /// Adds the status and their values to the data dictionary, one call to <see cref="StatusDef.sta_InitializeStatus"/> per chunk.
+    /// Existing status and values are not modified.
+    /// </summary>
+    public static async Task AddStatuses(this IEnumerable<StatusDefinition> status, IEntityClient ec, CancellationToken ct, string? schema_name = null)
+    {
+        var unique_status = status.DistinctBy(stc => stc.StatusID).ToList();
+        if (unique_status.Count == 0) return;
+
+        bool should_close = !(ec.ConnectionState == System.Data.ConnectionState.Open);
+
+        try
+        {
+            await ec.Connect(ct);
+
+            var stat = new Status(ec, schema_name: schema_name);
+            stat.Def.webusr.Value = ec.WebUser ?? "";
+            foreach (var chunk in unique_status.Chunk(100))
+            {
+                ct.ThrowIfCancellationRequested();
+                stat.Def.vc_json_status.Value = System.Text.Json.JsonSerializer.Serialize(chunk.Select(stc => new
+                {
+                    status_id = stc.StatusID,
+                    description = stc.Description,
+                    values = stc.GetPropertiesOrFields<StatusValuesDefinition, StatusDefinition>().Select(stv => new
+                    {
+                        value_id = stv.StatusValueID,
+                        description = stv.Description,
+                        initial_value = stv.InitialValue
+                    })
+                }));
+                await stat.ExecuteProcessDBStatus(stat.Def.sta_InitializeStatus, ct, throw_dbstat_exception: true);
+            }
+        }
+        finally
+        {
+            if (should_close) await ec.Disconnect();
+        }
+    }
+
     public static async Task AddMenu(this MenuDefinition menu_definition, IEntityClient ec, CancellationToken ct, string? dd_schema_name = null)
     {
         bool should_close = !(ec.ConnectionState == System.Data.ConnectionState.Open);

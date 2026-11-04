@@ -10,6 +10,8 @@ public class StatusDef : EntityDefinition
 
     public readonly Column<string> c_status_id = Column<string>.PK();
     public readonly Column<string> vc_description = Column<string>.Text();
+    public readonly Column<string> vc_json_status = Column<string>.Text(size: 0, fake: true, column_flags: ColumnFlags.None);
+    public readonly ProcedureDefinition sta_InitializeStatus = new(nameof(vc_json_status), nameof(webusr));
 
     public readonly ViewDefinition sta_brwStandard = new(nameof(c_status_id));
 

@@ -70,6 +70,7 @@
     <None Remove="Configuration\Entities\ApplicationOIDCConfiguration\SQL\ApplicationOidcClients\aoi_drop.sql" />
     <None Remove="Configuration\Entities\Applications\app_GetADConfiguration.sql" />
     <None Remove="Configuration\Entities\Applications\app_GetOIDCClients.sql" />
+    <None Remove="DataDictionary\Entities\Categories\SQL\cat_InitializeCategories.sql" />
     <None Remove="DataDictionary\Entities\EmailService\SQL\EmailServiceConfiguration\eqc_get.sql" />
     <None Remove="DataDictionary\Entities\EmailService\SQL\EmailServiceConfiguration\eqc_iupdate.sql" />
     <None Remove="DataDictionary\Entities\EmailService\SQL\EmailServiceQueue\emq_EmailTagsTableType.sql" />
@@ -107,6 +108,8 @@
     <None Remove="DataDictionary\Entities\MicromUsers\SQL\MicromUsers\usr_RecoverPassword.sql" />
     <None Remove="DataDictionary\Entities\MicromUsers\SQL\MicromUsers\usr_resetTotp.sql" />
     <None Remove="DataDictionary\Entities\MicromUsers\SQL\MicromUsers\usr_tfGetUserEmails.sql" />
+    <None Remove="DataDictionary\Entities\Objects\SQL\obj_InitializeObjects.sql" />
+    <None Remove="DataDictionary\Entities\Status\SQL\sta_InitializeStatus.sql" />
     <None Remove="DataDictionary\Entities\sys\sys_GetDropDuplicateIndexes.sql" />
     <None Remove="DataDictionary\Entities\sys\sys_tfMicroMColumns.sql" />
   </ItemGroup>
@@ -128,6 +131,7 @@
     <EmbeddedResource Include="Configuration\Entities\ApplicationOIDCConfiguration\SQL\ApplicationOidcConfiguration\aoc_iupdate.sql" />
     <EmbeddedResource Include="Configuration\Entities\Applications\SQL\app_GetADConfiguration.sql" />
     <EmbeddedResource Include="Configuration\Entities\Applications\SQL\app_GetOIDCClients.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\Categories\SQL\cat_InitializeCategories.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\EmailService\SQL\EmailServiceConfiguration\eqc_get.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\EmailService\SQL\EmailServiceConfiguration\eqc_iupdate.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\EmailService\SQL\EmailServiceQueue\emq_EmailTagsTableType.sql" />
@@ -221,6 +225,8 @@
     <EmbeddedResource Include="DataDictionary\Entities\MicromUsers\SQL\MicromUsers\usr_updateLoginAttempt.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\MicromUsers\SQL\MicromUsers\usr_GetUserData.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\Numbering\SQL\num_iGetNewNumber.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\Objects\SQL\obj_InitializeObjects.sql" />
+    <EmbeddedResource Include="DataDictionary\Entities\Status\SQL\sta_InitializeStatus.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\sys\SQL\sys_GetDropDuplicateIndexes.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\sys\SQL\sys_GetTimeZoneOffset.sql" />
     <EmbeddedResource Include="DataDictionary\Entities\sys\SQL\sys_tfLike.sql" />

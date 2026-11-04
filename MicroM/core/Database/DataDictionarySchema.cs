@@ -31,7 +31,7 @@ public static class DataDictionarySchema
         }
     }
 
-    public static async Task AddEntitiesToDataDictionary(IEntityClient ec, CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>> options, CancellationToken ct, string? dd_schema_name = null)
+    public static async Task AddEntitiesToDataDictionarySequential(IEntityClient ec, CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>> options, CancellationToken ct, string? dd_schema_name = null)
     {
         bool should_close = !(ec.ConnectionState == System.Data.ConnectionState.Open);
         try
@@ -41,6 +41,20 @@ public static class DataDictionarySchema
             {
                 await option.EntityInstance.AddInstanceToDataDictionary(ct, dd_schema_name);
             }
+        }
+        finally
+        {
+            if (should_close) await ec.Disconnect();
+        }
+    }
+
+    public static async Task AddEntitiesToDataDictionary(IEntityClient ec, CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>> entities, CancellationToken ct, string? dd_schema_name = null)
+    {
+        bool should_close = !(ec.ConnectionState == System.Data.ConnectionState.Open);
+        try
+        {
+            await ec.Connect(ct);
+            await entities.AddEntitiesToDataDictionary(ec, ct, dd_schema_name);
         }
         finally
         {
@@ -161,13 +175,11 @@ public static class DataDictionarySchema
 
             await entities.CreateSchemaAndProcs(ec, schema_config, ct, create_or_alter, filtered_custom_procs);
 
-            await CreateCategory<UserTypes>(ec, ct, schema_config.DDSchema);
-            await CreateCategory<FileStorageTypes>(ec, ct, schema_config.DDSchema);
+            CategoryDefinition[] category_definitions = [new UserTypes(), new FileStorageTypes()];
+            await category_definitions.AddCategories(ec, ct, schema_config.DDSchema);
 
-            await CreateStatus<FileUpload>(ec, ct, schema_config.DDSchema);
-            await CreateStatus<ProcessStatus>(ec, ct, schema_config.DDSchema);
-            await CreateStatus<EmailStatus>(ec, ct, schema_config.DDSchema);
-            await CreateStatus<ImportStatus>(ec, ct, schema_config.DDSchema);
+            StatusDefinition[] status_definitions = [new FileUpload(), new ProcessStatus(), new EmailStatus(), new ImportStatus()];
+            await status_definitions.AddStatuses(ec, ct, schema_config.DDSchema);
 
             await entities.AddEntitiesToDataDictionary(ec, ct, schema_config.DDSchema);
         }

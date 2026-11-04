@@ -23,6 +23,8 @@ public class ObjectsDef : EntityDefinition
     public readonly Column<string> c_object_id = Column<string>.PK();
     public readonly Column<string> c_mneo_id = Column<string>.FK();
     public readonly Column<string> vc_tablename = Column<string>.Text();
+    public readonly Column<string> vc_json_objects = Column<string>.Text(size: 0, fake: true, column_flags: ColumnFlags.None);
+    public readonly ProcedureDefinition obj_InitializeObjects = new(nameof(vc_json_objects), nameof(webusr));
 
     public readonly ViewDefinition obj_brwStandard = new(nameof(c_object_id));
 

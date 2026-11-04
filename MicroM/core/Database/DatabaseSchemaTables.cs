@@ -278,6 +278,8 @@ namespace MicroM.Database
 
         public static async Task CreateEntitiesConstraintsAndIndexes(IEntityClient ec, CustomOrderedDictionary<DatabaseSchemaCreationOptions<EntityBase>> entities, AppDBSchemaConfiguration schema_config, CancellationToken ct, bool create_only_inexisting_constraints_and_indexes = true)
         {
+            if (entities.Count == 0) return;
+
             bool should_close = !(ec.ConnectionState == System.Data.ConnectionState.Open);
             try
             {
@@ -290,13 +292,19 @@ namespace MicroM.Database
 
                 if (create_only_inexisting_constraints_and_indexes)
                 {
+                    // existing constraints/indexes for all tables
+                    var all_pks = await GetAllExistingPrimaryKeyColumns(ec, ct);
+                    var all_uniques = await GetAllExistingUniqueConstraints(ec, ct);
+                    var all_fks = await GetAllExistingForeignKeys(ec, ct);
+                    var all_indexes = await GetAllExistingIndexes(ec, ct);
+
                     // check for existing constraints/indexes by columns before generating DDL
                     foreach (var options in entities.Values)
                     {
                         var entity = options.EntityInstance;
                         string full_table_name = entity.Def.FullTableName;
 
-                        var existing_pk_columns = await GetExistingPrimaryKeyColumns(ec, full_table_name, ct);
+                        var existing_pk_columns = all_pks.FirstOrDefault(pk => pk.TableName.Equals(full_table_name, StringComparison.OrdinalIgnoreCase))?.Columns;
 
                         // Create PK only if not exists
                         if (existing_pk_columns == null)
@@ -314,7 +322,7 @@ namespace MicroM.Database
                         // Unique Constraints: check each unique constraint
                         if (entity.Def.UniqueConstraints.Count > 0)
                         {
-                            var existing_uniques = await GetExistingUniqueConstraints(ec, full_table_name, ct);
+                            var existing_uniques = all_uniques.Where(un => un.TableName.Equals(full_table_name, StringComparison.OrdinalIgnoreCase)).ToList();
 
                             foreach (var unique in entity.Def.UniqueConstraints.Values)
                             {
@@ -333,7 +341,7 @@ namespace MicroM.Database
                         // Foreign Keys: check each foreign key by child columns
                         if (entity.Def.ForeignKeys.Count > 0)
                         {
-                            var existing_fks = await GetExistingForeignKeys(ec, full_table_name, ct);
+                            var existing_fks = all_fks.Where(fk => fk.TableName.Equals(full_table_name, StringComparison.OrdinalIgnoreCase)).ToList();
                             var dd_types = Database.DataDictionarySchema.GetCoreEntitiesTypes();
 
                             foreach (var foreign_key in entity.Def.ForeignKeys.Values)
@@ -393,13 +401,13 @@ namespace MicroM.Database
                         // Indexes: check each index
                         if (entity.Def.Indexes.Count > 0)
                         {
-                            var existing_indexes = await GetExistingIndexes(ec, full_table_name, ct);
+                            var existing_indexes = all_indexes.Where(idx => idx.TableName.Equals(full_table_name, StringComparison.OrdinalIgnoreCase)).ToList();
 
-                            foreach (var index in entity.Def.Indexes.Values)
+                            foreach (var (index_key, index) in entity.Def.Indexes)
                             {
                                 if (!IndexExistsWithTheSameColumns(existing_indexes, index.Keys))
                                 {
-                                    string? index_script = entity.AsCreateIndex(index.Name);
+                                    string? index_script = entity.AsCreateIndex(index_key);
                                     if (!string.IsNullOrEmpty(index_script))
                                     {
                                         sb_create_IDXs.Append(index_script);

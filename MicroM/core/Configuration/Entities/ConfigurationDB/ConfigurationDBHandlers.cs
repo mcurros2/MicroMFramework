@@ -257,6 +257,17 @@ public static class ConfigurationDBHandlers
             await GrantExecutionToAllProcs(dbc, dd_entities!, cfg.Def.vc_configsqluser.Value, ct);
             await GrantExecutionToAllProcs(dbc, entities!, cfg.Def.vc_configsqluser.Value, ct);
 
+            // Missing constraints and indexes on existing tables, errors are logged and the update continues
+            try
+            {
+                await dd_entities!.CreateEntitiesConstraintsAndIndexes(ConfigurationDefaults.SchemaConfiguration, dbc, ct);
+                await entities!.CreateEntitiesConstraintsAndIndexes(ConfigurationDefaults.SchemaConfiguration, dbc, ct);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                api?.log.LogError(ex, "Error creating missing constraints and indexes on the configuration database. The update continues.");
+            }
+
             api?.log.LogWarning("Changing {user} sql password", cfg.Def.vc_configsqluser.Value);
 
             try

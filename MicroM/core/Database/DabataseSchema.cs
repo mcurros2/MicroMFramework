@@ -12,7 +12,7 @@ namespace MicroM.Database;
 
 public static class DatabaseSchema
 {
-    private static async Task ExecuteProcedureScripts(IEntityClient ec, IReadOnlyList<CustomScript> scripts, CancellationToken ct)
+    internal static async Task ExecuteProcedureScripts(IEntityClient ec, IReadOnlyList<CustomScript> scripts, CancellationToken ct)
     {
         foreach (var batch in scripts.Chunk(100))
         {
