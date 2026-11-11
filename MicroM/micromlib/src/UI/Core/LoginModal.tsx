@@ -1,24 +1,27 @@
-import { Modal, useComponentDefaultProps } from "@mantine/core";
+import { Modal, ModalProps, useComponentDefaultProps } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { useEffect } from "react";
 import { MicroMClient, MicroMClientClaimTypes, MicroMToken, OperationStatus, TwoFactorLoginResult } from "../../client";
 import { Login } from "./Login";
 
-export interface LoginModalProps {
+export interface LoginModalProps extends Omit<ModalProps, 'opened'> {
     client: MicroMClient,
-    title?: string,
-    onClose?: () => void,
     onLoggedIn: (claims?: Partial<MicroMClientClaimTypes>) => void,
     checkOnInit?: boolean
 }
 
 export const LoginModalDefaultProps: Partial<LoginModalProps> = {
     title: "Sign in",
-    checkOnInit: true
+    checkOnInit: true,
+    centered: true,
+    withCloseButton: false,
+    closeOnClickOutside: false,
+    closeOnEscape: false,
+    trapFocus: true
 }
 
 export function LoginModal(props: LoginModalProps) {
-    const { client, title, onClose, onLoggedIn, checkOnInit } = useComponentDefaultProps('LoginModal', LoginModalDefaultProps, props);
+    const { client, onClose, onLoggedIn, checkOnInit, ...others } = useComponentDefaultProps('LoginModal', LoginModalDefaultProps, props);
     const [opened, { open, close }] = useDisclosure(false);
 
     const statusCompletedHandler = (status: OperationStatus<MicroMToken | TwoFactorLoginResult>) => {
@@ -56,7 +59,7 @@ export function LoginModal(props: LoginModalProps) {
     }, []);
 
     return (
-        <Modal trapFocus opened={opened} onClose={closeHandler} title={title} centered withCloseButton={false} closeOnClickOutside={false} closeOnEscape={false}>
+        <Modal opened={opened} onClose={closeHandler} {...others}>
             <Login client={client} onStatusCompleted={statusCompletedHandler} />
         </Modal>
     )

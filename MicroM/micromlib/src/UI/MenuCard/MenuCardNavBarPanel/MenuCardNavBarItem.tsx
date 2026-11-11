@@ -36,6 +36,7 @@ export const MenuCardNavBarItemDefaultProps: Partial<MenuCardNavBarItemProps> = 
 export function MenuCardNavBarItem(props: MenuCardNavBarItemProps) {
     const { icon, label, active, mode, href, onClick, radius, mb, brandColor, textColor, iconSize, tooltipProps, variantStyles, themeFunctions } =
         useComponentDefaultProps('MenuCardNavBarItem', MenuCardNavBarItemDefaultProps, props);
+
     const theme = useMantineTheme();
     const fns = themeFunctions!;
     const linkProps = href ? { component: 'a' as const, href } : {};

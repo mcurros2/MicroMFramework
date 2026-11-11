@@ -23,7 +23,7 @@ public static class DatabaseSchema
                 // Each CREATE PROCEDURE needs a separate compilation batch.
                 body.Append("EXEC(N'").Append(script.SQLText.Replace("'", "''")).AppendLine("');");
             }
-            body.AppendLine("END TRY BEGIN CATCH THROW; END CATCH");
+            body.AppendLine("END TRY BEGIN CATCH IF ERROR_SEVERITY() > 10 THROW; END CATCH");
             await ec.ExecuteSQLNonQuery(body.ToString(), ct);
         }
     }

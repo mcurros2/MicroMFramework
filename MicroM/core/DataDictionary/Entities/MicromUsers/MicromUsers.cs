@@ -62,7 +62,7 @@ public class MicromUsersDef : EntityDefinition
 
 
     public readonly EntityUniqueConstraint UNUsername = new(keys: nameof(vc_username));
-    public readonly EntityUniqueConstraint UNSID = new(keys: nameof(vb_sid));
+    public readonly EntityIndex IDXSID = new(keys: nameof(vb_sid));
     public readonly EntityForeignKey<MicromUsersGroups, MicromUsers> FKGroups = new(fake: true);
 }
 
