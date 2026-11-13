@@ -237,7 +237,7 @@ public static class DataDictionaryExtensions
                     description = stc.Description,
                     values = stc.GetPropertiesOrFields<StatusValuesDefinition, StatusDefinition>().Select(stv => new
                     {
-                        value_id = stv.StatusValueID,
+                        value_id = stc.NumericIDS && stv.StatusValueID.StartsWith('_') ? stv.StatusValueID[1..] : stv.StatusValueID,
                         description = stv.Description,
                         initial_value = stv.InitialValue
                     })

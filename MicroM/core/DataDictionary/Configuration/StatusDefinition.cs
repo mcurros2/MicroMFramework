@@ -2,57 +2,58 @@
 using System.Reflection;
 using System.Runtime.CompilerServices;
 
-namespace MicroM.DataDictionary.Configuration
+namespace MicroM.DataDictionary.Configuration;
+
+public abstract class StatusDefinition
 {
-    public abstract class StatusDefinition
+    public StatusDefinition() { }
+
+    public string StatusID { get; private set; } = "";
+    public string Description { get; init; } = "";
+
+    public bool NumericIDS { get; init; } = false;
+
+    public StatusDefinition(string description, bool numericIDS = false)
     {
-        public StatusDefinition() { }
+        StatusID = this.GetType().Name;
+        Description = description;
+        NumericIDS = numericIDS;
+        FillValuesDictionary();
+    }
 
-        public string StatusID { get; private set; } = "";
-        public string Description { get; init; } = "";
+    public Dictionary<string, StatusValuesDefinition> Values { get; } = new(StringComparer.OrdinalIgnoreCase);
 
-        public StatusDefinition(string description)
+    private void FillValuesDictionary()
+    {
+        IOrderedEnumerable<MemberInfo> instance_members = this.GetType().GetAndCacheInstanceMembers();
+
+        bool initialValueDefined = false;
+
+        foreach (var prop in instance_members)
         {
-            StatusID = this.GetType().Name;
-            Description = description;
-            FillValuesDictionary();
-        }
-
-        public Dictionary<string, StatusValuesDefinition> Values { get; } = new(StringComparer.OrdinalIgnoreCase);
-
-        private void FillValuesDictionary()
-        {
-            IOrderedEnumerable<MemberInfo> instance_members = this.GetType().GetAndCacheInstanceMembers();
-
-            bool initialValueDefined = false;
-
-            foreach (var prop in instance_members)
+            if (prop.MemberType.IsIn(MemberTypes.Property, MemberTypes.Field) && prop.GetCustomAttribute<CompilerGeneratedAttribute>() == null)
             {
-                if (prop.MemberType.IsIn(MemberTypes.Property, MemberTypes.Field) && prop.GetCustomAttribute<CompilerGeneratedAttribute>() == null)
+                if (prop.GetMemberType() == typeof(StatusValuesDefinition))
                 {
-                    if (prop.GetMemberType() == typeof(StatusValuesDefinition))
+                    var status_value = (StatusValuesDefinition?)prop.GetMemberValue(this);
+                    if (status_value != null)
                     {
-                        var status_value = (StatusValuesDefinition?)prop.GetMemberValue(this);
-                        if (status_value != null)
+                        if (status_value.InitialValue && initialValueDefined)
                         {
-                            if (status_value.InitialValue && initialValueDefined)
-                            {
-                                throw new ArgumentException($"InitialValue already defined. Only one status value can be defined as initial value. Status Value: Value {status_value.StatusValueID} ({status_value.Description}), Status {this.StatusID} ({Description})");
-                            }
-                            if (Values.TryAdd(prop.Name, status_value))
-                            {
-                                status_value.StatusValueID = prop.Name;
-                            }
-                            else
-                            {
-                                throw new ArgumentException($"Duplicate Status Value: Value {status_value.StatusValueID} ({status_value.Description}), Status {this.StatusID} ({Description})");
-                            }
+                            throw new ArgumentException($"InitialValue already defined. Only one status value can be defined as initial value. Status Value: Value {status_value.StatusValueID} ({status_value.Description}), Status {this.StatusID} ({Description})");
+                        }
+                        if (Values.TryAdd(prop.Name, status_value))
+                        {
+                            status_value.StatusValueID = prop.Name;
+                        }
+                        else
+                        {
+                            throw new ArgumentException($"Duplicate Status Value: Value {status_value.StatusValueID} ({status_value.Description}), Status {this.StatusID} ({Description})");
                         }
                     }
                 }
             }
         }
-
     }
 
 }
