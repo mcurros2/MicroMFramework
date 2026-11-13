@@ -18,7 +18,7 @@ namespace MicroM.Generators.ReactGenerator
 
         internal static string ToTypeScriptFlags(this ColumnFlags flags)
         {
-            if (flags == ColumnFlags.None) return "EntityColumnFlags.None";
+            if (flags == ColumnFlags.None || flags == ColumnFlags.Fake) return "EntityColumnFlags.None";
             if (flags.HasAllFlags(ColumnFlags.PK | ColumnFlags.Autonum)) return "c.PKAutonum";
             if (flags.HasFlag(ColumnFlags.PK)) return "c.PK";
             if (flags.HasFlag(ColumnFlags.FK)) return "c.FK";
