@@ -93,6 +93,8 @@ public class MicroMAuthenticator(
                 }
                 else
                 {
+                    MicromUsers.ApplyPepper(user_login, app_config);
+
                     PasswordVerificationResult ret = UserPasswordHasher.VerifyPassword(user_login, login_data.pwhash, user_login.Password);
                     result.PasswordVerificationResult = ret;
 
