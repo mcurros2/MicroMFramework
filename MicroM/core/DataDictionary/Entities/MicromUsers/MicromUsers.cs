@@ -1,4 +1,5 @@
-﻿using MicroM.Configuration;
+﻿
+using MicroM.Configuration;
 using MicroM.Core;
 using MicroM.Data;
 using MicroM.DataDictionary.CategoriesDefinitions;
@@ -6,8 +7,6 @@ using MicroM.DataDictionary.Procs;
 using MicroM.Extensions;
 using MicroM.Web.Authentication;
 using MicroM.Web.Services;
-using System.Security.Cryptography;
-using System.Text;
 
 namespace MicroM.DataDictionary.Entities;
 
@@ -73,13 +72,6 @@ public class MicromUsers : Entity<MicromUsersDef>
     public MicromUsers(string? schema_name) : base(schema_name) { }
     public MicromUsers(IEntityClient ec, IMicroMEncryption? encryptor = null, string? schema_name = null) : base(ec, encryptor, schema_name) { }
 
-    public static void ApplyPepper(UserLogin login, ApplicationOption app)
-    {
-        var data = Encoding.UTF8.GetBytes($"{app.ApplicationID}:{login.Username}:{login.Password}");
-        byte[] hash = HMACSHA256.HashData(Encoding.UTF8.GetBytes(app.JWTKey), data);
-        login.Password = Convert.ToBase64String(hash);
-    }
-
     public override Task<DBStatusResult> InsertData(CancellationToken ct, bool throw_dbstat_exception = false, MicroMOptions? options = null, Dictionary<string, object>? server_claims = null, IWebAPIServices? api = null, string? app_id = null)
     {
         var user_login = new UserLogin
@@ -87,13 +79,6 @@ public class MicromUsers : Entity<MicromUsersDef>
             Username = this.Def.vc_username.Value,
             Password = this.Def.vc_password.Value,
         };
-
-        var app = api?.app_config.GetAppConfiguration(app_id ?? "");
-
-        if (app != null)
-        {
-            ApplyPepper(user_login, app);
-        }
 
         this.Def.vc_pwhash.Value = UserPasswordHasher.HashPassword(user_login, user_login.Password);
 
@@ -262,15 +247,7 @@ public class MicromUsers : Entity<MicromUsersDef>
         var proc = user.Def.usr_RecoverPassword;
         proc[nameof(MicromUsersDef.vc_username)].ValueObject = username;
         proc[nameof(MicromUsersDef.vc_recovery_code)].ValueObject = recovery_code;
-
-        var login = new UserLogin { Username = username, Password = new_password };
-
-        if (app != null)
-        {
-            ApplyPepper(login, app);
-        }
-
-        proc[nameof(MicromUsersDef.vc_pwhash)].ValueObject = UserPasswordHasher.HashPassword(login, login.Password);
+        proc[nameof(MicromUsersDef.vc_pwhash)].ValueObject = UserPasswordHasher.HashPassword(new UserLogin { Username = username, Password = new_password }, new_password);
 
         return await user.Data.ExecuteProcDBStatus(proc, ct, set_parms_from_columns: false);
     }
