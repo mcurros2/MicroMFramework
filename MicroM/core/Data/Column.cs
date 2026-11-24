@@ -172,7 +172,7 @@ public class Column<T> : ColumnBase
         }
     }
 
-    public static Column<string> EmbedStatus(string status_id, string value = default!, ColumnFlags column_flags = ColumnFlags.Insert | ColumnFlags.Update | ColumnFlags.Fake, bool api_readonly = false)
+    public static Column<T> EmbedStatus(string status_id, bool nullable = false, T value = default!, ColumnFlags column_flags = ColumnFlags.Insert | ColumnFlags.Update | ColumnFlags.Fake, bool api_readonly = false)
     {
         if (typeof(T) != typeof(string))
         {
@@ -181,7 +181,7 @@ public class Column<T> : ColumnBase
 
         if (api_readonly) column_flags |= ColumnFlags.APIReadOnly;
 
-        return new Column<string>("", value: value, sql_type: SqlDbType.Char, size: 20, column_flags: column_flags) { RelatedStatusID = status_id };
+        return new Column<T>("", value: value, nullable: nullable, sql_type: SqlDbType.Char, size: 20, column_flags: column_flags) { RelatedStatusID = status_id };
     }
 
     public T Value

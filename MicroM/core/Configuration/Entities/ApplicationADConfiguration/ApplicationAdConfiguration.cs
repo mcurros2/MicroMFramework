@@ -18,14 +18,14 @@ public class ApplicationAdConfigurationDef : EntityDefinition
 
     public readonly Column<string> vc_ad_container = Column<string>.Text(size: 2048);
     public readonly Column<string> vc_ad_server_ip = Column<string>.Text(size: 64);
-    public readonly Column<string> vc_ad_user = Column<string>.Text(size: 256, encrypted: true);
-    public readonly Column<string> vc_ad_password = Column<string>.Text(size: 2048, encrypted: true);
+    public readonly Column<string> vc_ad_user = Column<string>.Text(size: 0, encrypted: true);
+    public readonly Column<string> vc_ad_password = Column<string>.Text(size: 0, encrypted: true);
 
     public readonly Column<bool> bt_create_user_on_login = new() { Value = false };
 
     public readonly Column<string?> c_default_user_group_id = Column<string?>.FK(nullable: true);
 
-    public readonly ViewDefinition aad_brwStandard = new(nameof(c_application_id));
+    public readonly ViewDefinition aad_brwStandard = new(nameof(c_ad_configuration_id), nameof(c_application_id));
 
     public readonly EntityForeignKey<Applications, ApplicationAdConfiguration> FKApplication = new();
     public readonly EntityForeignKey<MicromUsersGroups, ApplicationAdConfiguration> FKUserGroups = new(fake: true, key_mappings: [new(nameof(MicromUsersGroupsDef.c_user_group_id), nameof(c_default_user_group_id))]);

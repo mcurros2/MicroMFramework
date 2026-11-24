@@ -22,6 +22,9 @@ public class MicroMAuthenticationProvider(ILogger<MicroMAuthenticationProvider> 
             case nameof(AuthenticationTypes.SQLServerAuthentication):
                 return GetService<SQLServerAuthenticator>();
 
+            case nameof(AuthenticationTypes.ADAuthentication):
+                return GetService<ActiveDirectoryAuthenticator>();
+
             case nameof(AuthenticationTypes.SecretsAuthentication):
                 return GetService<SecretsAuthenticator>();
 

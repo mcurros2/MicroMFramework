@@ -103,6 +103,12 @@ public static class WebAPIBaseExtensions
         return services;
     }
 
+    public static IServiceCollection AddADAuthenticator(this IServiceCollection services)
+    {
+        services.AddSingleton<IAuthenticator, ActiveDirectoryAuthenticator>();
+        return services;
+    }
+
     public static IServiceCollection AddMemoryEventBus(this IServiceCollection services)
     {
         services.AddSingleton<IMemoryEventsService, MemoryEventsService>();
@@ -479,6 +485,7 @@ public static class WebAPIBaseExtensions
         services.AddMicroMAppConfiguration();
         services.AddMicroMAuthenticator();
         services.AddSQLServerAuthenticator();
+        services.AddADAuthenticator();
         services.AddMicroMAuthenticationProvider();
         services.AddThumbnailService();
         services.AddDiskFileCacheService();

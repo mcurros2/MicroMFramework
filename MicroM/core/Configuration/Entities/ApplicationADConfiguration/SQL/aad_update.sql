@@ -5,8 +5,8 @@
         , @user_principal_domain VarChar(2048)
         , @ad_container VarChar(2048)
         , @ad_server_ip VarChar(64)
-        , @ad_user VarChar(256)
-        , @ad_password VarChar(2048)
+        , @ad_user VarChar(max)
+        , @ad_password VarChar(max)
         , @create_user_on_login Bit
         , @default_user_group_id Char(20)
         , @lu DateTime
