@@ -1,7 +1,7 @@
-import { DefaultMantineColor, Navbar, NavbarProps, Stack, Tooltip, useComponentDefaultProps, useMantineTheme } from "@mantine/core";
+import { DefaultMantineColor, MantineNumberSize, Navbar, NavbarProps, Stack, Tooltip, useComponentDefaultProps, useMantineTheme } from "@mantine/core";
 import { useSpotlight } from "@mantine/spotlight";
 import { IconHome, IconSearch } from "@tabler/icons-react";
-import { ReactNode } from "react";
+import { ComponentPropsWithoutRef, ReactNode } from "react";
 import { MenuItem } from "../../Menu/MenuItem";
 import { parseMenuRoute } from "../../Router/MenuRoute";
 import { normalizeRouteURL } from "../../Router/MicroMRouterState";
@@ -40,6 +40,11 @@ export interface MenuCardNavBarPanelProps extends Omit<NavbarProps, 'children' |
     itemProps?: NavBarItemOverrides,
     /** Overrides applied to the search item only, after itemProps. Replaces the default object entirely when set per instance */
     searchItemProps?: NavBarItemOverrides,
+    footer?: ReactNode,
+    spacing?: MantineNumberSize,
+    logoSectionProps?: ComponentPropsWithoutRef<typeof Navbar.Section>,
+    itemsSectionProps?: ComponentPropsWithoutRef<typeof Navbar.Section>,
+    footerSectionProps?: ComponentPropsWithoutRef<typeof Navbar.Section>,
 }
 
 export const MenuCardNavBarPanelDefaultProps: Partial<MenuCardNavBarPanelProps> = {
@@ -56,12 +61,15 @@ export const MenuCardNavBarPanelDefaultProps: Partial<MenuCardNavBarPanelProps> 
     p: 'xs',
     pt: '0.2rem',
     pl: '0.845rem',
+    spacing: 'sm',
+    itemsSectionProps: { grow: true, mt: "md" }
 };
 
 export function MenuCardNavBarPanel(props: MenuCardNavBarPanelProps) {
     const {
         isLoggedIn, rootItems, Logo, logoTooltip, mode, homeMenuId, homeLabel, searchLabel, brandColor,
-        widthIcons, widthText, homeIcon, searchIcon, variantStyles, themeFunctions, itemProps, searchItemProps, bg, ...others
+        widthIcons, widthText, homeIcon, searchIcon, variantStyles, themeFunctions, itemProps, searchItemProps, footer,
+        spacing, logoSectionProps, itemsSectionProps, footerSectionProps, bg, ...others
     } = useComponentDefaultProps('MenuCardNavBarPanel', MenuCardNavBarPanelDefaultProps, props);
 
     const theme = useMantineTheme();
@@ -83,15 +91,15 @@ export function MenuCardNavBarPanel(props: MenuCardNavBarPanelProps) {
             {...others}
         >
             {Logo && (
-                <Navbar.Section>
+                <Navbar.Section {...logoSectionProps}>
                     {mode === 'icons'
                         ? <Tooltip withArrow withinPortal={true} label={logoTooltip} position="right">{Logo}</Tooltip>
                         : Logo
                     }
                 </Navbar.Section>
             )}
-            <Navbar.Section grow mt="md">
-                <Stack>
+            <Navbar.Section {...itemsSectionProps}>
+                <Stack spacing={spacing} >
                     <MenuCardNavBarItem
                         mode={mode}
                         icon={searchIcon}
@@ -131,6 +139,11 @@ export function MenuCardNavBarPanel(props: MenuCardNavBarPanelProps) {
                     ))}
                 </Stack>
             </Navbar.Section>
+            {footer && (
+                <Navbar.Section {...footerSectionProps}>
+                    {footer}
+                </Navbar.Section>
+            )}
         </Navbar>
     )
 }

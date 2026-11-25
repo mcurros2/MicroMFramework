@@ -77,7 +77,7 @@ export function MenuCardNavBarItem(props: MenuCardNavBarItemProps) {
                     {icon}
                 </ThemeIcon>
                 <Text className="menu-card-navbar-item-label"
-                    style={{ color: labelColor }}>
+                    sx={{ color: labelColor }}>
                     {label}
                 </Text>
             </Group>
