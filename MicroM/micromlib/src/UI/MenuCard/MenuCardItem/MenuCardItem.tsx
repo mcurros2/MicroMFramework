@@ -1,34 +1,30 @@
-import { Anchor, Card, CardProps, CSSObject, DefaultMantineColor, Group, MantineNumberSize, MantineSize, packSx, Stack, Text, Title, TitleOrder, useComponentDefaultProps, useMantineTheme } from "@mantine/core";
-import { ReactNode } from "react";
+import { Anchor, Card, CardProps, CSSObject, DefaultMantineColor, DefaultProps, Group, MantineNumberSize, MantineSize, packSx, Stack, Text, Title, TitleOrder, useComponentDefaultProps, useMantineTheme } from "@mantine/core";
+import { ComponentType, PropsWithChildren, ReactNode } from "react";
 import { Fragment } from "react/jsx-runtime";
 import { MenuItem } from "../../Menu/MenuItem";
 import { navigateToRoute, normalizeRouteURL } from "../../Router/MicroMRouterState";
 
-export interface MenuCardItemProps extends Omit<CardProps, 'children'> {
+export interface MenuCardItemProps<TContainerProps extends DefaultProps> extends Omit<CardProps, 'children'> {
     item: MenuItem,
     routeBuilder?: (path: string) => string,
-    /** Styles applied to the card on hover */
     hoverStyles?: CSSObject,
-    /** Heading order for the item title */
     titleOrder?: TitleOrder,
-    /** Title color in light color scheme */
     titleColorLight?: DefaultMantineColor,
-    /** Title color in dark color scheme */
     titleColorDark?: DefaultMantineColor,
-    /** Spacing between the icon and the title */
     headerSpacing?: MantineNumberSize,
-    /** Spacing between shortcut links */
     shortcutSpacing?: MantineNumberSize,
-    /** Font size of shortcut links */
     shortcutSize?: MantineSize,
-    /** Node rendered between shortcut links */
     shortcutSeparator?: ReactNode,
-    /** Left indent applied to shortcuts when the item has no icon */
     noIconIndent?: MantineNumberSize,
     showDescription?: boolean,
+    SubitemsContainer?: ComponentType<PropsWithChildren & TContainerProps>
+    SubitemsContainerProps?: Partial<TContainerProps>,
+    subitemsDisplayMode?: 'grid' | 'group' | 'custom',
+    shortcutAnchorProps?: Omit<React.ComponentPropsWithoutRef<typeof Anchor>, 'href' | 'size'>,
+    shortcutColumnsThreshold?: number,
 }
 
-export const MenuCardItemDefaultProps: Partial<MenuCardItemProps> = {
+export const MenuCardItemDefaultProps: Partial<MenuCardItemProps<any>> = {
     routeBuilder: path => path,
     shadow: 'sm',
     withBorder: true,
@@ -41,14 +37,22 @@ export const MenuCardItemDefaultProps: Partial<MenuCardItemProps> = {
     shortcutSize: 'sm',
     shortcutSeparator: <Text size="xs" color="dimmed">·</Text>,
     noIconIndent: '2.1rem',
+    SubitemsContainer: Group,
 };
 
-export function MenuCardItem(props: MenuCardItemProps) {
+export function MenuCardItem<TContainerProps extends DefaultProps>(props: MenuCardItemProps<TContainerProps>) {
     const {
         item, routeBuilder, hoverStyles, titleOrder, titleColorLight, titleColorDark, headerSpacing,
-        shortcutSpacing, shortcutSize, shortcutSeparator, noIconIndent, sx, style, showDescription, ...others
+        shortcutSpacing, shortcutSize, shortcutSeparator, noIconIndent, sx, style, showDescription,
+        SubitemsContainer, SubitemsContainerProps, shortcutAnchorProps, ...others
     } = useComponentDefaultProps('MenuCardItem', MenuCardItemDefaultProps, props);
+
     const theme = useMantineTheme();
+
+    const subitemsContainerProps = {
+        ...SubitemsContainerProps,
+        ...(shortcutSpacing !== undefined ?{ spacing: shortcutSpacing } : {}),
+    } as PropsWithChildren & TContainerProps;
 
     return (
         <Card
@@ -68,20 +72,23 @@ export function MenuCardItem(props: MenuCardItemProps) {
                         {item.description}
                     </Text>
                 )}
-                <Group key={`cig${item.ID}`} spacing={shortcutSpacing}>
-                    {item.subitems?.filter((s) => s.canShowAsShortcut)
-                        .map((subitem, index, arr) => (
-                            <Fragment key={`sh${subitem.ID}`}>
-                                <Anchor
-                                    href={normalizeRouteURL(routeBuilder!(subitem.menuPath || ''))}
-                                    size={shortcutSize}
-                                >
-                                    {subitem.label}
-                                </Anchor>
-                                {index < arr.length - 1 && shortcutSeparator}
-                            </Fragment>
-                        ))}
-                </Group>
+                {SubitemsContainer && 
+                    <SubitemsContainer {...subitemsContainerProps} key={`cig${item.ID}`}>
+                        {item.subitems?.filter((s) => s.canShowAsShortcut)
+                            .map((subitem, index, arr) => (
+                                <Fragment key={`sh${subitem.ID}`}>
+                                    <Anchor
+                                        { ...shortcutAnchorProps }
+                                        href={normalizeRouteURL(routeBuilder!(subitem.menuPath || ''))}
+                                        size={shortcutSize}
+                                    >
+                                        {subitem.label}
+                                    </Anchor>
+                                    {index < arr.length - 1 && shortcutSeparator}
+                                </Fragment>
+                            ))}
+                    </SubitemsContainer>
+                }
             </Stack>
         </Card>
     )
