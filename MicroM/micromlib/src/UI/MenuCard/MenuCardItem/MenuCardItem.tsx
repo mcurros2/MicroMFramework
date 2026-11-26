@@ -1,5 +1,5 @@
-import { Anchor, Card, CardProps, CSSObject, DefaultMantineColor, DefaultProps, Group, MantineNumberSize, MantineSize, packSx, SimpleGrid, SimpleGridProps, Stack, Text, Title, TitleOrder, useComponentDefaultProps, useMantineTheme } from "@mantine/core";
-import { ComponentType, Fragment, PropsWithChildren, ReactNode } from "react";
+import { Anchor, Box, BoxProps, Card, CardProps, CSSObject, DefaultMantineColor, DefaultProps, Group, GroupProps, MantineNumberSize, MantineSize, packSx, SimpleGrid, SimpleGridProps, Stack, Text, Title, TitleOrder, TitleProps, useComponentDefaultProps, useMantineTheme } from "@mantine/core";
+import { ComponentType, Fragment, isValidElement, PropsWithChildren, ReactNode } from "react";
 import { MenuItem } from "../../Menu/MenuItem";
 import { navigateToRoute, normalizeRouteURL } from "../../Router/MicroMRouterState";
 
@@ -22,6 +22,21 @@ interface MenuCardItemBaseProps extends Omit<CardProps, 'children'> {
     noIconIndent?: MantineNumberSize,
     showDescription?: boolean,
     shortcutAnchorProps?: Omit<React.ComponentPropsWithoutRef<typeof Anchor>, 'href' | 'size'>,
+    iconContainerProps?: Omit<BoxProps, 'children'>,
+    headerProps?: Partial<Omit<GroupProps, 'children'>>,
+    titleProps?: Omit<TitleProps, 'children' | 'order' | 'color'>,
+    noShortcutsIndicator?: ReactNode,
+    navigationMode?: 'navigateOnCardClick' | 'navigateOnTitleClick' | 'disabled',
+}
+
+// An empty fragment (icon: <></>) is treated as no icon
+function hasIcon(icon: ReactNode) {
+    if (icon === null || icon === undefined || typeof icon === 'boolean') return false;
+    if (isValidElement<PropsWithChildren>(icon) && icon.type === Fragment) {
+        const children = icon.props.children;
+        return children !== null && children !== undefined && children !== false;
+    }
+    return true;
 }
 
 interface SubitemsGroupModeProps {
@@ -84,6 +99,8 @@ export const MenuCardItemDefaultProps: Partial<MenuCardItemResolvedProps> = {
             { maxWidth: '30rem', cols: 1 },
         ],
     },
+    navigationMode: 'navigateOnCardClick',
+    headerProps: { align: 'flex-start' },
 };
 
 export function MenuCardItem<TContainerProps extends DefaultProps = DefaultProps>(props: MenuCardItemProps<TContainerProps>) {
@@ -91,7 +108,8 @@ export function MenuCardItem<TContainerProps extends DefaultProps = DefaultProps
         item, routeBuilder, hoverStyles, titleOrder, titleColorLight, titleColorDark, headerSpacing,
         shortcutSpacing, shortcutSize, shortcutSeparator, noIconIndent, sx, style, showDescription,
         subitemsDisplayMode, gridContainerProps, shortcutColumnsThreshold, SubitemsContainer, SubitemsContainerProps,
-        shortcutAnchorProps, ...others
+        shortcutAnchorProps, iconContainerProps, headerProps, titleProps, noShortcutsIndicator,
+        navigationMode, ...others
     } = useComponentDefaultProps('MenuCardItem', MenuCardItemDefaultProps, props as MenuCardItemResolvedProps);
 
     const theme = useMantineTheme();
@@ -120,7 +138,7 @@ export function MenuCardItem<TContainerProps extends DefaultProps = DefaultProps
 
         if (subitemsDisplayMode === 'grid') {
             // one cell per shortcut, no separator
-            return shortcutColumnsThreshold === undefined || shortcuts.length > shortcutColumnsThreshold ? 
+            return shortcutColumnsThreshold === undefined || shortcuts.length > shortcutColumnsThreshold ?
                 <SimpleGrid {...gridContainerProps}>
                     {shortcuts.map((subitem) => <Fragment key={`sh${subitem.ID}`}>{renderAnchor(subitem)}</Fragment>)}
                 </SimpleGrid>
@@ -141,26 +159,47 @@ export function MenuCardItem<TContainerProps extends DefaultProps = DefaultProps
         return <Group spacing={shortcutSpacing}>{renderSeparated()}</Group>;
     };
 
+    const hasShortcuts = shortcuts.length > 0;
+    const hasDescription = !!showDescription && !!item.description;
+
     return (
         <Card
             key={`cir${item.ID}`}
             {...others}
-            onClick={() => navigateToRoute(routeBuilder!(item.menuPath || ''))}
-            style={{ cursor: 'pointer', ...style }}
+            data-no-shortcuts={!hasShortcuts || undefined}
+            onClick={navigationMode === 'navigateOnCardClick' ? () => navigateToRoute(routeBuilder!(item.menuPath || '')) : undefined}
+            style={navigationMode === 'navigateOnCardClick' ? { cursor: 'pointer', ...style } : style}
             sx={[{ '&:hover': hoverStyles }, ...packSx(sx)]}
         >
-            <Group spacing={headerSpacing} align="flex-start">
-                {item.icon}
-                <Title order={titleOrder} color={theme.colorScheme === 'light' ? titleColorLight : titleColorDark}>{item.label}</Title>
-            </Group>
-            <Stack spacing="xs" mt="xs" ml={!item.icon ? noIconIndent : undefined} >
-                {showDescription && item.description && (
-                    <Text size="sm" color="dimmed">
-                        {item.description}
-                    </Text>
+            <Group spacing={headerSpacing} {...headerProps}>
+                {hasIcon(item.icon) &&
+                    <Box
+                        {...iconContainerProps}
+                        className={['menu-card-item-icon', iconContainerProps?.className].filter(Boolean).join(' ')}
+                        sx={[{ display: 'flex', flexShrink: 0 }, ...packSx(iconContainerProps?.sx)]}
+                    >
+                        {item.icon}
+                    </Box>
+                }
+                {navigationMode === 'navigateOnTitleClick' ? (
+                    <Anchor href={normalizeRouteURL(routeBuilder!(item.menuPath || ''))}                        >
+                        <Title {...titleProps} order={titleOrder} color={theme.colorScheme === 'light' ? titleColorLight : titleColorDark}>{item.label}</Title>
+                    </Anchor>
+                ) : (
+                    <Title {...titleProps} order={titleOrder} color={theme.colorScheme === 'light' ? titleColorLight : titleColorDark}>{item.label}</Title>
                 )}
-                {renderSubitems()}
-            </Stack>
+                {!hasShortcuts && noShortcutsIndicator}
+            </Group>
+            {(hasDescription || hasShortcuts) &&
+                <Stack spacing="xs" mt="xs" ml={!item.icon ? noIconIndent : undefined} >
+                    {hasDescription && (
+                        <Text size="sm" color="dimmed">
+                            {item.description}
+                        </Text>
+                    )}
+                    {hasShortcuts && renderSubitems()}
+                </Stack>
+            }
         </Card>
     )
 }
