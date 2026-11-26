@@ -17,13 +17,12 @@ export interface ContextualMenuPanelProps extends MenuHostProps, Omit<StackProps
 
 export const ContextualMenuPanelDefaultProps: Partial<ContextualMenuPanelProps> = {
     homeLabel: 'Home',
-    h: '100%',
     renderBreadcrumbs: true
 };
 
 export function ContextualMenuPanel(props: ContextualMenuPanelProps) {
     const {
-        header, mainMenuId, menuId, menu, menus, emptyNodeMessage, defaultLoadingComponent, homeLabel, renderBreadcrumbs, ...others
+        header, mainMenuId, menuId, menu, menus, emptyNodeMessage, defaultLoadingComponent, homeLabel, renderBreadcrumbs, h, ...others
     } = useComponentDefaultProps('ContextualMenuPanel', ContextualMenuPanelDefaultProps, props);
 
     const { route } = useMicroMRouter();
@@ -60,7 +59,7 @@ export function ContextualMenuPanel(props: ContextualMenuPanelProps) {
     ];
 
     return (
-        <Stack {...others}>
+        <Stack h={menuRoute.itemPath === "/" ? undefined : "100%"} {...others}>
             {renderBreadcrumbs && <MenuCardBreadcrumbs items={breadcrumbs} menuID={menuId} />}
             {header}
             {menuRoute.itemPath === "/"

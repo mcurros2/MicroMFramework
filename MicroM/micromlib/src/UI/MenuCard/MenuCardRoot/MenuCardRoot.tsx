@@ -11,18 +11,20 @@ export interface MenuCardRootProps extends Omit<StackProps, 'children'> {
     breadcrumbs: MenuCardBreadcrumbsProps['items'],
     rootID: string,
     renderBreadcrumbs?: boolean,
+    renderTitle?: boolean,
     routeBuilder?: (path: string) => string
 }
 
 export const MenuCardRootDefaultProps: Partial<MenuCardRootProps> = {
     renderBreadcrumbs: true,
+    renderTitle: true,
     routeBuilder: path => path,
     spacing: 'xl',
 };
 
 export function MenuCardRoot(props: MenuCardRootProps) {
     const {
-        items, rootID, breadcrumbs, renderBreadcrumbs, routeBuilder, ...others
+        items, rootID, breadcrumbs, renderBreadcrumbs, renderTitle, routeBuilder, ...others
     } = useComponentDefaultProps('MenuCardRoot', MenuCardRootDefaultProps, props);
 
     if (items.length === 0) return null;
@@ -34,7 +36,7 @@ export function MenuCardRoot(props: MenuCardRootProps) {
                     {renderBreadcrumbs && breadcrumbs.length > 0 &&
                         <MenuCardBreadcrumbs items={breadcrumbs} menuID={value.ID} />
                     }
-                    {renderBreadcrumbs && breadcrumbs.length === 0 &&
+                    {renderTitle && breadcrumbs.length === 0 &&
                         <MenuCardBreadcrumbs items={[{ title: value.label, path: normalizeRouteURL(routeBuilder!(value.menuPath || '')) }]} menuID={value.ID} />
                     }
                     <MenuCardGrid items={value.subitems || []} routeBuilder={routeBuilder} />

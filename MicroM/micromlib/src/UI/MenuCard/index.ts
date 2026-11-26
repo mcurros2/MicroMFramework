@@ -9,3 +9,5 @@ export * from "./MenuEntityActionModal";
 export * from "./MenuEntityFormModal";
 export * from "./MenuRouteHost";
 export * from "./useMenuModalCloseNavigator";
+export * from "./MenuCardBreadcrumbs";
+export * from "./MenuCardContentPanel";

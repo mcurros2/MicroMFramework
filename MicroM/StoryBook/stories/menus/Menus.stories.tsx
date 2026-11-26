@@ -76,6 +76,11 @@ export const NavBar: Story = { name: "MenuNavBar", render: () => <NavBarStory />
 function CardsStory() {
     const { mainMenu } = useDemoMenu();
     const sales = mainMenu.items.find(i => i.ID === "sales")!;
+    const manyShortcuts = {
+        ...sales,
+        subitems: ["Customers", "Orders", "Invoices", "Price lists", "Sales reports", "Commissions", "Territories"]
+            .map(label => ({ ...sales.subitems![0], ID: label.toLowerCase().replace(" ", "-"), label, canShowAsShortcut: true })),
+    };
     return (
         <Stack>
             <Text fw={600}>MenuCardRoot (root items are headings, subitems are cards)</Text>
@@ -84,6 +89,17 @@ function CardsStory() {
             <MenuCardGrid items={sales.subitems ?? []} />
             <Text fw={600} mt="lg">MenuCardItem</Text>
             <Box maw="24rem"><MenuCardItem item={sales} /></Box>
+            <Text fw={600} mt="lg">MenuCardItem — subitemsDisplayMode</Text>
+            <Group align="flex-start">
+                <Box w="24rem"><Text size="xs" color="dimmed">group (default)</Text><MenuCardItem item={manyShortcuts} /></Box>
+                <Box w="24rem"><Text size="xs" color="dimmed">grid</Text><MenuCardItem item={manyShortcuts} subitemsDisplayMode="grid" /></Box>
+                <Box w="24rem"><Text size="xs" color="dimmed">grid, shortcutColumnsThreshold=5 (3 shortcuts: inline)</Text>
+                    <MenuCardItem item={{ ...manyShortcuts, subitems: manyShortcuts.subitems?.slice(0, 3) }} subitemsDisplayMode="grid" shortcutColumnsThreshold={5} />
+                </Box>
+                <Box w="24rem"><Text size="xs" color="dimmed">custom (Stack)</Text>
+                    <MenuCardItem item={manyShortcuts} subitemsDisplayMode="custom" SubitemsContainer={Stack} SubitemsContainerProps={{ spacing: 2 }} shortcutSeparator={null} />
+                </Box>
+            </Group>
             <RouteBadge />
         </Stack>
     );

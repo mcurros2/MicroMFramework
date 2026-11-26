@@ -1,10 +1,14 @@
-import { Anchor, Card, CardProps, CSSObject, DefaultMantineColor, DefaultProps, Group, MantineNumberSize, MantineSize, packSx, Stack, Text, Title, TitleOrder, useComponentDefaultProps, useMantineTheme } from "@mantine/core";
-import { ComponentType, PropsWithChildren, ReactNode } from "react";
-import { Fragment } from "react/jsx-runtime";
+import { Anchor, Card, CardProps, CSSObject, DefaultMantineColor, DefaultProps, Group, MantineNumberSize, MantineSize, packSx, SimpleGrid, SimpleGridProps, Stack, Text, Title, TitleOrder, useComponentDefaultProps, useMantineTheme } from "@mantine/core";
+import { ComponentType, Fragment, PropsWithChildren, ReactNode } from "react";
 import { MenuItem } from "../../Menu/MenuItem";
 import { navigateToRoute, normalizeRouteURL } from "../../Router/MicroMRouterState";
 
-export interface MenuCardItemProps<TContainerProps extends DefaultProps> extends Omit<CardProps, 'children'> {
+
+export type SubitemsDisplayMode = 'group' | 'grid' | 'custom';
+
+export type MenuCardItemGridContainerProps = Omit<SimpleGridProps, 'children'>;
+
+interface MenuCardItemBaseProps extends Omit<CardProps, 'children'> {
     item: MenuItem,
     routeBuilder?: (path: string) => string,
     hoverStyles?: CSSObject,
@@ -17,14 +21,48 @@ export interface MenuCardItemProps<TContainerProps extends DefaultProps> extends
     shortcutSeparator?: ReactNode,
     noIconIndent?: MantineNumberSize,
     showDescription?: boolean,
-    SubitemsContainer?: ComponentType<PropsWithChildren & TContainerProps>
-    SubitemsContainerProps?: Partial<TContainerProps>,
-    subitemsDisplayMode?: 'grid' | 'group' | 'custom',
     shortcutAnchorProps?: Omit<React.ComponentPropsWithoutRef<typeof Anchor>, 'href' | 'size'>,
-    shortcutColumnsThreshold?: number,
 }
 
-export const MenuCardItemDefaultProps: Partial<MenuCardItemProps<any>> = {
+interface SubitemsGroupModeProps {
+    subitemsDisplayMode?: 'group',
+    gridContainerProps?: never,
+    shortcutColumnsThreshold?: never,
+    SubitemsContainer?: never,
+    SubitemsContainerProps?: never,
+}
+
+interface SubitemsGridModeProps {
+    subitemsDisplayMode: 'grid',
+    gridContainerProps?: MenuCardItemGridContainerProps,
+    shortcutColumnsThreshold?: number,
+    SubitemsContainer?: never,
+    SubitemsContainerProps?: never,
+}
+
+interface SubitemsCustomModeProps<TContainerProps extends DefaultProps> {
+    subitemsDisplayMode: 'custom',
+    SubitemsContainer: ComponentType<PropsWithChildren & TContainerProps>,
+    SubitemsContainerProps?: Partial<TContainerProps>,
+    gridContainerProps?: never,
+    shortcutColumnsThreshold?: never,
+}
+
+export type MenuCardItemProps<TContainerProps extends DefaultProps = DefaultProps> = MenuCardItemBaseProps & (
+    SubitemsGroupModeProps | SubitemsGridModeProps | SubitemsCustomModeProps<TContainerProps>
+);
+
+
+export interface MenuCardItemResolvedProps extends MenuCardItemBaseProps {
+    subitemsDisplayMode?: SubitemsDisplayMode,
+    gridContainerProps?: MenuCardItemGridContainerProps,
+    shortcutColumnsThreshold?: number,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    SubitemsContainer?: ComponentType<any>,
+    SubitemsContainerProps?: Record<string, unknown>,
+}
+
+export const MenuCardItemDefaultProps: Partial<MenuCardItemResolvedProps> = {
     routeBuilder: path => path,
     shadow: 'sm',
     withBorder: true,
@@ -37,22 +75,71 @@ export const MenuCardItemDefaultProps: Partial<MenuCardItemProps<any>> = {
     shortcutSize: 'sm',
     shortcutSeparator: <Text size="xs" color="dimmed">·</Text>,
     noIconIndent: '2.1rem',
-    SubitemsContainer: Group,
+    subitemsDisplayMode: 'group',
+    gridContainerProps: {
+        cols: 2,
+        spacing: 'md',
+        verticalSpacing: '0.3rem',
+        breakpoints: [
+            { maxWidth: '30rem', cols: 1 },
+        ],
+    },
 };
 
-export function MenuCardItem<TContainerProps extends DefaultProps>(props: MenuCardItemProps<TContainerProps>) {
+export function MenuCardItem<TContainerProps extends DefaultProps = DefaultProps>(props: MenuCardItemProps<TContainerProps>) {
     const {
         item, routeBuilder, hoverStyles, titleOrder, titleColorLight, titleColorDark, headerSpacing,
         shortcutSpacing, shortcutSize, shortcutSeparator, noIconIndent, sx, style, showDescription,
-        SubitemsContainer, SubitemsContainerProps, shortcutAnchorProps, ...others
-    } = useComponentDefaultProps('MenuCardItem', MenuCardItemDefaultProps, props);
+        subitemsDisplayMode, gridContainerProps, shortcutColumnsThreshold, SubitemsContainer, SubitemsContainerProps,
+        shortcutAnchorProps, ...others
+    } = useComponentDefaultProps('MenuCardItem', MenuCardItemDefaultProps, props as MenuCardItemResolvedProps);
 
     const theme = useMantineTheme();
 
-    const subitemsContainerProps = {
-        ...SubitemsContainerProps,
-        ...(shortcutSpacing !== undefined ?{ spacing: shortcutSpacing } : {}),
-    } as PropsWithChildren & TContainerProps;
+    const shortcuts = item.subitems?.filter((s) => s.canShowAsShortcut) ?? [];
+
+    const renderAnchor = (subitem: MenuItem) => (
+        <Anchor
+            {...shortcutAnchorProps}
+            href={normalizeRouteURL(routeBuilder!(subitem.menuPath || ''))}
+            size={shortcutSize}
+        >
+            {subitem.label}
+        </Anchor>
+    );
+
+    // inline and custom containers: shortcuts separated by shortcutSeparator
+    const renderSeparated = () => shortcuts.map((subitem, index) => (
+        <Fragment key={`sh${subitem.ID}`}>
+            {renderAnchor(subitem)}
+            {index < shortcuts.length - 1 && shortcutSeparator}
+        </Fragment>
+    ));
+
+    const renderSubitems = () => {
+
+        if (subitemsDisplayMode === 'grid') {
+            // one cell per shortcut, no separator
+            return shortcutColumnsThreshold === undefined || shortcuts.length > shortcutColumnsThreshold ? 
+                <SimpleGrid {...gridContainerProps}>
+                    {shortcuts.map((subitem) => <Fragment key={`sh${subitem.ID}`}>{renderAnchor(subitem)}</Fragment>)}
+                </SimpleGrid>
+                : <Stack spacing={shortcutSpacing}>
+                    {shortcuts.map((subitem) => <Fragment key={`sh${subitem.ID}`}>{renderAnchor(subitem)}</Fragment>)}
+                </Stack>;
+        }
+
+        if (subitemsDisplayMode === 'custom') {
+            if (!SubitemsContainer) return null;
+            const containerProps = {
+                ...(shortcutSpacing !== undefined ? { spacing: shortcutSpacing } : {}),
+                ...SubitemsContainerProps,
+            };
+            return <SubitemsContainer {...containerProps}>{renderSeparated()}</SubitemsContainer>;
+        }
+
+        return <Group spacing={shortcutSpacing}>{renderSeparated()}</Group>;
+    };
 
     return (
         <Card
@@ -72,23 +159,7 @@ export function MenuCardItem<TContainerProps extends DefaultProps>(props: MenuCa
                         {item.description}
                     </Text>
                 )}
-                {SubitemsContainer && 
-                    <SubitemsContainer {...subitemsContainerProps} key={`cig${item.ID}`}>
-                        {item.subitems?.filter((s) => s.canShowAsShortcut)
-                            .map((subitem, index, arr) => (
-                                <Fragment key={`sh${subitem.ID}`}>
-                                    <Anchor
-                                        { ...shortcutAnchorProps }
-                                        href={normalizeRouteURL(routeBuilder!(subitem.menuPath || ''))}
-                                        size={shortcutSize}
-                                    >
-                                        {subitem.label}
-                                    </Anchor>
-                                    {index < arr.length - 1 && shortcutSeparator}
-                                </Fragment>
-                            ))}
-                    </SubitemsContainer>
-                }
+                {renderSubitems()}
             </Stack>
         </Card>
     )
