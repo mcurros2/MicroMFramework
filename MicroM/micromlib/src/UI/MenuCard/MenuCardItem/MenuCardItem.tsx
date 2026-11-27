@@ -1,4 +1,4 @@
-import { Anchor, Box, BoxProps, Card, CardProps, CSSObject, DefaultMantineColor, DefaultProps, Group, GroupProps, MantineNumberSize, MantineSize, packSx, SimpleGrid, SimpleGridProps, Stack, Text, Title, TitleOrder, TitleProps, useComponentDefaultProps, useMantineTheme } from "@mantine/core";
+import { Anchor, AnchorProps, Box, BoxProps, Card, CardProps, CSSObject, DefaultMantineColor, DefaultProps, getSize, Group, GroupProps, MantineNumberSize, MantineSize, packSx, SimpleGrid, SimpleGridProps, Stack, Text, Title, TitleOrder, TitleProps, useComponentDefaultProps, useMantineTheme } from "@mantine/core";
 import { ComponentType, Fragment, isValidElement, PropsWithChildren, ReactNode } from "react";
 import { MenuItem } from "../../Menu/MenuItem";
 import { navigateToRoute, normalizeRouteURL } from "../../Router/MicroMRouterState";
@@ -25,6 +25,7 @@ interface MenuCardItemBaseProps extends Omit<CardProps, 'children'> {
     iconContainerProps?: Omit<BoxProps, 'children'>,
     headerProps?: Partial<Omit<GroupProps, 'children'>>,
     titleProps?: Omit<TitleProps, 'children' | 'order' | 'color'>,
+    titleAnchorProps?: Omit<AnchorProps, 'children'>,
     noShortcutsIndicator?: ReactNode,
     navigationMode?: 'navigateOnCardClick' | 'navigateOnTitleClick' | 'disabled',
 }
@@ -108,7 +109,7 @@ export function MenuCardItem<TContainerProps extends DefaultProps = DefaultProps
         item, routeBuilder, hoverStyles, titleOrder, titleColorLight, titleColorDark, headerSpacing,
         shortcutSpacing, shortcutSize, shortcutSeparator, noIconIndent, sx, style, showDescription,
         subitemsDisplayMode, gridContainerProps, shortcutColumnsThreshold, SubitemsContainer, SubitemsContainerProps,
-        shortcutAnchorProps, iconContainerProps, headerProps, titleProps, noShortcutsIndicator,
+        shortcutAnchorProps, iconContainerProps, headerProps, titleProps, titleAnchorProps, noShortcutsIndicator,
         navigationMode, ...others
     } = useComponentDefaultProps('MenuCardItem', MenuCardItemDefaultProps, props as MenuCardItemResolvedProps);
 
@@ -162,31 +163,58 @@ export function MenuCardItem<TContainerProps extends DefaultProps = DefaultProps
     const hasShortcuts = shortcuts.length > 0;
     const hasDescription = !!showDescription && !!item.description;
 
+    const itemRoute = routeBuilder!(item.menuPath || '');
+
+    // clicks on inner links (title or shortcuts) navigate by themselves
+    const handleCardClick = (event: React.MouseEvent<HTMLDivElement>) => {
+        if ((event.target as HTMLElement).closest('a')) return;
+        navigateToRoute(itemRoute);
+    };
+
+    const icon = hasIcon(item.icon) &&
+        <Box
+            {...iconContainerProps}
+            className={['menu-card-item-icon', iconContainerProps?.className].filter(Boolean).join(' ')}
+            sx={[{ display: 'flex', flexShrink: 0 }, ...packSx(iconContainerProps?.sx)]}
+        >
+            {item.icon}
+        </Box>;
+
+    const title = <Title {...titleProps} order={titleOrder} color={theme.colorScheme === 'light' ? titleColorLight : titleColorDark}>{item.label}</Title>;
+
     return (
         <Card
             key={`cir${item.ID}`}
             {...others}
             data-no-shortcuts={!hasShortcuts || undefined}
-            onClick={navigationMode === 'navigateOnCardClick' ? () => navigateToRoute(routeBuilder!(item.menuPath || '')) : undefined}
+            onClick={navigationMode === 'navigateOnCardClick' ? handleCardClick : undefined}
             style={navigationMode === 'navigateOnCardClick' ? { cursor: 'pointer', ...style } : style}
             sx={[{ '&:hover': hoverStyles }, ...packSx(sx)]}
         >
             <Group spacing={headerSpacing} {...headerProps}>
-                {hasIcon(item.icon) &&
-                    <Box
-                        {...iconContainerProps}
-                        className={['menu-card-item-icon', iconContainerProps?.className].filter(Boolean).join(' ')}
-                        sx={[{ display: 'flex', flexShrink: 0 }, ...packSx(iconContainerProps?.sx)]}
-                    >
-                        {item.icon}
-                    </Box>
-                }
                 {navigationMode === 'navigateOnTitleClick' ? (
-                    <Anchor href={normalizeRouteURL(routeBuilder!(item.menuPath || ''))}                        >
-                        <Title {...titleProps} order={titleOrder} color={theme.colorScheme === 'light' ? titleColorLight : titleColorDark}>{item.label}</Title>
+                    // a single link for icon and title: it takes over the header alignment and spacing between them
+                    <Anchor
+                        {...titleAnchorProps}
+                        href={normalizeRouteURL(itemRoute)}
+                        sx={[
+                            (t) => ({
+                                display: 'flex',
+                                alignItems: headerProps?.align,
+                                gap: getSize({ size: (headerProps?.spacing ?? headerSpacing)!, sizes: t.spacing }),
+                                minWidth: 0,
+                            }),
+                            ...packSx(titleAnchorProps?.sx)
+                        ]}
+                    >
+                        {icon}
+                        {title}
                     </Anchor>
                 ) : (
-                    <Title {...titleProps} order={titleOrder} color={theme.colorScheme === 'light' ? titleColorLight : titleColorDark}>{item.label}</Title>
+                    <>
+                        {icon}
+                        {title}
+                    </>
                 )}
                 {!hasShortcuts && noShortcutsIndicator}
             </Group>
